@@ -233,98 +233,99 @@ Cursor must implement the state keys and exact merge behavior below:
 ### Upsert documents in manageable batches; handle id collisions; show progress logs.
 ### Persist collection to ./chroma.
 
-
 ## Retrieval algorithm refinements
+### Build the query string using:
+    * measures (+ synonyms),
+    * manswer_type,
+    * mtime hints,
+    * mdataset hint (prefer profile.preferred_dataset; default acs/acs5).
+### Scoring enhancements:
+    * Give a small boost to candidates whose var codes end with _001E.
+    * Boost if label or concept contains “total population,” “median,” “Hispanic or Latino.”
+    * If profile.var_aliases maps the measures phrase, strongly prefer that var (top-1 unless confidence is very low).
+### Confidence threshold:
+    * If top candidate confidence < threshold, or if the top two are close and represent different concepts, route to clarify.
 
-Build the query string using:
-measures (+ synonyms),
-answer_type,
-time hints,
-dataset hint (prefer profile.preferred_dataset; default acs/acs5).
-Scoring enhancements:
-Give a small boost to candidates whose var codes end with _001E.
-Boost if label or concept contains “total population,” “median,” “Hispanic or Latino.”
-If profile.var_aliases maps the measures phrase, strongly prefer that var (top-1 unless confidence is very low).
-Confidence threshold:
-If top candidate confidence < threshold, or if the top two are close and represent different concepts, route to clarify.
-Planning and API constraints
 
-Always include NAME in variables for human-readable location labels.
-Enforce a max variables per request. If future features add more variables, split into multiple QuerySpecs per year.
-Validate the requested years against availability; if none viable, suggest nearest available year or route to clarify.
-Validate geography level against dataset’s general compatibility (assume ACS supports place/state/county reliably). If user explicitly asks for tracts or block groups, return a friendly “not yet supported” message with guidance.
-Data fetching and robustness
+## Planning and API constraints
+    * Always include NAME in variables for human-readable location labels.
+    * Enforce a max variables per request. If future features add more variables, split into multiple QuerySpecs per year.
+    * Validate the requested years against availability; if none viable, suggest nearest available year or route to clarify.
+    * Validate geography level against dataset’s general compatibility (assume ACS supports place/state/county reliably). If user explicitly asks for tracts or block groups, return a friendly “not yet supported” message with guidance.
 
-Respect retries/backoff for the Census API; handle 429 and 5xx errors gracefully.
-On partial failures (some years failed), continue, log which ones failed, and include a footnote stating partial data.
-Cast numeric columns when possible; leave NAME and geo id columns as strings.
-Ensure the year column exists and is int.
-Caching and retention (strong guarantees)
+## Data fetching and robustness
+    * Respect retries/backoff for the Census API; handle 429 and 5xx errors gracefully.
+    * On partial failures (some years failed), continue, log which ones failed, and include a footnote stating partial data.
+    * Cast numeric columns when possible; leave NAME and geo id columns as strings.
+    * Ensure the year column exists and is int.
 
-Cache key is a stable hash of year, dataset, sorted variables, and normalized geo filters.
-Cache entry includes a timestamp. On read, refresh timestamp so frequently used results survive pruning.
-On load and on save, prune entries older than RETENTION_DAYS and delete files. If size caps are configured and exceeded, evict oldest entries until under caps.
-History follows the same 90-day retention rule; pruning happens on load and save.
-Conversation memory and message control
+## Caching and retention (strong guarantees)
+    * Cache key is a stable hash of year, dataset, sorted variables, and normalized geo filters.
+    * Cache entry includes a timestamp. On read, refresh timestamp so frequently used results survive pruning.
+    * On load and on save, prune entries older than RETENTION_DAYS and delete files. If size caps are configured and exceeded, evict oldest entries until under caps.
+    * History follows the same 90-day retention rule; pruning happens on load and save.
 
-Use a SQLite checkpointer for thread memory; invoke with a stable thread_id to continue the same conversation.
-If messages exceed a configured turn limit, summarize older content into the summary field and trim messages to recent turns; keep summary available to intent/retrieve nodes.
-UX behavior requirements
+## Conversation memory and message control
+    * Use a SQLite checkpointer for thread memory; invoke with a stable thread_id to continue the same conversation.
+    * If messages exceed a configured turn limit, summarize older content into the summary field and trim messages to recent turns; keep summary available to intent/retrieve nodes.
 
-CLI/REPL prompts for user_id and thread_id.
-Print a concise answer and, if applicable, a preview row sample and the saved table path.
-For not supported items (e.g., tracts initially), return a friendly message that includes the expected for/in structure and invites a supported alternative.
-All nodes write one short, timestamped log line to logs, accessible at the end of each run.
-Acceptance criteria (Cursor must meet these exactly)
+## UX behavior requirements
+    * CLI/REPL prompts for user_id and thread_id.
+    * Print a concise answer and, if applicable, a preview row sample and the saved table path.
+    * For not supported items (e.g., tracts initially), return a friendly message that includes the expected for/in structure and invites a supported alternative.
+    * All nodes write one short, timestamped log line to logs, accessible at the end of each run.
 
-First-time setup:
+## Acceptance criteria (Cursor must meet these exactly)
+### First-time setup:
 Running index/build_index builds a Chroma collection named census_vars in ./chroma without errors using ACS 5-year 2012–2023.
-Query: “Population of NYC in 2023”
-intent: is_census true; answer_type single; measures includes population; time year 2023; geo_hint recognized.
-geo: level place with state 36, place 51000.
-retrieve: finds a candidate like B01003_001E with years including 2023.
-plan: exactly one query for 2023 including NAME.
-data: fetches and saves a CSV to ./data, caches it, and produces a preview.
-answer: prints a number with thousands separators and mentions year, dataset (ACS 5-year), and NAME in a footnote.
-memory_write: history updated (one item), profile default_geo set, cache_index saved.
-Query: “Hispanics income from 2012 to 2023 in NYC”
-intent: series or table; measures include median_income and hispanic.
-retrieve: candidate B19013I_001E; years intersect 2012–2023.
-plan: one query per year, including NAME in each.
-data: runs concurrently (bounded), fetches, saves, caches; on re-run, uses cache (timestamps refreshed).
-answer: creates a combined table, saves it once, prints a concise summary and preview. Footnote mentions variable and dataset.
-Query: “By county in NYC, population 2020”
-geo: level county with in=state:36 and county:* (or clarify if user meant the five specific counties).
-retrieve/plan/data/answer complete successfully and return a small table across NYC counties for 2020.
-Not Census example: “What’s 2+2?”
-intent routes to not_census with a helpful prompt.
-Clarify route:
-Ambiguous question triggers clarify. App asks a targeted question and ends turn. The next user reply continues in the same thread and completes the flow.
-Retention:
-Manually adjusting timestamps to simulate >90 days triggers pruning of history items and cache entries; corresponding files are deleted. Fresh accesses refresh timestamps.
-Testing checklist for Cursor to implement
+### Query: “Population of NYC in 2023”
+    * intent: is_census true; answer_type single; measures includes population; time year 2023; geo_hint recognized.
+    * geo: level place with state 36, place 51000.
+    * retrieve: finds a candidate like B01003_001E with years including 2023.
+    * plan: exactly one query for 2023 including NAME.
+    * data: fetches and saves a CSV to ./data, caches it, and produces a preview.
+    * answer: prints a number with thousands separators and mentions year, dataset (ACS 5-year), and NAME in a footnote.
+    * memory_write: history updated (one item), profile default_geo set, cache_index saved.
+### Query: “Hispanics income from 2012 to 2023 in NYC”
+    * intent: series or table; measures include median_income and hispanic.
+    * retrieve: candidate B19013I_001E; years intersect 2012–2023.
+    * plan: one query per year, including NAME in each.
+    * data: runs concurrently (bounded), fetches, saves, caches; on re-run, uses cache (timestamps refreshed).
+    * answer: creates a combined table, saves it once, prints a concise summary and preview. Footnote mentions variable and dataset.
+### Query: “By county in NYC, population 2020”
+    * geo: level county with in=state:36 and county:* (or clarify if user meant the five specific counties).
+    * retrieve/plan/data/answer complete successfully and return a small table across NYC counties for 2020.
+### Not Census example: “What’s 2+2?”
+*   intent routes to not_census with a helpful prompt.
+### Clarify route:
+    *  Ambiguous question triggers clarify. App asks a targeted question and ends turn. The next user reply continues in the same thread and completes the flow.
+### Retention:
+    * Manually adjusting timestamps to simulate >90 days triggers pruning of history items and cache entries; corresponding files are deleted. Fresh accesses refresh timestamps.
 
-Unit-like functions (if tests are added): signature stability, retention pruning, numeric casting for typical ACS columns.
-Manual tests:
-Happy paths as per acceptance criteria.
-API error simulation (e.g., temporary network issue): verify retries/backoff and friendly error.
-Cache hit/refresh: re-run same query; ensure no network call and timestamps are updated.
-Summarization triggers when messages are long; ensure conversation continuity via summary.
-Security, privacy, local-only guarantees
+## Testing checklist for Cursor to implement
 
-No data sent to third-party services beyond the public Census API.
-Chroma, memory, cache, and checkpoints are local directories/files.
-Provide a simple reset: delete data/, memory/, chroma/, and checkpoints.db; then rebuild the index.
-Clear TODOs for future upgrades (Cursor should mark these in comments)
+### Unit-like functions (if tests are added): signature stability, retention pruning, numeric casting for typical ACS columns.
+### Manual tests:
+    * Happy paths as per acceptance criteria.
+    * API error simulation (e.g., temporary network issue): verify retries/backoff and friendly error.
+    * Cache hit/refresh: re-run same query; ensure no network call and timestamps are updated.
+    * Summarization triggers when messages are long; ensure conversation continuity via summary.
 
-Add full support for tracts and block groups (with for/in chains).
-Extend build_index to acs/acs1 and dec/pl by uncommenting dataset lists.
-Add a multi-variable planner for grouped requests and ensure variable batching by limit.
-Upgrade intent and clarify to an LLM (optional) with explicit user opt-in.
-Reminder to Cursor
+## Security, privacy, local-only guarantees
+    * No data sent to third-party services beyond the public Census API.
+    * Chroma, memory, cache, and checkpoints are local directories/files.
+    * Provide a simple reset: delete data/, memory/, chroma/, and checkpoints.db; then rebuild the index.
 
-Generate all code from these instructions.
-Keep configuration constants centralized and easy to change.
-Implement robust logging and friendly, concise user-facing messages.
-Never place large dataframes in the graph state; only store file handles and tiny previews.
-Ensure all nodes return only deltas to state so reducers can merge predictably.
+## Clear TODOs for future upgrades (Cursor should mark these in comments)
+
+    * Add full support for tracts and block groups (with for/in chains).
+    * Extend build_index to acs/acs1 and dec/pl by uncommenting dataset lists.
+    * Add a multi-variable planner for grouped requests and ensure variable batching by limit.
+    * Upgrade intent and clarify to an LLM (optional) with explicit user opt-in.
+
+## Reminder to Cursor
+    * Generate all code from these instructions.
+    * Keep configuration constants centralized and easy to change.
+    * Implement robust logging and friendly, concise user-facing messages.
+    * Never place large dataframes in the graph state; only store file handles and tiny previews.
+    * Ensure all nodes return only deltas to state so reducers can merge predictably.
