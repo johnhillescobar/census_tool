@@ -259,10 +259,23 @@ wheels = [
 ]
 
 [[package]]
+name = "census"
+version = "0.8.24"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "requests" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/07/cc/5161b96b309331e54e3acb06b67ac1d2a98f52cc9d0e27627abb527115f4/census-0.8.24.tar.gz", hash = "sha256:5c6b789652f9a3ae2eb5762367405ae7ca04be7e0f3416700ddc300fc9fe7768", size = 13048, upload-time = "2025-04-08T15:52:14.664Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/99/73/3868a695f082f379dce20f19b55451fef4c3f4337824f0991dc1a228301b/census-0.8.24-py3-none-any.whl", hash = "sha256:9ac2c2adca6a7c074d0e6551e1e3bd819724e5d309f0b0d72285247436b58089", size = 11401, upload-time = "2025-04-08T15:52:13.449Z" },
+]
+
+[[package]]
 name = "census-tool"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
+    { name = "census" },
     { name = "chromadb" },
     { name = "ddgs" },
     { name = "duckduckgo-search" },
@@ -284,11 +297,14 @@ dependencies = [
     { name = "tavily-python" },
     { name = "tensorflow" },
     { name = "trustcall" },
+    { name = "typing-extensions" },
+    { name = "us" },
     { name = "wikipedia" },
 ]
 
 [package.metadata]
 requires-dist = [
+    { name = "census", specifier = ">=0.8.24" },
     { name = "chromadb", specifier = ">=1.0.21" },
     { name = "ddgs", specifier = ">=9.5.5" },
     { name = "duckduckgo-search", specifier = ">=8.1.1" },
@@ -310,6 +326,8 @@ requires-dist = [
     { name = "tavily-python", specifier = ">=0.7.11" },
     { name = "tensorflow", specifier = ">=2.20.0" },
     { name = "trustcall", specifier = ">=0.0.39" },
+    { name = "typing-extensions", specifier = ">=4.15.0" },
+    { name = "us", specifier = ">=3.2.0" },
     { name = "wikipedia", specifier = ">=1.4.0" },
 ]
 
@@ -1047,6 +1065,34 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/72/3a/79a912fbd4d8dd6fbb02bf69afd3bb72cf0c729bb3063c6f4498603db17a/jedi-0.19.2.tar.gz", hash = "sha256:4770dc3de41bde3966b02eb84fbcf557fb33cce26ad23da12c742fb50ecb11f0", size = 1231287, upload-time = "2024-11-11T01:41:42.873Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/c0/5a/9cac0c82afec3d09ccd97c8b6502d48f165f9124db81b4bcb90b4af974ee/jedi-0.19.2-py2.py3-none-any.whl", hash = "sha256:a8ef22bde8490f57fe5c7681a3c83cb58874daf72b4784de3cce5b6ef6edb5b9", size = 1572278, upload-time = "2024-11-11T01:41:40.175Z" },
+]
+
+[[package]]
+name = "jellyfish"
+version = "1.2.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/7c/29/c0d39be806b5d5c201e9bf5265e43cf0e88bd63fb4e38edfc7a212ca38a7/jellyfish-1.2.0.tar.gz", hash = "sha256:5c7d73db4045dcc53b6efbfea21f3d3da432d3e052dc51827574d1a447fc23b4", size = 364693, upload-time = "2025-03-31T15:43:18.43Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/4a/d5/89424092e3d1e6948eb215fb1f58126fc8090989475f6cbc6545a0eae72c/jellyfish-1.2.0-cp312-cp312-macosx_10_12_x86_64.whl", hash = "sha256:088c9b7e7077802ce2254b876486ae3b49d81f4f07f6c692c612ba40e1a42177", size = 326154, upload-time = "2025-03-31T15:42:08.819Z" },
+    { url = "https://files.pythonhosted.org/packages/91/af/881ef6fb6e2e534b7383c6ace369485e1c285dc70b9bab54e35796d4f1fd/jellyfish-1.2.0-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:393664438fbb98886f9c97675179d4b552b68c3d0099d4df3cdec6412deaeea0", size = 322983, upload-time = "2025-03-31T15:42:09.942Z" },
+    { url = "https://files.pythonhosted.org/packages/1e/ee/d73ac46c3ad0f1d8b28de452b117080bab7d7a3565a05f1b34a5b6085f4e/jellyfish-1.2.0-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:a54a83905596dd712948b6af7fccc2b28d37624bfc9eab4868518c3f8106c739", size = 355339, upload-time = "2025-03-31T15:42:11.04Z" },
+    { url = "https://files.pythonhosted.org/packages/e4/1a/8952b21f9b52931c5997dc2d24b2a1660d76bb34aa69460b0d4e126501a9/jellyfish-1.2.0-cp312-cp312-manylinux_2_17_armv7l.manylinux2014_armv7l.whl", hash = "sha256:e2f68cdb689b59653fa70345c8fcb09bfee12d34c0f7ae223ce70fa5175cb2ee", size = 363903, upload-time = "2025-03-31T15:42:12.164Z" },
+    { url = "https://files.pythonhosted.org/packages/25/df/bdeb876920dc26405e90a6abf014eff5a1892652a7875733ed0e91a0e424/jellyfish-1.2.0-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:019542af342973c537275b289c1e891fb2b62b011bfdb68c816da4527477b74d", size = 355931, upload-time = "2025-03-31T15:42:14.108Z" },
+    { url = "https://files.pythonhosted.org/packages/dd/c3/cb05e3d092eb929d2043e4945d172f30781321d90b198a05316b8dfb97df/jellyfish-1.2.0-cp312-cp312-musllinux_1_1_aarch64.whl", hash = "sha256:079ec6fceb5336e7c2f99b43ee035f85b39022db897c70e736439ed1d4fc8462", size = 533430, upload-time = "2025-03-31T15:42:15.559Z" },
+    { url = "https://files.pythonhosted.org/packages/34/a0/af60a3d7ec0d7f537dd32efb485ed7969c0d8b3856cd3cc7445fa7b0bc3d/jellyfish-1.2.0-cp312-cp312-musllinux_1_1_i686.whl", hash = "sha256:a5ddd20e6d87c7dc173717ffe0df0bba50aa0b0c51e3d57d6cce1706ea6a1167", size = 554656, upload-time = "2025-03-31T15:42:16.733Z" },
+    { url = "https://files.pythonhosted.org/packages/8f/db/92026263a56dea6751d9935a4c41c78f5561aa49c6b20e068389b25e6bfb/jellyfish-1.2.0-cp312-cp312-musllinux_1_1_x86_64.whl", hash = "sha256:08a1a3f6adc033eb3735a8ba121188a5d3fdc6630eec6a946c30260c1ac680ac", size = 526659, upload-time = "2025-03-31T15:42:17.864Z" },
+    { url = "https://files.pythonhosted.org/packages/e6/4e/c8c546a422090eb75c232454465aefb49e1030fad043a99a73ba12f80fee/jellyfish-1.2.0-cp312-cp312-win32.whl", hash = "sha256:65ec39cfed29e475df33c9d7fc70d76eb39ce6dfb7fedf19599caff497a9b3c7", size = 212397, upload-time = "2025-03-31T15:42:19.056Z" },
+    { url = "https://files.pythonhosted.org/packages/90/6d/5770b7fb1767c12559aabe2bf5f629bee8d738dbe110301c14aa276d2c8a/jellyfish-1.2.0-cp312-cp312-win_amd64.whl", hash = "sha256:199baa59412723ef76126303fc236728b2613a4723fba83eede942c89e1dad1c", size = 216558, upload-time = "2025-03-31T15:42:20.173Z" },
+    { url = "https://files.pythonhosted.org/packages/f0/4e/2f10011b5a80c56bb0f2775ee7283a3290fb9ec4e67c48c0342671a6d6e0/jellyfish-1.2.0-cp313-cp313-macosx_10_12_x86_64.whl", hash = "sha256:8b995bdf97d43cdca1e6bd5375f351bcb85c7f5e8760fe4a28c63eb0e6104075", size = 325372, upload-time = "2025-03-31T15:42:21.563Z" },
+    { url = "https://files.pythonhosted.org/packages/f8/7e/e15034422abf21e28b43155d21f4e34ae7349fad6c682be12c739d79119b/jellyfish-1.2.0-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:559c1d6f17ba51639843b958a0d57ece5c4155e6b820c4acb3f3437437625ef3", size = 322333, upload-time = "2025-03-31T15:42:23.015Z" },
+    { url = "https://files.pythonhosted.org/packages/0b/62/cdb56ed6641c5a23bb00c775ea54108423b40d2376bed186455cc39f4a0b/jellyfish-1.2.0-cp313-cp313-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:e4439f4066ccc5dd6a7a15cb06941f5150bab646201e9e014a7d34d65cbe89fe", size = 354567, upload-time = "2025-03-31T15:42:24.22Z" },
+    { url = "https://files.pythonhosted.org/packages/e0/97/47830ff857307936313e345010cf7626e7b3a233549cfc258c7342553de4/jellyfish-1.2.0-cp313-cp313-manylinux_2_17_armv7l.manylinux2014_armv7l.whl", hash = "sha256:dbf866d2b967fd2d5380134fdcb47d4f113e24d659b46c38e55da80c215d2042", size = 363379, upload-time = "2025-03-31T15:42:25.407Z" },
+    { url = "https://files.pythonhosted.org/packages/8e/95/4e3d5bac918aa7b0e1cebff39822add0844dbfc433870949dccc3df8aae3/jellyfish-1.2.0-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:d9290b82276bba1941ad0f98226f51b43aeef7bdedb927b9266516b4519b9012", size = 355215, upload-time = "2025-03-31T15:42:26.695Z" },
+    { url = "https://files.pythonhosted.org/packages/6e/2f/1d7aa3b7dc3d7e6a7f9e832a98440d14641670394c11718f7584dab434b2/jellyfish-1.2.0-cp313-cp313-musllinux_1_1_aarch64.whl", hash = "sha256:052345ded2b00104a50acbab35c671efe06f40790202f6a2fc279ad645f31ab2", size = 532669, upload-time = "2025-03-31T15:42:27.806Z" },
+    { url = "https://files.pythonhosted.org/packages/f6/0e/d527f9425e9462463e3b0ae748ec39ec5a2ebaa829725ca8c09f8753e364/jellyfish-1.2.0-cp313-cp313-musllinux_1_1_i686.whl", hash = "sha256:465dcf8b17162e3dae2cae0072b22ea9637e6ce8ddd8294181758437cd9c0673", size = 554223, upload-time = "2025-03-31T15:42:29.362Z" },
+    { url = "https://files.pythonhosted.org/packages/04/71/533b48054f1ddab7d9b7ad3833a87963200c7aef7ce81e082379da6d1264/jellyfish-1.2.0-cp313-cp313-musllinux_1_1_x86_64.whl", hash = "sha256:ae5f2e3c5ef14cb5b86afe7ed4078e504f75dd61ca9d9560bef597f9d2237c63", size = 526103, upload-time = "2025-03-31T15:42:30.528Z" },
+    { url = "https://files.pythonhosted.org/packages/f4/d7/6c5ce80088495b7bb002931d7d0a313143b45fa10e826f11aadd4a97ccdb/jellyfish-1.2.0-cp313-cp313-win32.whl", hash = "sha256:13ee212b6fa294a1b6306693a1553b760d876780e757b9f016010748fe811b4d", size = 212179, upload-time = "2025-03-31T15:42:31.628Z" },
+    { url = "https://files.pythonhosted.org/packages/40/aa/332fd282668a353570bdad56d65f526bc28ab73da1a3dd99e670af687186/jellyfish-1.2.0-cp313-cp313-win_amd64.whl", hash = "sha256:c8089e918ddb1abae946e92d053f646a7f686d0d051ef69cdfaa28b37352bbdf", size = 216066, upload-time = "2025-03-31T15:42:32.75Z" },
 ]
 
 [[package]]
@@ -3738,6 +3784,18 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/15/22/9ee70a2574a4f4599c47dd506532914ce044817c7752a79b6a51286319bc/urllib3-2.5.0.tar.gz", hash = "sha256:3fc47733c7e419d4bc3f6b3dc2b4f890bb743906a30d56ba4a5bfa4bbff92760", size = 393185, upload-time = "2025-06-18T14:07:41.644Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/a7/c2/fe1e52489ae3122415c51f387e221dd0773709bad6c6cdaa599e8a2c5185/urllib3-2.5.0-py3-none-any.whl", hash = "sha256:e6b01673c0fa6a13e374b50871808eb3bf7046c4b125b216f6bf1cc604cff0dc", size = 129795, upload-time = "2025-06-18T14:07:40.39Z" },
+]
+
+[[package]]
+name = "us"
+version = "3.2.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "jellyfish" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/35/12/06f87be706ccc5794569d14f903c2f755aa98e1a9d53e4e7e17d9986e9d1/us-3.2.0.tar.gz", hash = "sha256:cb223e85393dcc5171ead0dd212badc47f9667b23700fea3e7ea5f310d545338", size = 16046, upload-time = "2024-07-22T01:09:42.736Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/65/a8/1791660a87f03d10a3bce00401a66035999c91f5a9a6987569b84df5719d/us-3.2.0-py3-none-any.whl", hash = "sha256:571714ad6d473c72bbd2058a53404cdf4ecc0129e4f19adfcbeb4e2d7e3dc3e7", size = 13775, upload-time = "2024-07-22T01:09:41.432Z" },
 ]
 
 [[package]]

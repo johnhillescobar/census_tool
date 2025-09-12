@@ -5,6 +5,7 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "census>=0.8.24",
     "chromadb>=1.0.21",
     "ddgs>=9.5.5",
     "duckduckgo-search>=8.1.1",
@@ -26,5 +27,7 @@ dependencies = [
     "tavily-python>=0.7.11",
     "tensorflow>=2.20.0",
     "trustcall>=0.0.39",
+    "typing-extensions>=4.15.0",
+    "us>=3.2.0",
     "wikipedia>=1.4.0",
 ]
