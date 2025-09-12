@@ -1,0 +1,7 @@
+langgraph>=0.6.7
+chromadb>=1.0.21
+sentence-transformers>=5.1.0
+pandas>=2.3.2
+requests>=2.32.5
+typing-extensions
+numpy>=2.3.3
