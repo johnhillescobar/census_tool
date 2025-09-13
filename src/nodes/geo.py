@@ -37,7 +37,7 @@ def geo_node(state: CensusState, config: RunnableConfig) -> Dict[str, Any]:
     try:
         resolved_geo = resolve_geography_hint(geo_hint, profile_default_geo)
 
-        # Validate the resolved lvel
+        # Validate the resolved level
         level = resolved_geo.get("level", "")
         if not validate_geography_level(level):
             logger.error(f"Unsupported geography level: '{level}'")
