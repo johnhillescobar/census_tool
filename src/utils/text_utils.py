@@ -166,7 +166,7 @@ def determine_answer_type(text: str) -> str:
     """Determine if answer should be single value, series, or table"""
     text_lower = text.lower()
 
-    # Check for table indicators first (most specific
+    # Check for table indicators first (most specific)
     if any(indicator in text_lower for indicator in TABLE_INDICATORS):
         return "table"
 
