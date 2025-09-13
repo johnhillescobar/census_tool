@@ -62,5 +62,5 @@ def geo_node(state: CensusState, config: RunnableConfig) -> Dict[str, Any]:
         logger.error(f"Error resolving geography hint: {str(e)}")
         return {
             "error": f"Error resolving geography: {str(e)}",
-            "logs": ["geo: ERROR - {str(e)}"],
+            "logs": [f"geo: ERROR - {str(e)}"],
         }
