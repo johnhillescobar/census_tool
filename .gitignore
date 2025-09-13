@@ -10,3 +10,7 @@ wheels/
 .venv
 chroma/
 chroma/*
+
+
+# .env file
+.env
