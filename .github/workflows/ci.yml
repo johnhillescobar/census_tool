@@ -61,7 +61,7 @@ jobs:
           # Add any build commands here if needed
 
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: census-tool-build
           path: |
