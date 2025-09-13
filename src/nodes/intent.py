@@ -43,7 +43,7 @@ def intent_node(state: CensusState, config: RunnableConfig) -> Dict[str, Any]:
             "logs": ["intent: ERROR - no messages"],
         }
 
-    # Get the last under message (assuming it is the question)
+    # Get the last user message (assuming it is the question)
     last_message = messages[-1]
     if last_message.get("role") != "user":
         logger.error("Last message is not a user message")
