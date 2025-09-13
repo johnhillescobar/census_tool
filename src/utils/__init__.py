@@ -12,6 +12,12 @@ from .text_utils import (
     determine_answer_type,
     is_census_question,
 )
+from .geo_utils import (
+    resolve_geography_hint,
+    validate_geography_level,
+    get_unsupported_level_message,
+)
+
 
 __all__ = [
     "load_json_file",
@@ -25,4 +31,7 @@ __all__ = [
     "extract_geo_hint",
     "determine_answer_type",
     "is_census_question",
+    "resolve_geography_hint",
+    "validate_geography_level",
+    "get_unsupported_level_message",
 ]
