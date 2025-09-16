@@ -186,3 +186,81 @@ def is_census_question(text: str) -> bool:
     """Determine if question is about census"""
     text_lower = text.lower()
     return any(keyword in text_lower for keyword in CENSUS_KEYWORDS)
+
+
+def build_retrieval_query(intent: Dict[str, Any], profile: Dict[str, Any]) -> str:
+    """Build Chroma query string from intent and profile"""
+    query_parts = []
+
+    # Extract intent components
+    measures = intent.get("measures", [])
+    answer_type = intent.get("answer_type", "single")
+    time_info = intent.get("time", {})
+
+    # 1. Add measures with synonyms (agnostic approach)
+    if measures:
+        expanded_measures = add_measure_synonyms(measures)
+        measures_text = " ".join(expanded_measures)
+        query_parts.append(measures_text)
+
+    # 2. Add answer_type hints (generic patterns)
+    if answer_type == "series":
+        query_parts.extend(["over time", "yearly", "trend", "temporal"])
+    elif answer_type == "table":
+        query_parts.extend(
+            ["breakdown", "by geography", "comparison", "cross-tabulation"]
+        )
+
+    # 3. Add time hints
+    if "year" in time_info:
+        query_parts.append(f"year {time_info['year']}")
+    elif "start_year" in time_info and "end_year" in time_info:
+        query_parts.append(
+            f"years {time_info['start_year']} to {time_info['end_year']}"
+        )
+
+    # 4. Add dataset hint
+    preferred_dataset = profile.get("preferred_dataset", "acs/acs5")
+    query_parts.append(f"dataset:{preferred_dataset}")
+
+    # 5. Check for var_aliases in profile (boost relevance)
+    var_aliases = profile.get("var_aliases", {})
+    measures_phrase = " ".join(measures).lower()
+    if measures_phrase in var_aliases:
+        # Prepend var code to boost relevance
+        var_code = var_aliases[measures_phrase]
+        query_parts.insert(0, var_code)
+
+    # Build final query
+    query_string = " ".join(filter(None, query_parts))
+
+    return query_string
+
+
+def add_measure_synonyms(measures: List[str]) -> List[str]:
+    """Add synonyms to measures (e.g., latino for hispanic)"""
+    expanded_measures = measures.copy()
+
+    # Create a mapping of common synonyms (case-insensitive)
+    synonym_mappings = {
+        "hispanic": ["latino", "latina"],
+        "latino": ["hispanic"],
+        "latina": ["hispanic"],
+        "income": ["earnings", "wage", "salary"],
+        "population": ["people", "residents", "inhabitants"],
+        "unemployment": ["jobless", "unemployed"],
+        "education": ["schooling", "academic"],
+        "age": ["years old", "aged"],
+        "household": ["family", "home"],
+    }
+
+    # Add synonyms for each measure
+    for measure in measures:
+        measure_lower = measure.lower()
+        if measure_lower in synonym_mappings:
+            synonyms = synonym_mappings[measure_lower]
+            for synonym in synonyms:
+                if synonym not in [m.lower() for m in expanded_measures]:
+                    expanded_measures.append(synonym)
+
+    return expanded_measures
