@@ -234,8 +234,9 @@ def test_plan_node_low_confidence():
 
     # Assertions for low confidence case
     assert "error" in result, "Expected error for low confidence"
-    assert "confidence" in result["error"].lower(), (
-        f"Error should mention confidence: {result['error']}"
+    assert "score" in result["error"].lower(), (
+    f"Error should mention score: {result['error']}"
+)
     )
     assert "plan: confidence 0.30 below threshold" in result["logs"], (
         f"Unexpected log: {result['logs']}"
