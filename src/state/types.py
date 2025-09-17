@@ -23,3 +23,11 @@ class CensusState(TypedDict):
     profile: Dict[str, Any]  # User profile; reducer; merge dictionaries.
     history: List[Dict[str, Any]]  # Conversation history; reducer; append.
     cache_index: Dict[str, Any]  # Cache index; reducer; merge dictionaries.
+
+
+class QuerySpec(TypedDict):
+    year: int
+    dataset: str
+    variables: List[str]
+    geo: Dict[str, Any]
+    save_as: str
