@@ -17,7 +17,7 @@ def compute_cache_signature(
     # Sort variables for consistent ordering
     sorted_vars = sorted(variables)
 
-    # Create a stable string representatives
+    # Create a stable string representation
     cache_data = {
         "year": year,
         "dataset": dataset,
