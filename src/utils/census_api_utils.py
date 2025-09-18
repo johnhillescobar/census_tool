@@ -87,7 +87,7 @@ def build_census_url(
     # Construct the URL
     url = f"{base_url}/{year}/{dataset}"
 
-    # Add variables paramater
+    # Add variables parameter
     variables_str = ",".join(variables)
 
     # Add the geography filters
