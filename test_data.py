@@ -31,7 +31,10 @@ def test_data_node_success():
                     year=2023,
                     dataset="acs/acs5",
                     variables=["B01003_001E", "NAME"],
-                    geo={},
+                    geo={
+                        "level": "place",
+                        "filters": {"for": "place:51000", "in": "state:36"},
+                    },
                     save_as="B01003_001E_place_2023",
                 )
             ],
@@ -122,7 +125,7 @@ def test_data_node_empty_queries():
         geo={},
         candidates={},
         artifacts={},
-        plan={},
+        plan={"queries": []},  # Empty queries list
         final=None,
         logs=[],
         error=None,
@@ -136,7 +139,7 @@ def test_data_node_empty_queries():
 
     # Assertions for error case
     assert "error" in result, "Expected error for empty queries"
-    assert result["error"] == "No queries found in plan", (
+    assert result["error"] == "Plan contains no queries", (
         f"Unexpected error message: {result['error']}"
     )
 
