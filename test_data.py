@@ -51,7 +51,7 @@ def test_data_node_success():
     # Test the data_node
     result = data_node(test_state, RunnableConfig())
 
-    # Assertions for succesful case
+    # Assertions for successful case
     assert "error" not in result, f"Unexpected error: {result.get('error')}"
     assert "artifacts" in result, "Missing 'artifacts' in result"
     assert "cache_index" in result, "Missing 'cache_index' in result"
