@@ -17,3 +17,7 @@ chroma/*
 
 # Sketch/experimental files
 sketch*.py
+
+# data/*
+data/
+
