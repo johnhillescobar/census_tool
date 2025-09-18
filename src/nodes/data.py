@@ -19,10 +19,15 @@ def data_node(state: CensusState, config: RunnableConfig) -> Dict[str, Any]:
     plan = state.get("plan", {})
     cache_index = state.get("cache_index", {})
 
-    if not plan or not plan.get("queries"):
+    if not plan:
         return {
             "error": "No plan found in state",
             "logs": ["data: ERROR - no plan"],
+        }
+    if not plan.get("queries"):
+        return {
+            "error": "Plan contains no queries",
+            "logs": ["data: ERROR - plan contains no queries"],
         }
 
     queries = plan["queries"]
