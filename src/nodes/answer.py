@@ -93,4 +93,4 @@ def not_census_node(state: CensusState, config: Dict[str, Any]) -> Dict[str, Any
         "user_question": user_question,
     }
 
-    return {"final": response, "logs": "not census: provided non-Census reponse"}
+    return {"final": response, "logs": "not census: provided non-Census response"}
