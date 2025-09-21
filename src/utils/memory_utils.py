@@ -142,7 +142,7 @@ def update_profile(
 
     updated_profile["usage_stats"]["total_queries"] += 1
     if final and "error" not in final:
-        updated_profile["usage_stats"]["successful_queries"] += 1
+        updated_profile["usage_stats"]["success_queries"] += 1
     updated_profile["usage_stats"]["last_query_date"] = pd.Timestamp.now().isoformat()
     return updated_profile
 
