@@ -98,21 +98,224 @@ memory_load → [summarizer] → intent → router → {
 uv run python app.py
 ```
 
-## 📖 Usage Examples
+## 🎮 How to Use the Application
 
-### Basic Queries
+### Command Line Interface (Recommended)
+
+1. **Start the application:**
+   ```bash
+   uv run python main.py
+   ```
+
+2. **Follow the prompts:**
+   - Enter your user ID (or press Enter for 'demo')
+   - Enter your thread ID (or press Enter for 'main')
+
+3. **Ask questions about Census data:**
+   ```
+   ❓ Your question: What's the population of New York City in 2023?
+   ```
+
+4. **Example conversation flow:**
+   ```
+   🏛️  Welcome to the Census Data Assistant!
+   ==================================================
+   Enter your user ID (or press Enter for 'demo'): 
+   Enter your thread ID (or press Enter for a new thread): 
+   
+   👤 User: demo
+   🧵 Thread: main
+   
+   Ask me about Census data! (Type 'quit' to exit)
+   Examples:
+     - What's the population of New York City?
+     - Show me median income trends from 2015 to 2020
+     - Compare population by county in California
+   --------------------------------------------------
+   
+   ❓ Your question: What's the population of NYC in 2023?
+   
+   🔍 Processing your question...
+   
+   📊 Answer: The population of New York City in 2023 was 8,258,035 people according to ACS 5-year estimates.
+   
+   📁 Data saved to: data/B01003_001E_place_2023.csv
+   📝 Footnote: Data from Census Bureau API, Variable B01003_001E (Total population)
+   
+   ❓ Your question: 
+   ```
+
+### Web Interface (Alternative)
+
+1. **Start the web server:**
+   ```bash
+   uv run python app.py
+   ```
+
+2. **Open your browser** and navigate to the URL shown in the terminal (typically `http://localhost:8000`)
+
+3. **Use the web interface** to ask questions about Census data
+
+### Interactive Features
+
+#### Conversation Memory
+- **Follow-up questions**: Ask "What about last year?" and the app remembers your previous query
+- **User preferences**: Your default geography and preferred datasets are remembered
+- **Thread continuity**: Continue conversations across sessions using the same thread ID
+
+#### Geographic Flexibility
+```
+❓ Your question: Population of California
+❓ Your question: What about Los Angeles County?
+❓ Your question: Show me NYC population trends from 2015 to 2020
+```
+
+#### Data Types Supported
+- **Single values**: "Population of NYC in 2023"
+- **Time series**: "Income trends from 2015 to 2020"
+- **Geographic comparisons**: "Population by county in Texas"
+
+### Advanced Usage
+
+#### Custom User IDs
 ```bash
-# Single value queries
+# Use different user IDs to maintain separate profiles
+❓ Your question: [as user 'john']
+❓ Your question: [as user 'research_team']
+```
+
+#### Thread Management
+```bash
+# Continue specific conversations
+Enter your thread ID: project_analysis_2024
+Enter your thread ID: quick_queries
+```
+
+#### Data Export
+- All results are automatically saved as CSV files in the `data/` directory
+- File names follow the pattern: `{variable}_{level}_{year}.csv`
+- Preview data is shown in the terminal/web interface
+
+### Troubleshooting Usage
+
+#### If the app says "No variables found":
+```bash
+# Rebuild the index
+uv run python index/build_index.py
+```
+
+#### If you get API errors:
+```bash
+# Check your internet connection
+# The app will automatically retry with exponential backoff
+```
+
+#### If responses seem slow:
+```bash
+# Check the cache directory - subsequent queries should be faster
+ls data/  # View cached data files
+```
+
+### Example Session Walkthrough
+
+```bash
+$ uv run python main.py
+
+🏛️  Welcome to the Census Data Assistant!
+==================================================
+Enter your user ID (or press Enter for 'demo'): 
+Enter your thread ID (or press Enter for a new thread): 
+
+👤 User: demo
+🧵 Thread: main
+
+Ask me about Census data! (Type 'quit' to exit)
+Examples:
+  - What's the population of New York City?
+  - Show me median income trends from 2015 to 2020
+  - Compare population by county in California
+--------------------------------------------------
+
+❓ Your question: What's the population of New York City?
+
+🔍 Processing your question...
+
+📊 Answer: The population of New York City is 8,258,035 people according to ACS 5-year estimates for 2023.
+
+📁 Data saved to: data/B01003_001E_place_2023.csv
+📝 Footnote: Data from Census Bureau API, Variable B01003_001E (Total population)
+
+❓ Your question: What about the median income?
+
+🔍 Processing your question...
+
+📊 Answer: The median household income in New York City is $70,663 according to ACS 5-year estimates for 2023.
+
+📁 Data saved to: data/B19013_001E_place_2023.csv
+📝 Footnote: Data from Census Bureau API, Variable B19013_001E (Median household income in the past 12 months)
+
+❓ Your question: Show me income trends from 2015 to 2020
+
+🔍 Processing your question...
+
+📊 Answer: Here are the median household income trends for New York City from 2015 to 2020:
+
+Year | Median Income
+-----|-------------
+2015 | $60,828
+2016 | $62,935
+2017 | $64,894
+2018 | $67,214
+2019 | $69,407
+2020 | $70,663
+
+📁 Data saved to: data/income_trends_2015_2020.csv
+📝 Footnote: Data from Census Bureau API, Variables B19013_001E (Median household income)
+
+❓ Your question: quit
+
+👋 Goodbye!
+```
+
+## 💡 Quick Start Examples
+
+### First Time Setup & Usage
+```bash
+# 1. Install dependencies
+uv sync
+
+# 2. Build the Census variable index (one-time setup)
+uv run python index/build_index.py
+
+# 3. Start the application
+uv run python main.py
+
+# 4. Use the app interactively
+Enter your user ID: demo
+Enter your thread ID: main
+❓ Your question: What's the population of New York City?
+```
+
+### Sample Questions You Can Ask
+```bash
+# Population queries
 "What's the population of New York City?"
-"Median income in California in 2023"
+"Population of California in 2023"
+"Population by county in Texas"
 
-# Time series queries  
-"Population trends in NYC from 2015 to 2020"
-"Hispanic income changes over time"
+# Income queries  
+"Median income in NYC"
+"Hispanic median income trends from 2015 to 2020"
+"Income comparison across states"
 
-# Geographic comparisons
-"Population by county in New York"
-"Compare median income across states"
+# Geographic variations
+"Population of Los Angeles County"
+"Median income by county in New York"
+"Nationwide population trends"
+
+# Time series
+"Population changes in NYC from 2015 to 2020"
+"Income trends over time in California"
 ```
 
 ### Advanced Features
