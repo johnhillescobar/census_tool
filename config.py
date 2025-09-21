@@ -78,3 +78,5 @@ VARIABLE_FALLBACKS = {
     "hispanic_median_income": "B19013I_001E",
     "median_income": "B19013_001E",
 }
+
+PREVIEW_ROWS = 5

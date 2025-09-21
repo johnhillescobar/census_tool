@@ -4,6 +4,13 @@ Text parsing utility functions for the Census app
 
 import re
 from typing import Dict, Any, List
+import pandas as pd
+import logging
+from pathlib import Path
+from src.state.types import CensusState
+from config import PREVIEW_ROWS
+
+logger = logging.getLogger(__name__)
 
 
 # Census-related keywords
@@ -188,6 +195,80 @@ def is_census_question(text: str) -> bool:
     return any(keyword in text_lower for keyword in CENSUS_KEYWORDS)
 
 
+def format_number_with_commas(number: float) -> str:
+    """Format a number with commas"""
+    try:
+        if isinstance(number, (int, float)):
+            return f"{number:,.0f}"
+        else:
+            return str(number)
+
+    except Exception as e:
+        logger.error(f"Error formatting number with commas: {str(e)}")
+        return str(number)
+
+
+# DELETE THIS ONE LATER. USE extract_year_from_dataset instead
+def extract_year_from_key(key: str) -> str:
+    """Extract year from dataset key"""
+    year_match = re.search(r"(\d{4})", key)
+    return year_match.group(1) if year_match else "Unknown"
+
+
+def extract_year_from_dataset(dataset_key: str) -> str:
+    """Extract year from dataset key (e.g., 'B01003_001E_place_2023' -> '2023')"""
+
+    year_match = re.search(r"(\d{4})$", dataset_key)
+    return year_match.group(1) if year_match else "Unknown"
+
+
+def extract_dataset_from_key(key: str) -> str:
+    """Extract dataset name from dataset key"""
+    if "acs" in key.lower():
+        return "ACS 5-Year Estimates"
+    elif "dec" in key.lower():
+        return "Decennial Census"
+    else:
+        return "Census Dataset"
+
+
+def save_consolidated_table(
+    data, table_type: str, geo: Dict[str, Any], intent: Dict[str, Any]
+) -> str:
+    """Save a consolidated table to data directory"""
+
+    data_dir = Path("data")
+    data_dir.mkdir(exist_ok=True)
+
+    # Generate filename
+    geo_name = geo.get("display_name", "Unknown").replace(" ", "_").lower()
+    measures = "-".join(intent.get("measures", ["data"]))
+    timestamp = pd.Timestamp.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"{measures}_{geo_name}_{table_type}_{timestamp}.csv"
+    file_path = data_dir / filename
+
+    try:
+        if isinstance(data, list):
+            # Convert to a list of dicts to DataFrame
+            df = pd.DataFrame(data)
+        else:
+            df = data
+
+        df.to_csv(file_path, index=False)
+        return str(file_path)
+
+    except Exception as e:
+        logger.error(f"Error saving consolidated table: {str(e)}")
+        return ""
+
+
+def extract_variable_from_key(key: str) -> str:
+    """Extract variable code from dataset key (e.g., 'B01003_001E_place_2023' -> 'B01003_001E')"""
+
+    var_match = re.search(r"([A-Z]\d+[A-Z]?_\d+[A-Z]?)", key)
+    return var_match.group(1) if var_match else "Unknown"
+
+
 def build_retrieval_query(intent: Dict[str, Any], profile: Dict[str, Any]) -> str:
     """Build Chroma query string from intent and profile"""
     query_parts = []
@@ -264,3 +345,217 @@ def add_measure_synonyms(measures: List[str]) -> List[str]:
                     expanded_measures.append(synonym)
 
     return expanded_measures
+
+
+def format_single_value_answer(
+    datasets: Dict[str, str],
+    previews: Dict[str, Any],
+    geo: Dict[str, Any],
+    intent: Dict[str, Any],
+) -> Dict[str, Any]:
+    """Format a single value answer"""
+
+    # Get the first dataset (should be only one for single value)
+    dataset_key = list(datasets.keys())[0]
+    file_path = datasets[dataset_key]
+    preview = previews.get(dataset_key, [])
+
+    if not preview or len(preview) < 2:
+        return {
+            "type": "single",
+            "value": "Data not available",
+            "geo": geo.get("display_name", "Unknown location"),
+            "year": "Unknown",
+            "dataset": "Unknown",
+        }
+
+    # Extract vakye from preview (first row, second column tyoucakky)
+    try:
+        value = preview[1][1] if len(preview) > 1 and len(preview[1]) > 1 else "N/A"
+        geo_name = (
+            preview[1][0]
+            if len(preview) > 1 and len(preview[0]) > 0
+            else geo.get("display_name", "Unknown")
+        )
+
+        # Format the value
+        if isinstance(value, (int, float)) and value != "N/A":
+            formatted_value = format_number_with_commas(value)
+        else:
+            formatted_value = str(value)
+
+        # Extract year from dataset key or file path
+        year = extract_year_from_dataset(dataset_key)
+
+        return {
+            "type": "single",
+            "value": formatted_value,
+            "geo": geo_name,
+            "year": year,
+            "dataset": extract_dataset_from_key(dataset_key),
+            "variable": extract_variable_from_key(dataset_key),
+        }
+
+    except Exception as e:
+        logger.error(f"Error formatting single value: {str(e)}")
+        return {
+            "type": "single",
+            "value": "Error formatting data",
+            "geo": geo.get("display_name", "Unknown location"),
+            "year": "Unknown",
+            "dataset": "Unknown",
+        }
+
+
+def format_series_answer(
+    datasets: Dict[str, Any],
+    previews: Dict[str, Any],
+    geo: Dict[str, Any],
+    intent: Dict[str, Any],
+) -> Dict[str, Any]:
+    """Format a series answer"""
+
+    consolidated_data = []
+    years = []
+
+    for dataset_key, file_path in datasets.items():
+        try:
+            df = pd.read_csv(file_path)
+            year = extract_year_from_dataset(dataset_key)
+            years.append(year)
+
+            # Get the value column (typically the last column)
+            if len(df.columns) > 1:
+                value_column = df.columns[1]
+                value = df[value_column].iloc[0] if len(df) > 0 else None
+                consolidated_data.append(
+                    {
+                        "year": year,
+                        "value": value,
+                        "geo": df.iloc[0][0]
+                        if len(df) > 0
+                        else geo.get("display_name", "Unknown"),
+                    }
+                )
+
+        except Exception as e:
+            logger.error(f"Error consolidating series data: {str(e)}")
+            continue
+
+    if not consolidated_data:
+        return {
+            "type": "series",
+            "data": [],
+            "geo": geo.get("display_name", "Unknown"),
+            "variable": "Unknown",
+            "message": "No data available",
+        }
+
+    # Sort by year
+    consolidated_data.sort(key=lambda x: x["year"])
+
+    # Format values
+    for item in consolidated_data:
+        if isinstance(item["value"], (int, float)) and item["value"] is not None:
+            item["formatted_value"] = format_number_with_commas(item["value"])
+        else:
+            item["formatted_value"] = (
+                str(item["value"]) if item["value"] is not None else "N/A"
+            )
+
+    # Save consolidated table
+    consolidated_file = save_consolidated_table(
+        consolidated_data, "series", geo, intent
+    )
+
+    return {
+        "type": "series",
+        "data": consolidated_data,
+        "geo": consolidated_data[0]["geo"]
+        if consolidated_data
+        else geo.get("display_name", "Unknown"),
+        "variable": extract_variable_from_key(datasets.keys()[0]),
+        "file_path": consolidated_file,
+        "preview": consolidated_data[:PREVIEW_ROWS],
+    }
+
+
+def format_table_answer(
+    datasets: Dict[str, str],
+    previews: Dict[str, Any],
+    geo: Dict[str, Any],
+    intent: Dict[str, Any],
+) -> Dict[str, Any]:
+    """Format a table/breakdown answer"""
+
+    # For table answers, we might have multiple variables or geographies
+    # Load all datasets and create a consolidated table
+    all_data = []
+
+    for dataset_key, file_path in datasets.items():
+        try:
+            df = pd.read_csv(file_path)
+            year = extract_year_from_dataset(dataset_key)
+            variable = extract_variable_from_key(dataset_key)
+
+            # Add year and variable to each row
+            df_copy = df.copy()
+            df_copy["year"] = year
+            df_copy["variable"] = variable
+            all_data.append(df_copy)
+
+        except Exception as e:
+            logger.error(f"Error loading table data: {str(e)}")
+            continue
+
+    if not all_data:
+        return {
+            "type": "table",
+            "data": [],
+            "message": "No data available",
+        }
+
+    # Combine all data
+    combined_df = pd.concat(all_data, ignore_index=True)
+
+    # Save consolidated table
+    consolidated_file = save_consolidated_table(combined_df, "table", geo, intent)
+
+    # Create preview
+    preview_data = combined_df.head(PREVIEW_ROWS).to_dict("records")
+
+    return {
+        "type": "table",
+        "data": preview_data,
+        "total_rows": len(combined_df),
+        "file_path": consolidated_file,
+        "columns": list(combined_df.columns),
+    }
+
+
+def generate_footnotes(
+    datasets: Dict[str, Any],
+    geo: Dict[str, Any],
+    intent: Dict[str, Any],
+) -> List[str]:
+    """Generate footnotes for a table answer"""
+
+    footnotes = []
+
+    # Add dataset info
+    for dataset_key, file_path in datasets.items():
+        year = extract_year_from_dataset(dataset_key)
+        dataset = extract_dataset_from_key(dataset_key)
+        variable = extract_variable_from_key(dataset_key)
+
+        footnotes.append(f"Data from {dataset}, {year}, variable: {variable}")
+
+    # Add geography information
+    geo_name = geo.get("display_name", "Unknown")
+    geo_level = geo.get("level", "Unknown")
+    footnotes.append(f"Geography: {geo_name} at {geo_level} level")
+
+    # Add data source
+    footnotes.append("Source: U.S. Census Bureau")
+
+    return footnotes

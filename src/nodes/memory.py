@@ -10,7 +10,11 @@ from src.utils import (
     save_json_file,
     prune_history_by_age,
     prune_cache_by_age,
+    build_history_record,
+    update_profile,
+    enforce_retention_policies,
 )
+
 from config import RETENTION_DAYS
 
 logger = logging.getLogger(__name__)
@@ -83,6 +87,82 @@ def memory_load_node(state: CensusState, config: RunnableConfig) -> Dict[str, An
 def memory_write_node(state: CensusState, config: Dict[str, Any]) -> Dict[str, Any]:
     """Write user profile, history, and cache index"""
 
-    # TODO: Implement memory write node
+    # Get user_id from config
+    user_id = config.get("user_id")
 
-    return {"logs": ["memory_write: placeholder"]}
+    if not user_id:
+        logger.error("User ID is required")
+        return {
+            "error": "user_id is required in config",
+            "logs": ["memory_write: ERROR - user_id missing"],
+        }
+
+    logger.info(f"Writing user memory for user_id: {user_id}")
+
+    # Get profile and history from state
+    profile = state.get("profile", {})
+    history = state.get("history", [])
+    cache_index = state.get("cache_index", {})
+    messages = state.get("messages", [])
+    intent = state.get("intent", {})
+    geo = state.get("geo", {})
+    plan = state.get("plan", {})
+    final = state.get("final", {})
+
+    # Initiatilize memory directory
+    memory_dir = Path("memory")
+    memory_dir.mkdir(parents=True, exist_ok=True)
+
+    try:
+        # 1. Build history record for this conversation
+        if messages and final:
+            history_record = build_history_record(
+                messages, final, intent, geo, plan, user_id
+            )
+            history.append(history_record)
+
+        # 2. Update profile with latest intent and geo
+        updated_profile = update_profile(profile, intent, geo, final)
+
+        # 3. Save profile and history
+        profile_file = memory_dir / f"user_{user_id}.json"
+        updated_profile["history"] = history
+        updated_profile["user_id"] = user_id
+        updated_profile["last_updated"] = pd.Timestamp.now().isoformat()
+
+        save_success = save_json_file(profile_file, updated_profile)
+        if not save_success:
+            logger.error(f"Failed to save profile for user_{user_id}")
+            return {
+                "error": "failed to save profile",
+                "logs": ["memory_write: ERROR - failed to save profile"],
+            }
+
+        # 4. Save cache index
+        cache_index_file = memory_dir / f"cache_index_{user_id}.json"
+        cache_success = save_json_file(cache_index_file, cache_index)
+        if not cache_success:
+            logger.error(f"Failed to save cache index for user_{user_id}")
+            return {
+                "error": "failed to save cache index",
+                "logs": ["memory_write: ERROR - failed to save cache index"],
+            }
+
+        # 5. Enforcce retention policies
+        enforce_retention_policies(profile_file, cache_index_file, user_id)
+
+        log_entry = f"memory_write: saved profile and {len(history)} history entries for user_{user_id}"
+
+        return {
+            "profile": updated_profile,
+            "history": history,
+            "cache_index": cache_index,
+            "logs": [log_entry],
+        }
+
+    except Exception as e:
+        logger.error(f"Error writing memory for user {user_id}: {str(e)}")
+        return {
+            "error": f"Error writing memory: {str(e)}",
+            "logs": [f"memory_write: ERROR - {str(e)}"],
+        }

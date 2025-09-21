@@ -129,3 +129,5 @@ def create_census_graph():
 
     # Compile the graph
     return workflow.compile(checkpointer=SqliteSaver.from_conn_string("checkpoints.db"))
+
+    workflow.get_graph().draw_mermaid_png(output_file_path="graph.png")
