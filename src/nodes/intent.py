@@ -98,53 +98,52 @@ def router_from_intent_node(
 
 
 def clarify_node(state: CensusState, config: RunnableConfig) -> Dict[str, Any]:
-    """Ask clarifying questions"""
+    """Ask clarifying questions when intent is ambiguous"""
 
+    # Get the current intent and context
     intent = state.get("intent", {})
     messages = state.get("messages", [])
 
-    if not messages:
-        return {
-            "error": "No messages found for clarification",
-            "logs": ["clarify: ERROR - no messages"],
-        }
+    # Get the user's last question
+    user_question = ""
+    if messages:
+        last_message = messages[-1]
+        if isinstance(last_message, dict) and "content" in last_message:
+            user_question = last_message["content"]
 
-    last_message = messages[-1]
-    user_text = last_message.get("content", "")
-
-    # Build clarification questions based on missing information
-    questions = []
+    # Determine what needs clarification
+    clarification_needed = []
 
     if not intent.get("measures"):
-        questions.append(
-            "What specific measure are you interested in? (e.g., population, median income, unemployment)"
-        )
-
-    if not intent.get("geo_hint") or intent.get("geo_hint") == "":
-        questions.append(
-            "Which geography level do you prefer? (e.g., place, county, tract)"
-        )
+        clarification_needed.append("what specific data you're looking for")
 
     if not intent.get("time"):
-        questions.append("What year are you interested in? (e.g., 2023, 2012-2023)")
+        clarification_needed.append("what time period you're interested in")
 
-    # Create clarification message
-    if questions:
-        clarification_text = "I need a bit more information to help you:\n" + "\n".join(
-            f"- {q}" for q in questions
+    if not state.get("geo"):
+        clarification_needed.append("what location you want data for")
+
+    # Build clarification message
+    if clarification_needed:
+        clarification_text = "I need a bit more information to help you:"
+        for i, item in enumerate(clarification_needed, 1):
+            clarification_text += f"\n{i}. {item}"
+        clarification_text += (
+            "\n\nPlease provide more details and I'll find the data for you!"
         )
     else:
-        clarification_text = (
-            "Could you please rephrase your question with more specific details?"
-        )
+        clarification_text = "I'm not sure I understand your question. Could you please rephrase it or provide more details about what Census data you're looking for?"
 
-    # Add assistant message to conversation
-    new_message = {"role": "assistant", "content": clarification_text}
-
-    log_entry = f"clarify: asked {len(questions)} clarifying questions for '{user_text[:30]}...'"
+    response = {
+        "type": "clarification",
+        "message": clarification_text,
+        "user_question": user_question,
+        "clarification_needed": clarification_needed,
+    }
 
     return {
-        "messages": [new_message],
-        "final": {"answer_text": clarification_text},
-        "logs": [log_entry],
+        "final": response,
+        "logs": [
+            f"clarify: asked for clarification on {len(clarification_needed)} items"
+        ],
     }
