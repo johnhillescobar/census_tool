@@ -110,7 +110,7 @@ def memory_write_node(state: CensusState, config: Dict[str, Any]) -> Dict[str, A
     plan = state.get("plan", {})
     final = state.get("final", {})
 
-    # Initiatilize memory directory
+    # Initialize memory directory
     memory_dir = Path("memory")
     memory_dir.mkdir(parents=True, exist_ok=True)
 
