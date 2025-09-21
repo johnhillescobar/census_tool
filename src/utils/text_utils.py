@@ -369,7 +369,7 @@ def format_single_value_answer(
             "dataset": "Unknown",
         }
 
-    # Extract vakye from preview (first row, second column tyoucakky)
+    # Extract value from preview (first row, second column typically)
     try:
         value = preview[1][1] if len(preview) > 1 and len(preview[1]) > 1 else "N/A"
         geo_name = (
