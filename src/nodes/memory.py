@@ -149,7 +149,7 @@ def memory_write_node(state: CensusState, config: Dict[str, Any]) -> Dict[str, A
                 "logs": ["memory_write: ERROR - failed to save cache index"],
             }
 
-        # 5. Enforcce retention policies
+        # 5. Enforce retention policies
         enforce_retention_policies(profile_file, cache_index_file, user_id)
 
         log_entry = f"memory_write: saved profile and {len(history)} history entries for user_{user_id}"
