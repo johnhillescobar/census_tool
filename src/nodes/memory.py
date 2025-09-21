@@ -1,5 +1,6 @@
 from typing import Dict, Any
 from pathlib import Path
+import pandas as pd
 import logging
 
 from langchain_core.runnables import RunnableConfig
