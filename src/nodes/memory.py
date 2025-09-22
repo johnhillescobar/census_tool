@@ -25,7 +25,7 @@ def memory_load_node(state: CensusState, config: RunnableConfig) -> Dict[str, An
     """Load user profile, history, and cache index"""
 
     # Get user_id from config
-    user_id = config.get("user_id")
+    user_id = config.get("user_id")  # config.get("configurable", {}).get("user_id")
 
     if not user_id:
         logger.error("User ID is required")
@@ -85,11 +85,11 @@ def memory_load_node(state: CensusState, config: RunnableConfig) -> Dict[str, An
     }
 
 
-def memory_write_node(state: CensusState, config: Dict[str, Any]) -> Dict[str, Any]:
+def memory_write_node(state: CensusState, config: RunnableConfig) -> Dict[str, Any]:
     """Write user profile, history, and cache index"""
 
     # Get user_id from config
-    user_id = config.get("user_id")
+    user_id = config.get("user_id")  # config.get("configurable", {}).get("user_id")
 
     if not user_id:
         logger.error("User ID is required")
