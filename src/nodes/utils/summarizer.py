@@ -1,11 +1,12 @@
 from typing import Dict, Any
 import logging
 from src.state.types import CensusState
+from langchain_core.runnables import RunnableConfig
 
 logger = logging.getLogger(__name__)
 
 
-def summarizer_node(state: CensusState, config: Dict[str, Any]) -> Dict[str, Any]:
+def summarizer_node(state: CensusState, config: RunnableConfig) -> Dict[str, Any]:
     """Summarize long conversations to manage context length"""
 
     messages = state.get("messages", [])

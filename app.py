@@ -1,6 +1,8 @@
 from typing import List, Dict, Any
 from langgraph.graph import StateGraph
 from langgraph.checkpoint.sqlite import SqliteSaver
+import sqlite3
+import os
 
 # Import state and routing
 from src.state.types import CensusState
@@ -21,6 +23,10 @@ from src.nodes.retrieve import retrieve_node, plan_node
 from src.nodes.data import data_node
 from src.nodes.answer import answer_node, not_census_node
 from src.nodes.utils.summarizer import summarizer_node
+
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def create_reducers():
@@ -127,6 +133,45 @@ def create_census_graph():
     workflow.add_edge("not_census", "__end__")
     workflow.add_edge("clarify", "__end__")
 
-    # Compile the graph
-    workflow.get_graph().draw_mermaid_png(output_file_path="graph.png")
-    return workflow.compile(checkpointer=SqliteSaver.from_conn_string("checkpoints.db"))
+    # Compile the graph first
+    try:
+        # Ensure the database file exists and is accessible
+        db_path = "checkpoints.db"
+
+        # Create SQLite connection
+        conn = sqlite3.connect(db_path, check_same_thread=False)
+
+        # Create checkpointer with the connection
+        checkpointer = SqliteSaver(conn)
+
+        # Test the checkpointer
+        logger.info("SQLite checkpointer initialized successfully")
+
+        compiled_graph = workflow.compile(checkpointer=checkpointer)
+
+        return compiled_graph
+
+    except Exception as e:
+        logger.error(f"Failed to initialize SQLite checkpointer: {e}")
+        logger.info("Falling back to memory checkpointer (no persistence)")
+
+        try:
+            from langgraph.checkpoint.memory import MemorySaver
+
+            checkpointer = MemorySaver()
+            compiled_graph = workflow.compile(checkpointer=checkpointer)
+            return compiled_graph
+        except Exception as e2:
+            logger.error(f"Memory checkpointer also failed: {e2}")
+
+            compiled_graph = workflow.compile()
+            return compiled_graph
+
+    # Then generate the PNG visualization
+    try:
+        compiled_graph.get_graph().draw_mermaid_png(output_file_path="graph.png")
+        logger.info("Graph visualization saved to graph.png")
+    except Exception as e:
+        logger.warning(f"Could not generate graph visualization: {e}")
+
+    return compiled_graph

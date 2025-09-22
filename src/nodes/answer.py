@@ -74,7 +74,7 @@ def answer_node(state: CensusState, config: RunnableConfig) -> Dict[str, Any]:
         }
 
 
-def not_census_node(state: CensusState, config: Dict[str, Any]) -> Dict[str, Any]:
+def not_census_node(state: CensusState, config: RunnableConfig) -> Dict[str, Any]:
     """Return a message indicating the question is not related to Census"""
 
     # Get the user's question from messages
