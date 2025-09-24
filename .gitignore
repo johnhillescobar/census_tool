@@ -21,3 +21,18 @@ sketch*.py
 # data/*
 data/
 
+# Database files
+
+checkpoints.db
+census_vars.db
+census_vars.db-shm
+census_vars.db-wal
+census_vars.db-journal
+census_vars.db-lock
+census_vars.db-trace
+
+
+# Cursor guide and cleanup files
+cursor_optimization_guide.md
+cleanup_processes.ps1
+cursor_memory_fix.ps1
