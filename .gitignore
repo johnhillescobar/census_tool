@@ -22,7 +22,6 @@ sketch*.py
 data/
 
 # Database files
-
 checkpoints.db
 census_vars.db
 census_vars.db-shm
