@@ -37,3 +37,5 @@ cleanup_processes.ps1
 cursor_memory_fix.ps1
 extension_resource_monitor.ps1
 quick_cursor_restart.ps1
+
+memos.md
