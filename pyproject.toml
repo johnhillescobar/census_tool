@@ -34,3 +34,7 @@ dependencies = [
     "us>=3.2.0",
     "wikipedia>=1.4.0",
 ]
+
+[tool.pytest.ini_options]
+testpaths = ["app_test_scripts"]
+pythonpath = ["."]
