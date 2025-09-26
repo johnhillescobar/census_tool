@@ -24,8 +24,8 @@ def test_memory_load_node():
         "logs": [],
     }
 
-    # Test config
-    config = {"user_id": "test_user", "thread_id": "test_thread"}
+    # Test config - FIXED: user_id should be nested under "configurable"
+    config = {"configurable": {"user_id": "test_user", "thread_id": "test_thread"}}
 
     # Test the function
     result = memory_load_node(state, config)
@@ -43,6 +43,8 @@ def test_memory_load_node():
     assert "history" in result, "Result should contain history"
     assert "cache_index" in result, "Result should contain cache_index"
     assert "logs" in result, "Result should contain logs"
+
+    print("✅ Test memory load node passed")
 
 
 if __name__ == "__main__":
