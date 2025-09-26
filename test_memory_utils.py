@@ -109,7 +109,7 @@ def test_prune_history_by_age():
     # Test case 1: Basic functionality with old entries
     now = datetime.now()
     old_date = (now - timedelta(days=10)).isoformat()
-    new_date = (now - timedelta(days=5)).isoformat()
+    new_date = (now - timedelta(days=3)).isoformat()  # 3 days old instead of 5
 
     history = [
         {"timestamp": old_date, "question": "Old question", "user_id": "user1"},
