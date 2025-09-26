@@ -2,6 +2,7 @@ from typing import Dict, Any
 import pandas as pd
 import logging
 from pathlib import Path
+from langchain_core.runnables import RunnableConfig
 from src.state.types import CensusState
 from src.utils.text_utils import (
     format_single_value_answer,
@@ -9,8 +10,6 @@ from src.utils.text_utils import (
     format_table_answer,
     generate_footnotes,
 )
-
-from langchain_core.runnables import RunnableConfig
 
 logger = logging.getLogger(__name__)
 
@@ -56,7 +55,7 @@ def answer_node(state: CensusState, config: RunnableConfig) -> Dict[str, Any]:
             result = format_single_value_answer(datasets, previews, geo, intent)
 
         # Add footnotes
-        footnotes = generate_footnotes(datasets, previews, geo, intent)
+        footnotes = generate_footnotes(datasets, geo, intent)
         result["footnotes"] = footnotes
 
         return {

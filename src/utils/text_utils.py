@@ -109,6 +109,7 @@ GEO_HINTS = {
     ],
     "texas": ["texas", "tx", "houston", "dallas", "austin", "san antonio", "plano"],
     "florida": ["florida", "fl", "miami", "orlando", "tampa", "st petersburg"],
+    "illinois": ["illinois", "il", "chicago"],
     "nation": ["nation", "national", "usa", "united states", "country", "america"],
 }
 
@@ -163,7 +164,13 @@ def extract_geo_hint(text: str) -> str:
     text_lower = text.lower()
 
     for geo, hints in GEO_HINTS.items():
-        if any(hint in text_lower for hint in hints):
+        if any(
+            f" {hint} " in f" {text_lower} "
+            or text_lower.startswith(f"{hint} ")
+            or text_lower.endswith(f" {hint}")
+            or text_lower == hint
+            for hint in hints
+        ):
             return geo
 
     return text
