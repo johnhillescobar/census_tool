@@ -138,11 +138,13 @@ def process_single_query(
 
 
 def load_preview(file_path: str) -> List[List[str]]:
-    """Load first 5 rows as preview"""
+    """Load first 5 rows as preview including header"""
 
     try:
         df = pd.read_csv(file_path, nrows=5)
-        return df.values.tolist()
+        # Include column names as the first row
+        preview = [df.columns.tolist()] + df.values.tolist()
+        return preview
     except Exception as e:
         logger.error(f"Error loading preview from {file_path}: {str(e)}")
         return []

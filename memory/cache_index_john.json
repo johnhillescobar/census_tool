@@ -1,0 +1,22 @@
+{
+  "c1cbda499b560a7cd6dbacf179395fda": {
+    "file_path": "data\\c1cbda499b560a7cd6dbacf179395fda.csv",
+    "timestamp": 1758852972.09093,
+    "metadata": {
+      "year": 2023,
+      "dataset": "acs/acs5",
+      "variables": [
+        "B25008C_001E",
+        "NAME"
+      ],
+      "geo": {
+        "level": "state",
+        "filters": {
+          "for": "state:06"
+        },
+        "note": "California"
+      }
+    },
+    "signature": "c1cbda499b560a7cd6dbacf179395fda"
+  }
+}

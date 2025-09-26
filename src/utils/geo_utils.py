@@ -31,6 +31,13 @@ GEOGRAPHY_MAPPINGS = {
     "tx": {"level": "state", "filters": {"for": "state:48"}, "note": "Texas"},
     "florida": {"level": "state", "filters": {"for": "state:12"}, "note": "Florida"},
     "fl": {"level": "state", "filters": {"for": "state:12"}, "note": "Florida"},
+    "illinois": {"level": "state", "filters": {"for": "state:17"}, "note": "Illinois"},
+    "il": {"level": "state", "filters": {"for": "state:17"}, "note": "Illinois"},
+    "chicago": {
+        "level": "place",
+        "filters": {"for": "place:14000", "in": "state:17"},
+        "note": "Chicago",
+    },
     # Nation level
     "nation": {"level": "nation", "filters": {"for": "us:1"}, "note": "United States"},
     "national": {

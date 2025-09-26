@@ -1,0 +1,51 @@
+{
+  "user_id": "john",
+  "default_geo": {
+    "level": "state",
+    "filters": {
+      "for": "state:06"
+    },
+    "note": "California"
+  },
+  "preferred_dataset": "Unknown",
+  "default_year_range": [
+    2012,
+    2023
+  ],
+  "preferred_level": "place",
+  "var_aliases": {},
+  "last_geo": "Unknown",
+  "usage_stats": {
+    "total_queries": 1,
+    "success_queries": 1,
+    "last_query_date": "2025-09-25T21:16:12.096316"
+  },
+  "history": [
+    {
+      "timestamp": "2025-09-25T21:16:12.096316",
+      "user_id": "john",
+      "question": "Population of chicago",
+      "intent": {
+        "is_census": true,
+        "answer_type": "single",
+        "measures": [
+          "population"
+        ],
+        "time": {},
+        "geo_hint": "california",
+        "needs_clarification": false
+      },
+      "geo": {
+        "level": "state",
+        "filters": {
+          "for": "state:06"
+        },
+        "note": "California"
+      },
+      "plan_summary": "1 queries for years [2023] using ['acs/acs5']",
+      "answer_type": "single",
+      "success": true
+    }
+  ],
+  "last_updated": "2025-09-25T21:16:12.096316"
+}
