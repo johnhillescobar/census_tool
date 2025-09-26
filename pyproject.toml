@@ -34,3 +34,10 @@ dependencies = [
     "us>=3.2.0",
     "wikipedia>=1.4.0",
 ]
+
+[tool.pytest.ini_options]
+testpaths = ["app_test_scripts"]     # Where to look for tests
+pythonpath = ["."]                  # Add to Python path
+python_files = ["test_*.py"]        # Test file patterns
+python_classes = ["Test*"]          # Test class patterns
+python_functions = ["test_*"]       # Test function patterns
