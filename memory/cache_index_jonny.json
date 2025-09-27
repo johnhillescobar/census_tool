@@ -1,0 +1,22 @@
+{
+  "b893c78172ab82251d28d76bc0211c40": {
+    "file_path": "data\\b893c78172ab82251d28d76bc0211c40.csv",
+    "timestamp": 1758933566.2637792,
+    "metadata": {
+      "year": 2023,
+      "dataset": "acs/acs5",
+      "variables": [
+        "B25008C_001E",
+        "NAME"
+      ],
+      "geo": {
+        "level": "state",
+        "filters": {
+          "for": "state:06"
+        },
+        "note": "State-level request for 'What's the population of Chicago?' to California"
+      }
+    },
+    "signature": "b893c78172ab82251d28d76bc0211c40"
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "1b2352688707b2c1caf64df199d196de": {
+    "file_path": "data\\1b2352688707b2c1caf64df199d196de.csv",
+    "timestamp": 1758932475.68352,
+    "metadata": {
+      "year": 2023,
+      "dataset": "acs/acs5",
+      "variables": [
+        "B25008C_001E",
+        "NAME"
+      ],
+      "geo": {
+        "level": "place",
+        "filters": {
+          "for": "place:51000",
+          "in": "state:36"
+        },
+        "note": "Default geography: 'New York City (default)'"
+      }
+    },
+    "signature": "1b2352688707b2c1caf64df199d196de"
+  },
+  "bf83be49f81a19a9b274e3ae3c8a9ff8": {
+    "file_path": "data\\bf83be49f81a19a9b274e3ae3c8a9ff8.csv",
+    "timestamp": 1758933495.7773123,
+    "metadata": {
+      "year": 2023,
+      "dataset": "acs/acs5",
+      "variables": [
+        "B25008E_001E",
+        "NAME"
+      ],
+      "geo": {
+        "level": "state",
+        "filters": {
+          "for": "state:06"
+        },
+        "note": "State-level request for 'What's the population of Chicago?' to California"
+      }
+    },
+    "signature": "bf83be49f81a19a9b274e3ae3c8a9ff8"
+  }
+}

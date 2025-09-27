@@ -1,0 +1,149 @@
+{
+  "1b2352688707b2c1caf64df199d196de": {
+    "file_path": "data\\1b2352688707b2c1caf64df199d196de.csv",
+    "timestamp": 1758890110.7004786,
+    "metadata": {
+      "year": 2023,
+      "dataset": "acs/acs5",
+      "variables": [
+        "B25008C_001E",
+        "NAME"
+      ],
+      "geo": {
+        "level": "place",
+        "filters": {
+          "for": "place:51000",
+          "in": "state:36"
+        },
+        "note": "Default geography: 'New York City (default)'"
+      }
+    },
+    "signature": "1b2352688707b2c1caf64df199d196de"
+  },
+  "35096f32758450424572d26f4dd1b169": {
+    "file_path": "data\\35096f32758450424572d26f4dd1b169.csv",
+    "timestamp": 1758890141.5287437,
+    "metadata": {
+      "year": 2015,
+      "dataset": "acs/acs5",
+      "variables": [
+        "B19013_001E",
+        "NAME"
+      ],
+      "geo": {
+        "level": "place",
+        "filters": {
+          "for": "place:51000",
+          "in": "state:36"
+        },
+        "note": "Default geography: 'New York City (default)'"
+      }
+    },
+    "signature": "35096f32758450424572d26f4dd1b169"
+  },
+  "885928cf0da229b1f5b4277084067258": {
+    "file_path": "data\\885928cf0da229b1f5b4277084067258.csv",
+    "timestamp": 1758890141.5418942,
+    "metadata": {
+      "year": 2019,
+      "dataset": "acs/acs5",
+      "variables": [
+        "B19013_001E",
+        "NAME"
+      ],
+      "geo": {
+        "level": "place",
+        "filters": {
+          "for": "place:51000",
+          "in": "state:36"
+        },
+        "note": "Default geography: 'New York City (default)'"
+      }
+    },
+    "signature": "885928cf0da229b1f5b4277084067258"
+  },
+  "446b3f1f716a8fd22a9f305279dce9b9": {
+    "file_path": "data\\446b3f1f716a8fd22a9f305279dce9b9.csv",
+    "timestamp": 1758890141.5483036,
+    "metadata": {
+      "year": 2018,
+      "dataset": "acs/acs5",
+      "variables": [
+        "B19013_001E",
+        "NAME"
+      ],
+      "geo": {
+        "level": "place",
+        "filters": {
+          "for": "place:51000",
+          "in": "state:36"
+        },
+        "note": "Default geography: 'New York City (default)'"
+      }
+    },
+    "signature": "446b3f1f716a8fd22a9f305279dce9b9"
+  },
+  "4faa5b619ee09ccb5601598d43a1af2e": {
+    "file_path": "data\\4faa5b619ee09ccb5601598d43a1af2e.csv",
+    "timestamp": 1758890141.5834777,
+    "metadata": {
+      "year": 2016,
+      "dataset": "acs/acs5",
+      "variables": [
+        "B19013_001E",
+        "NAME"
+      ],
+      "geo": {
+        "level": "place",
+        "filters": {
+          "for": "place:51000",
+          "in": "state:36"
+        },
+        "note": "Default geography: 'New York City (default)'"
+      }
+    },
+    "signature": "4faa5b619ee09ccb5601598d43a1af2e"
+  },
+  "567b4356b4dcd4a6957aff25021b3a99": {
+    "file_path": "data\\567b4356b4dcd4a6957aff25021b3a99.csv",
+    "timestamp": 1758890141.6201298,
+    "metadata": {
+      "year": 2017,
+      "dataset": "acs/acs5",
+      "variables": [
+        "B19013_001E",
+        "NAME"
+      ],
+      "geo": {
+        "level": "place",
+        "filters": {
+          "for": "place:51000",
+          "in": "state:36"
+        },
+        "note": "Default geography: 'New York City (default)'"
+      }
+    },
+    "signature": "567b4356b4dcd4a6957aff25021b3a99"
+  },
+  "60fade0114ace1553fd4c5fc046dcc92": {
+    "file_path": "data\\60fade0114ace1553fd4c5fc046dcc92.csv",
+    "timestamp": 1758890142.434512,
+    "metadata": {
+      "year": 2020,
+      "dataset": "acs/acs5",
+      "variables": [
+        "B19013_001E",
+        "NAME"
+      ],
+      "geo": {
+        "level": "place",
+        "filters": {
+          "for": "place:51000",
+          "in": "state:36"
+        },
+        "note": "Default geography: 'New York City (default)'"
+      }
+    },
+    "signature": "60fade0114ace1553fd4c5fc046dcc92"
+  }
+}
