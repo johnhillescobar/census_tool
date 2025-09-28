@@ -72,7 +72,7 @@ class ChromaQuery:
 
 
 if __name__ == "__main__":
-    query = "Children under 5 years of age"
+    query = "What's the population of Chicago?"
     chroma_query = ChromaQuery()
     results = chroma_query.read_query(query)
     print(results)

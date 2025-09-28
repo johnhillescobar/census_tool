@@ -67,9 +67,10 @@ SUPPORTED_GEO_LEVELS = {
     "state": "for=state:STATE",
     "county": "for=county:COUNTY&in=state:STATE",
     "nation": "for=us:1",
-    # TODO: Add support for tracts and block groups
-    # "tract": "for=tract:&in=state:SS&in=county:CCC",
-    # "block_group": "for=block group:&in=state:SS&in=county:CCC&in=tract:TTTTTT",
+    "tract": "for=tract:&in=state:SS&in=county:CCC",
+    "block_group": "for=block group:&in=state:SS&in=county:CCC&in=tract:TTTTTT",
+    "congressional_district": "for=congressional district:CD&in=state:STATE",
+    "zcta": "for=zip code tabulation area:ZCTA5",
 }
 
 # Variable Fallbacks (when retrieval fails)
@@ -80,3 +81,10 @@ VARIABLE_FALLBACKS = {
 }
 
 PREVIEW_ROWS = 5
+
+# Census Geocoding API Settings
+CENSUS_GEOCODING_BASE_URL = "https://geocoding.geo.census.gov/geocoder"
+CENSUS_GEOCODING_GEOGRAPHY_URL = "https://geocoding.geo.census.gov/geocoder"
+GEOCODING_CACHE_TTL = 86400  # 24 hours
+MAX_GEOCODING_RETRIES = 3
+GEOCODING_TIMEOUT = 30  # seconds

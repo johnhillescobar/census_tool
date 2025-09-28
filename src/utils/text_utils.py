@@ -7,6 +7,8 @@ from typing import Dict, Any, List
 import pandas as pd
 import logging
 from pathlib import Path
+
+
 from src.state.types import CensusState
 from config import PREVIEW_ROWS
 
@@ -164,10 +166,12 @@ def extract_geo_hint(text: str) -> str:
     text_lower = text.lower()
 
     for geo, hints in GEO_HINTS.items():
+        print("geo:", geo)
+        print("hints:", hints)
         if any(
-            f" {hint} " in f" {text_lower} "
-            or text_lower.startswith(f"{hint} ")
-            or text_lower.endswith(f" {hint}")
+            hint in text_lower
+            or text_lower.startswith(f"{hint}")
+            or text_lower.endswith(f"{hint}")
             or text_lower == hint
             for hint in hints
         ):
@@ -566,3 +570,17 @@ def generate_footnotes(
     footnotes.append("Source: U.S. Census Bureau")
 
     return footnotes
+
+
+if __name__ == "__main__":
+    text = "What's the population of Chicago?"
+    print("extract_years(text):", extract_years(text))
+    print("extract_measures(text):", extract_measures(text))
+    print("extract_geo_hint(text):", extract_geo_hint(text))
+    print("determine_answer_type(text):", determine_answer_type(text))
+    print("is_census_question(text):", is_census_question(text))
+    # print(format_number_with_commas(1000000))
+    # print(extract_year_from_key("B01003_001E_place_2023"))
+    # print(extract_year_from_dataset("B01003_001E_place_2023"))
+    # print(extract_dataset_from_key("B01003_001E_place_2023"))
+    # print(extract_variable_from_key("B01003_001E_place_2023"))
