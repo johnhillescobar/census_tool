@@ -84,6 +84,7 @@ PREVIEW_ROWS = 5
 
 # Census Geocoding API Settings
 CENSUS_GEOCODING_BASE_URL = "https://geocoding.geo.census.gov/geocoder"
+CENSUS_GEOCODING_GEOGRAPHY_URL = "https://geocoding.geo.census.gov/geocoder"
 GEOCODING_CACHE_TTL = 86400  # 24 hours
 MAX_GEOCODING_RETRIES = 3
 GEOCODING_TIMEOUT = 30  # seconds
