@@ -73,6 +73,57 @@ SUPPORTED_GEO_LEVELS = {
     "zcta": "for=zip code tabulation area:ZCTA5",
 }
 
+SUPPORTED_GEOGRAPHY_LEVELS = {
+    # Fully supported levels (your current implementation)
+    "nation": {
+        "supported": True,
+        "requires_context": False,
+        "description": "United States nationwide data",
+    },
+    "state": {
+        "supported": True,
+        "requires_context": False,
+        "description": "State-level data",
+    },
+    "place": {
+        "supported": True,
+        "requires_context": True,  # Needs state context for accuracy
+        "description": "City/town-level data",
+    },
+    "county": {
+        "supported": True,
+        "requires_context": True,  # Needs state context
+        "description": "County-level data",
+    },
+    # Advanced levels (need special handling)
+    "tract": {
+        "supported": False,  # Not yet implemented
+        "requires_context": True,
+        "requires_county": True,  # Tracts need county context
+        "description": "Census tract data (requires county specification)",
+        "suggestion": "Try county-level data instead",
+    },
+    "block_group": {
+        "supported": False,
+        "requires_context": True,
+        "requires_tract": True,
+        "description": "Block group data (requires tract specification)",
+        "suggestion": "Try county or tract-level data instead",
+    },
+    "congressional_district": {
+        "supported": False,
+        "requires_context": True,
+        "description": "Congressional district data",
+        "suggestion": "Try state-level data instead",
+    },
+    "zcta": {
+        "supported": False,
+        "requires_context": False,
+        "description": "ZIP Code Tabulation Area data",
+        "suggestion": "Try place or county-level data instead",
+    },
+}
+
 # Variable Fallbacks (when retrieval fails)
 VARIABLE_FALLBACKS = {
     "population": "B01003_001E",
