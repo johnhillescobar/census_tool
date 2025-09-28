@@ -55,6 +55,9 @@ class DynamicGeographyResolver:
         """Resolve geography from parsed GeographyRequest"""
 
         try:
+            is_valid = True
+            message = ""
+
             # Validate requested level first
             if geo_request.requested_level:
                 is_valid, message = self.geocoding_service.validate_geography_level(
@@ -64,8 +67,8 @@ class DynamicGeographyResolver:
                     else None,
                 )
 
-            if not is_valid:
-                return self._create_error_result(message)
+                if not is_valid:
+                    return self._create_error_result(message)
 
             # Handle nationwide/national queries
             if self._is_nationwide_query(geo_request):
