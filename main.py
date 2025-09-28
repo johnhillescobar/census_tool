@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 def main():
     """Main application entry point"""
 
-    print("��️  Welcome to the Census Data Assistant!")
+    print("Welcome to the Census Data Assistant!")
     print("=" * 50)
 
     try:

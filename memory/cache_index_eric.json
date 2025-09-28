@@ -1,0 +1,54 @@
+{
+  "18365ae6f433daf1ebeca129fc548760": {
+    "file_path": "data\\18365ae6f433daf1ebeca129fc548760.csv",
+    "timestamp": 1759097570.4954693,
+    "metadata": {
+      "year": 2023,
+      "dataset": "acs/acs5",
+      "variables": [
+        "B25008C_001E",
+        "NAME"
+      ],
+      "geo": {
+        "level": "place",
+        "filters": {
+          "for": "place:51000",
+          "in": "state:36"
+        },
+        "note": "Resolved via Census Data API",
+        "confidence": 0.9,
+        "fips_codes": {
+          "state": "36",
+          "place": "51000"
+        }
+      }
+    },
+    "signature": "18365ae6f433daf1ebeca129fc548760"
+  },
+  "be9c5aa32ba8090300797bac16e07a1d": {
+    "file_path": "data\\be9c5aa32ba8090300797bac16e07a1d.csv",
+    "timestamp": 1759097606.624689,
+    "metadata": {
+      "year": 2023,
+      "dataset": "acs/acs5",
+      "variables": [
+        "B25008E_001E",
+        "NAME"
+      ],
+      "geo": {
+        "level": "place",
+        "filters": {
+          "for": "place:70629",
+          "in": "state:17"
+        },
+        "note": "Resolved via Census Data API",
+        "confidence": 0.9,
+        "fips_codes": {
+          "state": "17",
+          "place": "70629"
+        }
+      }
+    },
+    "signature": "be9c5aa32ba8090300797bac16e07a1d"
+  }
+}

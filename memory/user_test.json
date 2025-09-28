@@ -1,0 +1,65 @@
+{
+  "user_id": "test",
+  "default_geo": {
+    "level": "place",
+    "filters": {
+      "for": "place:70629",
+      "in": "state:17"
+    },
+    "note": "Resolved via Census Data API",
+    "confidence": 0.9,
+    "fips_codes": {
+      "state": "17",
+      "place": "70629"
+    }
+  },
+  "preferred_dataset": "Unknown",
+  "default_year_range": [
+    2012,
+    2023
+  ],
+  "preferred_level": "place",
+  "var_aliases": {
+    "population": "B25008C_001E"
+  },
+  "last_geo": "Unknown",
+  "usage_stats": {
+    "total_queries": 1,
+    "success_queries": 1,
+    "last_query_date": "2025-09-28T17:12:01.787793"
+  },
+  "history": [
+    {
+      "timestamp": "2025-09-28T17:12:01.787793",
+      "user_id": "test",
+      "question": "What's the population of Chicago?",
+      "intent": {
+        "is_census": true,
+        "answer_type": "single",
+        "measures": [
+          "population"
+        ],
+        "time": {},
+        "geo_hint": "What's the population of Chicago?",
+        "needs_clarification": false
+      },
+      "geo": {
+        "level": "place",
+        "filters": {
+          "for": "place:70629",
+          "in": "state:17"
+        },
+        "note": "Resolved via Census Data API",
+        "confidence": 0.9,
+        "fips_codes": {
+          "state": "17",
+          "place": "70629"
+        }
+      },
+      "plan_summary": "1 queries for years [2023] using ['acs/acs5']",
+      "answer_type": "single",
+      "success": true
+    }
+  ],
+  "last_updated": "2025-09-28T17:12:01.787793"
+}

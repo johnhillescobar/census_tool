@@ -22,9 +22,9 @@ def plan_node(state: CensusState, config: RunnableConfig) -> Dict[str, Any]:
     """Plan the Census data retrieval"""
 
     # Get state
-    intent = state.get("intent", {})
-    geo = state.get("geo", {})
-    candidates = state.get("candidates", {})
+    intent = state.intent or {}
+    geo = state.geo or {}
+    candidates = state.candidates or {}
 
     if not intent:
         return {
@@ -81,8 +81,8 @@ def retrieve_node(state: CensusState, config: RunnableConfig) -> Dict[str, Any]:
     """Retrieve the Census data"""
 
     # Get state
-    intent = state.get("intent", {})
-    profile = state.get("profile", {})
+    intent = state.intent or {}
+    profile = state.profile or {}
 
     if not intent:
         return {

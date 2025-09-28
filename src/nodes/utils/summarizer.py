@@ -9,8 +9,8 @@ logger = logging.getLogger(__name__)
 def summarizer_node(state: CensusState, config: RunnableConfig) -> Dict[str, Any]:
     """Summarize long conversations to manage context length"""
 
-    messages = state.get("messages", [])
-    history = state.get("history", [])
+    messages = state.messages or []
+    history = state.history or []
 
     if not messages:
         return {"summary": None, "logs": ["summarizer: no messages to summarize"]}

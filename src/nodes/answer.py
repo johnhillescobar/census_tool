@@ -27,9 +27,9 @@ def answer_node(state: CensusState, config: RunnableConfig) -> Dict[str, Any]:
     """
 
     # Get state components
-    intent = state.get("intent", {})
-    geo = state.get("geo", {})
-    artifacts = state.get("artifacts", {})
+    intent = state.intent or {}
+    geo = state.geo or {}
+    artifacts = state.artifacts or {}
     datasets = artifacts.get("datasets", {})
     previews = artifacts.get("previews", {})
 
@@ -77,7 +77,7 @@ def not_census_node(state: CensusState, config: RunnableConfig) -> Dict[str, Any
     """Return a message indicating the question is not related to Census"""
 
     # Get the user's question from messages
-    messages = state.get("messages", [])
+    messages = state.messages or []
     user_question = ""
 
     if messages:
