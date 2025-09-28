@@ -3,7 +3,7 @@ import sys
 import logging
 import requests
 import pandas as pd
-from typing import Optional, Dict, Any, Tuple
+from typing import Optional, Dict, Any, Tuple, List
 from pathlib import Path
 from functools import lru_cache
 from config import (
@@ -69,6 +69,64 @@ class CensusGeocodingService:
 
         return None
 
+    def _get_fips_for_state_name(self, state_name: str) -> Optional[str]:
+        """Get FIPS code for a resolved state name using Census API"""
+        try:
+            params = {"get": "NAME", "for": "state:*"}
+            response = requests.get(
+                self.data_api_url, params=params, timeout=self.timeout
+            )
+            response.raise_for_status()
+            data = response.json()
+
+            state_name_lower = state_name.lower().strip()
+
+            for row in data[1:]:  # Skip header
+                name, state_fips = row
+                if name.lower().strip() == state_name_lower:
+                    return state_fips
+
+            return None
+
+        except Exception as e:
+            logger.error(f"Failed to get FIPS for state name '{state_name}': {e}")
+            return None
+
+    def _resolve_state_from_api(self, state: str) -> Optional[str]:
+        """Fallback: resolve state using Census API when CSV fails"""
+        try:
+            params = {"get": "NAME", "for": "state:*"}
+            response = requests.get(
+                self.data_api_url, params=params, timeout=self.timeout
+            )
+            response.raise_for_status()
+            data = response.json()
+
+            state_lower = state.lower().strip()
+
+            # Try exact match first
+            for row in data[1:]:  # Skip header
+                name, state_fips = row
+                if name.lower().strip() == state_lower:
+                    return state_fips
+
+            # Try partial match for abbreviations
+            for row in data[1:]:
+                name, state_fips = row
+                # Check if state input matches common abbreviations
+                if len(state_lower) == 2:
+                    # This is likely an abbreviation - would need abbreviation lookup
+                    # For now, return None to avoid incorrect matches
+                    continue
+                if state_lower in name.lower():
+                    return state_fips
+
+            return None
+
+        except Exception as e:
+            logger.error(f"Failed to resolve state via API '{state}': {e}")
+            return None
+
     @lru_cache(maxsize=128)
     def _get_state_fips(self, state: str) -> Optional[str]:
         """Get state FIPS code from state name/abbreviation with caching"""
@@ -88,6 +146,46 @@ class CensusGeocodingService:
         except Exception as e:
             logger.warning(f"Failed to get state FIPS for '{state}': {e}")
             return None
+
+    @lru_cache(maxsize=256)
+    def _get_places_for_state_cached(self, state_fips: str) -> List:
+        """Cache place data by state to avoid repeated API calls"""
+        try:
+            params = {
+                "get": "NAME,GEO_ID",
+                "for": "place:*",
+                "in": f"state:{state_fips}",
+            }
+            response = requests.get(
+                self.data_api_url, params=params, timeout=self.timeout
+            )
+            response.raise_for_status()
+            data = response.json()
+            return data[1:]
+
+        except Exception as e:
+            logger.error(f"Failed to get places for state '{state_fips}': {e}")
+            return []
+
+    @lru_cache(maxsize=256)
+    def _get_counties_for_state_cached(self, state_fips: str) -> list:
+        """Cache county data by state"""
+        try:
+            params = {
+                "get": "NAME,GEO_ID",
+                "for": "county:*",
+                "in": f"state:{state_fips}",
+            }
+
+            response = requests.get(
+                self.data_api_url, params=params, timeout=self.timeout
+            )
+            response.raise_for_status()
+            return response.json()
+
+        except Exception as e:
+            logger.error(f"Failed to get counties for state '{state_fips}': {e}")
+            return []
 
     def _try_geocoding_api(
         self, place_name: str, state: str = None
@@ -147,16 +245,17 @@ class CensusGeocodingService:
     ) -> Optional[ResolvedGeography]:
         """Search places using Census Data API"""
         try:
-            params = {"get": "NAME,GEO_ID", "for": "place:*"}
-
+            # Use cached method instead of direct API call
             if state_fips:
-                params["in"] = f"state:{state_fips}"
-
-            response = requests.get(
-                self.data_api_url, params=params, timeout=self.timeout
-            )
-            response.raise_for_status()
-            data = response.json()
+                data = self._get_places_for_state_cached(state_fips)
+            else:
+                # Fallback to direct API call for nationwide search
+                params = {"get": "NAME,GEO_ID", "for": "place:*"}
+                response = requests.get(
+                    self.data_api_url, params=params, timeout=self.timeout
+                )
+                response.raise_for_status()
+                data = response.json()
 
             place_lower = place_name.lower().strip()
             best_match = None
@@ -283,18 +382,8 @@ class CensusGeocodingService:
                     county_name, f"Could not resolve state '{state}'"
                 )
 
-            # Query counties for the specific state
-            params = {
-                "get": "NAME,GEO_ID",
-                "for": "county:*",
-                "in": f"state:{state_fips}",
-            }
-
-            response = requests.get(
-                self.data_api_url, params=params, timeout=self.timeout
-            )
-            response.raise_for_status()
-            data = response.json()
+            # Use cached method instead of direct API call
+            data = self._get_counties_for_state_cached(state_fips)
 
             county_lower = county_name.lower().strip()
 
@@ -369,11 +458,11 @@ class CensusGeocodingService:
                 f"Geography level '{level}' is not yet supported. {suggestion}",
             )
 
-        # Check if level requires context
-        if level_info.get("requires_context") and has_county_context:
+        # Check if level requires context but context is not available
+        if level_info.get("requires_context") and not has_county_context:
             return (
                 False,
-                f"Geography level '{level}' is not yet supported. {suggestion}",
+                f"Geography level '{level}' requires additional context. {level_info.get('suggestion', 'Please provide more specific location information.')}",
             )
 
         # All validations passed
@@ -477,6 +566,20 @@ class CensusGeocodingService:
                     place, f"Processing error: {e}"
                 )
         return results
+
+    def get_cache_stats(self) -> dict:
+        """Get performance statistics for monitoring"""
+        return {
+            "state_fips_cache": self._get_state_fips.cache_info()._asdict(),
+            "places_cache": self._get_places_for_state_cached.cache_info()._asdict(),
+            "counties_cache": self._get_counties_for_state_cached.cache_info()._asdict(),
+        }
+
+    def clear_caches(self):
+        """Clear all caches (useful for testing)"""
+        self._get_state_fips.cache_clear()
+        self._get_places_for_state_cached.cache_clear()
+        self._get_counties_for_state_cached.cache_clear()
 
 
 if __name__ == "__main__":
