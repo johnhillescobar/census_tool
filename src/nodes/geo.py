@@ -2,8 +2,8 @@ from typing import Dict, Any
 from src.state.types import CensusState
 
 from langchain_core.runnables import RunnableConfig
+from src.services.geography_cache import resolve_geography_hint
 from src.utils.geo_utils import (
-    resolve_geography_hint,
     validate_geography_level,
     get_unsupported_level_message,
 )
