@@ -101,14 +101,14 @@ def memory_write_node(state: CensusState, config: RunnableConfig) -> Dict[str, A
     logger.info(f"Writing user memory for user_id: {user_id}")
 
     # Get profile and history from state
-    profile = state.get("profile", {})
-    history = state.get("history", [])
-    cache_index = state.get("cache_index", {})
-    messages = state.get("messages", [])
-    intent = state.get("intent", {})
-    geo = state.get("geo", {})
-    plan = state.get("plan", {})
-    final = state.get("final", {})
+    profile = state.profile or {}
+    history = state.history or []
+    cache_index = state.cache_index or {}
+    messages = state.messages or []
+    intent = state.intent or {}
+    geo = state.geo or {}
+    plan = state.plan or {}
+    final = state.final or {}
 
     # Initialize memory directory
     memory_dir = Path("memory")

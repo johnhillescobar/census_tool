@@ -1,0 +1,159 @@
+{
+  "user_id": "eric",
+  "default_geo": {
+    "level": "nation",
+    "filters": {
+      "for": "us:1"
+    },
+    "note": "No geography specified - using national level as default",
+    "confidence": 0.8,
+    "fips_codes": {
+      "nation": "us"
+    }
+  },
+  "preferred_dataset": "Unknown",
+  "default_year_range": [
+    2012,
+    2023
+  ],
+  "preferred_level": "place",
+  "var_aliases": {
+    "population": "B25008C_001E",
+    "median_income": "B19013_001E"
+  },
+  "last_geo": "Unknown",
+  "usage_stats": {
+    "total_queries": 5,
+    "success_queries": 4,
+    "last_query_date": "2025-09-28T17:31:40.462206"
+  },
+  "history": [
+    {
+      "timestamp": "2025-09-28T17:12:50.502773",
+      "user_id": "eric",
+      "question": "What's the population of New York City?",
+      "intent": {
+        "is_census": true,
+        "answer_type": "single",
+        "measures": [
+          "population"
+        ],
+        "time": {},
+        "geo_hint": "What's the population of New York City?",
+        "needs_clarification": false
+      },
+      "geo": {
+        "level": "place",
+        "filters": {
+          "for": "place:51000",
+          "in": "state:36"
+        },
+        "note": "Resolved via Census Data API",
+        "confidence": 0.9,
+        "fips_codes": {
+          "state": "36",
+          "place": "51000"
+        }
+      },
+      "plan_summary": "1 queries for years [2023] using ['acs/acs5']",
+      "answer_type": "single",
+      "success": true
+    },
+    {
+      "timestamp": "2025-09-28T17:13:26.629685",
+      "user_id": "eric",
+      "question": "What's the population of Chicago?",
+      "intent": {
+        "is_census": true,
+        "answer_type": "single",
+        "measures": [
+          "population"
+        ],
+        "time": {},
+        "geo_hint": "What's the population of Chicago?",
+        "needs_clarification": false
+      },
+      "geo": {
+        "level": "place",
+        "filters": {
+          "for": "place:70629",
+          "in": "state:17"
+        },
+        "note": "Resolved via Census Data API",
+        "confidence": 0.9,
+        "fips_codes": {
+          "state": "17",
+          "place": "70629"
+        }
+      },
+      "plan_summary": "1 queries for years [2023] using ['acs/acs5']",
+      "answer_type": "single",
+      "success": true
+    },
+    {
+      "timestamp": "2025-09-28T17:28:35.848339",
+      "user_id": "eric",
+      "question": "Show me median income trends from 2015 to 2020",
+      "intent": {
+        "is_census": true,
+        "answer_type": "series",
+        "measures": [
+          "median_income"
+        ],
+        "time": {
+          "start_year": 2015,
+          "end_year": 2020
+        },
+        "geo_hint": "Show me median income trends from 2015 to 2020",
+        "needs_clarification": false
+      },
+      "geo": {
+        "level": "nation",
+        "filters": {
+          "for": "us:1"
+        },
+        "note": "No geography specified - using national level as default",
+        "confidence": 0.8,
+        "fips_codes": {
+          "nation": "us"
+        }
+      },
+      "plan_summary": "6 queries for years [2015, 2016, 2017, 2018, 2019, 2020] using ['acs/acs5', 'acs/acs5', 'acs/acs5', 'acs/acs5', 'acs/acs5', 'acs/acs5']",
+      "answer_type": "series",
+      "success": true
+    },
+    {
+      "timestamp": "2025-09-28T17:31:40.462206",
+      "user_id": "eric",
+      "question": "Show me median income trends from 2015 to 2020",
+      "intent": {
+        "is_census": true,
+        "answer_type": "series",
+        "measures": [
+          "median_income"
+        ],
+        "time": {
+          "start_year": 2015,
+          "end_year": 2020
+        },
+        "geo_hint": "Show me median income trends from 2015 to 2020",
+        "needs_clarification": false
+      },
+      "geo": {
+        "level": "nation",
+        "filters": {
+          "for": "us:1"
+        },
+        "note": "No geography specified - using national level as default",
+        "confidence": 0.8,
+        "fips_codes": {
+          "nation": "us"
+        }
+      },
+      "plan_summary": "6 queries for years [2015, 2016, 2017, 2018, 2019, 2020] using ['acs/acs5', 'acs/acs5', 'acs/acs5', 'acs/acs5', 'acs/acs5', 'acs/acs5']",
+      "answer_type": "series",
+      "success": true
+    }
+  ],
+  "last_updated": "2025-09-28T17:31:40.462206"
+}

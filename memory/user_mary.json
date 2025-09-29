@@ -1,0 +1,64 @@
+{
+  "user_id": "mary",
+  "default_geo": {
+    "level": "nation",
+    "filters": {
+      "for": "us:1"
+    },
+    "note": "No geography specified - using national level as default",
+    "confidence": 0.8,
+    "fips_codes": {
+      "nation": "us"
+    }
+  },
+  "preferred_dataset": "Unknown",
+  "default_year_range": [
+    2012,
+    2023
+  ],
+  "preferred_level": "place",
+  "var_aliases": {
+    "median_income": "B06011_001E"
+  },
+  "last_geo": "Unknown",
+  "usage_stats": {
+    "total_queries": 1,
+    "success_queries": 1,
+    "last_query_date": "2025-09-28T17:35:47.779010"
+  },
+  "history": [
+    {
+      "timestamp": "2025-09-28T17:35:47.779010",
+      "user_id": "mary",
+      "question": "Show me median income trends from 2015 to 2020",
+      "intent": {
+        "is_census": true,
+        "answer_type": "series",
+        "measures": [
+          "median_income"
+        ],
+        "time": {
+          "start_year": 2015,
+          "end_year": 2020
+        },
+        "geo_hint": "Show me median income trends from 2015 to 2020",
+        "needs_clarification": false
+      },
+      "geo": {
+        "level": "nation",
+        "filters": {
+          "for": "us:1"
+        },
+        "note": "No geography specified - using national level as default",
+        "confidence": 0.8,
+        "fips_codes": {
+          "nation": "us"
+        }
+      },
+      "plan_summary": "6 queries for years [2015, 2016, 2017, 2018, 2019, 2020] using ['acs/acs5', 'acs/acs5', 'acs/acs5', 'acs/acs5', 'acs/acs5', 'acs/acs5']",
+      "answer_type": "series",
+      "success": true
+    }
+  ],
+  "last_updated": "2025-09-28T17:35:47.779010"
+}

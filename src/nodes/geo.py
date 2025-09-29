@@ -17,8 +17,8 @@ def geo_node(state: CensusState, config: RunnableConfig) -> Dict[str, Any]:
     """Resolve the geography hints into Census API filters"""
 
     # Get intent and profile from state
-    intent = state.get("intent", {})
-    profile = state.get("profile", {})
+    intent = state.intent or {}
+    profile = state.profile or {}
 
     if not intent:
         logger.error("No intent found in state")

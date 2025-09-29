@@ -1,0 +1,36 @@
+{
+  "default_geo": {
+    "level": "place",
+    "display_name": "Chicago"
+  },
+  "last_geo": "Chicago",
+  "preferred_dataset": "Unknown",
+  "var_aliases": {},
+  "usage_stats": {
+    "total_queries": 1,
+    "success_queries": 1,
+    "last_query_date": "2025-09-28T16:27:49.751836"
+  },
+  "history": [
+    {
+      "timestamp": "2025-09-28T16:27:49.751836",
+      "user_id": "test_user",
+      "question": "What is the population of Chicago?",
+      "intent": {
+        "is_census": true,
+        "measures": [
+          "population"
+        ]
+      },
+      "geo": {
+        "level": "place",
+        "display_name": "Chicago"
+      },
+      "plan_summary": "",
+      "answer_type": "answer",
+      "success": true
+    }
+  ],
+  "user_id": "test_user",
+  "last_updated": "2025-09-28T16:27:49.751836"
+}

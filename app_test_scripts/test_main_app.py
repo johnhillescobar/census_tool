@@ -78,25 +78,25 @@ def test_census_state_creation():
         history=[],
         cache_index={},
     )
-    # 2. Verify it works
-    assert state["messages"] == [
+    # 2. Verify it works using attribute access
+    assert state.messages == [
         {"role": "user", "content": "What's the population of New York City?"}
     ]
-    assert state["intent"] is None
-    assert state["geo"] == {}
-    assert state["candidates"] == {}
-    assert state["plan"] is None
-    assert state["artifacts"] == {}
-    assert state["final"] is None
-    assert state["logs"] == []
+    assert state.intent is None
+    assert state.geo == {}
+    assert state.candidates == {}
+    assert state.plan is None
+    assert state.artifacts == {}
+    assert state.final is None
+    assert state.logs == []
 
     # 3. Verify the field is accessible
     # Test that we can read and write to the fields
-    state["intent"] = {"test": "data"}  # ← Test writing
-    assert state["intent"]["test"] == "data"  # ← Test reading
+    state.intent = {"test": "data"}  # ← Test writing
+    assert state.intent["test"] == "data"  # ← Test reading
 
-    state["geo"]["level"] = "place"  # ← Test writing to nested field
-    assert state["geo"]["level"] == "place"  # ← Test reading from nested field
+    state.geo["level"] = "place"  # ← Test writing to nested field
+    assert state.geo["level"] == "place"  # ← Test reading from nested field
 
     print("✅ CensusState creation test passed!")
 
@@ -212,11 +212,11 @@ def test_census_state_field_types():
     )
 
     # Test field types
-    assert isinstance(state["messages"], list), "messages should be a list"
-    assert isinstance(state["geo"], dict), "geo should be a dict"
-    assert isinstance(state["logs"], list), "logs should be a list"
-    assert state["intent"] is None, "intent should be None"
-    assert state["plan"] is None, "plan should be None"
+    assert isinstance(state.messages, list), "messages should be a list"
+    assert isinstance(state.geo, dict), "geo should be a dict"
+    assert isinstance(state.logs, list), "logs should be a list"
+    assert state.intent is None, "intent should be None"
+    assert state.plan is None, "plan should be None"
 
     print("✅ CensusState field types test passed!")
 

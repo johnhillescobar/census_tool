@@ -16,8 +16,8 @@ def data_node(state: CensusState, config: RunnableConfig) -> Dict[str, Any]:
     """Retrieve and cache Census data"""
 
     # Get state
-    plan = state.get("plan", {})
-    cache_index = state.get("cache_index", {})
+    plan = state.plan or {}
+    cache_index = state.cache_index or {}
 
     if not plan:
         return {
@@ -31,7 +31,7 @@ def data_node(state: CensusState, config: RunnableConfig) -> Dict[str, Any]:
         }
 
     queries = plan["queries"]
-    artifacts = state.get("artifacts", {})
+    artifacts = state.artifacts or {}
     datasets = artifacts.get("datasets", {})
     previews = artifacts.get("previews", {})
 
@@ -89,7 +89,7 @@ def process_single_query(
 
     # Compute cache signature
     signature = compute_cache_signature(
-        query["year"], query["dataset"], query["variables"], query["geo"]
+        query.year, query.dataset, query.variables, query.geo
     )
 
     # Check cache first
@@ -97,7 +97,7 @@ def process_single_query(
     if cache_entry:
         return {
             "success": True,
-            "save_as": query["save_as"],
+            "save_as": query.save_as,
             "signature": signature,
             "file_handle": cache_entry["file_path"],
             "preview": load_preview(cache_entry["file_path"]),
@@ -106,7 +106,7 @@ def process_single_query(
 
     # Fetch from API
     api_result = fetch_census_data(
-        query["dataset"], query["year"], query["variables"], query["geo"]
+        query.dataset, query.year, query.variables, query.geo
     )
 
     if not api_result["success"]:
@@ -120,16 +120,16 @@ def process_single_query(
         api_result["data"],
         signature,
         {
-            "year": query["year"],
-            "dataset": query["dataset"],
-            "variables": query["variables"],
-            "geo": query["geo"],
+            "year": query.year,
+            "dataset": query.dataset,
+            "variables": query.variables,
+            "geo": query.geo,
         },
     )
 
     return {
         "success": True,
-        "save_as": query["save_as"],
+        "save_as": query.save_as,
         "signature": signature,
         "file_handle": cache_entry["file_path"],
         "preview": load_preview(cache_entry["file_path"]),

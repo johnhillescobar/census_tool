@@ -4,7 +4,7 @@ from config import MESSAGE_THRESHOLD
 
 def should_summarize(state: CensusState) -> str:
     """Determine if summarization is needed"""
-    messages = state.get("messages", [])
+    messages = state.messages or []
     if len(messages) > MESSAGE_THRESHOLD:
         return "summarizer"
     return "intent"
@@ -12,7 +12,7 @@ def should_summarize(state: CensusState) -> str:
 
 def route_from_intent(state: CensusState) -> str:
     """Route based on intent analysis"""
-    intent = state.get("intent", {})
+    intent = state.intent or {}
 
     if not intent.get("is_census", False):
         return "not_census"
@@ -24,7 +24,7 @@ def route_from_intent(state: CensusState) -> str:
 
 def route_from_retrieve(state: CensusState) -> str:
     """Route after retrieval based on confidence"""
-    candidates = state.get("candidates", {})
+    candidates = state.candidates or {}
     variables = candidates.get("variables", [])
 
     if not variables:
@@ -35,7 +35,7 @@ def route_from_retrieve(state: CensusState) -> str:
 
 def route_from_plan(state: CensusState) -> str:
     """Route after planning"""
-    plan = state.get("plan", {})
+    plan = state.plan or {}
     queries = plan.get("queries", [])
 
     if not queries:
@@ -46,7 +46,7 @@ def route_from_plan(state: CensusState) -> str:
 
 def route_from_data(state: CensusState) -> str:
     """Route after data fetching"""
-    artifacts = state.get("artifacts", {})
+    artifacts = state.artifacts or {}
     datasets = artifacts.get("datasets", {})
 
     if not datasets:

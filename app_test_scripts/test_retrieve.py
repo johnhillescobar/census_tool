@@ -6,6 +6,7 @@ Includes both print statements and assertions for GitHub Actions CI
 import logging
 from unittest.mock import Mock, patch
 from src.nodes.retrieve import retrieve_node
+from src.state.types import CensusState
 from src.utils.retrieval_utils import (
     process_chroma_results,
     calculate_confidence_score,
@@ -285,18 +286,18 @@ def test_retrieve_node_success(mock_get_collection, mock_init_client):
     }
 
     # Test state
-    state = {
-        "intent": {
+    state = CensusState(
+        intent={
             "measures": ["population"],
             "answer_type": "single",
             "time": {"year": 2023},
         },
-        "profile": {"preferred_dataset": "acs/acs5"},
-        "messages": [],
-        "history": [],
-        "cache_index": {},
-        "logs": [],
-    }
+        profile={"preferred_dataset": "acs/acs5"},
+        messages=[],
+        history=[],
+        cache_index={},
+        logs=[],
+    )
 
     config = {"user_id": "test_user", "thread_id": "test_thread"}
 
@@ -339,18 +340,18 @@ def test_retrieve_node_fallback(mock_get_collection, mock_init_client):
     }
 
     # Test state
-    state = {
-        "intent": {
+    state = CensusState(
+        intent={
             "measures": ["population"],
             "answer_type": "single",
             "time": {"year": 2023},
         },
-        "profile": {"preferred_dataset": "acs/acs5"},
-        "messages": [],
-        "history": [],
-        "cache_index": {},
-        "logs": [],
-    }
+        profile={"preferred_dataset": "acs/acs5"},
+        messages=[],
+        history=[],
+        cache_index={},
+        logs=[],
+    )
 
     config = {"user_id": "test_user", "thread_id": "test_thread"}
 
@@ -378,13 +379,13 @@ def test_retrieve_node_error_cases():
     print("\n--- Testing retrieve_node (error cases) ---")
 
     # Test case 1: No intent
-    state_no_intent = {
-        "profile": {},
-        "messages": [],
-        "history": [],
-        "cache_index": {},
-        "logs": [],
-    }
+    state_no_intent = CensusState(
+        profile={},
+        messages=[],
+        history=[],
+        cache_index={},
+        logs=[],
+    )
 
     config = {"user_id": "test_user", "thread_id": "test_thread"}
 

@@ -9,7 +9,6 @@ from src.utils.text_utils import (
     determine_answer_type,
     extract_measures,
     extract_years,
-    extract_geo_hint,
 )
 
 logger = logging.getLogger(__name__)
@@ -35,7 +34,7 @@ def intent_node(state: CensusState, config: RunnableConfig) -> Dict[str, Any]:
     """Parse user intent heuristically"""
 
     # Get the latest user message
-    messages = state.get("messages", [])
+    messages = state.messages or []
     if not messages:
         logger.error("No messages found in state")
         return {
@@ -67,7 +66,7 @@ def intent_node(state: CensusState, config: RunnableConfig) -> Dict[str, Any]:
     answer_type = determine_answer_type(user_text)
     measures = extract_measures(user_text)
     time_info = extract_years(user_text)
-    geo_hint = extract_geo_hint(user_text)
+    geo_hint = user_text
 
     # Build intent object
     intent = {
@@ -101,8 +100,8 @@ def clarify_node(state: CensusState, config: RunnableConfig) -> Dict[str, Any]:
     """Ask clarifying questions when intent is ambiguous"""
 
     # Get the current intent and context
-    intent = state.get("intent", {})
-    messages = state.get("messages", [])
+    intent = state.intent or {}
+    messages = state.messages or []
 
     # Get the user's last question
     user_question = ""
@@ -120,7 +119,7 @@ def clarify_node(state: CensusState, config: RunnableConfig) -> Dict[str, Any]:
     if not intent.get("time"):
         clarification_needed.append("what time period you're interested in")
 
-    if not state.get("geo"):
+    if not state.geo:
         clarification_needed.append("what location you want data for")
 
     # Build clarification message

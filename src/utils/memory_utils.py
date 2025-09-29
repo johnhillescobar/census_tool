@@ -78,8 +78,8 @@ def build_history_record(
     plan_summary = ""
     if plan and plan.get("queries"):
         query_count = len(plan["queries"])
-        years = [query.get("year", "Unknown") for query in plan["queries"]]
-        datasets = [query.get("dataset", "Unknown") for query in plan["queries"]]
+        years = [query.year for query in plan["queries"]]
+        datasets = [query.dataset for query in plan["queries"]]
         plan_summary = f"{query_count} queries for years {years} using {datasets}"
 
     return {

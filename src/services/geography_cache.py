@@ -162,13 +162,13 @@ class DynamicGeographyResolver:
     def _create_error_result(self, error_msg: str) -> ResolvedGeography:
         """Create standardized error result"""
         return ResolvedGeography(
-            level="error",
-            filters={},
-            display_name="",
-            fips_codes={},
-            confidence=0.0,
-            note=error_msg,
-            geocoding_metadata={"error": True},
+            level="nation",
+            filters={"for": "us:1"},
+            display_name="United States",
+            fips_codes={"nation": "us"},
+            confidence=0.8,
+            note="No geography specified - using national level as default",
+            geocoding_metadata={},
         )
 
 

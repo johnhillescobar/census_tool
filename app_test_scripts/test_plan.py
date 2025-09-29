@@ -68,25 +68,28 @@ def test_plan_node_success():
     assert len(queries) == 1, f"Expected 1 query, got {len(queries)}"
 
     query = queries[0]
-    required_keys = ["year", "dataset", "variables", "geo", "save_as"]
-    for key in required_keys:
-        assert key in query, f"Missing required key '{key}' in QuerySpec"
+    # QuerySpec is a Pydantic BaseModel, use attribute access
+    assert hasattr(query, "year"), "QuerySpec should have 'year' attribute"
+    assert hasattr(query, "dataset"), "QuerySpec should have 'dataset' attribute"
+    assert hasattr(query, "variables"), "QuerySpec should have 'variables' attribute"
+    assert hasattr(query, "geo"), "QuerySpec should have 'geo' attribute"
+    assert hasattr(query, "save_as"), "QuerySpec should have 'save_as' attribute"
 
-    # Validate specific values
-    assert query["year"] == 2023, f"Expected year 2023, got {query['year']}"
-    assert query["dataset"] == "acs/acs5", (
-        f"Expected dataset 'acs/acs5', got {query['dataset']}"
+    # Validate specific values using attribute access
+    assert query.year == 2023, f"Expected year 2023, got {query.year}"
+    assert query.dataset == "acs/acs5", (
+        f"Expected dataset 'acs/acs5', got {query.dataset}"
     )
-    assert "B01003_001E" in query["variables"], (
+    assert "B01003_001E" in query.variables, (
         "Expected variable 'B01003_001E' in variables"
     )
-    assert "NAME" in query["variables"], "Expected 'NAME' variable in variables"
-    assert len(query["variables"]) == 2, (
-        f"Expected 2 variables, got {len(query['variables'])}"
+    assert "NAME" in query.variables, "Expected 'NAME' variable in variables"
+    assert len(query.variables) == 2, (
+        f"Expected 2 variables, got {len(query.variables)}"
     )
-    assert query["geo"] == test_state["geo"], "Geo should match input geo"
-    assert query["save_as"] == "B01003_001E_place_2023", (
-        f"Unexpected save_as: {query['save_as']}"
+    assert query.geo == test_state.geo, "Geo should match input geo"
+    assert query.save_as == "B01003_001E_place_2023", (
+        f"Unexpected save_as: {query.save_as}"
     )
 
     # Validate plan structure
@@ -292,11 +295,11 @@ def test_plan_node_multi_year():
     assert len(queries) == 4, f"Expected 4 queries for 4 years, got {len(queries)}"
 
     # Check each query has correct year
-    years = [query["year"] for query in queries]
+    years = [query.year for query in queries]
     assert sorted(years) == [2020, 2021, 2022, 2023], f"Unexpected years: {years}"
 
     # Check save_as filenames are unique
-    save_as_names = [query["save_as"] for query in queries]
+    save_as_names = [query.save_as for query in queries]
     assert len(set(save_as_names)) == 4, (
         f"Save_as names should be unique: {save_as_names}"
     )
