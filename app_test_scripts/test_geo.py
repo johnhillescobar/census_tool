@@ -4,6 +4,7 @@ Test script for geo_node
 
 import logging
 from src.nodes.geo import geo_node
+from src.state.types import CensusState
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
@@ -66,8 +67,8 @@ def test_geo_node():
         print(f"\n--- Test: '{geo_hint}' ({description}) ---")
 
         # Mock state
-        state = {
-            "intent": {
+        state = CensusState(
+            intent={
                 "geo_hint": geo_hint,
                 "is_census": True,
                 "answer_type": "single",
@@ -75,12 +76,12 @@ def test_geo_node():
                 "time": {"year": 2023},
                 "needs_clarification": False,
             },
-            "profile": {"default_geo": {}},
-            "messages": [],
-            "history": [],
-            "cache_index": {},
-            "logs": [],
-        }
+            profile={"default_geo": {}},
+            messages=[],
+            history=[],
+            cache_index={},
+            logs=[],
+        )
 
         config = {"user_id": "test_user", "thread_id": "test_thread"}
 
@@ -141,15 +142,15 @@ def test_geo_node():
 def test_geo_node_edge_cases():
     """Test edge cases for geo_node"""
 
-    # Test with missing intent
-    print("\n--- Test: Missing intent ---")
-    state_no_intent = {
-        "profile": {},
-        "messages": [],
-        "history": [],
-        "cache_index": {},
-        "logs": [],
-    }
+        # Test with missing intent
+        print("\n--- Test: Missing intent ---")
+        state_no_intent = CensusState(
+            profile={},
+            messages=[],
+            history=[],
+            cache_index={},
+            logs=[],
+        )
 
     result = geo_node(state_no_intent, {"user_id": "test_user"})
     assert "error" in result, "Should return error when intent is missing"

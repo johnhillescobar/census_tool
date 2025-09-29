@@ -4,6 +4,7 @@ Test script for intent_node
 
 import logging
 from src.nodes.intent import intent_node
+from src.state.types import CensusState
 
 # Set up logging
 logging.basicConfig(
@@ -18,13 +19,13 @@ def test_intent_node():
     test_input = "Population of NYC in 2023"
 
     # Mock state with the test message
-    state = {
-        "messages": [{"role": "user", "content": test_input}],
-        "profile": {},
-        "history": [],
-        "cache_index": {},
-        "logs": [],
-    }
+    state = CensusState(
+        messages=[{"role": "user", "content": test_input}],
+        profile={},
+        history=[],
+        cache_index={},
+        logs=[],
+    )
 
     # Mock config
     config = {"user_id": "test_user", "thread_id": "test_thread"}
@@ -58,13 +59,13 @@ def test_intent_node_non_census():
 
     test_input = "What's 2+2?"
 
-    state = {
-        "messages": [{"role": "user", "content": test_input}],
-        "profile": {},
-        "history": [],
-        "cache_index": {},
-        "logs": [],
-    }
+    state = CensusState(
+        messages=[{"role": "user", "content": test_input}],
+        profile={},
+        history=[],
+        cache_index={},
+        logs=[],
+    )
 
     config = {"user_id": "test_user", "thread_id": "test_thread"}
     result = intent_node(state, config)
