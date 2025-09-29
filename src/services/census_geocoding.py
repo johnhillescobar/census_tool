@@ -139,7 +139,8 @@ class CensusGeocodingService:
                 return self._get_fips_for_state_name(resolved_state_name)
 
             # Step 3: Fallback to API
-            return self._resolve_state_from_api(state)
+            if resolved_state_name:
+                return self._get_fips_for_state_name(state)  # Use original full name
 
             return None
 

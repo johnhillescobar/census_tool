@@ -1,0 +1,26 @@
+{
+  "cc020b900cdd08bb4265f78ee00befeb": {
+    "file_path": "data\\cc020b900cdd08bb4265f78ee00befeb.csv",
+    "timestamp": 1759100021.8756251,
+    "metadata": {
+      "year": 2023,
+      "dataset": "acs/acs5",
+      "variables": [
+        "B07201_001E",
+        "NAME"
+      ],
+      "geo": {
+        "level": "nation",
+        "filters": {
+          "for": "us:1"
+        },
+        "note": "No geography specified - using national level as default",
+        "confidence": 0.8,
+        "fips_codes": {
+          "nation": "us"
+        }
+      }
+    },
+    "signature": "cc020b900cdd08bb4265f78ee00befeb"
+  }
+}

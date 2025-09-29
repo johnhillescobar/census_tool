@@ -50,5 +50,293 @@
       }
     },
     "signature": "be9c5aa32ba8090300797bac16e07a1d"
+  },
+  "78047e6515c7fca80a936aaf1b83daa7": {
+    "file_path": "data\\78047e6515c7fca80a936aaf1b83daa7.csv",
+    "timestamp": 1759098515.8023303,
+    "metadata": {
+      "year": 2018,
+      "dataset": "acs/acs5",
+      "variables": [
+        "B19013_001E",
+        "NAME"
+      ],
+      "geo": {
+        "level": "nation",
+        "filters": {
+          "for": "us:1"
+        },
+        "note": "No geography specified - using national level as default",
+        "confidence": 0.8,
+        "fips_codes": {
+          "nation": "us"
+        }
+      }
+    },
+    "signature": "78047e6515c7fca80a936aaf1b83daa7"
+  },
+  "76ec834aa4ee5ba11753e61722d4e4a6": {
+    "file_path": "data\\76ec834aa4ee5ba11753e61722d4e4a6.csv",
+    "timestamp": 1759098515.8033285,
+    "metadata": {
+      "year": 2019,
+      "dataset": "acs/acs5",
+      "variables": [
+        "B19013_001E",
+        "NAME"
+      ],
+      "geo": {
+        "level": "nation",
+        "filters": {
+          "for": "us:1"
+        },
+        "note": "No geography specified - using national level as default",
+        "confidence": 0.8,
+        "fips_codes": {
+          "nation": "us"
+        }
+      }
+    },
+    "signature": "76ec834aa4ee5ba11753e61722d4e4a6"
+  },
+  "2c7d2439f2edcd232c81155a0abd8179": {
+    "file_path": "data\\2c7d2439f2edcd232c81155a0abd8179.csv",
+    "timestamp": 1759098515.7943316,
+    "metadata": {
+      "year": 2016,
+      "dataset": "acs/acs5",
+      "variables": [
+        "B19013_001E",
+        "NAME"
+      ],
+      "geo": {
+        "level": "nation",
+        "filters": {
+          "for": "us:1"
+        },
+        "note": "No geography specified - using national level as default",
+        "confidence": 0.8,
+        "fips_codes": {
+          "nation": "us"
+        }
+      }
+    },
+    "signature": "2c7d2439f2edcd232c81155a0abd8179"
+  },
+  "b15ec15d4c8cccb22e7fd915beb50452": {
+    "file_path": "data\\b15ec15d4c8cccb22e7fd915beb50452.csv",
+    "timestamp": 1759098515.7933314,
+    "metadata": {
+      "year": 2015,
+      "dataset": "acs/acs5",
+      "variables": [
+        "B19013_001E",
+        "NAME"
+      ],
+      "geo": {
+        "level": "nation",
+        "filters": {
+          "for": "us:1"
+        },
+        "note": "No geography specified - using national level as default",
+        "confidence": 0.8,
+        "fips_codes": {
+          "nation": "us"
+        }
+      }
+    },
+    "signature": "b15ec15d4c8cccb22e7fd915beb50452"
+  },
+  "6049fc0e75167ade322acc2b193c5fe0": {
+    "file_path": "data\\6049fc0e75167ade322acc2b193c5fe0.csv",
+    "timestamp": 1759098515.8023303,
+    "metadata": {
+      "year": 2017,
+      "dataset": "acs/acs5",
+      "variables": [
+        "B19013_001E",
+        "NAME"
+      ],
+      "geo": {
+        "level": "nation",
+        "filters": {
+          "for": "us:1"
+        },
+        "note": "No geography specified - using national level as default",
+        "confidence": 0.8,
+        "fips_codes": {
+          "nation": "us"
+        }
+      }
+    },
+    "signature": "6049fc0e75167ade322acc2b193c5fe0"
+  },
+  "bfe13a4893741e4870d671e2be7ebce9": {
+    "file_path": "data\\bfe13a4893741e4870d671e2be7ebce9.csv",
+    "timestamp": 1759098515.8093321,
+    "metadata": {
+      "year": 2020,
+      "dataset": "acs/acs5",
+      "variables": [
+        "B19013_001E",
+        "NAME"
+      ],
+      "geo": {
+        "level": "nation",
+        "filters": {
+          "for": "us:1"
+        },
+        "note": "No geography specified - using national level as default",
+        "confidence": 0.8,
+        "fips_codes": {
+          "nation": "us"
+        }
+      }
+    },
+    "signature": "bfe13a4893741e4870d671e2be7ebce9"
+  },
+  "9640629111b49a0eb9e87026aee72bb1": {
+    "file_path": "data\\9640629111b49a0eb9e87026aee72bb1.csv",
+    "timestamp": 1759098699.2658658,
+    "metadata": {
+      "year": 2019,
+      "dataset": "acs/acs5",
+      "variables": [
+        "B19013A_001E",
+        "NAME"
+      ],
+      "geo": {
+        "level": "nation",
+        "filters": {
+          "for": "us:1"
+        },
+        "note": "No geography specified - using national level as default",
+        "confidence": 0.8,
+        "fips_codes": {
+          "nation": "us"
+        }
+      }
+    },
+    "signature": "9640629111b49a0eb9e87026aee72bb1"
+  },
+  "e1ead24feee25b216a24151898f51674": {
+    "file_path": "data\\e1ead24feee25b216a24151898f51674.csv",
+    "timestamp": 1759098699.3474598,
+    "metadata": {
+      "year": 2018,
+      "dataset": "acs/acs5",
+      "variables": [
+        "B19013A_001E",
+        "NAME"
+      ],
+      "geo": {
+        "level": "nation",
+        "filters": {
+          "for": "us:1"
+        },
+        "note": "No geography specified - using national level as default",
+        "confidence": 0.8,
+        "fips_codes": {
+          "nation": "us"
+        }
+      }
+    },
+    "signature": "e1ead24feee25b216a24151898f51674"
+  },
+  "6810e635ec82f3a8569c99544feac2b6": {
+    "file_path": "data\\6810e635ec82f3a8569c99544feac2b6.csv",
+    "timestamp": 1759098699.3504598,
+    "metadata": {
+      "year": 2016,
+      "dataset": "acs/acs5",
+      "variables": [
+        "B19013A_001E",
+        "NAME"
+      ],
+      "geo": {
+        "level": "nation",
+        "filters": {
+          "for": "us:1"
+        },
+        "note": "No geography specified - using national level as default",
+        "confidence": 0.8,
+        "fips_codes": {
+          "nation": "us"
+        }
+      }
+    },
+    "signature": "6810e635ec82f3a8569c99544feac2b6"
+  },
+  "7a5eb3821210b0cd0962a21add7377d0": {
+    "file_path": "data\\7a5eb3821210b0cd0962a21add7377d0.csv",
+    "timestamp": 1759098699.378464,
+    "metadata": {
+      "year": 2015,
+      "dataset": "acs/acs5",
+      "variables": [
+        "B19013A_001E",
+        "NAME"
+      ],
+      "geo": {
+        "level": "nation",
+        "filters": {
+          "for": "us:1"
+        },
+        "note": "No geography specified - using national level as default",
+        "confidence": 0.8,
+        "fips_codes": {
+          "nation": "us"
+        }
+      }
+    },
+    "signature": "7a5eb3821210b0cd0962a21add7377d0"
+  },
+  "e0349ca194b7e5400e9ff0c2240f6466": {
+    "file_path": "data\\e0349ca194b7e5400e9ff0c2240f6466.csv",
+    "timestamp": 1759098699.493633,
+    "metadata": {
+      "year": 2017,
+      "dataset": "acs/acs5",
+      "variables": [
+        "B19013A_001E",
+        "NAME"
+      ],
+      "geo": {
+        "level": "nation",
+        "filters": {
+          "for": "us:1"
+        },
+        "note": "No geography specified - using national level as default",
+        "confidence": 0.8,
+        "fips_codes": {
+          "nation": "us"
+        }
+      }
+    },
+    "signature": "e0349ca194b7e5400e9ff0c2240f6466"
+  },
+  "09361afb2c3a6e3050ee9a0628fe6439": {
+    "file_path": "data\\09361afb2c3a6e3050ee9a0628fe6439.csv",
+    "timestamp": 1759098700.4235175,
+    "metadata": {
+      "year": 2020,
+      "dataset": "acs/acs5",
+      "variables": [
+        "B19013A_001E",
+        "NAME"
+      ],
+      "geo": {
+        "level": "nation",
+        "filters": {
+          "for": "us:1"
+        },
+        "note": "No geography specified - using national level as default",
+        "confidence": 0.8,
+        "fips_codes": {
+          "nation": "us"
+        }
+      }
+    },
+    "signature": "09361afb2c3a6e3050ee9a0628fe6439"
   }
 }

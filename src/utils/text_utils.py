@@ -432,20 +432,25 @@ def format_series_answer(
     for dataset_key, file_path in datasets.items():
         try:
             df = pd.read_csv(file_path)
-            year = extract_year_from_dataset(dataset_key)
+            year = int(extract_year_from_dataset(dataset_key))
             years.append(year)
 
             # Get the value column (typically the last column)
             if len(df.columns) > 1:
                 value_column = df.columns[1]
                 value = df[value_column].iloc[0] if len(df) > 0 else None
+                if value is not None and hasattr(value, "item"):  # numpy scalar
+                    value = value.item()
+                geo_value = (
+                    df.iloc[0][0] if len(df) > 0 else geo.get("display_name", "Unknown")
+                )
+                if hasattr(geo_value, "item"):  # numpy scalar
+                    geo_value = geo_value.item()
                 consolidated_data.append(
                     {
                         "year": year,
                         "value": value,
-                        "geo": df.iloc[0][0]
-                        if len(df) > 0
-                        else geo.get("display_name", "Unknown"),
+                        "geo": str(geo_value),
                     }
                 )
 
@@ -485,7 +490,7 @@ def format_series_answer(
         "geo": consolidated_data[0]["geo"]
         if consolidated_data
         else geo.get("display_name", "Unknown"),
-        "variable": extract_variable_from_key(datasets.keys()[0]),
+        "variable": extract_variable_from_key(list(datasets.keys())[0]),
         "file_path": consolidated_file,
         "preview": consolidated_data[:PREVIEW_ROWS],
     }

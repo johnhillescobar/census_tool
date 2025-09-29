@@ -1,0 +1,59 @@
+{
+  "user_id": "maru",
+  "default_geo": {
+    "level": "nation",
+    "filters": {
+      "for": "us:1"
+    },
+    "note": "No geography specified - using national level as default",
+    "confidence": 0.8,
+    "fips_codes": {
+      "nation": "us"
+    }
+  },
+  "preferred_dataset": "Unknown",
+  "default_year_range": [
+    2012,
+    2023
+  ],
+  "preferred_level": "place",
+  "var_aliases": {},
+  "last_geo": "Unknown",
+  "usage_stats": {
+    "total_queries": 1,
+    "success_queries": 1,
+    "last_query_date": "2025-09-28T17:53:41.897789"
+  },
+  "history": [
+    {
+      "timestamp": "2025-09-28T17:53:41.897789",
+      "user_id": "maru",
+      "question": "compare population by county in California",
+      "intent": {
+        "is_census": true,
+        "answer_type": "table",
+        "measures": [
+          "population"
+        ],
+        "time": {},
+        "geo_hint": "compare population by county in California",
+        "needs_clarification": false
+      },
+      "geo": {
+        "level": "nation",
+        "filters": {
+          "for": "us:1"
+        },
+        "note": "No geography specified - using national level as default",
+        "confidence": 0.8,
+        "fips_codes": {
+          "nation": "us"
+        }
+      },
+      "plan_summary": "1 queries for years [2023] using ['acs/acs5']",
+      "answer_type": "table",
+      "success": true
+    }
+  ],
+  "last_updated": "2025-09-28T17:53:41.897789"
+}
