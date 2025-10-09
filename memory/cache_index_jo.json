@@ -1,38 +1,12 @@
 {
-  "deb90557247c289679436477bc87c9dd": {
-    "file_path": "data\\deb90557247c289679436477bc87c9dd.csv",
-    "timestamp": 1759097521.7827928,
+  "18365ae6f433daf1ebeca129fc548760": {
+    "file_path": "data\\18365ae6f433daf1ebeca129fc548760.csv",
+    "timestamp": 1759324292.3824623,
     "metadata": {
       "year": 2023,
       "dataset": "acs/acs5",
       "variables": [
         "B25008C_001E",
-        "NAME"
-      ],
-      "geo": {
-        "level": "place",
-        "filters": {
-          "for": "place:70629",
-          "in": "state:17"
-        },
-        "note": "Resolved via Census Data API",
-        "confidence": 0.9,
-        "fips_codes": {
-          "state": "17",
-          "place": "70629"
-        }
-      }
-    },
-    "signature": "deb90557247c289679436477bc87c9dd"
-  },
-  "e8aee039ae5e74996e98a3ef0ac821c3": {
-    "file_path": "data\\e8aee039ae5e74996e98a3ef0ac821c3.csv",
-    "timestamp": 1759106623.0293267,
-    "metadata": {
-      "year": 2023,
-      "dataset": "acs/acs5",
-      "variables": [
-        "B25008E_001E",
         "NAME"
       ],
       "geo": {
@@ -49,6 +23,32 @@
         }
       }
     },
-    "signature": "e8aee039ae5e74996e98a3ef0ac821c3"
+    "signature": "18365ae6f433daf1ebeca129fc548760"
+  },
+  "c84f14c204b4a61ced51a6139248e563": {
+    "file_path": "data\\c84f14c204b4a61ced51a6139248e563.csv",
+    "timestamp": 1759324581.9613543,
+    "metadata": {
+      "year": 2023,
+      "dataset": "acs/acs5",
+      "variables": [
+        "B07404E_001E",
+        "NAME"
+      ],
+      "geo": {
+        "level": "place",
+        "filters": {
+          "for": "place:57024",
+          "in": "state:01"
+        },
+        "note": "Resolved via Census Data API",
+        "confidence": 0.9,
+        "fips_codes": {
+          "state": "01",
+          "place": "57024"
+        }
+      }
+    },
+    "signature": "c84f14c204b4a61ced51a6139248e563"
   }
 }

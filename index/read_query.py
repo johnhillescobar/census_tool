@@ -2,6 +2,7 @@ from pathlib import Path
 from typing import Dict, List
 import chromadb
 import logging
+import pprint
 
 # Import configuration
 import sys
@@ -75,4 +76,6 @@ if __name__ == "__main__":
     query = "What's the population of Chicago?"
     chroma_query = ChromaQuery()
     results = chroma_query.read_query(query)
-    print(results)
+    pprint.pprint(results)
+    collection_names = chroma_query.client.list_collections()
+    pprint.pprint(collection_names)

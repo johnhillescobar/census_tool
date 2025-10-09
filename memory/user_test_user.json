@@ -1,15 +1,24 @@
 {
   "default_geo": {
     "level": "place",
-    "display_name": "Chicago"
+    "filters": {
+      "for": "place:14000",
+      "in": "state:17"
+    },
+    "note": "Resolved via LLM: Matched common city name to Census FIPS codes using standard abbreviation and major city knowledge",
+    "confidence": 1.0,
+    "fips_codes": {
+      "place": "14000",
+      "state": "17"
+    }
   },
-  "last_geo": "Chicago",
+  "last_geo": "Unknown",
   "preferred_dataset": "Unknown",
   "var_aliases": {},
   "usage_stats": {
-    "total_queries": 1,
-    "success_queries": 1,
-    "last_query_date": "2025-09-28T16:27:49.751836"
+    "total_queries": 10,
+    "success_queries": 10,
+    "last_query_date": "2025-10-03T19:48:02.066928"
   },
   "history": [
     {
@@ -29,8 +38,278 @@
       "plan_summary": "",
       "answer_type": "answer",
       "success": true
+    },
+    {
+      "timestamp": "2025-10-02T19:17:40.863676",
+      "user_id": "test_user",
+      "question": "What is the population of NYC?",
+      "intent": {
+        "is_census": true,
+        "answer_type": "single",
+        "measures": [
+          "population"
+        ],
+        "time": {},
+        "geo_hint": "NYC",
+        "needs_clarification": false,
+        "original_text": "What is the population of NYC?",
+        "confidence": 0.98,
+        "method": "hybrid"
+      },
+      "geo": {
+        "level": "place",
+        "filters": {
+          "for": "place:57024",
+          "in": "state:01"
+        },
+        "note": "Resolved via Census Data API",
+        "confidence": 0.9,
+        "fips_codes": {
+          "state": "01",
+          "place": "57024"
+        }
+      },
+      "plan_summary": "1 queries for years [2023] using ['acs/acs5']",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-10-02T19:17:54.457000",
+      "user_id": "test_user",
+      "question": "What is the population of New York City?",
+      "intent": {
+        "is_census": true,
+        "answer_type": "single",
+        "measures": [
+          "population"
+        ],
+        "time": {},
+        "geo_hint": "New York City",
+        "needs_clarification": false,
+        "original_text": "What is the population of New York City?",
+        "confidence": 1.0,
+        "method": "hybrid"
+      },
+      "geo": {
+        "level": "place",
+        "filters": {
+          "for": "place:51000",
+          "in": "state:36"
+        },
+        "note": "Resolved via Census Data API",
+        "confidence": 0.9,
+        "fips_codes": {
+          "state": "36",
+          "place": "51000"
+        }
+      },
+      "plan_summary": "1 queries for years [2023] using ['acs/acs5']",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-10-02T19:18:05.240958",
+      "user_id": "test_user",
+      "question": "Show me population data for Chicago",
+      "intent": {
+        "is_census": true,
+        "answer_type": "single",
+        "measures": [
+          "population"
+        ],
+        "time": {},
+        "geo_hint": "Chicago",
+        "needs_clarification": false,
+        "original_text": "Show me population data for Chicago",
+        "confidence": 0.98,
+        "method": "hybrid"
+      },
+      "geo": {
+        "level": "place",
+        "filters": {
+          "for": "place:70629",
+          "in": "state:17"
+        },
+        "note": "Resolved via Census Data API",
+        "confidence": 0.9,
+        "fips_codes": {
+          "state": "17",
+          "place": "70629"
+        }
+      },
+      "plan_summary": "1 queries for years [2023] using ['acs/acs5']",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-10-03T19:24:17.594821",
+      "user_id": "test_user",
+      "question": "What is the population of NYC?",
+      "intent": {
+        "is_census": true,
+        "answer_type": "single",
+        "measures": [
+          "population"
+        ],
+        "time": {},
+        "geo_hint": "NYC",
+        "needs_clarification": false,
+        "original_text": "What is the population of NYC?",
+        "confidence": 0.98,
+        "method": "hybrid"
+      },
+      "geo": {},
+      "plan_summary": "1 queries for years [2023] using ['acs/acs5']",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-10-03T19:24:23.228696",
+      "user_id": "test_user",
+      "question": "What is the population of New York City?",
+      "intent": {
+        "is_census": true,
+        "answer_type": "single",
+        "measures": [
+          "population"
+        ],
+        "time": {},
+        "geo_hint": "New York City",
+        "needs_clarification": false,
+        "original_text": "What is the population of New York City?",
+        "confidence": 0.99,
+        "method": "hybrid"
+      },
+      "geo": {},
+      "plan_summary": "1 queries for years [2023] using ['acs/acs5']",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-10-03T19:24:28.333822",
+      "user_id": "test_user",
+      "question": "Show me population data for Chicago",
+      "intent": {
+        "is_census": true,
+        "answer_type": "single",
+        "measures": [
+          "population"
+        ],
+        "time": {},
+        "geo_hint": "Chicago",
+        "needs_clarification": false,
+        "original_text": "Show me population data for Chicago",
+        "confidence": 0.98,
+        "method": "hybrid"
+      },
+      "geo": {},
+      "plan_summary": "1 queries for years [2023] using ['acs/acs5']",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-10-03T19:47:48.992364",
+      "user_id": "test_user",
+      "question": "What is the population of NYC?",
+      "intent": {
+        "is_census": true,
+        "answer_type": "single",
+        "measures": [
+          "population"
+        ],
+        "time": {},
+        "geo_hint": "NYC",
+        "needs_clarification": false,
+        "original_text": "What is the population of NYC?",
+        "confidence": 0.98,
+        "method": "hybrid"
+      },
+      "geo": {
+        "level": "place",
+        "filters": {
+          "for": "place:51000",
+          "in": "state:36"
+        },
+        "note": "Resolved via LLM: Common abbreviation expansion using US Census place codes",
+        "confidence": 1.0,
+        "fips_codes": {
+          "place": "51000",
+          "state": "36"
+        }
+      },
+      "plan_summary": "1 queries for years [2023] using ['acs/acs5']",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-10-03T19:47:56.725218",
+      "user_id": "test_user",
+      "question": "What is the population of New York City?",
+      "intent": {
+        "is_census": true,
+        "answer_type": "single",
+        "measures": [
+          "population"
+        ],
+        "time": {},
+        "geo_hint": "New York City",
+        "needs_clarification": false,
+        "original_text": "What is the population of New York City?",
+        "confidence": 0.99,
+        "method": "hybrid"
+      },
+      "geo": {
+        "level": "place",
+        "filters": {
+          "for": "place:51000",
+          "in": "state:36"
+        },
+        "note": "Resolved via LLM: Direct match from common city name and abbreviation mapping",
+        "confidence": 1.0,
+        "fips_codes": {
+          "place": "51000",
+          "state": "36"
+        }
+      },
+      "plan_summary": "1 queries for years [2023] using ['acs/acs5']",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-10-03T19:48:02.066928",
+      "user_id": "test_user",
+      "question": "Show me population data for Chicago",
+      "intent": {
+        "is_census": true,
+        "answer_type": "single",
+        "measures": [
+          "population"
+        ],
+        "time": {},
+        "geo_hint": "Chicago",
+        "needs_clarification": false,
+        "original_text": "Show me population data for Chicago",
+        "confidence": 0.98,
+        "method": "hybrid"
+      },
+      "geo": {
+        "level": "place",
+        "filters": {
+          "for": "place:14000",
+          "in": "state:17"
+        },
+        "note": "Resolved via LLM: Matched common city name to Census FIPS codes using standard abbreviation and major city knowledge",
+        "confidence": 1.0,
+        "fips_codes": {
+          "place": "14000",
+          "state": "17"
+        }
+      },
+      "plan_summary": "1 queries for years [2023] using ['acs/acs5']",
+      "answer_type": "Unknown",
+      "success": true
     }
   ],
   "user_id": "test_user",
-  "last_updated": "2025-09-28T16:27:49.751836"
+  "last_updated": "2025-10-03T19:48:02.066928"
 }

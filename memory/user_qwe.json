@@ -1,0 +1,68 @@
+{
+  "user_id": "qwe",
+  "default_geo": {
+    "level": "place",
+    "filters": {
+      "for": "place:51000",
+      "in": "state:36"
+    },
+    "note": "Resolved via Census Data API",
+    "confidence": 0.9,
+    "fips_codes": {
+      "state": "36",
+      "place": "51000"
+    }
+  },
+  "preferred_dataset": "Unknown",
+  "default_year_range": [
+    2012,
+    2023
+  ],
+  "preferred_level": "place",
+  "var_aliases": {
+    "population": "B25008C_001E"
+  },
+  "last_geo": "Unknown",
+  "usage_stats": {
+    "total_queries": 1,
+    "success_queries": 1,
+    "last_query_date": "2025-09-30T06:56:28.386326"
+  },
+  "history": [
+    {
+      "timestamp": "2025-09-30T06:56:28.386326",
+      "user_id": "qwe",
+      "question": "What's the population of New York City?",
+      "intent": {
+        "is_census": true,
+        "answer_type": "single",
+        "measures": [
+          "population"
+        ],
+        "time": {},
+        "geo_hint": "New York City",
+        "needs_clarification": false,
+        "original_text": "What's the population of New York City?",
+        "confidence": 1.0,
+        "method": "hybrid"
+      },
+      "geo": {
+        "level": "place",
+        "filters": {
+          "for": "place:51000",
+          "in": "state:36"
+        },
+        "note": "Resolved via Census Data API",
+        "confidence": 0.9,
+        "fips_codes": {
+          "state": "36",
+          "place": "51000"
+        }
+      },
+      "plan_summary": "1 queries for years [2023] using ['acs/acs5']",
+      "answer_type": "single",
+      "success": true
+    }
+  ],
+  "last_updated": "2025-09-30T06:56:28.386326"
+}

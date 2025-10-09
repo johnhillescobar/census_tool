@@ -49,7 +49,7 @@ MESSAGE_TRIM_COUNT = 8  # keep last N messages after summarization
 
 # Retrieval Settings
 RETRIEVAL_TOP_K = 12  # number of candidates to retrieve from Chroma
-CONFIDENCE_THRESHOLD = 0.7  # minimum confidence for automatic selection
+CONFIDENCE_THRESHOLD = 0.4  # minimum confidence for automatic selection
 
 # Geography Code Mappings
 GEOGRAPHY_MAPPINGS = {

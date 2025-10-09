@@ -92,16 +92,16 @@ def main():
                 display_results(result)
 
             except KeyboardInterrupt:
-                print("\n\n👋 Goodbye!")
+                print("\n\nGoodbye!")
                 break
             except Exception as e:
                 logger.error(f"Error processing question: {str(e)}")
-                print(f"\n❌ Error: {str(e)}")
+                print(f"\nError: {str(e)}")
                 print("Please try again or type 'quit' to exit.")
 
     except Exception as e:
         logger.error(f"Error initializing app: {str(e)}")
-        print(f"❌ Error initializing app: {str(e)}")
+        print(f"Error initializing app: {str(e)}")
         sys.exit(1)
 
 

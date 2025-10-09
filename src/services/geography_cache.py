@@ -7,6 +7,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from src.state.types import GeographyRequest, ResolvedGeography
 from src.services.census_geocoding import CensusGeocodingService
 from src.utils.geo_parser import GeographyParser
+from src.llm.geography_resolver import LLMGeographyResolver
 
 logger = logging.getLogger(__name__)
 
@@ -17,6 +18,9 @@ class DynamicGeographyResolver:
     def __init__(self):
         self.geocoding_service = CensusGeocodingService()
         self.parser = GeographyParser()
+
+        # Add LLM resolver
+        self.llm_resolver = LLMGeographyResolver()
 
         # Fallback to static mappings for special cases
         self.static_fallbacks = {
@@ -44,6 +48,17 @@ class DynamicGeographyResolver:
 
     def resolve_geography_from_text(self, text: str) -> ResolvedGeography:
         """Main entry point: resolve geography from raw text"""
+
+        # Try LLM first
+        try:
+            llm_result = self.llm_resolver.resolve_location(text)
+            if llm_result.confidence > 0.7 and llm_result.level != "error":
+                logger.info(
+                    f"LLM successfully resolved geography for '{text}' with confidence {llm_result.confidence}"
+                )
+                return llm_result
+        except Exception as e:
+            logger.error(f"LLM resolution failed for '{text}': {e}")
 
         # Parse the text into structured request
         geo_request = self.parser.parse_query(text)

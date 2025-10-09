@@ -1,0 +1,172 @@
+{
+  "18365ae6f433daf1ebeca129fc548760": {
+    "file_path": "data\\18365ae6f433daf1ebeca129fc548760.csv",
+    "timestamp": 1759233056.6135852,
+    "metadata": {
+      "year": 2023,
+      "dataset": "acs/acs5",
+      "variables": [
+        "B25008C_001E",
+        "NAME"
+      ],
+      "geo": {
+        "level": "place",
+        "filters": {
+          "for": "place:51000",
+          "in": "state:36"
+        },
+        "note": "Resolved via Census Data API",
+        "confidence": 0.9,
+        "fips_codes": {
+          "state": "36",
+          "place": "51000"
+        }
+      }
+    },
+    "signature": "18365ae6f433daf1ebeca129fc548760"
+  },
+  "76ec834aa4ee5ba11753e61722d4e4a6": {
+    "file_path": "data\\76ec834aa4ee5ba11753e61722d4e4a6.csv",
+    "timestamp": 1759233070.2369,
+    "metadata": {
+      "year": 2019,
+      "dataset": "acs/acs5",
+      "variables": [
+        "B19013_001E",
+        "NAME"
+      ],
+      "geo": {
+        "level": "nation",
+        "filters": {
+          "for": "us:1"
+        },
+        "note": "No geography specified - using national level as default",
+        "confidence": 0.8,
+        "fips_codes": {
+          "nation": "us"
+        }
+      }
+    },
+    "signature": "76ec834aa4ee5ba11753e61722d4e4a6"
+  },
+  "2c7d2439f2edcd232c81155a0abd8179": {
+    "file_path": "data\\2c7d2439f2edcd232c81155a0abd8179.csv",
+    "timestamp": 1759233070.239784,
+    "metadata": {
+      "year": 2016,
+      "dataset": "acs/acs5",
+      "variables": [
+        "B19013_001E",
+        "NAME"
+      ],
+      "geo": {
+        "level": "nation",
+        "filters": {
+          "for": "us:1"
+        },
+        "note": "No geography specified - using national level as default",
+        "confidence": 0.8,
+        "fips_codes": {
+          "nation": "us"
+        }
+      }
+    },
+    "signature": "2c7d2439f2edcd232c81155a0abd8179"
+  },
+  "b15ec15d4c8cccb22e7fd915beb50452": {
+    "file_path": "data\\b15ec15d4c8cccb22e7fd915beb50452.csv",
+    "timestamp": 1759233070.2424524,
+    "metadata": {
+      "year": 2015,
+      "dataset": "acs/acs5",
+      "variables": [
+        "B19013_001E",
+        "NAME"
+      ],
+      "geo": {
+        "level": "nation",
+        "filters": {
+          "for": "us:1"
+        },
+        "note": "No geography specified - using national level as default",
+        "confidence": 0.8,
+        "fips_codes": {
+          "nation": "us"
+        }
+      }
+    },
+    "signature": "b15ec15d4c8cccb22e7fd915beb50452"
+  },
+  "78047e6515c7fca80a936aaf1b83daa7": {
+    "file_path": "data\\78047e6515c7fca80a936aaf1b83daa7.csv",
+    "timestamp": 1759233070.2559698,
+    "metadata": {
+      "year": 2018,
+      "dataset": "acs/acs5",
+      "variables": [
+        "B19013_001E",
+        "NAME"
+      ],
+      "geo": {
+        "level": "nation",
+        "filters": {
+          "for": "us:1"
+        },
+        "note": "No geography specified - using national level as default",
+        "confidence": 0.8,
+        "fips_codes": {
+          "nation": "us"
+        }
+      }
+    },
+    "signature": "78047e6515c7fca80a936aaf1b83daa7"
+  },
+  "6049fc0e75167ade322acc2b193c5fe0": {
+    "file_path": "data\\6049fc0e75167ade322acc2b193c5fe0.csv",
+    "timestamp": 1759233070.2745256,
+    "metadata": {
+      "year": 2017,
+      "dataset": "acs/acs5",
+      "variables": [
+        "B19013_001E",
+        "NAME"
+      ],
+      "geo": {
+        "level": "nation",
+        "filters": {
+          "for": "us:1"
+        },
+        "note": "No geography specified - using national level as default",
+        "confidence": 0.8,
+        "fips_codes": {
+          "nation": "us"
+        }
+      }
+    },
+    "signature": "6049fc0e75167ade322acc2b193c5fe0"
+  },
+  "bfe13a4893741e4870d671e2be7ebce9": {
+    "file_path": "data\\bfe13a4893741e4870d671e2be7ebce9.csv",
+    "timestamp": 1759233071.1456032,
+    "metadata": {
+      "year": 2020,
+      "dataset": "acs/acs5",
+      "variables": [
+        "B19013_001E",
+        "NAME"
+      ],
+      "geo": {
+        "level": "nation",
+        "filters": {
+          "for": "us:1"
+        },
+        "note": "No geography specified - using national level as default",
+        "confidence": 0.8,
+        "fips_codes": {
+          "nation": "us"
+        }
+      }
+    },
+    "signature": "bfe13a4893741e4870d671e2be7ebce9"
+  }
+}
