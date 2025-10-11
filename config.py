@@ -20,11 +20,25 @@ MAX_CONCURRENCY = 5  # maximum parallel requests
 # Chroma Settings
 CHROMA_PERSIST_DIRECTORY = "./chroma"
 CHROMA_COLLECTION_NAME = "census_vars"
+CHROMA_TABLE_COLLECTION_NAME = "census_tables"
 CHROMA_EMBEDDING_MODEL = "text-embedding-3-large"
 
 # Census Datasets Configuration
 DEFAULT_DATASETS = [
-    ("acs/acs5", list(range(2012, 2024))),  # 2012-2023
+    # Detail Tables (B/C codes)
+    ("acs/acs5", list(range(2012, 2024))),
+    
+    # Subject Tables (S codes) 
+    ("acs/acs5/subject", list(range(2012, 2024))),
+    
+    # Profile Tables (DP codes)
+    ("acs/acs1/profile", list(range(2012, 2024))),
+    
+    # Comparison Tables (CP codes)
+    ("acs/acs5/cprofile", list(range(2014, 2024))),
+    
+    # Selected Population Profiles
+    ("acs/acs1/spp", list(range(2014, 2024))),
 ]
 
 # Optional datasets (commented out, ready to enable)

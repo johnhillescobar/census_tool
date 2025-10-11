@@ -10,13 +10,18 @@ from pathlib import Path
 from typing import Dict, List, Set, Tuple
 from collections import defaultdict
 import chromadb
+from chromadb.utils.embedding_functions import OpenAIEmbeddingFunction
 from chromadb.config import Settings
+from dotenv import load_dotenv
 import logging
 
 # Import configuration
+import os
 import sys
 
-sys.path.append(str(Path(__file__).parent.parent))
+# Add parent directory to path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
 from config import (
     CHROMA_PERSIST_DIRECTORY,
     CHROMA_COLLECTION_NAME,
@@ -33,6 +38,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+load_dotenv()
 
 class CensusIndexBuilder:
     """Builds and maintains Chroma index of Census variables"""
@@ -41,6 +47,9 @@ class CensusIndexBuilder:
         self.base_url = "https://api.census.gov/data"
         self.client = None
         self.collection = None
+        self.embedding_function = OpenAIEmbeddingFunction(
+            model_name=CHROMA_EMBEDDING_MODEL
+        )
 
     def initialize_chroma(self):
         """Initialize Chroma client and collection"""
@@ -60,7 +69,8 @@ class CensusIndexBuilder:
             logger.info(f"Found existing collection: {CHROMA_COLLECTION_NAME}")
         except Exception:
             self.collection = self.client.create_collection(
-                name=CHROMA_COLLECTION_NAME, metadata={"hnsw:space": "cosine"}
+                name=CHROMA_COLLECTION_NAME, metadata={"hnsw:space": "cosine"},
+                embedding_function = self.embedding_function
             )
             logger.info(f"Created new collection: {CHROMA_COLLECTION_NAME}")
 

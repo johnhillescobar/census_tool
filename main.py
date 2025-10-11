@@ -3,6 +3,7 @@ import os
 from pathlib import Path
 import logging
 from typing import Dict, Any
+from dotenv import load_dotenv
 
 # Add project root to path
 project_root = Path(__file__).parent
@@ -18,6 +19,8 @@ logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
+
+load_dotenv()
 
 
 def main():

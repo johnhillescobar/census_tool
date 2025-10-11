@@ -6,7 +6,9 @@ from config import RETRIEVAL_TOP_K, CONFIDENCE_THRESHOLD
 
 from langchain_core.runnables import RunnableConfig
 
-from src.utils.chroma_utils import initialize_chroma_client, get_chroma_collection
+from src.utils.chroma_utils import initialize_chroma_client, get_chroma_collection_tables
+from src.utils.retrieval_utils_tables import process_chroma_results_tables
+from src.utils.variable_selection import select_variables_from_table
 from src.utils.retrieval_utils import process_chroma_results, get_fallback_candidates
 from src.utils.planning_utils import (
     validate_geo_dataset_compatibility,
@@ -95,7 +97,7 @@ def retrieve_node(state: CensusState, config: RunnableConfig) -> Dict[str, Any]:
 
     # Get Chroma collection
     client = initialize_chroma_client()
-    collection = get_chroma_collection(client)
+    collection = get_chroma_collection_tables(client)
 
     # Query and process results
     results = collection.query(query_texts=[query_string], n_results=RETRIEVAL_TOP_K)
@@ -115,16 +117,49 @@ def retrieve_node(state: CensusState, config: RunnableConfig) -> Dict[str, Any]:
             "logs": ["retrieve: ERROR - no candidates"],
         }
 
-    # Process results
-    candidates = process_chroma_results(
+    # Process tables results (not variable results)
+    table_candidates = process_chroma_results_tables(
         results,
         intent.get("measures", []),
         intent.get("time", {}),
         profile.get("preferred_dataset", "acs/acs5"),
     )
 
-    variable_count = len(candidates.get("variables", []))
+    # Get the best table
+    tables = table_candidates.get("tables", [])
+    if not tables:
+        return {
+            "error": "No tables found",
+            "logs": ["retrieve: ERROR - no tables found"],
+        }
+    
+    best_table = tables[0] # Highest score table
+    years = table_candidates.get("years", [])
+    year_to_use = years[0] if years else 2023
+
+    # Select variables from the best table
+    selected_variables = select_variables_from_table(
+        best_table["table_code"], 
+        best_table["dataset"], 
+        year_to_use, 
+        intent.get("measures", [])
+        )
+
+    if not selected_variables:
+        return {
+        "error": f"No variables found in table {best_table['table_code']}",
+        "logs": ["retrieve: ERROR - variable selection failed"],
+    }
+
+    # Convert back to format expected by plan_node (which expects variables)
+    candidates = {
+        "variables": selected_variables,
+        "years": [year_to_use],
+        "notes": f"Selected from table {best_table['table_code']}"
+    }
+
     return {
         "candidates": candidates,
-        "logs": [f"retrieve: found {variable_count} candidates"],
+        "logs": [f"retrieve: found table {best_table['table_code']} (score: {best_table['score']:.2f})",
+        f"retrieve: selected {len(selected_variables)} variables"],
     }

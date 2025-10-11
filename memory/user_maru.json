@@ -1,14 +1,16 @@
 {
   "user_id": "maru",
   "default_geo": {
-    "level": "nation",
+    "level": "place",
     "filters": {
-      "for": "us:1"
+      "for": "place:51000",
+      "in": "state:36"
     },
-    "note": "No geography specified - using national level as default",
-    "confidence": 0.8,
+    "note": "Resolved via LLM: Direct match to major US city and standard Census FIPS codes",
+    "confidence": 1.0,
     "fips_codes": {
-      "nation": "us"
+      "place": "51000",
+      "state": "36"
     }
   },
   "preferred_dataset": "Unknown",
@@ -20,9 +22,9 @@
   "var_aliases": {},
   "last_geo": "Unknown",
   "usage_stats": {
-    "total_queries": 1,
-    "success_queries": 1,
-    "last_query_date": "2025-09-28T17:53:41.897789"
+    "total_queries": 4,
+    "success_queries": 2,
+    "last_query_date": "2025-10-11T15:29:28.082654"
   },
   "history": [
     {
@@ -53,7 +55,41 @@
       "plan_summary": "1 queries for years [2023] using ['acs/acs5']",
       "answer_type": "table",
       "success": true
+    },
+    {
+      "timestamp": "2025-10-11T15:26:51.130086",
+      "user_id": "maru",
+      "question": "What's the population of New York City?",
+      "intent": {
+        "is_census": true,
+        "answer_type": "single",
+        "measures": [
+          "population"
+        ],
+        "time": {},
+        "geo_hint": "New York City",
+        "needs_clarification": false,
+        "original_text": "What's the population of New York City?",
+        "confidence": 0.99,
+        "method": "hybrid"
+      },
+      "geo": {
+        "level": "place",
+        "filters": {
+          "for": "place:51000",
+          "in": "state:36"
+        },
+        "note": "Resolved via LLM: Direct match to major US city and standard Census FIPS codes",
+        "confidence": 1.0,
+        "fips_codes": {
+          "place": "51000",
+          "state": "36"
+        }
+      },
+      "plan_summary": "1 queries for years [2023] using ['acs/acs5']",
+      "answer_type": "Unknown",
+      "success": true
     }
   ],
-  "last_updated": "2025-09-28T17:53:41.897789"
+  "last_updated": "2025-10-11T15:29:28.083654"
 }
