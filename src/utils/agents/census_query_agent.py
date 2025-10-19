@@ -6,13 +6,17 @@ import json
 from typing import Dict, Any
 from dotenv import load_dotenv
 
-# Import for LangChain compatibility across versions  
+from langchain.agents import AgentExecutor
+
+# Try to import the agent creation function for different LangChain versions
 try:
-    from langchain.agents import create_react_agent, AgentExecutor
+    from langchain.agents import create_react_agent
 except ImportError:
-    # For LangChain 0.3.27+, try community import
-    from langchain_community.agent_toolkits import create_react_agent
-    from langchain.agents import AgentExecutor
+    try:
+        from langchain.agents import create_tool_calling_agent as create_react_agent
+    except ImportError:
+        # Last resort: create a fallback
+        create_react_agent = None
 from langchain_openai import ChatOpenAI
 from langchain.prompts import PromptTemplate
 
@@ -48,7 +52,10 @@ class CensusQueryAgent:
             AreaResolutionTool(),
         ]
         
-        # Create ReAct agent
+        # Create agent with compatibility for different LangChain versions
+        if create_react_agent is None:
+            raise ImportError("No compatible agent creation function available. Please update LangChain or use a different version.")
+        
         self.agent = create_react_agent(
             llm=self.llm,
             tools=self.tools,
