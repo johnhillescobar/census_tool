@@ -4,11 +4,14 @@ import chromadb
 import logging
 import pprint
 
+from dotenv import load_dotenv
+load_dotenv()
+
 # Import configuration
 import sys
 
 sys.path.append(str(Path(__file__).parent.parent))
-from config import CHROMA_PERSIST_DIRECTORY, CHROMA_COLLECTION_NAME
+from config import CHROMA_PERSIST_DIRECTORY, CHROMA_COLLECTION_NAME, CHROMA_TABLE_COLLECTION_NAME
 
 
 # Set up logging
@@ -24,16 +27,16 @@ class ChromaQuery:
     def __init__(self):
         try:
             logger.info(
-                f"Initializing ChromaQuery with collection: {CHROMA_COLLECTION_NAME}"
+                f"Initializing ChromaQuery with collection: {CHROMA_TABLE_COLLECTION_NAME}"
             )
             if not CHROMA_PERSIST_DIRECTORY:
                 raise ValueError("CHROMA_PERSIST_DIRECTORY not configured")
 
-            if not CHROMA_COLLECTION_NAME:
-                raise ValueError("CHROMA_COLLECTION_NAME not configured")
+            if not CHROMA_TABLE_COLLECTION_NAME:
+                raise ValueError("CHROMA_TABLE_COLLECTION_NAME not configured")
 
             self.client = chromadb.PersistentClient(path=CHROMA_PERSIST_DIRECTORY)
-            self.collection = self.client.get_collection(CHROMA_COLLECTION_NAME)
+            self.collection = self.client.get_collection(CHROMA_TABLE_COLLECTION_NAME)
 
         except chromadb.errors.NotFoundError as e:
             logger.error(f"Error initializing ChromaQuery: {e}")
@@ -73,9 +76,14 @@ class ChromaQuery:
 
 
 if __name__ == "__main__":
-    query = "What's the population of Chicago?"
-    chroma_query = ChromaQuery()
-    results = chroma_query.read_query(query)
-    pprint.pprint(results)
-    collection_names = chroma_query.client.list_collections()
-    pprint.pprint(collection_names)
+    queries = ["What's the population of Chicago?", 
+    "age and sex demographic overview", 
+    "demographic profile housing characteristics",
+    "income earnings employment economic characteristics"]
+
+    for query in queries:
+        chroma_query = ChromaQuery()
+        results = chroma_query.read_query(query)
+        pprint.pprint(results)
+        collection_names = chroma_query.client.list_collections()
+        pprint.pprint(collection_names)

@@ -15,6 +15,7 @@ from src.utils.planning_utils import (
     build_query_specs,
 )
 from src.utils.text_utils import build_retrieval_query
+from src.llm.category_detector import detect_category_with_llm, boost_category_results, rerank_by_distance
 
 
 logger = logging.getLogger(__name__)
@@ -94,13 +95,27 @@ def retrieve_node(state: CensusState, config: RunnableConfig) -> Dict[str, Any]:
 
     # Build the retrieval query
     query_string = build_retrieval_query(intent, profile)
+    
+    # INTEGRATION 2: Detect category preference with LLM
+    original_text = intent.get("original_text", query_string)
+    category_result = detect_category_with_llm(original_text)
+    preferred_category = category_result.get("preferred_category")
+    category_confidence = category_result.get("confidence", 0.0)
+    
+    logger.info(f"Category detection: {preferred_category} (confidence: {category_confidence:.2f})")
 
     # Get Chroma collection
     client = initialize_chroma_client()
     collection = get_chroma_collection_tables(client)
 
-    # Query and process results
+    # Query ChromaDB
     results = collection.query(query_texts=[query_string], n_results=RETRIEVAL_TOP_K)
+    
+    # INTEGRATION 2: Boost category-matching results
+    if preferred_category and category_confidence > 0.5:
+        logger.info(f"Boosting results for category: {preferred_category}")
+        results = boost_category_results(results, preferred_category, category_confidence)
+        results = rerank_by_distance(results)
 
     if not results["documents"] or not results["documents"][0]:
         fallback = get_fallback_candidates(

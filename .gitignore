@@ -18,6 +18,12 @@ chroma/*
 # Sketch/experimental files
 sketch*.py
 
+# Cursor files
+.cursor/
+
+# .ps1 files
+*.ps1
+
 # data/*
 data/
 

@@ -12,7 +12,7 @@ from typing import Dict, List, Optional
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from config import (CENSUS_API_TIMEOUT, CENSUS_API_MAX_RETRIES, CENSUS_API_BACKOFF_FACTOR)
+from config import (CENSUS_API_TIMEOUT, CENSUS_API_MAX_RETRIES, CENSUS_API_BACKOFF_FACTOR, CENSUS_CATEGORIES)
 
 logger = logging.getLogger(__name__)
 
@@ -22,6 +22,7 @@ class CensusGroupsAPI:
 
     def __init__(self):
         self.base_url = "https://api.census.gov/data"
+
 
     def fetch_groups_list(self, dataset: str, year: int) -> List[Dict]:
         """
@@ -49,6 +50,7 @@ class CensusGroupsAPI:
         except requests.exceptions.RequestException as e:
             logger.error(f"Failed to fetch groups from {url}: {e}")
             return []
+
 
     def fetch_group_details(self, dataset: str, year: int, group_code: str) -> Optional[Dict]:
         """
@@ -188,6 +190,58 @@ class CensusGroupsAPI:
 
         return data_types if data_types else ["general"]
 
+
+    def aggregate_all_categories(self, year: int = 2023) -> Dict:
+        """
+        Fetch and aggregate groups from ALL 5 Census categories
+        
+        Returns: {
+            "B01003": {
+                "table_code": "B01003",
+                "category": "detail",
+                "dataset": "acs/acs5",
+                ...
+            },
+            "S0101": {
+                "table_code": "S0101", 
+                "category": "subject",
+                "dataset": "acs/acs5/subject",
+                ...
+            }
+        }
+        """
+
+        all_tables = {}
+        
+        for category_name, category_info in CENSUS_CATEGORIES.items():
+            logger.info(f"Fetching groups from {category_name} for year {year}")
+
+            # Get dataset path for this category
+            dataset = category_info.get("path", "")
+
+            # Fetch groups for this category
+            groups = self.fetch_groups_list(dataset, year)
+
+            logger.info(f"Found {len(groups)} groups for {category_name}")
+
+            for group in groups:
+                group_code = group.get("name", "")
+
+                # Store with category metadata
+                all_tables[group_code] = {
+                    "table_code": group_code,
+                    "table_name": group.get("description", ""),
+                    "description": group.get("description", ""),
+                    "category": category_name,  # ← NEW: Tag with category
+                    "dataset": dataset,
+                    "years_available": [year],
+                    "uses_groups": category_info["uses_groups"],  # ← NEW: Does it use group() function?
+                    "data_types": self._infer_data_types(group_code, group.get("description", ""))
+                }
+
+        logger.info(f"Total tables across all categories: {len(all_tables)}")
+        return all_tables
+
 # Test function to explore the API
 def test_census_groups_api():
     """Test the Groups API to see what data is available"""
@@ -216,18 +270,29 @@ def test_census_groups_api():
         for var_code, var_info in list(details.get('variables', {}).items())[:3]:
             print(f"  - {var_code}: {var_info.get('label')}")
     
-    # Test 3: Aggregate across years
+    # Test 3: NEW - Fetch from all categories
     print("\n" + "=" * 60)
-    print("TEST 3: Aggregating groups across years 2021-2023")
+    print("TEST 3: Fetching from ALL 5 categories")
     print("=" * 60)
-    aggregated = api.aggregate_groups_across_years("acs/acs5", [2021, 2022, 2023])
-    print(f"Total unique tables: {len(aggregated)}")
+    all_tables = api.aggregate_all_categories(2023)
+    print(f"Total unique tables: {len(all_tables)}")
     
-    # Show population table
-    if "B01003" in aggregated:
-        print("\nB01003 table info:")
-        for key, value in aggregated["B01003"].items():
-            print(f"  {key}: {value}")
+    # Count by category
+    by_category = {}
+    for table_code, table_info in all_tables.items():
+        cat = table_info["category"]
+        by_category[cat] = by_category.get(cat, 0) + 1
+    
+    print("\nTables by category:")
+    for cat, count in by_category.items():
+        print(f"  {cat}: {count} tables")
+    
+    # Show examples from each category
+    print("\nExamples from each category:")
+    for category in ["detail", "subject", "profile", "cprofile", "spp"]:
+        example = next((t for t in all_tables.values() if t["category"] == category), None)
+        if example:
+            print(f"  {category}: {example['table_code']} - {example['table_name']}")
 
 
 if __name__ == "__main__":

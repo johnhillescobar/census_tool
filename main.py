@@ -69,6 +69,7 @@ def main():
                 # Create initial state
                 initial_state = CensusState(
                     messages=[{"role": "user", "content": user_input}],
+                    original_query=None,  # Will be set by intent_node
                     intent=None,
                     geo={},
                     candidates={},

@@ -8,6 +8,7 @@ from src.state.types import GeographyRequest, ResolvedGeography
 from src.services.census_geocoding import CensusGeocodingService
 from src.utils.geo_parser import GeographyParser
 from src.llm.geography_resolver import LLMGeographyResolver
+from src.utils.enumeration_detector import detect_and_build_enumeration
 
 logger = logging.getLogger(__name__)
 
@@ -49,7 +50,30 @@ class DynamicGeographyResolver:
     def resolve_geography_from_text(self, text: str) -> ResolvedGeography:
         """Main entry point: resolve geography from raw text"""
 
-        # Try LLM first
+        # CHECK FOR ENUMERATION FIRST (NEW!)
+        enumeration_info = detect_and_build_enumeration(text)
+        if enumeration_info and enumeration_info["needs_enumeration"]:
+            logger.info(f"Enumeration detected: {enumeration_info}")
+            
+            # Build ResolvedGeography for enumeration
+            filters = enumeration_info["filters"]
+            parent_geo = enumeration_info.get("parent_geography", {})
+            
+            # Convert to ResolvedGeography format
+            return ResolvedGeography(
+                level=enumeration_info["level"],
+                filters=filters,
+                display_name=f"All {enumeration_info['level']}s in parent geography",
+                fips_codes=parent_geo,
+                confidence=enumeration_info["confidence"],
+                note=f"Enumeration request: {enumeration_info['reason']}",
+                geocoding_metadata={
+                    "enumeration": True,
+                    "parent_geography": parent_geo
+                }
+            )
+
+        # Try LLM for single locations
         try:
             llm_result = self.llm_resolver.resolve_location(text)
             if llm_result.confidence > 0.7 and llm_result.level != "error":

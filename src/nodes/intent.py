@@ -18,6 +18,7 @@ from src.llm.intent_enhancer import (
     merge_intent_results,
     generate_intelligent_clarification,
 )
+from src.utils.enumeration_detector import detect_and_build_enumeration
 
 
 logger = logging.getLogger(__name__)
@@ -111,6 +112,14 @@ def intent_node(state: CensusState, config: RunnableConfig) -> Dict[str, Any]:
         "original_text": user_text,
     }
 
+    # FIX 3: Detect enumeration BEFORE LLM modifies geo_hint
+    enumeration_info = detect_and_build_enumeration(user_text)
+    if enumeration_info and enumeration_info["needs_enumeration"]:
+        logger.info(f"Enumeration detected in intent: {enumeration_info['level']} in {enumeration_info.get('parent_geography')}")
+        heuristic_intent["enumeration"] = enumeration_info
+        # Don't let LLM modify the geo_hint if we detected enumeration
+        heuristic_intent["geo_hint"] = user_text
+
     # Calculate confidence and add method tracking
     confidence = calculate_heuristic_intent(heuristic_intent, user_text)
     heuristic_intent["confidence"] = confidence
@@ -123,6 +132,9 @@ def intent_node(state: CensusState, config: RunnableConfig) -> Dict[str, Any]:
     if confidence < 0.7 or heuristic_intent.get("needs_clarification"):
         llm_intent = parse_intent_with_llm(user_text, state.profile)
         intent = merge_intent_results(heuristic_intent, llm_intent)
+        # Preserve enumeration info even after LLM merge
+        if enumeration_info and enumeration_info["needs_enumeration"]:
+            intent["enumeration"] = enumeration_info
     else:
         intent = heuristic_intent
 
@@ -131,7 +143,12 @@ def intent_node(state: CensusState, config: RunnableConfig) -> Dict[str, Any]:
 
     logger.info(f"Intent analysis result: {intent}")
 
-    return {"intent": intent, "logs": [log_entry]}
+    # FIX 1: Preserve original_query in state for enumeration detection
+    return {
+        "intent": intent, 
+        "original_query": user_text,  # Preserve original text
+        "logs": [log_entry]
+    }
 
 
 def router_from_intent_node(

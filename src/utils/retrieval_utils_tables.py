@@ -2,10 +2,12 @@
 Retrieval and scoring utilities for Census TABLES (not variables)
 This is the table-level version of retrieval_utils.py
 """
-
+import logging
 from typing import Dict, Any, List
 from config import CONFIDENCE_THRESHOLD
 
+
+logger = logging.getLogger(__name__)
 
 def process_chroma_results_tables(
     results: Dict, measures: List[str], time_info: Dict, preferred_dataset: str) -> Dict[str, Any]:
@@ -115,6 +117,24 @@ def calculate_table_confidence_score(
     """
     boost = 0.0
 
+    # Boost for tables WITHOUT race suffixes (general tables)
+    logger.info(f"Boosting table {metadata.get('table_code', '')} without race suffix")
+    table_code = metadata.get("table_code", "")
+    if table_code and not table_code[-1].isalpha():  # No letter at end
+        boost += 0.20  # Prefer B19013 over B19013A
+
+    # Boost commonly-used core tables
+    CORE_TABLES = {
+        "B01003": 0.15,  # Total Population
+        "B19013": 0.15,  # Median Household Income
+        "B25003": 0.15,  # Tenure (owner/renter)
+        "B17001": 0.10,  # Poverty Status
+        "B01002": 0.10,  # Median Age
+        "B25001": 0.10,  # Total Housing Units
+    }
+    if table_code in CORE_TABLES:
+        boost += CORE_TABLES[table_code]
+
     # GEt table metadata fields
     table_name = metadata.get("table_name", "").lower()
     data_types = metadata.get("data_types", "")
@@ -137,4 +157,16 @@ def calculate_table_confidence_score(
 
     return min(1.0, base_score + boost)
         
-        
+
+def search_tables_chroma(collection: Any, query: str, k: int = 10, dataset_filter: str = None) -> List[Dict]:
+    """Search ChromaDB for tables matching query"""
+
+    results = collection.query(query_texts=[query], n_results=k)
+
+    processed_results = process_chroma_results_tables(
+        results, 
+        measures = [], 
+        time_info = {}, 
+        preferred_dataset = dataset_filter)
+
+    return processed_results["tables"]
