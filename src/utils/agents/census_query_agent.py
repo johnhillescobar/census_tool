@@ -6,7 +6,13 @@ import json
 from typing import Dict, Any
 from dotenv import load_dotenv
 
-from langchain.agents import create_react_agent, AgentExecutor
+# Import for LangChain compatibility across versions  
+try:
+    from langchain.agents import create_react_agent, AgentExecutor
+except ImportError:
+    # For LangChain 0.3.27+, try community import
+    from langchain_community.agent_toolkits import create_react_agent
+    from langchain.agents import AgentExecutor
 from langchain_openai import ChatOpenAI
 from langchain.prompts import PromptTemplate
 
