@@ -20,12 +20,81 @@ MAX_CONCURRENCY = 5  # maximum parallel requests
 # Chroma Settings
 CHROMA_PERSIST_DIRECTORY = "./chroma"
 CHROMA_COLLECTION_NAME = "census_vars"
+CHROMA_TABLE_COLLECTION_NAME = "census_tables"
 CHROMA_EMBEDDING_MODEL = "text-embedding-3-large"
 
 # Census Datasets Configuration
 DEFAULT_DATASETS = [
-    ("acs/acs5", list(range(2012, 2024))),  # 2012-2023
+    # Detail Tables (B/C codes)
+    ("acs/acs5", list(range(2012, 2024))),
+    
+    # Subject Tables (S codes) 
+    ("acs/acs5/subject", list(range(2012, 2024))),
+    
+    # Profile Tables (DP codes)
+    ("acs/acs1/profile", list(range(2012, 2024))),
+    
+    # Comparison Tables (CP codes)
+    ("acs/acs5/cprofile", list(range(2014, 2024))),
+    
+    # Selected Population Profiles
+    ("acs/acs1/spp", list(range(2014, 2024))),
 ]
+
+
+# Census Category Metadata (for Phase 9)
+CENSUS_CATEGORIES = {
+    "detail": {
+        "name": "Detail Tables",
+        "path": "acs/acs5",
+        "prefix": ["B", "C"],
+        "description": "Detailed demographic tables with high granularity",
+        "use_cases": ["specific breakdowns", "detailed demographics", "granular data"],
+        "uses_groups": False,  # Individual variables
+        "years": list(range(2012, 2024)),
+        "groups_endpoint": "https://api.census.gov/data/{year}/acs/acs5/groups.json"
+    },
+    "subject": {
+        "name": "Subject Tables",
+        "path": "acs/acs5/subject",
+        "prefix": ["S"],
+        "description": "Topic-specific summary tables",
+        "use_cases": ["overview", "summary", "topic overview", "demographic overview"],
+        "uses_groups": True,  # Use group() function
+        "years": list(range(2012, 2024)),
+        "groups_endpoint": "https://api.census.gov/data/{year}/acs/acs5/subject/groups.json"
+    },
+    "profile": {
+        "name": "Profile Tables",
+        "path": "acs/acs1/profile",
+        "prefix": ["DP"],
+        "description": "Comprehensive demographic profiles",
+        "use_cases": ["profile", "comprehensive", "full demographics"],
+        "uses_groups": True,
+        "years": list(range(2012, 2024)),
+        "groups_endpoint": "https://api.census.gov/data/{year}/acs/acs1/profile/groups.json"
+    },
+    "cprofile": {
+        "name": "Comparison Tables",
+        "path": "acs/acs5/cprofile",
+        "prefix": ["CP"],
+        "description": "Multi-year comparison tables",
+        "use_cases": ["compare", "comparison", "change over time", "trends"],
+        "uses_groups": True,
+        "years": list(range(2014, 2024)),  # Note: starts 2014
+        "groups_endpoint": "https://api.census.gov/data/{year}/acs/acs5/cprofile/groups.json"
+    },
+    "spp": {
+        "name": "Selected Population Profiles",
+        "path": "acs/acs1/spp",
+        "prefix": ["S0201"],
+        "description": "Race and ethnicity-specific profiles",
+        "use_cases": ["hispanic", "latino", "asian", "race", "ethnicity specific"],
+        "uses_groups": True,
+        "years": list(range(2014, 2024)),  # Note: starts 2014
+        "groups_endpoint": "https://api.census.gov/data/{year}/acs/acs1/spp/groups.json"
+    }
+}
 
 # Optional datasets (commented out, ready to enable)
 # OPTIONAL_DATASETS = [
@@ -49,7 +118,7 @@ MESSAGE_TRIM_COUNT = 8  # keep last N messages after summarization
 
 # Retrieval Settings
 RETRIEVAL_TOP_K = 12  # number of candidates to retrieve from Chroma
-CONFIDENCE_THRESHOLD = 0.7  # minimum confidence for automatic selection
+CONFIDENCE_THRESHOLD = 0.4  # minimum confidence for automatic selection
 
 # Geography Code Mappings
 GEOGRAPHY_MAPPINGS = {

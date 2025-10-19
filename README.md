@@ -30,6 +30,8 @@ A sophisticated local Census QA application that answers questions about US Cens
 - ✅ **Memory System** - User profiles, history tracking, and cache management
 - ✅ **Testing Suite** - Comprehensive test coverage for all major components
 - ✅ **Configuration** - Centralized settings with environment management
+- ✅ **Dual Interface** - Both CLI and Web interfaces available
+- ✅ **Interactive Visualizations** - Plotly charts and interactive tables in web interface
 
 ## 🏗️ Architecture
 
@@ -88,19 +90,39 @@ memory_load → [summarizer] → intent → router → {
    ```
    This creates a ChromaDB collection with ACS 5-year variables (2012-2023).
 
-3. **Run the application:**
+3. **Choose your interface:**
+   
+   **Option A: Easy Launcher (Recommended)**
+   ```bash
+   uv run python launcher.py
+   ```
+   This will let you choose between CLI and Web interfaces.
+   
+   **Option B: Direct CLI Interface**
    ```bash
    uv run python main.py
    ```
-
-### Alternative: Web Interface
-```bash
-uv run python app.py
-```
+   
+   **Option C: Direct Web Interface**
+   ```bash
+   uv run streamlit run streamlit_app.py
+   ```
 
 ## 🎮 How to Use the Application
 
-### Command Line Interface (Recommended)
+### 🚀 Quick Start with Launcher (Recommended)
+
+The easiest way to get started is with the launcher:
+
+```bash
+uv run python launcher.py
+```
+
+This will show you a menu to choose between:
+- **📱 Web Interface**: Interactive charts, file downloads, visual conversation history
+- **💻 CLI Interface**: Fast, script-friendly, full terminal control
+
+### Command Line Interface
 
 1. **Start the application:**
    ```bash
@@ -145,16 +167,22 @@ uv run python app.py
    ❓ Your question: 
    ```
 
-### Web Interface (Alternative)
+### Web Interface (Streamlit)
 
-1. **Start the web server:**
+1. **Start the web interface:**
    ```bash
-   uv run python app.py
+   uv run streamlit run streamlit_app.py
    ```
 
-2. **Open your browser** and navigate to the URL shown in the terminal (typically `http://localhost:8000`)
+2. **Open your browser** and navigate to `http://localhost:8501`
 
-3. **Use the web interface** to ask questions about Census data
+3. **Features of the web interface:**
+   - 📊 **Interactive Charts**: Time series data displayed as interactive Plotly charts
+   - 📥 **File Downloads**: Download CSV files directly from the browser
+   - 📜 **Conversation History**: Visual history of your questions and answers
+   - ⚙️ **Settings Panel**: Configure user ID and thread ID in the sidebar
+   - 📱 **Responsive Design**: Works on desktop, tablet, and mobile devices
+   - 🔍 **Example Questions**: Click example buttons to get started quickly
 
 ### Interactive Features
 

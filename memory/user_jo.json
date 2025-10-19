@@ -1,0 +1,134 @@
+{
+  "user_id": "jo",
+  "default_geo": {
+    "level": "place",
+    "filters": {
+      "for": "place:57024",
+      "in": "state:01"
+    },
+    "note": "Resolved via Census Data API",
+    "confidence": 0.9,
+    "fips_codes": {
+      "state": "01",
+      "place": "57024"
+    }
+  },
+  "preferred_dataset": "Unknown",
+  "default_year_range": [
+    2012,
+    2023
+  ],
+  "preferred_level": "place",
+  "var_aliases": {},
+  "last_geo": "Unknown",
+  "usage_stats": {
+    "total_queries": 3,
+    "success_queries": 3,
+    "last_query_date": "2025-10-01T08:16:26.920535"
+  },
+  "history": [
+    {
+      "timestamp": "2025-10-01T08:11:36.287886",
+      "user_id": "jo",
+      "question": "What's the population of New York City?",
+      "intent": {
+        "is_census": true,
+        "answer_type": "single",
+        "measures": [
+          "population"
+        ],
+        "time": {},
+        "geo_hint": "New York City",
+        "needs_clarification": false,
+        "original_text": "What's the population of New York City?",
+        "confidence": 0.99,
+        "method": "hybrid"
+      },
+      "geo": {
+        "level": "place",
+        "filters": {
+          "for": "place:51000",
+          "in": "state:36"
+        },
+        "note": "Resolved via Census Data API",
+        "confidence": 0.9,
+        "fips_codes": {
+          "state": "36",
+          "place": "51000"
+        }
+      },
+      "plan_summary": "1 queries for years [2023] using ['acs/acs5']",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-10-01T08:12:44.861688",
+      "user_id": "jo",
+      "question": "Show me the population data for NYC",
+      "intent": {
+        "is_census": true,
+        "answer_type": "single",
+        "measures": [
+          "population"
+        ],
+        "time": {},
+        "geo_hint": "NYC",
+        "needs_clarification": false,
+        "original_text": "Show me the population data for NYC",
+        "confidence": 0.98,
+        "method": "hybrid"
+      },
+      "geo": {
+        "level": "place",
+        "filters": {
+          "for": "place:57024",
+          "in": "state:01"
+        },
+        "note": "Resolved via Census Data API",
+        "confidence": 0.9,
+        "fips_codes": {
+          "state": "01",
+          "place": "57024"
+        }
+      },
+      "plan_summary": "1 queries for years [2023] using ['acs/acs5']",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-10-01T08:16:26.920535",
+      "user_id": "jo",
+      "question": "Show me the population data for NYC",
+      "intent": {
+        "is_census": true,
+        "answer_type": "single",
+        "measures": [
+          "population"
+        ],
+        "time": {},
+        "geo_hint": "NYC",
+        "needs_clarification": false,
+        "original_text": "Show me the population data for NYC",
+        "confidence": 0.98,
+        "method": "hybrid"
+      },
+      "geo": {
+        "level": "place",
+        "filters": {
+          "for": "place:57024",
+          "in": "state:01"
+        },
+        "note": "Resolved via Census Data API",
+        "confidence": 0.9,
+        "fips_codes": {
+          "state": "01",
+          "place": "57024"
+        }
+      },
+      "plan_summary": "1 queries for years [2023] using ['acs/acs5']",
+      "answer_type": "Unknown",
+      "success": true
+    }
+  ],
+  "last_updated": "2025-10-01T08:16:26.920535"
+}

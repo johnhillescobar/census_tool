@@ -3,25 +3,14 @@ from langgraph.graph import StateGraph
 from langgraph.checkpoint.sqlite import SqliteSaver
 import sqlite3
 import os
-
+from langgraph.checkpoint.memory import MemorySaver
 # Import state and routing
 from src.state.types import CensusState
-from src.state.routing import (
-    should_summarize,
-    route_from_intent,
-    route_from_retrieve,
-    route_from_plan,
-    route_from_data,
-    route_from_answer,
-)
 
 # Import all nodes
 from src.nodes.memory import memory_load_node, memory_write_node
-from src.nodes.intent import intent_node, router_from_intent_node, clarify_node
-from src.nodes.geo import geo_node
-from src.nodes.retrieve import retrieve_node, plan_node
-from src.nodes.data import data_node
-from src.nodes.answer import answer_node, not_census_node
+from src.nodes.agent import agent_reasoning_node
+from src.nodes.output import output_node
 from src.nodes.utils.summarizer import summarizer_node
 
 import logging
@@ -66,89 +55,41 @@ def create_reducers():
 
 
 def create_census_graph():
-    """Create the Census QA graph with complete control flow"""
-
-    # Create state graph with reducers
-    reducers = create_reducers()
-    workflow = StateGraph(CensusState, reducers=reducers)
-
-    # Add nodes (we'll implement these next)
+    workflow = StateGraph(CensusState, reducers=create_reducers())
+    
+    # Only 4 nodes
     workflow.add_node("memory_load", memory_load_node)
-    workflow.add_node("summarizer", summarizer_node)
-    workflow.add_node("intent", intent_node)
-    workflow.add_node("router", router_from_intent_node)
-    workflow.add_node("clarify", clarify_node)
-    workflow.add_node("geo", geo_node)
-    workflow.add_node("retrieve", retrieve_node)
-    workflow.add_node("plan", plan_node)
-    workflow.add_node("data", data_node)
-    workflow.add_node("answer", answer_node)
+    workflow.add_node("agent", agent_reasoning_node)
+    workflow.add_node("output", output_node)
     workflow.add_node("memory_write", memory_write_node)
-    workflow.add_node("not_census", not_census_node)
-
-    # Set entry point
+    
+    # Linear flow - no conditional routing
     workflow.set_entry_point("memory_load")
-
-    # Add conditional edges
-    workflow.add_conditional_edges(
-        "memory_load",
-        should_summarize,  # Function that returns next node
-        {"summarizer": "summarizer", "intent": "intent"},
-    )
-
-    workflow.add_edge("summarizer", "intent")
-    workflow.add_edge("intent", "router")
-
-    workflow.add_conditional_edges(
-        "router",
-        route_from_intent,
-        {"not_census": "not_census", "clarify": "clarify", "geo": "geo"},
-    )
-
-    workflow.add_edge("geo", "retrieve")
-
-    workflow.add_conditional_edges(
-        "retrieve",
-        route_from_retrieve,
-        {"clarify": "clarify", "plan": "plan"},
-    )
-
-    workflow.add_conditional_edges(
-        "plan",
-        route_from_plan,
-        {"clarify": "clarify", "data": "data"},
-    )
-
-    workflow.add_conditional_edges(
-        "data",
-        route_from_data,
-        {"clarify": "clarify", "answer": "answer"},
-    )
-
-    workflow.add_conditional_edges(
-        "answer", route_from_answer, {"memory_write": "memory_write"}
-    )
-
+    workflow.add_edge("memory_load", "agent")
+    workflow.add_edge("agent", "output")
+    workflow.add_edge("output", "memory_write")
     workflow.add_edge("memory_write", "__end__")
-    workflow.add_edge("not_census", "__end__")
-    workflow.add_edge("clarify", "__end__")
 
     # Compile the graph first
     try:
-        # Ensure the database file exists and is accessible
         db_path = "checkpoints.db"
+        
+        # Reset checkpoints for clean architecture change
+        # Delete existing checkpoints to avoid node structure conflicts
+        if os.path.exists(db_path):
+            logger.info("Removing old checkpoints for agent architecture migration")
+            try:
+                os.remove(db_path)
+                logger.info(f"Removed {db_path} - starting fresh with agent architecture")
+            except Exception as e:
+                logger.warning(f"Could not remove old checkpoints: {e}")
 
-        # Create SQLite connection
+        # Create fresh SQLite connection
         conn = sqlite3.connect(db_path, check_same_thread=False)
-
-        # Create checkpointer with the connection
         checkpointer = SqliteSaver(conn)
-
-        # Test the checkpointer
-        logger.info("SQLite checkpointer initialized successfully")
-
+        
+        logger.info("SQLite checkpointer initialized for agent architecture")
         compiled_graph = workflow.compile(checkpointer=checkpointer)
-
         return compiled_graph
 
     except Exception as e:
@@ -156,18 +97,15 @@ def create_census_graph():
         logger.info("Falling back to memory checkpointer (no persistence)")
 
         try:
-            from langgraph.checkpoint.memory import MemorySaver
-
             checkpointer = MemorySaver()
             compiled_graph = workflow.compile(checkpointer=checkpointer)
             return compiled_graph
         except Exception as e2:
             logger.error(f"Memory checkpointer also failed: {e2}")
-
             compiled_graph = workflow.compile()
             return compiled_graph
 
-    # Then generate the PNG visualization
+    # Keep graph visualization logic unchanged (lines 158-165)
     try:
         compiled_graph.get_graph().draw_mermaid_png(output_file_path="graph.png")
         logger.info("Graph visualization saved to graph.png")

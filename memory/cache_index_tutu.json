@@ -1,0 +1,52 @@
+{
+  "9c2384f971702327e1478794f4321d7e": {
+    "file_path": "data\\9c2384f971702327e1478794f4321d7e.csv",
+    "timestamp": 1760286472.8962774,
+    "metadata": {
+      "year": 2023,
+      "dataset": "acs/acs5",
+      "variables": [
+        "B01003_001E",
+        "NAME"
+      ],
+      "geo": {
+        "level": "place",
+        "filters": {
+          "for": "place:51000",
+          "in": "state:36"
+        },
+        "note": "Resolved via LLM: Matched common city name to official Census place code using standard abbreviation and major city knowledge",
+        "confidence": 1.0,
+        "fips_codes": {
+          "place": "51000",
+          "state": "36"
+        }
+      }
+    },
+    "signature": "9c2384f971702327e1478794f4321d7e"
+  },
+  "e62d0506aeba9df5c640e1006ce0ec57": {
+    "file_path": "data\\e62d0506aeba9df5c640e1006ce0ec57.csv",
+    "timestamp": 1760286516.391506,
+    "metadata": {
+      "year": 2023,
+      "dataset": "acs/acs5",
+      "variables": [
+        "B01003_001E",
+        "NAME"
+      ],
+      "geo": {
+        "level": "nation",
+        "filters": {
+          "for": "us:1"
+        },
+        "note": "No geography specified - using national level as default",
+        "confidence": 0.8,
+        "fips_codes": {
+          "nation": "us"
+        }
+      }
+    },
+    "signature": "e62d0506aeba9df5c640e1006ce0ec57"
+  }
+}

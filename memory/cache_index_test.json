@@ -24,5 +24,31 @@
       }
     },
     "signature": "deb90557247c289679436477bc87c9dd"
+  },
+  "e8aee039ae5e74996e98a3ef0ac821c3": {
+    "file_path": "data\\e8aee039ae5e74996e98a3ef0ac821c3.csv",
+    "timestamp": 1759106623.0293267,
+    "metadata": {
+      "year": 2023,
+      "dataset": "acs/acs5",
+      "variables": [
+        "B25008E_001E",
+        "NAME"
+      ],
+      "geo": {
+        "level": "place",
+        "filters": {
+          "for": "place:51000",
+          "in": "state:36"
+        },
+        "note": "Resolved via Census Data API",
+        "confidence": 0.9,
+        "fips_codes": {
+          "state": "36",
+          "place": "51000"
+        }
+      }
+    },
+    "signature": "e8aee039ae5e74996e98a3ef0ac821c3"
   }
 }

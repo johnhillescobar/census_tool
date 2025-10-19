@@ -3,6 +3,7 @@ import os
 from pathlib import Path
 import logging
 from typing import Dict, Any
+from dotenv import load_dotenv
 
 # Add project root to path
 project_root = Path(__file__).parent
@@ -18,6 +19,8 @@ logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
+
+load_dotenv()
 
 
 def main():
@@ -66,6 +69,7 @@ def main():
                 # Create initial state
                 initial_state = CensusState(
                     messages=[{"role": "user", "content": user_input}],
+                    original_query=None,  # Will be set by intent_node
                     intent=None,
                     geo={},
                     candidates={},
@@ -92,16 +96,16 @@ def main():
                 display_results(result)
 
             except KeyboardInterrupt:
-                print("\n\n👋 Goodbye!")
+                print("\n\nGoodbye!")
                 break
             except Exception as e:
                 logger.error(f"Error processing question: {str(e)}")
-                print(f"\n❌ Error: {str(e)}")
+                print(f"\nError: {str(e)}")
                 print("Please try again or type 'quit' to exit.")
 
     except Exception as e:
         logger.error(f"Error initializing app: {str(e)}")
-        print(f"❌ Error initializing app: {str(e)}")
+        print(f"Error initializing app: {str(e)}")
         sys.exit(1)
 
 

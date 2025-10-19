@@ -1,0 +1,66 @@
+{
+  "user_id": "tutu",
+  "default_geo": {
+    "level": "place",
+    "filters": {
+      "for": "place:51000",
+      "in": "state:36"
+    },
+    "note": "Resolved via LLM: Matched common city name to official Census place code using standard abbreviation and major city knowledge",
+    "confidence": 1.0,
+    "fips_codes": {
+      "place": "51000",
+      "state": "36"
+    }
+  },
+  "preferred_dataset": "Unknown",
+  "default_year_range": [
+    2012,
+    2023
+  ],
+  "preferred_level": "place",
+  "var_aliases": {},
+  "last_geo": "Unknown",
+  "usage_stats": {
+    "total_queries": 2,
+    "success_queries": 1,
+    "last_query_date": "2025-10-12T11:28:36.481067"
+  },
+  "history": [
+    {
+      "timestamp": "2025-10-12T11:27:56.253047",
+      "user_id": "tutu",
+      "question": "What's the population of New York City?",
+      "intent": {
+        "is_census": true,
+        "answer_type": "single",
+        "measures": [
+          "population"
+        ],
+        "time": {},
+        "geo_hint": "New York City",
+        "needs_clarification": false,
+        "original_text": "What's the population of New York City?",
+        "confidence": 0.98,
+        "method": "hybrid"
+      },
+      "geo": {
+        "level": "place",
+        "filters": {
+          "for": "place:51000",
+          "in": "state:36"
+        },
+        "note": "Resolved via LLM: Matched common city name to official Census place code using standard abbreviation and major city knowledge",
+        "confidence": 1.0,
+        "fips_codes": {
+          "place": "51000",
+          "state": "36"
+        }
+      },
+      "plan_summary": "1 queries for years [2023] using ['acs/acs5']",
+      "answer_type": "Unknown",
+      "success": true
+    }
+  ],
+  "last_updated": "2025-10-12T11:28:36.481067"
+}

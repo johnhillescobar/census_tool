@@ -22,5 +22,79 @@
       }
     },
     "signature": "cc020b900cdd08bb4265f78ee00befeb"
+  },
+  "532dbb4f477340e838caf3ec5f671af9": {
+    "file_path": "data\\532dbb4f477340e838caf3ec5f671af9.csv",
+    "timestamp": 1760214408.7302706,
+    "metadata": {
+      "year": 2023,
+      "dataset": "acs/acs5",
+      "variables": [
+        "B01003_001E",
+        "NAME"
+      ],
+      "geo": {
+        "level": "place",
+        "filters": {
+          "for": "place:51000",
+          "in": "state:36"
+        },
+        "note": "Resolved via LLM: Direct match to major US city and standard Census FIPS codes",
+        "confidence": 1.0,
+        "fips_codes": {
+          "place": "51000",
+          "state": "36"
+        }
+      }
+    },
+    "signature": "532dbb4f477340e838caf3ec5f671af9"
+  },
+  "9d2e7d94e464146debb119fadc2dc01a": {
+    "file_path": "data\\9d2e7d94e464146debb119fadc2dc01a.csv",
+    "timestamp": 1760214538.2942264,
+    "metadata": {
+      "year": 2015,
+      "dataset": "acs/acs5",
+      "variables": [
+        "B07011_006E",
+        "NAME"
+      ],
+      "geo": {
+        "level": "nation",
+        "filters": {
+          "for": "us:1"
+        },
+        "note": "No geography specified - using national level as default",
+        "confidence": 0.8,
+        "fips_codes": {
+          "nation": "us"
+        }
+      }
+    },
+    "signature": "9d2e7d94e464146debb119fadc2dc01a"
+  },
+  "e35e2609992d80901fe4df3569a4de9c": {
+    "file_path": "data\\e35e2609992d80901fe4df3569a4de9c.csv",
+    "timestamp": 1760214568.0776439,
+    "metadata": {
+      "year": 2023,
+      "dataset": "acs/acs5",
+      "variables": [
+        "B98003_001E",
+        "NAME"
+      ],
+      "geo": {
+        "level": "state",
+        "filters": {
+          "for": "state:06"
+        },
+        "note": "Resolved via LLM: Direct match to US state name",
+        "confidence": 1.0,
+        "fips_codes": {
+          "state": "06"
+        }
+      }
+    },
+    "signature": "e35e2609992d80901fe4df3569a4de9c"
   }
 }

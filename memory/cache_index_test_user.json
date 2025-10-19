@@ -1,1 +1,158 @@
-{}
+{
+  "c84f14c204b4a61ced51a6139248e563": {
+    "file_path": "data\\c84f14c204b4a61ced51a6139248e563.csv",
+    "timestamp": 1759450657.184358,
+    "metadata": {
+      "year": 2023,
+      "dataset": "acs/acs5",
+      "variables": [
+        "B07404E_001E",
+        "NAME"
+      ],
+      "geo": {
+        "level": "place",
+        "filters": {
+          "for": "place:57024",
+          "in": "state:01"
+        },
+        "note": "Resolved via Census Data API",
+        "confidence": 0.9,
+        "fips_codes": {
+          "state": "01",
+          "place": "57024"
+        }
+      }
+    },
+    "signature": "c84f14c204b4a61ced51a6139248e563"
+  },
+  "93a5cfb7eee0e5044758ff81d0739c71": {
+    "file_path": "data\\93a5cfb7eee0e5044758ff81d0739c71.csv",
+    "timestamp": 1759450668.7140617,
+    "metadata": {
+      "year": 2023,
+      "dataset": "acs/acs5",
+      "variables": [
+        "B07404E_001E",
+        "NAME"
+      ],
+      "geo": {
+        "level": "place",
+        "filters": {
+          "for": "place:51000",
+          "in": "state:36"
+        },
+        "note": "Resolved via Census Data API",
+        "confidence": 0.9,
+        "fips_codes": {
+          "state": "36",
+          "place": "51000"
+        }
+      }
+    },
+    "signature": "93a5cfb7eee0e5044758ff81d0739c71"
+  },
+  "de72126594cd28661eb36f225112a712": {
+    "file_path": "data\\de72126594cd28661eb36f225112a712.csv",
+    "timestamp": 1759537466.1791413,
+    "metadata": {
+      "year": 2023,
+      "dataset": "acs/acs5",
+      "variables": [
+        "B07404E_001E",
+        "NAME"
+      ],
+      "geo": {
+        "level": "place",
+        "filters": {
+          "for": "place:70629",
+          "in": "state:17"
+        },
+        "note": "Resolved via Census Data API",
+        "confidence": 0.9,
+        "fips_codes": {
+          "state": "17",
+          "place": "70629"
+        }
+      }
+    },
+    "signature": "de72126594cd28661eb36f225112a712"
+  },
+  "35d85738d566a77c092337455f7edd68": {
+    "file_path": "data\\35d85738d566a77c092337455f7edd68.csv",
+    "timestamp": 1759538867.0846765,
+    "metadata": {
+      "year": 2023,
+      "dataset": "acs/acs5",
+      "variables": [
+        "B07404E_001E",
+        "NAME"
+      ],
+      "geo": {
+        "level": "place",
+        "filters": {
+          "for": "place:51000",
+          "in": "state:36"
+        },
+        "note": "Resolved via LLM: Common abbreviation expansion using US Census place codes",
+        "confidence": 1.0,
+        "fips_codes": {
+          "place": "51000",
+          "state": "36"
+        }
+      }
+    },
+    "signature": "35d85738d566a77c092337455f7edd68"
+  },
+  "84c2a4de8112d0e5ed17805c376ac3e8": {
+    "file_path": "data\\84c2a4de8112d0e5ed17805c376ac3e8.csv",
+    "timestamp": 1759538873.1852863,
+    "metadata": {
+      "year": 2023,
+      "dataset": "acs/acs5",
+      "variables": [
+        "B07404E_001E",
+        "NAME"
+      ],
+      "geo": {
+        "level": "place",
+        "filters": {
+          "for": "place:51000",
+          "in": "state:36"
+        },
+        "note": "Resolved via LLM: Direct match from common city name and abbreviation mapping",
+        "confidence": 1.0,
+        "fips_codes": {
+          "place": "51000",
+          "state": "36"
+        }
+      }
+    },
+    "signature": "84c2a4de8112d0e5ed17805c376ac3e8"
+  },
+  "0a55d378a922035c8967c41219797dda": {
+    "file_path": "data\\0a55d378a922035c8967c41219797dda.csv",
+    "timestamp": 1760744792.8992612,
+    "metadata": {
+      "year": 2023,
+      "dataset": "acs/acs5",
+      "variables": [
+        "B07404E_001E",
+        "NAME"
+      ],
+      "geo": {
+        "level": "place",
+        "filters": {
+          "for": "place:14000",
+          "in": "state:17"
+        },
+        "note": "Resolved via LLM: Matched common city name to Census FIPS codes using standard abbreviation and major city knowledge",
+        "confidence": 1.0,
+        "fips_codes": {
+          "place": "14000",
+          "state": "17"
+        }
+      }
+    },
+    "signature": "0a55d378a922035c8967c41219797dda"
+  }
+}

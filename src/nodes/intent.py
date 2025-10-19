@@ -1,15 +1,25 @@
+import os
+import sys
 from typing import Dict, Any
 
 import logging
-from src.state.types import CensusState
-
 from langchain_core.runnables import RunnableConfig
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from src.state.types import CensusState
 from src.utils.text_utils import (
     is_census_question,
     determine_answer_type,
     extract_measures,
     extract_years,
 )
+from src.llm.intent_enhancer import (
+    parse_intent_with_llm,
+    merge_intent_results,
+    generate_intelligent_clarification,
+)
+from src.utils.enumeration_detector import detect_and_build_enumeration
+
 
 logger = logging.getLogger(__name__)
 
@@ -28,6 +38,29 @@ def needs_clarification(intent: Dict[str, Any]) -> bool:
         return True
 
     return False
+
+
+def calculate_heuristic_intent(intent: Dict[str, Any], user_text: str) -> float:
+    """Calculate the heuristic intent confidence score"""
+    confidence = 1.0
+
+    # Reduce confidence scores if no measures are found
+    if not intent.get("measures"):
+        confidence -= 0.4
+
+    # Reduce confidence if not time is found
+    if not intent.get("time"):
+        confidence -= 0.2
+
+    # Reduce confidence if not geo_hint is just the raw_text
+    if intent.get("geo_hint") == user_text:
+        confidence -= 0.2
+
+    # Reduce confidence if answer_type is not clear
+    if intent.get("answer_type") not in ["single", "series", "table"]:
+        confidence -= 0.3
+
+    return max(0.0, confidence)
 
 
 def intent_node(state: CensusState, config: RunnableConfig) -> Dict[str, Any]:
@@ -69,24 +102,53 @@ def intent_node(state: CensusState, config: RunnableConfig) -> Dict[str, Any]:
     geo_hint = user_text
 
     # Build intent object
-    intent = {
+    heuristic_intent = {
         "is_census": is_census,
         "answer_type": answer_type,
         "measures": measures,
         "time": time_info,
         "geo_hint": geo_hint,
         "needs_clarification": False,
+        "original_text": user_text,
     }
 
+    # FIX 3: Detect enumeration BEFORE LLM modifies geo_hint
+    enumeration_info = detect_and_build_enumeration(user_text)
+    if enumeration_info and enumeration_info["needs_enumeration"]:
+        logger.info(f"Enumeration detected in intent: {enumeration_info['level']} in {enumeration_info.get('parent_geography')}")
+        heuristic_intent["enumeration"] = enumeration_info
+        # Don't let LLM modify the geo_hint if we detected enumeration
+        heuristic_intent["geo_hint"] = user_text
+
+    # Calculate confidence and add method tracking
+    confidence = calculate_heuristic_intent(heuristic_intent, user_text)
+    heuristic_intent["confidence"] = confidence
+    heuristic_intent["method"] = "heuristic"
+
     # Determine if clarification is needed
-    intent["needs_clarification"] = needs_clarification(intent)
+    heuristic_intent["needs_clarification"] = needs_clarification(heuristic_intent)
+
+    # Hybrid decision: Use LLM if confidence is low or needs clarification
+    if confidence < 0.7 or heuristic_intent.get("needs_clarification"):
+        llm_intent = parse_intent_with_llm(user_text, state.profile)
+        intent = merge_intent_results(heuristic_intent, llm_intent)
+        # Preserve enumeration info even after LLM merge
+        if enumeration_info and enumeration_info["needs_enumeration"]:
+            intent["enumeration"] = enumeration_info
+    else:
+        intent = heuristic_intent
 
     # Create log message
     log_entry = f"intent: analyzed '{user_text[:50]}...' -> census:{is_census}, type:{answer_type}, measures:{measures}, needs_clarify:{intent['needs_clarification']}"
 
     logger.info(f"Intent analysis result: {intent}")
 
-    return {"intent": intent, "logs": [log_entry]}
+    # FIX 1: Preserve original_query in state for enumeration detection
+    return {
+        "intent": intent, 
+        "original_query": user_text,  # Preserve original text
+        "logs": [log_entry]
+    }
 
 
 def router_from_intent_node(
@@ -123,15 +185,12 @@ def clarify_node(state: CensusState, config: RunnableConfig) -> Dict[str, Any]:
         clarification_needed.append("what location you want data for")
 
     # Build clarification message
-    if clarification_needed:
-        clarification_text = "I need a bit more information to help you:"
-        for i, item in enumerate(clarification_needed, 1):
-            clarification_text += f"\n{i}. {item}"
-        clarification_text += (
-            "\n\nPlease provide more details and I'll find the data for you!"
-        )
-    else:
-        clarification_text = "I'm not sure I understand your question. Could you please rephrase it or provide more details about what Census data you're looking for?"
+    clarification_text = generate_intelligent_clarification(
+        user_question=user_question,
+        clarification_needed=clarification_needed,
+        intent=intent,
+        available_options=state.candidates,  # Use available data options
+    )
 
     response = {
         "type": "clarification",

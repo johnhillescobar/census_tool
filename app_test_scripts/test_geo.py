@@ -141,16 +141,16 @@ def test_geo_node():
 
 def test_geo_node_edge_cases():
     """Test edge cases for geo_node"""
-
-        # Test with missing intent
-        print("\n--- Test: Missing intent ---")
-        state_no_intent = CensusState(
-            profile={},
-            messages=[],
-            history=[],
-            cache_index={},
-            logs=[],
-        )
+    
+    # Test with missing intent
+    print("\n--- Test: Missing intent ---")
+    state_no_intent = CensusState(
+        profile={},
+        messages=[],
+        history=[],
+        cache_index={},
+        logs=[],
+    )
 
     result = geo_node(state_no_intent, {"user_id": "test_user"})
     assert "error" in result, "Should return error when intent is missing"
