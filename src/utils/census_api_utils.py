@@ -7,6 +7,10 @@ from pathlib import Path
 from typing import Dict, List, Any
 import requests
 import time
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 from config import (
@@ -111,6 +115,11 @@ def build_census_url(
         encoded_value = urllib.parse.quote(str(value))
         geo_filters.append(f"{key}={encoded_value}")
 
+    # Add Census API key if available
+    census_api_key = os.getenv("CENSUS_API_KEY")
+    if census_api_key:
+        geo_filters.append(f"key={census_api_key}")
+
     # Combine all parameters
     params = [f"get={variables_str}"] + geo_filters
     param_string = "&".join(params)
@@ -190,6 +199,11 @@ def build_census_url_from_metadata(
     geo_filters = []
     for key, value in geo.get("filters", {}).items():
         geo_filters.append(f"{key}={value}")
+    
+    # Add Census API key if available
+    census_api_key = os.getenv("CENSUS_API_KEY")
+    if census_api_key:
+        geo_filters.append(f"key={census_api_key}")
     
     # Combine parameters
     params = [f"get={get_param}"] + geo_filters

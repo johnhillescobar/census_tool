@@ -178,21 +178,33 @@ TOOL USAGE GUIDE (all Action Inputs must be valid JSON):
    - Detail table: {{"year": 2023, "dataset": "acs/acs5", "table_code": "B01003", "geo_for": {{"county": "*"}}, "geo_in": {{"state": "06"}}}}
    - Subject table: {{"year": 2023, "dataset": "acs/acs5/subject", "table_code": "S0101", "geo_for": {{"state": "*"}}, "table_category": "subject", "use_groups": true}}
 
+7. create_chart - Create data visualizations from census data
+   - Bar chart: {{"chart_type": "bar", "x_column": "NAME", "y_column": "B01003_001E", "title": "Population by County", "data": <census_api_call_result>}}
+   - Line chart: {{"chart_type": "line", "x_column": "Year", "y_column": "Value", "title": "Population Trend", "data": <census_api_call_result>}}
+   Note: The 'data' field should be the complete result from census_api_call tool (including success, data keys)
+
+8. create_table - Export census data as formatted tables
+   - CSV: {{"format": "csv", "filename": "ny_population", "title": "Population Data", "data": <census_api_call_result>}}
+   - Excel: {{"format": "excel", "filename": "population_table", "title": "Population by County", "data": <census_api_call_result>}}
+   - HTML: {{"format": "html", "title": "Population Report", "data": <census_api_call_result>}}
+   Note: filename is optional (will auto-generate with timestamp if not provided)
+
 CRITICAL OUTPUT FORMAT RULES:
 When you have the final data, you MUST output EXACTLY this format on ONE line:
 
 Thought: I now know the final answer
-Final Answer: {{"census_data": {{"success": true, "data": [...actual data...]}}, "data_summary": "brief summary text", "reasoning_trace": "your steps", "answer_text": "natural language answer"}}
+Final Answer: {{"census_data": {{"success": true, "data": [...actual data...]}}, "data_summary": "brief summary text", "reasoning_trace": "your steps", "answer_text": "natural language answer", "charts_needed": [...chart specifications...], "tables_needed": [...table specifications...]}}
 
 RULES:
 1. Write "Thought: I now know the final answer" on its own line
 2. Write "Final Answer: " followed immediately by the complete JSON on the SAME line
 3. The ENTIRE JSON object must be on ONE line with NO line breaks inside it
 4. Compress the JSON - no pretty printing, no indentation, no newlines
-5. Include all 4 keys: census_data, data_summary, reasoning_trace, answer_text
+5. Include all 6 keys: census_data, data_summary, reasoning_trace, answer_text, charts_needed, tables_needed
 
 CORRECT example:
-Final Answer: {{"census_data":{{"success":true,"data":[["NAME","B01003_001E"],["Los Angeles","9848406"]]}},"data_summary":"Population data for LA","reasoning_trace":"Queried B01003 table","answer_text":"LA has 9.8M people"}}
+Final Answer: {{"census_data":{{"success":true,"data":[["NAME","B01003_001E"],["Los Angeles","9848406"]]}},"data_summary":"Population data for LA","reasoning_trace":"Queried B01003 table","answer_text":"LA has 9.8M people","charts_needed":[{{"type":"bar","title":"Population by County"}}],"tables_needed":[{{"format":"csv","filename":"la_population","title":"Population Data"}}]}}
+
 
 WRONG examples (DO NOT DO THIS):
 Final Answer: {{
@@ -215,6 +227,18 @@ REASONING PROCESS FOR COMPLEX CENSUS QUERIES:
    - Comparison tables: "acs/acs5/cprofile" (CP-series)
    - Selected Population Profiles: "acs/acs1/spp" (SPP-series)
 6. Always validate table supports requested geography level before calling API
+
+OUTPUT GENERATION GUIDELINES:
+7. When user requests charts or visualizations, add to "charts_needed" array:
+   - Format: [{{"type": "bar|line", "title": "descriptive title"}}]
+   - Use "bar" for comparisons across locations, "line" for trends over time
+   - Auto-generate meaningful titles based on data context
+
+8. When user requests data export or tables, add to "tables_needed" array:
+   - Format: [{{"format": "csv|excel|html", "filename": "optional_name", "title": "descriptive title"}}]
+   - Use "csv" for basic export, "excel" for formatted reports, "html" for web display
+
+9. Always include both arrays in Final Answer - use empty arrays [] if no output generation requested
 
 Begin!
 

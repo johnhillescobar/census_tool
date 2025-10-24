@@ -25,6 +25,8 @@ from src.llm.config import LLM_CONFIG, AGENT_PROMPT_TEMPLATE
 from src.tools.geography_discovery_tool import GeographyDiscoveryTool
 from src.tools.table_search_tool import TableSearchTool
 from src.tools.census_api_tool import CensusAPITool
+from src.tools.chart_tool import ChartTool
+from src.tools.table_tool import TableTool
 from src.tools.table_validation_tool import TableValidationTool
 from src.tools.pattern_builder_tool import PatternBuilderTool
 from src.tools.area_resolution_tool import AreaResolutionTool
@@ -47,9 +49,11 @@ class CensusQueryAgent:
             GeographyDiscoveryTool(),
             TableSearchTool(),
             CensusAPITool(),
+            TableTool(),
             TableValidationTool(),
             PatternBuilderTool(),
             AreaResolutionTool(),
+            ChartTool(),
         ]
         
         # Create agent with compatibility for different LangChain versions

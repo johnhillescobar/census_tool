@@ -1,6 +1,7 @@
 import os
 import sys
 import logging
+import json
 from langchain_core.tools import BaseTool
 from typing import Optional, Dict, Literal, Union
 from langchain_core.tools import BaseTool, StructuredTool
@@ -48,9 +49,7 @@ class GeographyDiscoveryTool(BaseTool):
         """Execute geography discovery action
         
         Accepts JSON string input from ReAct agent
-        """
-        import json
-        
+        """        
         # Parse JSON input
         try:
             if isinstance(tool_input, str):

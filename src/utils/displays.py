@@ -10,23 +10,29 @@ def display_results(result: Dict[str, Any]):
     """Display the results of the Census query"""
 
     print("\n" + "=" * 50)
-    print("📊 CENSUS DATA RESULTS")
+    print("CENSUS DATA RESULTS")
     print("=" * 50)
 
     # Check for errors
     if result.get("error"):
-        print(f"\n❌ Error: {result['error']}")
+        print(f"\n[ERROR] Error: {result['error']}")
         return
 
     # Display final answer
     final = result.get("final")
     if not final:
-        print("\n❌ No answer available")
+        print("\n[ERROR] No answer available")
         return
 
-    # Display answer type
+    # Phase 3 format: Display answer_text from agent
+    answer_text = final.get("answer_text")
+    if answer_text:
+        print(f"\n[ANSWER] {answer_text}")
+
+    # Display answer type (legacy format)
     answer_type = final.get("type", "Unknown")
-    print(f"\n📊 Answer Type: {answer_type}")
+    if answer_type != "Unknown" and not answer_text:
+        print(f"\nAnswer Type: {answer_type}")
 
     if answer_type == "single":
         display_single_value(final)
@@ -38,6 +44,31 @@ def display_results(result: Dict[str, Any]):
         display_not_census(final)
     else:
         print(f"�� Answer: {final}")
+
+    # Phase 3: Display generated files
+    generated_files = final.get("generated_files", [])
+    if generated_files:
+        print(f"\n[FILES GENERATED]: {len(generated_files)} file(s)")
+        for i, file_info in enumerate(generated_files, 1):
+            print(f"  {i}. {file_info}")
+
+    # Phase 3: Display charts/tables that were requested
+    charts_needed = final.get("charts_needed", [])
+    tables_needed = final.get("tables_needed", [])
+    
+    if charts_needed:
+        print(f"\n[CHARTS REQUESTED]: {len(charts_needed)} chart(s)")
+        for chart in charts_needed:
+            chart_type = chart.get("type", "unknown")
+            title = chart.get("title", "Untitled")
+            print(f"  - {chart_type.title()} chart: {title}")
+    
+    if tables_needed:
+        print(f"\n[TABLES REQUESTED]: {len(tables_needed)} table(s)")
+        for table in tables_needed:
+            format_type = table.get("format", "csv")
+            filename = table.get("filename", "untitled")
+            print(f"  - {format_type.upper()} table: {filename}")
 
     # Display footnotes
     footnotes = final.get("footnotes", [])

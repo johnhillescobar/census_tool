@@ -16,9 +16,9 @@
   "preferred_dataset": "Unknown",
   "var_aliases": {},
   "usage_stats": {
-    "total_queries": 23,
-    "success_queries": 23,
-    "last_query_date": "2025-10-18T22:53:45.026343"
+    "total_queries": 30,
+    "success_queries": 30,
+    "last_query_date": "2025-10-19T19:17:51.797314"
   },
   "history": [
     {
@@ -582,8 +582,78 @@
       "plan_summary": "",
       "answer_type": "Unknown",
       "success": true
+    },
+    {
+      "timestamp": "2025-10-19T15:30:33.886583",
+      "user_id": "test_user",
+      "question": "What is the population of NYC?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-10-19T15:30:52.619821",
+      "user_id": "test_user",
+      "question": "What is the population of New York City?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-10-19T15:31:01.377779",
+      "user_id": "test_user",
+      "question": "Show me population data for Chicago",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-10-19T16:09:51.456324",
+      "user_id": "test_user",
+      "question": "What is the population of NYC?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-10-19T16:10:04.801783",
+      "user_id": "test_user",
+      "question": "What is the population of New York City?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-10-19T16:10:13.657999",
+      "user_id": "test_user",
+      "question": "Show me population data for Chicago",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-10-19T19:17:51.797314",
+      "user_id": "test_user",
+      "question": "Show me population by county in California as a bar chart and export the data as CSV",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
     }
   ],
   "user_id": "test_user",
-  "last_updated": "2025-10-18T22:53:45.026343"
+  "last_updated": "2025-10-19T19:17:51.797314"
 }

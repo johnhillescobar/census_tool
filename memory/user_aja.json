@@ -22,9 +22,9 @@
   "var_aliases": {},
   "last_geo": "Unknown",
   "usage_stats": {
-    "total_queries": 2,
-    "success_queries": 1,
-    "last_query_date": "2025-10-12T09:24:15.535116"
+    "total_queries": 3,
+    "success_queries": 2,
+    "last_query_date": "2025-10-19T17:36:02.306088"
   },
   "history": [
     {
@@ -60,7 +60,17 @@
       "plan_summary": "1 queries for years [2023] using ['acs/acs5']",
       "answer_type": "Unknown",
       "success": true
+    },
+    {
+      "timestamp": "2025-10-19T17:36:02.306088",
+      "user_id": "aja",
+      "question": "Show me population by county in New York as a bar chart",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
     }
   ],
-  "last_updated": "2025-10-12T09:24:15.536113"
+  "last_updated": "2025-10-19T17:36:02.306088"
 }

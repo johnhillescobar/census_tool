@@ -144,11 +144,18 @@ class GeographyRegistry:
         """
 
         # Build cache key
-        parent_key = parent_geo.get("geo_id") if parent_geo else "none"
+        if parent_geo:
+            # Sort for consistent cache keys - handles all multi-parent cases
+            parent_key = ",".join([f"{k}={v}" for k, v in sorted(parent_geo.items())])
+        else:
+            parent_key = "none"
+
         cache_key = f"{dataset}:{year}:{geo_token}:{parent_key}"
 
         # Cache disk cache
-        cache_file = self.cache_dir / f"{cache_key.replace(':', '_').replace('/', '_')}.pkl"
+        safe_filename = cache_key.replace(':', '_').replace('/', '_').replace(' ', '_').replace('(', '').replace(')', '')
+        cache_file = self.cache_dir / f"{safe_filename}.pkl"
+        
         if not force_refresh and cache_file.exists():
             # Check if cache is recent (less than 30 days old)
             if (datetime.now() - datetime.fromtimestamp(cache_file.stat().st_mtime)) < timedelta(days=30):
