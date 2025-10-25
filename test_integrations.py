@@ -9,13 +9,15 @@ import sys
 import logging
 from pathlib import Path
 
+from src.utils.enumeration_detector import detect_and_build_enumeration
+from src.llm.category_detector import detect_category_with_llm
+from src.services.geography_cache import DynamicGeographyResolver
+
 # Add project root to path
 project_root = Path(__file__).parent
 sys.path.append(str(project_root))
 
-from src.utils.enumeration_detector import detect_and_build_enumeration
-from src.llm.category_detector import detect_category_with_llm
-from src.services.geography_cache import DynamicGeographyResolver
+
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
@@ -46,11 +48,11 @@ def test_enumeration_detection():
             print(f"    Confidence: {result['confidence']:.2f}")
 
             if not should_enumerate:
-                print(f"  [ERROR] Should NOT enumerate but did!")
+                print("  [ERROR] Should NOT enumerate but did!")
         else:
-            print(f"  [OK] No enumeration (single location)")
+            print("  [OK] No enumeration (single location)")
             if should_enumerate:
-                print(f"  [ERROR] Should enumerate but didn't!")
+                print("  [ERROR] Should enumerate but didn't!")
 
     print("\n[SUCCESS] Enumeration detection tests complete")
 
@@ -111,9 +113,9 @@ def test_geography_with_enumeration():
             # Check if enumeration worked
             if "county" in query.lower() and "in" in query.lower():
                 if result.filters.get("for", "").endswith(":*"):
-                    print(f"  [SUCCESS] Enumeration correctly detected!")
+                    print("  [SUCCESS] Enumeration correctly detected!")
                 else:
-                    print(f"  [ERROR] Should have enumeration but got single area")
+                    print("  [ERROR] Should have enumeration but got single area")
         except Exception as e:
             print(f"  [ERROR] {str(e)}")
             import traceback

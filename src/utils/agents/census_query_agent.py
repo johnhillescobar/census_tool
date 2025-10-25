@@ -6,7 +6,7 @@ import json
 from typing import Dict, Any
 from dotenv import load_dotenv
 
-from langchain.agents.agent import AgentExecutor
+from langchain.agents import AgentExecutor
 
 # Try to import the agent creation function for different LangChain versions
 try:

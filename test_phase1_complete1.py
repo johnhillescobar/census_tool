@@ -46,9 +46,9 @@ def test_agent_returns_census_data():
 
     # Check answer_text mentions population
     if "population" in result["answer_text"].lower():
-        print(f"✅ answer_text mentions population")
+        print("✅ answer_text mentions population")
     else:
-        print(f"⚠️  answer_text doesn't mention population")
+        print("⚠️  answer_text doesn't mention population")
 
     print(f"\n📝 Answer: {result['answer_text'][:200]}...")
 

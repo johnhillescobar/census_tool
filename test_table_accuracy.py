@@ -8,19 +8,18 @@ Target: 85%+ accuracy before moving to Phase 9
 """
 
 import sys
-import os
 import logging
 from pathlib import Path
 from dotenv import load_dotenv
+import chromadb
+from src.utils.retrieval_utils_tables import search_tables_chroma
+from config import CHROMA_PERSIST_DIRECTORY
 
 load_dotenv()
 
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent))
 
-from src.utils.retrieval_utils_tables import search_tables_chroma
-from config import CHROMA_PERSIST_DIRECTORY
-import chromadb
 
 logger = logging.getLogger(__name__)
 
@@ -95,7 +94,7 @@ def test_table_accuracy():
                     correct += 1
                 else:
                     # Show top 5 results for debugging
-                    print(f"  Top 5 results:")
+                    print("  Top 5 results:")
                     for i, result in enumerate(results[:5], 1):
                         table_code = result.get("table_code", "UNKNOWN")
                         conf = result.get("confidence_score", 0.0)
@@ -185,7 +184,7 @@ def test_table_accuracy():
                             f"    ⚠️  Expected table IS in top 5 (rank #{rank}) - scoring issue"
                         )
                     else:
-                        print(f"    ❌ Expected table NOT in top 5 - retrieval issue")
+                        print("    ❌ Expected table NOT in top 5 - retrieval issue")
 
     return accuracy, failures
 
@@ -228,7 +227,7 @@ def analyze_specific_query(query, expected_table, n_results=10):
     else:
         print(f"❌ Expected table NOT in top {n_results}")
         print(f"   This is a RETRIEVAL issue - ChromaDB isn't finding {expected_table}")
-        print(f"   May need to improve table descriptions in index")
+        print("   May need to improve table descriptions in index")
 
 
 if __name__ == "__main__":

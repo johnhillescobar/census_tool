@@ -7,6 +7,7 @@ import os
 import sys
 import logging
 from dotenv import load_dotenv
+from src.utils.agents.census_query_agent import CensusQueryAgent
 
 # Setup paths
 project_root = os.path.abspath(os.path.dirname(__file__))
@@ -14,7 +15,7 @@ sys.path.insert(0, project_root)
 
 load_dotenv()
 
-from src.utils.agents.census_query_agent import CensusQueryAgent
+
 
 
 def test_chart_request():

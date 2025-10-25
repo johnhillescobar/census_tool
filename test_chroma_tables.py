@@ -19,14 +19,14 @@ client = chromadb.PersistentClient(
 print(f"\n1. Looking for collection: {CHROMA_TABLE_COLLECTION_NAME}")
 try:
     collection = client.get_collection(CHROMA_TABLE_COLLECTION_NAME)
-    print(f"   [OK] Collection found!")
+    print("   [OK] Collection found!")
 
     # Get first few items to check if populated
     print("\n2. Checking if collection has data...")
     sample = collection.get(limit=5)
 
     if sample["ids"]:
-        print(f"   [OK] Collection has data! Sample IDs:")
+        print("   [OK] Collection has data! Sample IDs:")
         for i, id_val in enumerate(sample["ids"][:5]):
             print(f"      {i + 1}. {id_val}")
 
@@ -52,9 +52,9 @@ try:
         print("   [ERROR] Collection is EMPTY!")
         print("   ACTION NEEDED: Run 'python index/buil_index_table.py'")
 
-except Exception as e:
-    print(f"   [ERROR] Collection NOT FOUND: {e}")
-    print(f"   ACTION NEEDED: Run 'python index/buil_index_table.py'")
+except Exception:
+    print("   [ERROR] Collection NOT FOUND")
+    print("   ACTION NEEDED: Run 'python index/buil_index_table.py'")
 
 print("\n" + "=" * 60)
 print("DIAGNOSIS COMPLETE")
