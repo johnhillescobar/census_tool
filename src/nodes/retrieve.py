@@ -1,5 +1,5 @@
 from typing import Dict, Any
-from src.state.types import CensusState, QuerySpec
+from src.state.types import CensusState
 
 import logging
 from config import RETRIEVAL_TOP_K, CONFIDENCE_THRESHOLD
@@ -12,7 +12,7 @@ from src.utils.chroma_utils import (
 )
 from src.utils.retrieval_utils_tables import process_chroma_results_tables
 from src.utils.variable_selection import select_variables_from_table
-from src.utils.retrieval_utils import process_chroma_results, get_fallback_candidates
+from src.utils.retrieval_utils import get_fallback_candidates
 from src.utils.planning_utils import (
     validate_geo_dataset_compatibility,
     build_query_specs,

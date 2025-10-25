@@ -111,7 +111,7 @@ def display_series(final: Dict[str, Any]):
 
     print(f"📍 Location: {geo}")
     print(f"🔢 Variable: {variable}")
-    print(f"📈 Time Series Data:")
+    print("📈 Time Series Data:")
 
     if not data:
         print("  No data available")

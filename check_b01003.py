@@ -24,10 +24,10 @@ if results["ids"]:
     print("[OK] B01003 FOUND in index!")
     metadata = results["metadatas"][0]
     document = results["documents"][0]
-    print(f"\nMetadata:")
+    print("\nMetadata:")
     for key, value in metadata.items():
         print(f"  {key}: {value}")
-    print(f"\nDocument text:")
+    print("\nDocument text:")
     print(f"  {document}")
 else:
     print("[ERROR] B01003 NOT FOUND in index!")
@@ -43,7 +43,7 @@ datasets = set()
 for metadata in sample["metadatas"]:
     datasets.add(metadata.get("dataset", "unknown"))
 
-print(f"\nDatasets found (from sample of 20 tables):")
+print("\nDatasets found (from sample of 20 tables):")
 for ds in sorted(datasets):
     print(f"  - {ds}")
 

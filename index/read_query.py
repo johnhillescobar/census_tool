@@ -14,7 +14,6 @@ import sys
 sys.path.append(str(Path(__file__).parent.parent))
 from config import (
     CHROMA_PERSIST_DIRECTORY,
-    CHROMA_COLLECTION_NAME,
     CHROMA_TABLE_COLLECTION_NAME,
 )
 

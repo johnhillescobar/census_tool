@@ -18,7 +18,6 @@ project_root = Path(__file__).parent
 sys.path.append(str(project_root))
 
 
-
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )

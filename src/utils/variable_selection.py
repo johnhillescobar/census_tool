@@ -4,9 +4,8 @@ After finding the right table, select appropriate variables from it
 """
 
 import sys
-import os
 from pathlib import Path
-from typing import Dict, List, Any
+from typing import List
 import logging
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))

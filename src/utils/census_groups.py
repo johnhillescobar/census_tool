@@ -14,8 +14,6 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from config import (
     CENSUS_API_TIMEOUT,
-    CENSUS_API_MAX_RETRIES,
-    CENSUS_API_BACKOFF_FACTOR,
     CENSUS_CATEGORIES,
 )
 
@@ -292,7 +290,7 @@ def test_census_groups_api():
     if details:
         print(f"Name: {details.get('name')}")
         print(f"Description: {details.get('description')}")
-        print(f"Variables in this table:")
+        print("Variables in this table:")
         for var_code, var_info in list(details.get("variables", {}).items())[:3]:
             print(f"  - {var_code}: {var_info.get('label')}")
 

@@ -3,11 +3,10 @@ Chroma Index Builder for Census Variables
 Fetches variables.json from Census API for each dataset/year and builds a searchable index
 """
 
-import json
 import time
 import requests
 from pathlib import Path
-from typing import Dict, List, Set, Tuple
+from typing import Dict, List, Tuple
 from collections import defaultdict
 import chromadb
 from chromadb.utils.embedding_functions import OpenAIEmbeddingFunction
@@ -16,7 +15,6 @@ from dotenv import load_dotenv
 import logging
 
 # Import configuration
-import os
 import sys
 
 # Add parent directory to path for imports

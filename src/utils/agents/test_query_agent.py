@@ -1,7 +1,5 @@
 import os
 import sys
-import logging
-from typing import Dict, Any
 from dotenv import load_dotenv
 
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../"))

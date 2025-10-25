@@ -4,11 +4,10 @@ import logging
 import json
 import pandas as pd
 from pathlib import Path
-from typing import Dict, Optional, Any, List, Literal
+from typing import Dict, Any, Literal
 from langchain_core.tools import BaseTool
 from pydantic import BaseModel, Field, ConfigDict
 import plotly.express as px
-import plotly.graph_objects as go
 from datetime import datetime
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))

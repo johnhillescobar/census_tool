@@ -3,7 +3,6 @@ Test script for memory_load_node
 """
 
 import logging
-from pathlib import Path
 from src.nodes.memory import memory_load_node
 
 # Set up logging

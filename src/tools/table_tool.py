@@ -4,7 +4,7 @@ import logging
 import json
 import pandas as pd
 from pathlib import Path
-from typing import Dict, Optional, Any, List, Literal
+from typing import Dict, Optional, Any, Literal
 from langchain_core.tools import BaseTool
 from pydantic import BaseModel, Field, ConfigDict
 from datetime import datetime

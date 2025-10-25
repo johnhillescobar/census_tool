@@ -104,7 +104,7 @@ if __name__ == "__main__":
         print("\n" + "=" * 70)
         print("🎉 ALL TESTS PASSED!")
         print("=" * 70)
-        print(f"\nCached data:")
+        print("\nCached data:")
         print(f"  • {len(counties)} California counties")
         print(f"  • {len(states)} US states")
         print("\n✅ Geography Registry is working!\n")

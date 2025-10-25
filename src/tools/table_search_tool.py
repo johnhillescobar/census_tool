@@ -2,7 +2,6 @@ import os
 import sys
 import logging
 from langchain_core.tools import BaseTool
-import requests
 from pydantic import ConfigDict
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))

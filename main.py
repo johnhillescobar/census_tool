@@ -1,8 +1,6 @@
 import sys
-import os
 from pathlib import Path
 import logging
-from typing import Dict, Any
 from dotenv import load_dotenv
 
 # Add project root to path

@@ -8,21 +8,19 @@ Both interfaces use the same underlying LangGraph workflow and processing logic.
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-import plotly.graph_objects as go
 from pathlib import Path
 import sys
 import logging
-from typing import Dict, Any, List
+from typing import Dict, Any
 from datetime import datetime
 from src.utils.pdf_generator import generate_session_pdf
+from app import create_census_graph
+from src.state.types import CensusState
+from langchain_core.runnables import RunnableConfig
 
 # Add project root to path
 project_root = Path(__file__).parent
 sys.path.append(str(project_root))
-
-from app import create_census_graph
-from src.state.types import CensusState
-from langchain_core.runnables import RunnableConfig
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -205,7 +203,6 @@ def display_table_streamlit(final: Dict[str, Any]):
 
     data = final.get("data", [])
     total_rows = final.get("total_rows", 0)
-    columns = final.get("columns", [])
 
     st.info(f"📊 Table Data ({total_rows} rows)")
 

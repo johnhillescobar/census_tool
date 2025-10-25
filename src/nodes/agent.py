@@ -33,5 +33,5 @@ def agent_reasoning_node(state: CensusState, config: RunnableConfig) -> Dict[str
             "charts_needed": result.get("charts_needed", []),
             "tables_needed": result.get("tables_needed", []),
         },
-        "logs": [f"agent: completed reasoning with data"],
+        "logs": ["agent: completed reasoning with data"],
     }

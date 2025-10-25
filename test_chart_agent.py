@@ -16,8 +16,6 @@ sys.path.insert(0, project_root)
 load_dotenv()
 
 
-
-
 def test_chart_request():
     """Test agent's ability to create charts"""
     print("Testing ChartTool with CensusQueryAgent...")

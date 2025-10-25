@@ -5,7 +5,6 @@ This is the table-level version of retrieval_utils.py
 
 import logging
 from typing import Dict, Any, List
-from config import CONFIDENCE_THRESHOLD
 
 
 logger = logging.getLogger(__name__)

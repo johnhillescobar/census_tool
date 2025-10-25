@@ -2,7 +2,6 @@
 Comprehensive test suite for dynamic geography system
 """
 
-import pytest
 import os
 import sys
 import time
@@ -14,7 +13,6 @@ from src.services.geography_cache import (
 )
 from src.services.census_geocoding import CensusGeocodingService
 from src.utils.geo_parser import GeographyParser
-from src.state.types import GeographyRequest, ResolvedGeography
 
 
 class TestGeographyParser:

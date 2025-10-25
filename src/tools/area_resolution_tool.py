@@ -2,14 +2,13 @@ import os
 import sys
 import logging
 import json
-from typing import Optional, Dict
 from langchain_core.tools import BaseTool
-from pydantic import ConfigDict, BaseModel
+from pydantic import ConfigDict
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from src.utils.geography_registry import GeographyRegistry
-from src.tools.geography_schemas import AreaResolutionInput, GeographyLevel
+from src.tools.geography_schemas import GeographyLevel
 
 
 logger = logging.getLogger(__name__)

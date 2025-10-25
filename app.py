@@ -12,7 +12,6 @@ from src.state.types import CensusState
 from src.nodes.memory import memory_load_node, memory_write_node
 from src.nodes.agent import agent_reasoning_node
 from src.nodes.output import output_node
-from src.nodes.utils.summarizer import summarizer_node
 
 import logging
 

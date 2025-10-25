@@ -3,12 +3,12 @@ Test what the app is actually querying for
 """
 
 from dotenv import load_dotenv
-
-load_dotenv()
-
 import chromadb
 from chromadb.config import Settings
 from config import CHROMA_PERSIST_DIRECTORY, CHROMA_TABLE_COLLECTION_NAME
+from src.utils.text_utils import build_retrieval_query
+
+load_dotenv()
 
 # Simulate what the app does
 intent = {
@@ -35,7 +35,6 @@ if results["metadatas"][0]:
         print(f"   {i + 1}. {metadata.get('table_code')}: {metadata.get('table_name')}")
 
 # Test 2: What the app might be building
-from src.utils.text_utils import build_retrieval_query
 
 query_string = build_retrieval_query(intent, {})
 print(f"\n2. App's Built Query: '{query_string}'")

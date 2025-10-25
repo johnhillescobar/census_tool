@@ -8,8 +8,6 @@ import pandas as pd
 import logging
 from pathlib import Path
 
-
-from src.state.types import CensusState
 from config import PREVIEW_ROWS
 
 logger = logging.getLogger(__name__)
@@ -368,7 +366,6 @@ def format_single_value_answer(
 
     # Get the first dataset (should be only one for single value)
     dataset_key = list(datasets.keys())[0]
-    file_path = datasets[dataset_key]
     preview = previews.get(dataset_key, [])
 
     if not preview or len(preview) < 2:

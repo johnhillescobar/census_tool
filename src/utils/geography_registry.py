@@ -5,8 +5,7 @@ Part of Phase 9F: Census API Flexibility
 
 import requests
 import logging
-import json
-from typing import Dict, List, Optional, Any
+from typing import Dict, Optional, Any
 from pathlib import Path
 import pickle
 import urllib.parse

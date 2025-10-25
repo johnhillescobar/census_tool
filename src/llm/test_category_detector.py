@@ -28,7 +28,7 @@ def test_category_detection():
     result = detect_category_with_llm("demographic overview")
     detected = result.get("preferred_category")
     confidence = result.get("confidence", 0.0)
-    print(f"  Expected: subject")
+    print("  Expected: subject")
     print(f"  Detected: {detected} (confidence: {confidence:.2f})")
     print(f"  Reasoning: {result.get('reasoning', '')}")
     assert detected == "subject", f"Expected 'subject', got '{detected}'"
@@ -38,7 +38,7 @@ def test_category_detection():
     result = detect_category_with_llm("give me a summary")
     detected = result.get("preferred_category")
     confidence = result.get("confidence", 0.0)
-    print(f"  Expected: subject")
+    print("  Expected: subject")
     print(f"  Detected: {detected} (confidence: {confidence:.2f})")
     print(f"  Reasoning: {result.get('reasoning', '')}")
     assert detected == "subject", f"Expected 'subject', got '{detected}'"
@@ -48,7 +48,7 @@ def test_category_detection():
     result = detect_category_with_llm("general population data")
     detected = result.get("preferred_category")
     confidence = result.get("confidence", 0.0)
-    print(f"  Expected: subject")
+    print("  Expected: subject")
     print(f"  Detected: {detected} (confidence: {confidence:.2f})")
     print(f"  Reasoning: {result.get('reasoning', '')}")
     assert detected == "subject", f"Expected 'subject', got '{detected}'"
@@ -59,7 +59,7 @@ def test_category_detection():
     result = detect_category_with_llm("demographic profile")
     detected = result.get("preferred_category")
     confidence = result.get("confidence", 0.0)
-    print(f"  Expected: profile")
+    print("  Expected: profile")
     print(f"  Detected: {detected} (confidence: {confidence:.2f})")
     print(f"  Reasoning: {result.get('reasoning', '')}")
     assert detected == "profile", f"Expected 'profile', got '{detected}'"
@@ -69,7 +69,7 @@ def test_category_detection():
     result = detect_category_with_llm("complete profile of city")
     detected = result.get("preferred_category")
     confidence = result.get("confidence", 0.0)
-    print(f"  Expected: profile")
+    print("  Expected: profile")
     print(f"  Detected: {detected} (confidence: {confidence:.2f})")
     print(f"  Reasoning: {result.get('reasoning', '')}")
     assert detected == "profile", f"Expected 'profile', got '{detected}'"
@@ -80,7 +80,7 @@ def test_category_detection():
     result = detect_category_with_llm("compare income across states")
     detected = result.get("preferred_category")
     confidence = result.get("confidence", 0.0)
-    print(f"  Expected: cprofile")
+    print("  Expected: cprofile")
     print(f"  Detected: {detected} (confidence: {confidence:.2f})")
     print(f"  Reasoning: {result.get('reasoning', '')}")
     assert detected == "cprofile", f"Expected 'cprofile', got '{detected}'"
@@ -90,7 +90,7 @@ def test_category_detection():
     result = detect_category_with_llm("compare income between different counties")
     detected = result.get("preferred_category")
     confidence = result.get("confidence", 0.0)
-    print(f"  Expected: cprofile")
+    print("  Expected: cprofile")
     print(f"  Detected: {detected} (confidence: {confidence:.2f})")
     print(f"  Reasoning: {result.get('reasoning', '')}")
     assert detected == "cprofile", f"Expected 'cprofile', got '{detected}'"
@@ -101,7 +101,7 @@ def test_category_detection():
     result = detect_category_with_llm("total population")
     detected = result.get("preferred_category")
     confidence = result.get("confidence", 0.0)
-    print(f"  Expected: None or detail")
+    print("  Expected: None or detail")
     print(f"  Detected: {detected} (confidence: {confidence:.2f})")
     print(f"  Reasoning: {result.get('reasoning', '')}")
     assert detected in [None, "detail"], f"Expected None or 'detail', got '{detected}'"
@@ -111,7 +111,7 @@ def test_category_detection():
     result = detect_category_with_llm("how many people")
     detected = result.get("preferred_category")
     confidence = result.get("confidence", 0.0)
-    print(f"  Expected: None or detail")
+    print("  Expected: None or detail")
     print(f"  Detected: {detected} (confidence: {confidence:.2f})")
     print(f"  Reasoning: {result.get('reasoning', '')}")
     assert detected in [None, "detail"], f"Expected None or 'detail', got '{detected}'"

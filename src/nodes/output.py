@@ -2,7 +2,6 @@ import os
 import sys
 import logging
 import json
-import pandas as pd
 from typing import Dict, Any
 from langchain_core.runnables import RunnableConfig
 
@@ -12,9 +11,6 @@ from src.tools.chart_tool import ChartTool
 from src.tools.table_tool import TableTool
 
 logger = logging.getLogger(__name__)
-
-
-import pandas as pd
 
 
 def get_chart_params(census_data: Dict[str, Any], chart_type: str) -> Dict[str, str]:

@@ -9,6 +9,7 @@ from typing import Dict, List, Any
 import requests
 import time
 from dotenv import load_dotenv
+import logging
 
 # Load environment variables
 load_dotenv()
@@ -20,7 +21,7 @@ from config import (
     CENSUS_API_BACKOFF_FACTOR,
 )
 
-import logging
+
 
 logger = logging.getLogger(__name__)
 

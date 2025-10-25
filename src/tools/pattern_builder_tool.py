@@ -3,13 +3,10 @@ import sys
 import logging
 from langchain_core.tools import BaseTool
 import json
-from typing import Optional
-import requests
 from pydantic import ConfigDict
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from src.utils.geography_registry import GeographyRegistry
 
 logger = logging.getLogger(__name__)
 
@@ -89,7 +86,7 @@ class PatternBuilderTool(BaseTool):
             variables = [f"group({table_code})"]
         else:
             # Default detail table variables
-            variables = [f"NAME", f"{table_code}_001E"]
+            variables = ["NAME", f"{table_code}_001E"]
 
         # Format variables parameter
         if isinstance(variables, list):

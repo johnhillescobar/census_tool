@@ -1,5 +1,4 @@
 import pandas as pd
-import reportlab
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter
 from reportlab.lib import colors
@@ -13,11 +12,13 @@ from reportlab.platypus import (
     Table,
     TableStyle,
 )
-from typing import List, Dict
+from typing import Dict, List
 from datetime import datetime
 from pathlib import Path
 from io import BytesIO
-import base64
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def generate_session_pdf(
@@ -94,21 +95,6 @@ def generate_session_pdf(
         fontName="Helvetica-Bold",
     )
 
-    # Section headings
-    heading_style = ParagraphStyle(
-        "CustomHeading",
-        parent=styles["Heading2"],
-        fontSize=16,
-        spaceAfter=15,
-        spaceBefore=25,
-        textColor=colors.HexColor("#048A81"),
-        fontName="Helvetica-Bold",
-        borderWidth=1,
-        borderColor=colors.HexColor("#048A81"),
-        borderPadding=8,
-        backColor=colors.HexColor("#F0F8F7"),
-    )
-
     # Question style
     question_style = ParagraphStyle(
         "QuestionStyle",
@@ -182,7 +168,8 @@ def generate_session_pdf(
                 else:
                     time_str = str(timestamp)
                 story.append(Paragraph(f"Question {i} • {time_str}", meta_style))
-            except:
+            except (ValueError, TypeError, AttributeError) as e:
+                logger.warning(f"Failed to format timestamp for question {i}: {e}")
                 story.append(Paragraph(f"Question {i}", meta_style))
         else:
             story.append(Paragraph(f"Question {i}", meta_style))
@@ -338,8 +325,9 @@ def _calculate_session_duration(conversation_history: List[Dict]) -> str:
                 return f"{int(hours)}h {int(minutes)}m"
             else:
                 return f"{int(minutes)} minutes"
-    except:
-        pass
+    except (ValueError, TypeError, AttributeError) as e:
+        logger.warning(f"Failed to calculate session duration: {e}")
+        return "N/A"
 
     return "N/A"
 

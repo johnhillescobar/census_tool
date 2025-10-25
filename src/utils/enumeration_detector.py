@@ -11,7 +11,7 @@ Examples:
 
 import logging
 import re
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional
 from dataclasses import dataclass
 
 logger = logging.getLogger(__name__)

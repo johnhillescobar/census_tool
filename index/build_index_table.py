@@ -4,17 +4,13 @@ Builds a searchable index of Census tables (not individual variables)
 """
 
 import sys
-import os
 import logging
 from pathlib import Path
 import chromadb
 from chromadb.utils.embedding_functions import OpenAIEmbeddingFunction
 from chromadb.config import Settings
-from typing import Dict, List, Tuple
-from collections import defaultdict
+from typing import Dict
 from dotenv import load_dotenv
-import requests
-import time
 
 
 # Add parent directory to path for imports
@@ -24,8 +20,6 @@ from config import (
     CHROMA_PERSIST_DIRECTORY,
     CHROMA_TABLE_COLLECTION_NAME,
     CHROMA_EMBEDDING_MODEL,
-    DEFAULT_DATASETS,
-    CENSUS_CATEGORIES,
 )
 
 from src.utils.census_groups import CensusGroupsAPI
