@@ -19,6 +19,7 @@ numpy>=2.3.3
 openpyxl>=3.1.5
 plotly>=5.0.0
 pip>=25.2
+pandas>=2.3.2
 pydantic>=2.11.7
 pytest>=8.4.2
 python-dotenv>=1.1.1
