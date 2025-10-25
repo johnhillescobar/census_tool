@@ -3,7 +3,7 @@ import sys
 import re
 import logging
 import json
-from typing import Dict, Any
+from typing import Dict
 from dotenv import load_dotenv
 
 from langchain.agents import AgentExecutor
@@ -118,7 +118,6 @@ Intent: {intent}"""
 
         # Method 2: Extract JSON using regex to find complete JSON object
         # Look for JSON starting with {"census_data" and capture the complete object
-        import re
 
         json_pattern = r'\{"census_data":[^\}]*(?:\{[^\}]*\}[^\}]*)*\}'
 
@@ -157,7 +156,7 @@ Intent: {intent}"""
             try:
                 parsed = json.loads(json_str)
                 if isinstance(parsed, dict) and "census_data" in parsed:
-                    logger.info(f"Successfully extracted and parsed agent JSON")
+                    logger.info("Successfully extracted and parsed agent JSON")
                     return parsed
             except (json.JSONDecodeError, TypeError) as e:
                 logger.debug(f"Failed to parse JSON candidate: {e}")
