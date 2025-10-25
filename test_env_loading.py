@@ -1,6 +1,7 @@
 """
 Test if .env file loads correctly
 """
+
 from dotenv import load_dotenv
 import os
 
@@ -26,4 +27,3 @@ for key in keys_to_check:
 print("\n" + "=" * 60)
 print("Test Complete")
 print("=" * 60)
-

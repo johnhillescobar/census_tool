@@ -9,10 +9,12 @@ from pydantic import ConfigDict
 
 logger = logging.getLogger(__name__)
 
+
 class TableValidationTool(BaseTool):
     """
     Validate table supports requested geography
     """
+
     name: str = "validate_table_geography"
     description: str = """
     Check if a Census table supports a specific geography level.
@@ -30,7 +32,7 @@ class TableValidationTool(BaseTool):
 
     def _run(self, tool_input: str) -> str:
         """Validate table supports geography level"""
-        
+
         # Parse JSON input
         try:
             if isinstance(tool_input, str):
@@ -39,30 +41,37 @@ class TableValidationTool(BaseTool):
                 params = tool_input
         except json.JSONDecodeError as e:
             return f"Error: Invalid JSON input - {e}"
-        
+
         # Extract parameters
         table_code = params.get("table_code")
         geography_level = params.get("geography_level")
         dataset = params.get("dataset", "acs/acs5")
-        
+
         if not all([table_code, geography_level]):
             return "Error: Missing required parameters (table_code, geography_level)"
-        
+
         logger.info(f"Validating {table_code} for {geography_level}")
-        
+
         # Stub: Assume common tables support common geographies
         # TODO: Query actual geography.html for real validation
-        common_geographies = ["nation", "state", "county", "place", "tract", "block group"]
-        
+        common_geographies = [
+            "nation",
+            "state",
+            "county",
+            "place",
+            "tract",
+            "block group",
+        ]
+
         supported = geography_level in common_geographies
-        
-        return json.dumps({
-            "table_code": table_code,
-            "geography_level": geography_level,
-            "dataset": dataset,
-            "supported": supported,
-            "available_geographies": common_geographies,
-            "note": "Stub validation - assumes common tables support common geographies"
-        })
-        
-        
+
+        return json.dumps(
+            {
+                "table_code": table_code,
+                "geography_level": geography_level,
+                "dataset": dataset,
+                "supported": supported,
+                "available_geographies": common_geographies,
+                "note": "Stub validation - assumes common tables support common geographies",
+            }
+        )

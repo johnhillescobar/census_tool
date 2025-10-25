@@ -1,6 +1,7 @@
 """
 Check if B01003 (Total Population) is in the index
 """
+
 import chromadb
 from chromadb.config import Settings
 from config import CHROMA_PERSIST_DIRECTORY, CHROMA_TABLE_COLLECTION_NAME
@@ -10,8 +11,7 @@ print("Checking for B01003 (Total Population) in index")
 print("=" * 60)
 
 client = chromadb.PersistentClient(
-    path=CHROMA_PERSIST_DIRECTORY,
-    settings=Settings(anonymized_telemetry=False)
+    path=CHROMA_PERSIST_DIRECTORY, settings=Settings(anonymized_telemetry=False)
 )
 
 collection = client.get_collection(CHROMA_TABLE_COLLECTION_NAME)
@@ -48,4 +48,3 @@ for ds in sorted(datasets):
     print(f"  - {ds}")
 
 print("\n" + "=" * 60)
-

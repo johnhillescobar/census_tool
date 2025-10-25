@@ -4,6 +4,7 @@ from langgraph.checkpoint.sqlite import SqliteSaver
 import sqlite3
 import os
 from langgraph.checkpoint.memory import MemorySaver
+
 # Import state and routing
 from src.state.types import CensusState
 
@@ -56,13 +57,13 @@ def create_reducers():
 
 def create_census_graph():
     workflow = StateGraph(CensusState, reducers=create_reducers())
-    
+
     # Only 4 nodes
     workflow.add_node("memory_load", memory_load_node)
     workflow.add_node("agent", agent_reasoning_node)
     workflow.add_node("output", output_node)
     workflow.add_node("memory_write", memory_write_node)
-    
+
     # Linear flow - no conditional routing
     workflow.set_entry_point("memory_load")
     workflow.add_edge("memory_load", "agent")
@@ -73,21 +74,23 @@ def create_census_graph():
     # Compile the graph first
     try:
         db_path = "checkpoints.db"
-        
+
         # Reset checkpoints for clean architecture change
         # Delete existing checkpoints to avoid node structure conflicts
         if os.path.exists(db_path):
             logger.info("Removing old checkpoints for agent architecture migration")
             try:
                 os.remove(db_path)
-                logger.info(f"Removed {db_path} - starting fresh with agent architecture")
+                logger.info(
+                    f"Removed {db_path} - starting fresh with agent architecture"
+                )
             except Exception as e:
                 logger.warning(f"Could not remove old checkpoints: {e}")
 
         # Create fresh SQLite connection
         conn = sqlite3.connect(db_path, check_same_thread=False)
         checkpointer = SqliteSaver(conn)
-        
+
         logger.info("SQLite checkpointer initialized for agent architecture")
         compiled_graph = workflow.compile(checkpointer=checkpointer)
         return compiled_graph

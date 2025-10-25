@@ -55,14 +55,14 @@ def display_results(result: Dict[str, Any]):
     # Phase 3: Display charts/tables that were requested
     charts_needed = final.get("charts_needed", [])
     tables_needed = final.get("tables_needed", [])
-    
+
     if charts_needed:
         print(f"\n[CHARTS REQUESTED]: {len(charts_needed)} chart(s)")
         for chart in charts_needed:
             chart_type = chart.get("type", "unknown")
             title = chart.get("title", "Untitled")
             print(f"  - {chart_type.title()} chart: {title}")
-    
+
     if tables_needed:
         print(f"\n[TABLES REQUESTED]: {len(tables_needed)} table(s)")
         for table in tables_needed:

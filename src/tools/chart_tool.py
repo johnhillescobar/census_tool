@@ -15,16 +15,24 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 logger = logging.getLogger(__name__)
 
+
 class ChartToolInput(BaseModel):
     """Input for chart creation"""
-    chart_type: Literal["bar", "line"] = Field(..., description="Chart type: 'bar' for comparisons, 'line' for trends")
+
+    chart_type: Literal["bar", "line"] = Field(
+        ..., description="Chart type: 'bar' for comparisons, 'line' for trends"
+    )
     x_column: str = Field(..., description="Column name for x-axis")
     y_column: str = Field(..., description="Column name for y-axis")
     title: str = Field(default="Census Data Visualization", description="Chart title")
-    data: Dict[str, Any] = Field(..., description="Census data dict from census_api_call tool")
+    data: Dict[str, Any] = Field(
+        ..., description="Census data dict from census_api_call tool"
+    )
+
 
 class ChartTool(BaseTool):
     """Create data visualizations (bar, line charts)"""
+
     name: str = "create_chart"
     description: str = """
     Create data visualizations from census data
@@ -43,15 +51,19 @@ class ChartTool(BaseTool):
     def _create_dataframe_from_json(self, json_obj: Dict) -> pd.DataFrame:
         """
         Creates a pandas DataFrame from Census API response format.
-        
+
         Handles nested structure from agent: {"data": {"success": True, "data": [...]}}
         Converts numeric columns from strings to proper numeric types.
         """
         if not isinstance(json_obj, dict):
             raise ValueError("Input must be a dictionary.")
-        
+
         # Handle nested data structure from agent
-        if "data" in json_obj and isinstance(json_obj["data"], dict) and "data" in json_obj["data"]:
+        if (
+            "data" in json_obj
+            and isinstance(json_obj["data"], dict)
+            and "data" in json_obj["data"]
+        ):
             # Format: {"data": {"success": True, "data": [["headers"], ["rows"]]}}
             data = json_obj["data"]["data"]
         elif "data" in json_obj:
@@ -61,26 +73,28 @@ class ChartTool(BaseTool):
             raise KeyError("JSON object must contain a 'data' key.")
 
         if not isinstance(data, list) or len(data) < 2:
-            raise ValueError("The 'data' key must contain a list with at least a header row and one data row.")
+            raise ValueError(
+                "The 'data' key must contain a list with at least a header row and one data row."
+            )
 
         header = data[0]
         rows = data[1:]
 
         df = pd.DataFrame(rows, columns=header)
-        
+
         # Convert numeric columns from strings to proper numeric types
         for col in df.columns:
             # Skip NAME column and other text columns
-            if col.lower() in ['name', 'geo_id', 'state', 'county']:
+            if col.lower() in ["name", "geo_id", "state", "county"]:
                 continue
-                
+
             try:
                 # Try to convert to numeric, coercing errors to NaN
-                df[col] = pd.to_numeric(df[col], errors='coerce')
+                df[col] = pd.to_numeric(df[col], errors="coerce")
             except (ValueError, TypeError):
                 # If conversion fails, leave as string
                 continue
-                
+
         return df
 
     def _run(self, tool_input: str) -> str:
@@ -91,7 +105,7 @@ class ChartTool(BaseTool):
                 params = json.loads(tool_input)
             else:
                 params = tool_input
-                
+
             # Extract parameters (moved inside try block)
             chart_type = params.get("chart_type")
             x_column = params.get("x_column")

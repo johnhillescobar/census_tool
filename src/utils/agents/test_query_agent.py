@@ -17,6 +17,6 @@ agent = CensusQueryAgent()
 # Test query
 result = agent.solve(
     user_query="Compare population by county in California",
-    intent={"topic": "population", "geography": "county", "state": "California"}
+    intent={"topic": "population", "geography": "county", "state": "California"},
 )
 print("Agent Result:", result)

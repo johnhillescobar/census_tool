@@ -13,15 +13,28 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 logger = logging.getLogger(__name__)
 
+
 class TableToolInput(BaseModel):
     """Input for table creation"""
-    format: Literal["csv", "excel", "html"] = Field(default="csv", description="Output format: 'csv' for simple export, 'excel' for Excel files, 'html' for web tables")
-    filename: Optional[str] = Field(default=None, description="Optional custom filename (without extension)")
-    title: Optional[str] = Field(default="Census Data Table", description="Table title/description")
-    data: Dict[str, Any] = Field(..., description="Census data dict from census_api_call tool")
+
+    format: Literal["csv", "excel", "html"] = Field(
+        default="csv",
+        description="Output format: 'csv' for simple export, 'excel' for Excel files, 'html' for web tables",
+    )
+    filename: Optional[str] = Field(
+        default=None, description="Optional custom filename (without extension)"
+    )
+    title: Optional[str] = Field(
+        default="Census Data Table", description="Table title/description"
+    )
+    data: Dict[str, Any] = Field(
+        ..., description="Census data dict from census_api_call tool"
+    )
+
 
 class TableTool(BaseTool):
     """Export census data as formatted tables (CSV, Excel, HTML)"""
+
     name: str = "create_table"
     description: str = """
     Export census data as formatted tables
@@ -39,15 +52,19 @@ class TableTool(BaseTool):
     def _create_dataframe_from_json(self, json_obj: Dict) -> pd.DataFrame:
         """
         Creates a pandas DataFrame from Census API response format.
-        
+
         Handles nested structure from agent: {"data": {"success": True, "data": [...]}}
         Converts numeric columns from strings to proper numeric types.
         """
         if not isinstance(json_obj, dict):
             raise ValueError("Input must be a dictionary.")
-        
+
         # Handle nested data structure from agent
-        if "data" in json_obj and isinstance(json_obj["data"], dict) and "data" in json_obj["data"]:
+        if (
+            "data" in json_obj
+            and isinstance(json_obj["data"], dict)
+            and "data" in json_obj["data"]
+        ):
             # Format: {"data": {"success": True, "data": [["headers"], ["rows"]]}}
             data = json_obj["data"]["data"]
         elif "data" in json_obj:
@@ -57,26 +74,28 @@ class TableTool(BaseTool):
             raise KeyError("JSON object must contain a 'data' key.")
 
         if not isinstance(data, list) or len(data) < 2:
-            raise ValueError("The 'data' key must contain a list with at least a header row and one data row.")
+            raise ValueError(
+                "The 'data' key must contain a list with at least a header row and one data row."
+            )
 
         header = data[0]
         rows = data[1:]
 
         df = pd.DataFrame(rows, columns=header)
-        
+
         # Convert numeric columns from strings to proper numeric types
         for col in df.columns:
             # Skip NAME column and other text columns
-            if col.lower() in ['name', 'geo_id', 'state', 'county']:
+            if col.lower() in ["name", "geo_id", "state", "county"]:
                 continue
-                
+
             try:
                 # Try to convert to numeric, coercing errors to NaN
-                df[col] = pd.to_numeric(df[col], errors='coerce')
+                df[col] = pd.to_numeric(df[col], errors="coerce")
             except (ValueError, TypeError):
                 # If conversion fails, leave as string
                 continue
-                
+
         return df
 
     def _run(self, tool_input: str) -> str:
@@ -87,7 +106,7 @@ class TableTool(BaseTool):
                 params = json.loads(tool_input)
             else:
                 params = tool_input
-                
+
             # Extract parameters
             format_type = params.get("format", "csv")
             filename = params.get("filename")
@@ -125,10 +144,10 @@ class TableTool(BaseTool):
             # Save table based on format
             try:
                 if format_type == "csv":
-                    df.to_csv(filepath, index=False, encoding='utf-8')
+                    df.to_csv(filepath, index=False, encoding="utf-8")
                 elif format_type == "excel":
-                    with pd.ExcelWriter(filepath, engine='openpyxl') as writer:
-                        df.to_excel(writer, sheet_name='Census Data', index=False)
+                    with pd.ExcelWriter(filepath, engine="openpyxl") as writer:
+                        df.to_excel(writer, sheet_name="Census Data", index=False)
                 elif format_type == "html":
                     # Create HTML table with title
                     html_content = f"""
@@ -144,11 +163,11 @@ class TableTool(BaseTool):
                     </head>
                     <body>
                         <h1>{title}</h1>
-                        {df.to_html(index=False, escape=False, table_id='census-table')}
+                        {df.to_html(index=False, escape=False, table_id="census-table")}
                     </body>
                     </html>
                     """
-                    with open(filepath, 'w', encoding='utf-8') as f:
+                    with open(filepath, "w", encoding="utf-8") as f:
                         f.write(html_content)
 
                 logger.info(f"Table saved to {filepath}")

@@ -12,9 +12,10 @@ from src.utils.census_api_utils import fetch_census_data
 
 logger = logging.getLogger(__name__)
 
+
 class CensusAPITool(BaseTool):
     """Execute Census API queries and fetch data"""
-    
+
     name: str = "census_api_call"
     description: str = """
     Execute a Census API query and fetch actual data.
@@ -51,7 +52,7 @@ class CensusAPITool(BaseTool):
                 params = tool_input
         except json.JSONDecodeError as e:
             return f"Error: Invalid JSON input - {e}"
-        
+
         # Extract parameters
         year = params.get("year")
         dataset = params.get("dataset")
@@ -59,10 +60,12 @@ class CensusAPITool(BaseTool):
         geo_for = params.get("geo_for")
         geo_in = params.get("geo_in")
         geo_in_chained = params.get("geo_in_chained", [])
-        
+
         if not all([year, dataset, variables, geo_for]):
-            return "Error: Missing required parameters (year, dataset, variables, geo_for)"
-        
+            return (
+                "Error: Missing required parameters (year, dataset, variables, geo_for)"
+            )
+
         logger.info(f"Fetching Census data: {dataset}/{year}")
 
         try:
@@ -78,41 +81,37 @@ class CensusAPITool(BaseTool):
 
             # Handle complex geo_in cases - support chained in= clauses
             in_clauses = []
-            
+
             # Standard geo_in dict
             if geo_in:
                 for key, value in geo_in.items():
                     in_clauses.append(f"{key}:{value}")
-            
+
             # Handle chained geo_in for complex hierarchies (e.g., state within CBSA within division)
             if geo_in_chained and isinstance(geo_in_chained, list):
                 for in_dict in geo_in_chained:
                     if isinstance(in_dict, dict):
                         for key, value in in_dict.items():
                             in_clauses.append(f"{key}:{value}")
-            
+
             if in_clauses:
                 geo_filters["in"] = " ".join(in_clauses)
 
             geo_params = {"filters": geo_filters}
 
             result = fetch_census_data(
-                dataset=dataset,
-                year=year,
-                variables=variables,
-                geo=geo_params
+                dataset=dataset, year=year, variables=variables, geo=geo_params
             )
 
             logger.info(f"Census data fetched successfully: {result}")
-            return json.dumps({
-                "success": True,
-                "row_count": len(result) if result else 0,
-                "data": result
-            })
+            return json.dumps(
+                {
+                    "success": True,
+                    "row_count": len(result) if result else 0,
+                    "data": result,
+                }
+            )
 
         except Exception as e:
             logger.error(f"Census API error: {e}")
-            return json.dumps({
-                "success": False,
-                "error": str(e)
-            })
+            return json.dumps({"success": False, "error": str(e)})

@@ -2,6 +2,7 @@
 Retrieval and scoring utilities for Census TABLES (not variables)
 This is the table-level version of retrieval_utils.py
 """
+
 import logging
 from typing import Dict, Any, List
 from config import CONFIDENCE_THRESHOLD
@@ -9,20 +10,22 @@ from config import CONFIDENCE_THRESHOLD
 
 logger = logging.getLogger(__name__)
 
+
 def process_chroma_results_tables(
-    results: Dict, measures: List[str], time_info: Dict, preferred_dataset: str) -> Dict[str, Any]:
+    results: Dict, measures: List[str], time_info: Dict, preferred_dataset: str
+) -> Dict[str, Any]:
     """
     Process ChromaDB results for TABLE-level search
-    
+
     Similar to process_chroma_results() in retrieval_utils.py,
     but works with table metadata instead of variable metadata
-    
+
     Args:
         results: ChromaDB query results with table documents
         measures: User's requested measures (e.g., ["population"])
         time_info: Time range requested
         preferred_dataset: Preferred Census dataset
-        
+
     Returns:
         Dict with "tables" list (not "variables")
     """
@@ -40,9 +43,7 @@ def process_chroma_results_tables(
 
     # Process each table result from ChromaDB
     for doc, metadata, distance in zip(
-        results["documents"][0], 
-        results["metadatas"][0], 
-        results["distances"][0]
+        results["documents"][0], results["metadatas"][0], results["distances"][0]
     ):
         base_score = 1.0 - distance
 
@@ -74,11 +75,13 @@ def process_chroma_results_tables(
             "table_name": metadata.get("table_name", ""),
             "description": metadata.get("description", ""),
             "dataset": metadata.get("dataset", ""),
-            "data_types": metadata.get("data_types", "").split(",") if metadata.get("data_types") else [],
+            "data_types": metadata.get("data_types", "").split(",")
+            if metadata.get("data_types")
+            else [],
             "years_available": years_available,
             "score": final_score,
         }
-        
+
         tables.append(table)  # Add table to list!
 
     # Sort by score (highest first) - OUTSIDE the loop
@@ -107,10 +110,11 @@ def process_chroma_results_tables(
 
 
 def calculate_table_confidence_score(
-    base_score: float, metadata: Dict, measures: List[str], preferred_dataset: str) -> float:
+    base_score: float, metadata: Dict, measures: List[str], preferred_dataset: str
+) -> float:
     """
     Calculate confidence score for table matches
-    
+
     Similar to calculate_confidence_score() in retrieval_utils.py,
     but uses table-level metadata (table_name, data_types)
     instead of variable-level metadata (label, concept, var code)
@@ -144,29 +148,29 @@ def calculate_table_confidence_score(
         if measure.lower() in table_name:
             boost += 0.15
             break
-    
+
     # Boost for data type matches
     for measure in measures:
         if measure.lower() in data_types:
             boost += 0.1
             break
-    
+
     # Boost for preferred dataset
     if metadata.get("dataset") == preferred_dataset:
         boost += 0.05
 
     return min(1.0, base_score + boost)
-        
 
-def search_tables_chroma(collection: Any, query: str, k: int = 10, dataset_filter: str = None) -> List[Dict]:
+
+def search_tables_chroma(
+    collection: Any, query: str, k: int = 10, dataset_filter: str = None
+) -> List[Dict]:
     """Search ChromaDB for tables matching query"""
 
     results = collection.query(query_texts=[query], n_results=k)
 
     processed_results = process_chroma_results_tables(
-        results, 
-        measures = [], 
-        time_info = {}, 
-        preferred_dataset = dataset_filter)
+        results, measures=[], time_info={}, preferred_dataset=dataset_filter
+    )
 
     return processed_results["tables"]
