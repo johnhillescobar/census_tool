@@ -7,11 +7,11 @@ from pathlib import Path
 from datetime import datetime
 import pandas as pd
 
+from src.utils.pdf_generator import generate_session_pdf
+
 # Add project root to path
 project_root = Path(__file__).parent
 sys.path.append(str(project_root))
-
-from src.utils.pdf_generator import generate_session_pdf
 
 
 def test_pdf_generation():

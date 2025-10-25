@@ -116,11 +116,6 @@ Intent: {intent}"""
         except (json.JSONDecodeError, TypeError) as e:
             logger.debug(f"Output is not direct JSON: {e}")
 
-        # Method 2: Extract JSON using regex to find complete JSON object
-        # Look for JSON starting with {"census_data" and capture the complete object
-
-        json_pattern = r'\{"census_data":[^\}]*(?:\{[^\}]*\}[^\}]*)*\}'
-
         # Find all potential JSON matches
         potential_jsons = []
 

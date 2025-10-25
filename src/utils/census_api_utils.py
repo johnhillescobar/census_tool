@@ -11,17 +11,16 @@ import time
 from dotenv import load_dotenv
 import logging
 
-# Load environment variables
-load_dotenv()
-
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 from config import (
     CENSUS_API_TIMEOUT,
     CENSUS_API_MAX_RETRIES,
     CENSUS_API_BACKOFF_FACTOR,
 )
 
+# Load environment variables
+load_dotenv()
 
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 logger = logging.getLogger(__name__)
 

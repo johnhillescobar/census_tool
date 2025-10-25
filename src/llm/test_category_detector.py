@@ -1,12 +1,8 @@
 import sys
 from pathlib import Path
 
-sys.path.append(str(Path(__file__).parent.parent.parent))
-
 # Load environment variables FIRST
 from dotenv import load_dotenv
-
-load_dotenv()
 
 # Import the functions you want to test
 from src.llm.category_detector import (
@@ -14,6 +10,10 @@ from src.llm.category_detector import (
     boost_category_results,
     rerank_by_distance,
 )
+
+sys.path.append(str(Path(__file__).parent.parent.parent))
+
+load_dotenv()
 
 
 def test_category_detection():

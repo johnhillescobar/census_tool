@@ -14,7 +14,6 @@ logger = logging.getLogger(__name__)
 
 def agent_reasoning_node(state: CensusState, config: RunnableConfig) -> Dict[str, Any]:
     user_question = state.messages[-1]["content"]
-    profile = state.profile
 
     # Agent expects intent dict - create basic one if not exists
     intent = state.intent or {"is_census": True, "topic": "general"}

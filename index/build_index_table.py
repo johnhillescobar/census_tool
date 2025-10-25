@@ -176,9 +176,6 @@ def main():
     builder = CensusTableIndexBuilder()
 
     try:
-        # Build index with ALL categories
-        count = builder.build_index(year=2023)
-
         # Test 1: Population query
         logger.info("\n" + "=" * 60)
         logger.info("TEST 1: Population query (should find Detail table)")

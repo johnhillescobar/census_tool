@@ -93,7 +93,7 @@ def test_plan_node_success():
     )
 
     # Validate plan structure
-    assert plan["needs_agg"] == False, "needs_agg should be False"
+    assert not plan["needs_agg"], "needs_agg should be False"
     assert plan["agg_spec"] is None, "agg_spec should be None"
 
     # Validate logs

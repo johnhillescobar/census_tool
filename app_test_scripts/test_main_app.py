@@ -134,7 +134,7 @@ def test_error_handling():
 
     # Test that CensusState handles invalid data gracefully
     try:
-        state = CensusState(
+        CensusState(
             messages="invalid",  # Should be a list
             intent=None,
             geo={},

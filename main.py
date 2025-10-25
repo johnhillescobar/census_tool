@@ -3,14 +3,14 @@ from pathlib import Path
 import logging
 from dotenv import load_dotenv
 
-# Add project root to path
-project_root = Path(__file__).parent
-sys.path.append(str(project_root))
-
 from app import create_census_graph
 from src.state.types import CensusState
 from langchain_core.runnables import RunnableConfig
 from src.utils.displays import display_results
+
+# Add project root to path
+project_root = Path(__file__).parent
+sys.path.append(str(project_root))
 
 # Set up logging
 logging.basicConfig(

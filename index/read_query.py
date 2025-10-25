@@ -6,17 +6,16 @@ import pprint
 
 from dotenv import load_dotenv
 
-load_dotenv()
-
 # Import configuration
 import sys
-
-sys.path.append(str(Path(__file__).parent.parent))
 from config import (
     CHROMA_PERSIST_DIRECTORY,
     CHROMA_TABLE_COLLECTION_NAME,
 )
 
+load_dotenv()
+
+sys.path.append(str(Path(__file__).parent.parent))
 
 # Set up logging
 logging.basicConfig(
