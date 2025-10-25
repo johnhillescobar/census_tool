@@ -4,7 +4,6 @@ from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter
 from reportlab.lib import colors
 from reportlab.lib.units import inch
-from reportlab.lib.utils import ImageReader
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.platypus import (
     SimpleDocTemplate,
@@ -252,7 +251,7 @@ def generate_session_pdf(
                                 story.append(table_data)
                                 table_embedded = True
                                 tables_processed += 1
-                        except Exception as e:
+                        except Exception:
                             pass  # Fall back to file reference
 
                     # Method 2: Try to read the saved table file
@@ -268,7 +267,7 @@ def generate_session_pdf(
                                     story.append(table_data)
                                     table_embedded = True
                                     tables_processed += 1
-                        except Exception as e:
+                        except Exception:
                             pass  # Fall back to file reference
 
                     # Fallback: Just mention the file
@@ -383,7 +382,7 @@ def _create_pdf_table_from_census_data(census_data: Dict) -> Table:
 
         return _create_pdf_table_from_data(table_data, "Census Data")
 
-    except Exception as e:
+    except Exception:
         return None
 
 
@@ -407,7 +406,7 @@ def _create_pdf_table_from_dataframe(df: pd.DataFrame, title: str) -> Table:
             )
 
         return _create_pdf_table_from_data(table_data, title)
-    except Exception as e:
+    except Exception:
         return None
 
 
@@ -455,5 +454,5 @@ def _create_pdf_table_from_data(table_data: List[List], title: str) -> Table:
 
         return table
 
-    except Exception as e:
+    except Exception:
         return None
