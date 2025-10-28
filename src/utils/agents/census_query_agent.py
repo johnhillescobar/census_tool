@@ -107,6 +107,9 @@ Intent: {intent}"""
         try:
             parsed = json.loads(output)
             if isinstance(parsed, dict) and "census_data" in parsed:
+                # Ensure footnotes key exists (add empty list if missing)
+                if "footnotes" not in parsed:
+                    parsed["footnotes"] = []
                 logger.info("Successfully parsed agent output as JSON directly")
                 return parsed
             else:

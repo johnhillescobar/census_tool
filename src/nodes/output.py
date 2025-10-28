@@ -37,21 +37,43 @@ def get_chart_params(census_data: Dict[str, Any], chart_type: str) -> Dict[str, 
         else:
             raise ValueError("Invalid census_data format")
 
-        # Find NAME column (x-axis for both chart types)
+        # Find NAME/LOCATION column (x-axis for both chart types)
         name_column = None
         for header in headers:
             if header.upper() in ["NAME", "LOCATION"]:
                 name_column = header
                 break
 
+        # For time series data, use Year as x-axis
+        if chart_type == "line":
+            year_column = None
+            for header in headers:
+                if header.upper() in ["YEAR", "YEAR_END"]:
+                    year_column = header
+                    break
+
+            if year_column:
+                # Year is x-axis for time series
+                name_column = year_column
+
+        # Final fallback: use first column if still no name_column found
         if not name_column:
-            # Fallback: use first column if no NAME found
             name_column = headers[0] if headers else "Location"
 
         # Find numeric columns (y-axis candidates)
         numeric_columns = []
         for header in headers:
-            if header.upper() not in ["NAME", "LOCATION", "GEO_ID", "STATE", "COUNTY"]:
+            # Exclude geography and time columns from y-axis
+            excluded_headers = [
+                "NAME",
+                "LOCATION",
+                "GEO_ID",
+                "STATE",
+                "COUNTY",
+                "YEAR",
+                "YEAR_END",
+            ]
+            if header.upper() not in excluded_headers:
                 # Check if this column has numeric data
                 try:
                     # Test first few rows to see if they're numeric
@@ -75,24 +97,13 @@ def get_chart_params(census_data: Dict[str, Any], chart_type: str) -> Dict[str, 
         y_column = None
 
         if chart_type == "line":
-            # For line charts, prioritize time series data
-            # Look for year columns or time-related columns first
+            # For line charts, prioritize Census variable columns (usually longer codes)
             for col in numeric_columns:
-                if any(
-                    year_indicator in col.upper()
-                    for year_indicator in ["YEAR", "TIME", "DATE"]
-                ):
+                if len(col) > 8 and col.startswith(
+                    ("B", "C", "S", "DP")
+                ):  # Census variable patterns
                     y_column = col
                     break
-
-            # If no time column, look for Census variable columns (usually longer codes)
-            if not y_column:
-                for col in numeric_columns:
-                    if len(col) > 8 and col.startswith(
-                        ("B", "C", "S", "DP")
-                    ):  # Census variable patterns
-                        y_column = col
-                        break
 
         # Fallback for line charts or default for bar charts
         if not y_column:
@@ -151,6 +162,45 @@ def output_node(state: CensusState, config: RunnableConfig) -> Dict[str, Any]:
                     census_data, chart_spec.get("type", "bar")
                 )
 
+                logger.info("=== output_node Chart Generation ===")
+                logger.info(f"Chart type: {chart_spec.get('type', 'bar')}")
+                logger.info(
+                    f"Chart params: x={chart_params['x_column']}, y={chart_params['y_column']}"
+                )
+                logger.info(f"Census data keys: {list(census_data.keys())}")
+
+                # Log data structure details
+                if "data" in census_data:
+                    if isinstance(census_data["data"], list):
+                        logger.info(
+                            f"Data is list with {len(census_data['data'])} elements"
+                        )
+                        if len(census_data["data"]) > 0:
+                            logger.info(f"Data headers: {census_data['data'][0]}")
+                            if len(census_data["data"]) > 1:
+                                logger.info(f"First data row: {census_data['data'][1]}")
+                    elif isinstance(census_data["data"], dict):
+                        logger.info(
+                            f"Data is dict with keys: {list(census_data['data'].keys())}"
+                        )
+
+                # Validate column names exist in data
+                if (
+                    "data" in census_data
+                    and isinstance(census_data["data"], list)
+                    and len(census_data["data"]) > 0
+                ):
+                    headers = census_data["data"][0]
+                    logger.info("Checking if selected columns exist in headers...")
+                    logger.info(
+                        f"  x_column '{chart_params['x_column']}' in headers: {chart_params['x_column'] in headers}"
+                    )
+                    logger.info(
+                        f"  y_column '{chart_params['y_column']}' in headers: {chart_params['y_column'] in headers}"
+                    )
+
+                logger.info("=== Calling ChartTool ===\n")
+
                 # Call the tool with proper JSON format
                 result = chart_tool._run(
                     json.dumps(
@@ -188,7 +238,16 @@ def output_node(state: CensusState, config: RunnableConfig) -> Dict[str, Any]:
             except Exception as e:
                 logger.error(f"Failed to create table: {e}")
 
+    # Get existing final from state (preserve answer_text, charts_needed, etc.)
+    existing_final = state.final or {}
+
+    # Merge generated_files into existing final
+    merged_final = {
+        **existing_final,
+        "generated_files": generated_files,
+    }
+
     return {
-        "final": {"generated_files": generated_files},
+        "final": merged_final,
         "logs": [f"output: generated {len(generated_files)} files"],
     }

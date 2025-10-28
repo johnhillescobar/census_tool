@@ -125,6 +125,17 @@ def generate_session_pdf(
         textColor=colors.grey,
     )
 
+    # Footnote style
+    footnote_style = ParagraphStyle(
+        "Footnote",
+        parent=styles["Normal"],
+        fontSize=8,
+        textColor=colors.HexColor("#666666"),
+        leftIndent=12,
+        spaceBefore=2,
+        spaceAfter=2,
+    )
+
     # Story list to hold all content
     story = []
 
@@ -208,7 +219,19 @@ def generate_session_pdf(
                             # Resize chart appropriately
                             img = Image(filepath, width=6 * inch, height=4.5 * inch)
                             story.append(img)
-                            story.append(Spacer(1, 15))
+                            story.append(Spacer(1, 10))  # Reduced spacing
+
+                            # Add footnotes below chart
+                            footnotes = final.get("footnotes", [])
+                            if footnotes:
+                                for i, footnote in enumerate(footnotes, 1):
+                                    footnote_text = f"{i}. {footnote}"
+                                    story.append(
+                                        Paragraph(footnote_text, footnote_style)
+                                    )
+                                story.append(Spacer(1, 10))
+
+                            story.append(Spacer(1, 5))  # Remaining spacing
                             charts_processed += 1
                         else:
                             story.append(
@@ -265,6 +288,15 @@ def generate_session_pdf(
                                 meta_style,
                             )
                         )
+
+                    # Add footnotes below table
+                    footnotes = final.get("footnotes", [])
+                    if footnotes:
+                        story.append(Spacer(1, 10))
+                        for i, footnote in enumerate(footnotes, 1):
+                            footnote_text = f"{i}. {footnote}"
+                            story.append(Paragraph(footnote_text, footnote_style))
+                        story.append(Spacer(1, 10))
 
         # Add summary for this conversation
         if charts_processed > 0 or tables_processed > 0:
