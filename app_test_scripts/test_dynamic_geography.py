@@ -5,6 +5,7 @@ Comprehensive test suite for dynamic geography system
 import os
 import sys
 import time
+from unittest.mock import Mock, patch
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from src.services.geography_cache import (
@@ -13,6 +14,7 @@ from src.services.geography_cache import (
 )
 from src.services.census_geocoding import CensusGeocodingService
 from src.utils.geo_parser import GeographyParser
+from src.state.types import ResolvedGeography
 
 
 class TestGeographyParser:
@@ -54,11 +56,15 @@ class TestCensusGeocodingService:
     def test_geography_level_validation(self):
         """Test geography level validation"""
 
-        # Test supported levels
-        is_valid, message = self.service.validate_geography_level("place")
+        # Test supported levels - pass location_type since place requires context
+        is_valid, message = self.service.validate_geography_level(
+            "place", location_type="city"
+        )
         assert is_valid is True
 
-        is_valid, message = self.service.validate_geography_level("county")
+        is_valid, message = self.service.validate_geography_level(
+            "county", location_type="county"
+        )
         assert is_valid is True
 
         # Test unsupported levels
@@ -86,8 +92,34 @@ class TestDynamicGeographyResolver:
     """Test the DynamicGeographyResolver class"""
 
     def setup_class(self):
-        """Setup test class"""
+        """Setup test class with mocked LLM resolver to avoid OpenAI API calls"""
+        # Mock LLMGeographyResolver to prevent OpenAI connection
+        mock_llm_resolver = Mock()
+        mock_llm_resolver.resolve_location.return_value = ResolvedGeography(
+            level="error",
+            filters={},
+            display_name="",
+            fips_codes={},
+            confidence=0.0,
+            note="Mock LLM resolver",
+            geocoding_metadata={},
+        )
+
+        # Patch the LLM resolver before creating DynamicGeographyResolver
+        self.patcher = patch(
+            "src.services.geography_cache.LLMGeographyResolver",
+            return_value=mock_llm_resolver,
+        )
+        self.patcher.start()
+
         self.resolver = DynamicGeographyResolver()
+        # Replace with mock so it persists
+        self.resolver.llm_resolver = mock_llm_resolver
+
+    def teardown_class(self):
+        """Clean up patches"""
+        if hasattr(self, "patcher"):
+            self.patcher.stop()
 
     def test_nationwide_query_detection(self):
         """Test nationwide query detection"""
@@ -120,8 +152,34 @@ class TestEndToEndWorkflow:
     """Test complete end-to-end workflow"""
 
     def setup_class(self):
-        """Setup test class"""
+        """Setup test class with mocked LLM resolver to avoid OpenAI API calls"""
+        # Mock LLMGeographyResolver to prevent OpenAI connection
+        mock_llm_resolver = Mock()
+        mock_llm_resolver.resolve_location.return_value = ResolvedGeography(
+            level="error",
+            filters={},
+            display_name="",
+            fips_codes={},
+            confidence=0.0,
+            note="Mock LLM resolver",
+            geocoding_metadata={},
+        )
+
+        # Patch the LLM resolver before creating DynamicGeographyResolver
+        self.patcher = patch(
+            "src.services.geography_cache.LLMGeographyResolver",
+            return_value=mock_llm_resolver,
+        )
+        self.patcher.start()
+
         self.resolver = DynamicGeographyResolver()
+        # Replace with mock so it persists
+        self.resolver.llm_resolver = mock_llm_resolver
+
+    def teardown_class(self):
+        """Clean up patches"""
+        if hasattr(self, "patcher"):
+            self.patcher.stop()
 
     def test_original_example_1_chicago(self):
         """Test: 'What is the population of Chicago?'"""

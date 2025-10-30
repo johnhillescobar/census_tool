@@ -30,10 +30,25 @@ def test_build_history_record():
     final = {"type": "number", "value": "8.4 million"}
     intent = {"type": "population_query", "location": "NYC"}
     geo = {"level": "place", "name": "New York City"}
+    # Create QuerySpec objects as expected by build_history_record
+    from src.state.types import QuerySpec
+
     plan = {
         "queries": [
-            {"year": "2020", "dataset": "population"},
-            {"year": "2019", "dataset": "population"},
+            QuerySpec(
+                year=2020,
+                dataset="acs/acs5",
+                variables=["B01003_001E"],
+                geo=geo,
+                save_as="test_2020",
+            ),
+            QuerySpec(
+                year=2019,
+                dataset="acs/acs5",
+                variables=["B01003_001E"],
+                geo=geo,
+                save_as="test_2019",
+            ),
         ]
     }
 
