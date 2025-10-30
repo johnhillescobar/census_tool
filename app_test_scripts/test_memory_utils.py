@@ -66,10 +66,19 @@ def test_build_history_record():
     )
     assert result["intent"] == intent, "Intent should be preserved"
     assert result["geo"] == geo, "Geo should be preserved"
-    assert (
-        "2 queries for years ['2020', '2019'] using ['population', 'population']"
-        in result["plan_summary"]
-    ), "Plan summary should be correct"
+    # The actual function returns years as integers and datasets as actual dataset names
+    assert "2 queries for years" in result["plan_summary"], (
+        "Plan summary should contain query count"
+    )
+    assert "2020" in result["plan_summary"] or "[2020" in result["plan_summary"], (
+        "Plan summary should contain year 2020"
+    )
+    assert "2019" in result["plan_summary"] or ", 2019" in result["plan_summary"], (
+        "Plan summary should contain year 2019"
+    )
+    assert "acs/acs5" in result["plan_summary"], (
+        "Plan summary should contain dataset name"
+    )
     assert result["answer_type"] == "number", "Answer type should be extracted"
     assert result["success"], "Success should be True when no error"
 

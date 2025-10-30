@@ -9,9 +9,9 @@
   "preferred_level": "place",
   "var_aliases": {},
   "usage_stats": {
-    "total_queries": 37,
-    "success_queries": 37,
-    "last_query_date": "2025-10-27T20:29:17.249008"
+    "total_queries": 38,
+    "success_queries": 38,
+    "last_query_date": "2025-10-29T19:42:31.679757"
   },
   "history": [
     {
@@ -383,7 +383,17 @@
       "plan_summary": "",
       "answer_type": "Unknown",
       "success": true
+    },
+    {
+      "timestamp": "2025-10-29T19:42:31.678245",
+      "user_id": "demo",
+      "question": "What is the population of DuPage and Cook counties in Illinois?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
     }
   ],
-  "last_updated": "2025-10-27T20:29:17.249008"
+  "last_updated": "2025-10-29T19:42:31.679757"
 }
