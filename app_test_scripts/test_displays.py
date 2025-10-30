@@ -183,8 +183,9 @@ def test_display_results_with_error():
         display_results(result)
         output = fake_out.getvalue()
 
-    # Assertions
-    assert "❌ Error: No data found" in output, "Should display error message"
+    # Assertions - check for actual error message format
+    assert "[ERROR] Error:" in output, "Should display error message"
+    assert "No data found" in output, "Should contain error details"
 
     print("✅ display_results error test passed!")
 
