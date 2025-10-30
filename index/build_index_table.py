@@ -2,18 +2,15 @@
 Table-Level Chroma Index Builder for Census Groups
 Builds a searchable index of Census tables (not individual variables)
 """
+
 import sys
-import os
 import logging
 from pathlib import Path
 import chromadb
 from chromadb.utils.embedding_functions import OpenAIEmbeddingFunction
 from chromadb.config import Settings
-from typing import Dict, List, Tuple
-from collections import defaultdict
+from typing import Dict
 from dotenv import load_dotenv
-import requests
-import time
 
 
 # Add parent directory to path for imports
@@ -23,8 +20,6 @@ from config import (
     CHROMA_PERSIST_DIRECTORY,
     CHROMA_TABLE_COLLECTION_NAME,
     CHROMA_EMBEDDING_MODEL,
-    DEFAULT_DATASETS,
-    CENSUS_CATEGORIES,
 )
 
 from src.utils.census_groups import CensusGroupsAPI
@@ -35,6 +30,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 load_dotenv()
+
 
 class CensusTableIndexBuilder:
     """Build ChromaDB index at table level (not variable level)"""
@@ -66,21 +62,22 @@ class CensusTableIndexBuilder:
             logger.info(f"Found existing collection: {CHROMA_TABLE_COLLECTION_NAME}")
         except Exception:
             self.collection = self.client.create_collection(
-                name=CHROMA_TABLE_COLLECTION_NAME, metadata={"hnsw:space": "cosine"},
-                embedding_function = self.embedding_function
+                name=CHROMA_TABLE_COLLECTION_NAME,
+                metadata={"hnsw:space": "cosine"},
+                embedding_function=self.embedding_function,
             )
             logger.info(f"Created new collection: {CHROMA_TABLE_COLLECTION_NAME}")
 
-    #TODO: Build table-level index
-    
+    # TODO: Build table-level index
+
     def build_document_text(self, table_info: Dict) -> str:
         """Build searchable document text from variable metadata"""
 
         parts = [
-            table_info.get("table_code", ""),           # B01003
-            table_info.get("table_name", ""),           # TOTAL POPULATION
-            table_info.get("description", ""),          # (usually same as name)
-            " ".join(table_info.get("data_types", [])), # population demographics
+            table_info.get("table_code", ""),  # B01003
+            table_info.get("table_name", ""),  # TOTAL POPULATION
+            table_info.get("description", ""),  # (usually same as name)
+            " ".join(table_info.get("data_types", [])),  # population demographics
             f"dataset {table_info.get('dataset', '')}",  # dataset acs/acs5
         ]
 
@@ -89,9 +86,7 @@ class CensusTableIndexBuilder:
         if years:
             parts.append(f"years {' '.join(map(str, years))}")
 
-        return " ".join(filter(None, parts)).lower() 
-                        
-
+        return " ".join(filter(None, parts)).lower()
 
     def upsert_to_chroma(self, aggregated_vars: Dict[str, Dict], batch_size: int = 100):
         """Upsert aggregated variables to Chroma collection"""
@@ -108,14 +103,16 @@ class CensusTableIndexBuilder:
 
             # Prepare metadata (Chroma requires string values)
             metadata = {
-                "table_code": table_info.get("table_code", ""),      # Not "var"
-                "table_name": table_info.get("table_name", ""),      # Not "label"
-                "description": table_info.get("description", ""),    # Not "concept"
+                "table_code": table_info.get("table_code", ""),  # Not "var"
+                "table_name": table_info.get("table_name", ""),  # Not "label"
+                "description": table_info.get("description", ""),  # Not "concept"
                 "dataset": table_info.get("dataset", ""),
                 "category": table_info.get("category", "detail"),
                 "uses_groups": table_info.get("uses_groups", False),
-                "years_available": ",".join(map(str, table_info.get("years_available", []))),
-                "data_types": ",".join(table_info.get("data_types", []))  # New field
+                "years_available": ",".join(
+                    map(str, table_info.get("years_available", []))
+                ),
+                "data_types": ",".join(table_info.get("data_types", [])),  # New field
             }
 
             ids.append(key)
@@ -179,38 +176,41 @@ def main():
     builder = CensusTableIndexBuilder()
 
     try:
-        # Build index with ALL categories
-        count = builder.build_index(year=2023)
-
         # Test 1: Population query
-        logger.info("\n" + "="*60)
+        logger.info("\n" + "=" * 60)
         logger.info("TEST 1: Population query (should find Detail table)")
-        logger.info("="*60)
+        logger.info("=" * 60)
         test_results = builder.collection.query(
             query_texts=["population total"], n_results=3
         )
         for i, metadata in enumerate(test_results["metadatas"][0]):
-            logger.info(f"  {i + 1}. {metadata['table_code']} ({metadata['category']}): {metadata['table_name']}")
+            logger.info(
+                f"  {i + 1}. {metadata['table_code']} ({metadata['category']}): {metadata['table_name']}"
+            )
 
-        # Test 2: Overview query  
-        logger.info("\n" + "="*60)
+        # Test 2: Overview query
+        logger.info("\n" + "=" * 60)
         logger.info("TEST 2: Overview query (should find Subject table)")
-        logger.info("="*60)
+        logger.info("=" * 60)
         test_results = builder.collection.query(
             query_texts=["demographic overview age sex"], n_results=3
         )
         for i, metadata in enumerate(test_results["metadatas"][0]):
-            logger.info(f"  {i + 1}. {metadata['table_code']} ({metadata['category']}): {metadata['table_name']}")
-        
+            logger.info(
+                f"  {i + 1}. {metadata['table_code']} ({metadata['category']}): {metadata['table_name']}"
+            )
+
         # Test 3: Profile query
-        logger.info("\n" + "="*60)
+        logger.info("\n" + "=" * 60)
         logger.info("TEST 3: Profile query (should find Profile table)")
-        logger.info("="*60)
+        logger.info("=" * 60)
         test_results = builder.collection.query(
             query_texts=["demographic profile housing"], n_results=3
         )
         for i, metadata in enumerate(test_results["metadatas"][0]):
-            logger.info(f"  {i + 1}. {metadata['table_code']} ({metadata['category']}): {metadata['table_name']}")
+            logger.info(
+                f"  {i + 1}. {metadata['table_code']} ({metadata['category']}): {metadata['table_name']}"
+            )
 
     except Exception as e:
         logger.error(f"Index build failed: {e}")

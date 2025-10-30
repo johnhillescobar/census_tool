@@ -1,6 +1,5 @@
 import re
 import spacy
-from spacy.pipeline import EntityRuler
 from spacy.tokens import Span
 
 STATE_ABBR_TO_FIPS = {

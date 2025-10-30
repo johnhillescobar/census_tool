@@ -30,17 +30,19 @@ def geo_node(state: CensusState, config: RunnableConfig) -> Dict[str, Any]:
     # FIX 4: Check if intent already has enumeration info (detected early)
     enumeration = intent.get("enumeration")
     if enumeration and enumeration.get("needs_enumeration"):
-        logger.info(f"Using enumeration from intent: {enumeration['level']} (confidence: {enumeration['confidence']})")
-        
+        logger.info(
+            f"Using enumeration from intent: {enumeration['level']} (confidence: {enumeration['confidence']})"
+        )
+
         # Use enumeration filters directly (already built correctly)
         resolved_geo = {
             "level": enumeration["level"],
             "filters": enumeration["filters"],
             "note": f"Enumeration: {enumeration.get('reason', 'pattern detected')}",
             "confidence": enumeration["confidence"],
-            "fips_codes": enumeration.get("parent_geography", {})
+            "fips_codes": enumeration.get("parent_geography", {}),
         }
-        
+
         log_entry = f"geo: using enumeration - {enumeration['level']} (pattern: {enumeration.get('reason', 'N/A')})"
         return {"geo": resolved_geo, "logs": [log_entry]}
 

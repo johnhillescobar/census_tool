@@ -3,11 +3,10 @@ Chroma Index Builder for Census Variables
 Fetches variables.json from Census API for each dataset/year and builds a searchable index
 """
 
-import json
 import time
 import requests
 from pathlib import Path
-from typing import Dict, List, Set, Tuple
+from typing import Dict, List, Tuple
 from collections import defaultdict
 import chromadb
 from chromadb.utils.embedding_functions import OpenAIEmbeddingFunction
@@ -16,7 +15,6 @@ from dotenv import load_dotenv
 import logging
 
 # Import configuration
-import os
 import sys
 
 # Add parent directory to path for imports
@@ -39,6 +37,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 load_dotenv()
+
 
 class CensusIndexBuilder:
     """Builds and maintains Chroma index of Census variables"""
@@ -69,8 +68,9 @@ class CensusIndexBuilder:
             logger.info(f"Found existing collection: {CHROMA_COLLECTION_NAME}")
         except Exception:
             self.collection = self.client.create_collection(
-                name=CHROMA_COLLECTION_NAME, metadata={"hnsw:space": "cosine"},
-                embedding_function = self.embedding_function
+                name=CHROMA_COLLECTION_NAME,
+                metadata={"hnsw:space": "cosine"},
+                embedding_function=self.embedding_function,
             )
             logger.info(f"Created new collection: {CHROMA_COLLECTION_NAME}")
 

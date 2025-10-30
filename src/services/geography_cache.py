@@ -54,11 +54,11 @@ class DynamicGeographyResolver:
         enumeration_info = detect_and_build_enumeration(text)
         if enumeration_info and enumeration_info["needs_enumeration"]:
             logger.info(f"Enumeration detected: {enumeration_info}")
-            
+
             # Build ResolvedGeography for enumeration
             filters = enumeration_info["filters"]
             parent_geo = enumeration_info.get("parent_geography", {})
-            
+
             # Convert to ResolvedGeography format
             return ResolvedGeography(
                 level=enumeration_info["level"],
@@ -69,8 +69,8 @@ class DynamicGeographyResolver:
                 note=f"Enumeration request: {enumeration_info['reason']}",
                 geocoding_metadata={
                     "enumeration": True,
-                    "parent_geography": parent_geo
-                }
+                    "parent_geography": parent_geo,
+                },
             )
 
         # Try LLM for single locations

@@ -77,7 +77,7 @@ def process_counties_data(input_file, output_file):
     print(f"Processing complete! Saved {len(df)} records to {output_file}")
 
     # Show statistics
-    print(f"\nStatistics:")
+    print("\nStatistics:")
     print(f"Total records: {len(df)}")
     print(f"Unique county names: {df['County_Name_Only'].nunique()}")
     print(f"Records with null county names: {df['County_Name_Only'].isna().sum()}")

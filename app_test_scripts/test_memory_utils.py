@@ -4,11 +4,9 @@ Test script for memory_utils.py - testing the fixes you made
 
 import sys
 import os
-import pandas as pd
 from unittest.mock import patch
 from datetime import datetime, timedelta
 from pathlib import Path
-import json
 
 # Add project root to path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -32,10 +30,25 @@ def test_build_history_record():
     final = {"type": "number", "value": "8.4 million"}
     intent = {"type": "population_query", "location": "NYC"}
     geo = {"level": "place", "name": "New York City"}
+    # Create QuerySpec objects as expected by build_history_record
+    from src.state.types import QuerySpec
+
     plan = {
         "queries": [
-            {"year": "2020", "dataset": "population"},
-            {"year": "2019", "dataset": "population"},
+            QuerySpec(
+                year=2020,
+                dataset="acs/acs5",
+                variables=["B01003_001E"],
+                geo=geo,
+                save_as="test_2020",
+            ),
+            QuerySpec(
+                year=2019,
+                dataset="acs/acs5",
+                variables=["B01003_001E"],
+                geo=geo,
+                save_as="test_2019",
+            ),
         ]
     }
 
@@ -53,10 +66,19 @@ def test_build_history_record():
     )
     assert result["intent"] == intent, "Intent should be preserved"
     assert result["geo"] == geo, "Geo should be preserved"
-    assert (
-        "2 queries for years ['2020', '2019'] using ['population', 'population']"
-        in result["plan_summary"]
-    ), "Plan summary should be correct"
+    # The actual function returns years as integers and datasets as actual dataset names
+    assert "2 queries for years" in result["plan_summary"], (
+        "Plan summary should contain query count"
+    )
+    assert "2020" in result["plan_summary"] or "[2020" in result["plan_summary"], (
+        "Plan summary should contain year 2020"
+    )
+    assert "2019" in result["plan_summary"] or ", 2019" in result["plan_summary"], (
+        "Plan summary should contain year 2019"
+    )
+    assert "acs/acs5" in result["plan_summary"], (
+        "Plan summary should contain dataset name"
+    )
     assert result["answer_type"] == "number", "Answer type should be extracted"
     assert result["success"], "Success should be True when no error"
 

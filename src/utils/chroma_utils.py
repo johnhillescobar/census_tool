@@ -5,7 +5,11 @@ Chroma database utilities for Census variable retrieval
 import chromadb
 from chromadb.config import Settings
 import logging
-from config import CHROMA_PERSIST_DIRECTORY, CHROMA_COLLECTION_NAME, CHROMA_TABLE_COLLECTION_NAME
+from config import (
+    CHROMA_PERSIST_DIRECTORY,
+    CHROMA_COLLECTION_NAME,
+    CHROMA_TABLE_COLLECTION_NAME,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +31,9 @@ def initialize_chroma_client() -> chromadb.PersistentClient:
     return client
 
 
-def get_chroma_collection_variables(client: chromadb.PersistentClient) -> chromadb.Collection:
+def get_chroma_collection_variables(
+    client: chromadb.PersistentClient,
+) -> chromadb.Collection:
     """Get the census variables collection"""
     # Implementation here
     try:
@@ -41,7 +47,9 @@ def get_chroma_collection_variables(client: chromadb.PersistentClient) -> chroma
     return collection
 
 
-def get_chroma_collection_tables(client: chromadb.PersistentClient) -> chromadb.Collection:
+def get_chroma_collection_tables(
+    client: chromadb.PersistentClient,
+) -> chromadb.Collection:
     """Get the census tables collection"""
     try:
         collection = client.get_collection(CHROMA_TABLE_COLLECTION_NAME)

@@ -5,14 +5,17 @@ import logging
 import pprint
 
 from dotenv import load_dotenv
-load_dotenv()
 
 # Import configuration
 import sys
+from config import (
+    CHROMA_PERSIST_DIRECTORY,
+    CHROMA_TABLE_COLLECTION_NAME,
+)
+
+load_dotenv()
 
 sys.path.append(str(Path(__file__).parent.parent))
-from config import CHROMA_PERSIST_DIRECTORY, CHROMA_COLLECTION_NAME, CHROMA_TABLE_COLLECTION_NAME
-
 
 # Set up logging
 logging.basicConfig(
@@ -76,10 +79,12 @@ class ChromaQuery:
 
 
 if __name__ == "__main__":
-    queries = ["What's the population of Chicago?", 
-    "age and sex demographic overview", 
-    "demographic profile housing characteristics",
-    "income earnings employment economic characteristics"]
+    queries = [
+        "What's the population of Chicago?",
+        "age and sex demographic overview",
+        "demographic profile housing characteristics",
+        "income earnings employment economic characteristics",
+    ]
 
     for query in queries:
         chroma_query = ChromaQuery()

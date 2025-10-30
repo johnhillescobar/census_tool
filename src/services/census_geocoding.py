@@ -3,7 +3,7 @@ import sys
 import logging
 import requests
 import pandas as pd
-from typing import Optional, Dict, Any, Tuple, List
+from typing import Optional, Dict, Tuple, List
 from pathlib import Path
 from functools import lru_cache
 from config import (

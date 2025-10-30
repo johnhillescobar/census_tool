@@ -115,7 +115,9 @@ def intent_node(state: CensusState, config: RunnableConfig) -> Dict[str, Any]:
     # FIX 3: Detect enumeration BEFORE LLM modifies geo_hint
     enumeration_info = detect_and_build_enumeration(user_text)
     if enumeration_info and enumeration_info["needs_enumeration"]:
-        logger.info(f"Enumeration detected in intent: {enumeration_info['level']} in {enumeration_info.get('parent_geography')}")
+        logger.info(
+            f"Enumeration detected in intent: {enumeration_info['level']} in {enumeration_info.get('parent_geography')}"
+        )
         heuristic_intent["enumeration"] = enumeration_info
         # Don't let LLM modify the geo_hint if we detected enumeration
         heuristic_intent["geo_hint"] = user_text
@@ -145,9 +147,9 @@ def intent_node(state: CensusState, config: RunnableConfig) -> Dict[str, Any]:
 
     # FIX 1: Preserve original_query in state for enumeration detection
     return {
-        "intent": intent, 
+        "intent": intent,
         "original_query": user_text,  # Preserve original text
-        "logs": [log_entry]
+        "logs": [log_entry],
     }
 
 

@@ -13,4 +13,3 @@ print("\nTesting GeographyDiscoveryTool...")
 geo_tool = GeographyDiscoveryTool()
 result2 = geo_tool.run(json.dumps({"action": "enumerate_areas", "level": "state"}))
 print(f"Result: {result2[:200]}...")  # First 200 chars
-

@@ -1,0 +1,399 @@
+{
+  "user_id": "demo",
+  "default_geo": {},
+  "preferred_dataset": "acs/acs5",
+  "default_year_range": [
+    2012,
+    2023
+  ],
+  "preferred_level": "place",
+  "var_aliases": {},
+  "usage_stats": {
+    "total_queries": 38,
+    "success_queries": 38,
+    "last_query_date": "2025-10-29T19:42:31.679757"
+  },
+  "history": [
+    {
+      "timestamp": "2025-10-23T19:59:10.058034",
+      "user_id": "demo",
+      "question": "What's the population of LA?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-10-23T20:01:07.309925",
+      "user_id": "demo",
+      "question": "What's the population of New York City?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-10-23T20:02:39.288672",
+      "user_id": "demo",
+      "question": "Compare population by county in California",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-10-23T20:03:14.395302",
+      "user_id": "demo",
+      "question": "What's the median income in Los Angeles County?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-10-24T20:40:36.522632",
+      "user_id": "demo",
+      "question": "Compare population by county in California",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-10-24T20:41:31.241575",
+      "user_id": "demo",
+      "question": "What's the median income in Los Angeles County?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-10-24T20:41:51.752630",
+      "user_id": "demo",
+      "question": "Show me median income trends from 2015 to 2020",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-10-24T20:42:13.022013",
+      "user_id": "demo",
+      "question": "What's the population of New York City?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-10-27T19:06:47.047489",
+      "user_id": "demo",
+      "question": "What's the population of New York City?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-10-27T19:13:41.908434",
+      "user_id": "demo",
+      "question": "What's the population of New York City?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-10-27T19:14:49.648193",
+      "user_id": "demo",
+      "question": "Show me median income trends from 2015 to 2020",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-10-27T19:15:34.846825",
+      "user_id": "demo",
+      "question": "Compare population by county in California",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-10-27T19:16:22.948288",
+      "user_id": "demo",
+      "question": "What's the median income in Los Angeles County?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-10-27T19:25:47.596173",
+      "user_id": "demo",
+      "question": "Show me median income trends from 2015 to 2020",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-10-27T19:26:12.515449",
+      "user_id": "demo",
+      "question": "What's the median income in Los Angeles County?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-10-27T19:26:52.167997",
+      "user_id": "demo",
+      "question": "What's the population of New York City?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-10-27T19:27:40.723627",
+      "user_id": "demo",
+      "question": "Show me median income trends from 2015 to 2020",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-10-27T19:34:57.961977",
+      "user_id": "demo",
+      "question": "Show me median income trends from 2015 to 2020",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-10-27T19:35:28.258556",
+      "user_id": "demo",
+      "question": "Compare population by county in California",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-10-27T19:36:58.697674",
+      "user_id": "demo",
+      "question": "What's the median income in Los Angeles County?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-10-27T19:37:49.243403",
+      "user_id": "demo",
+      "question": "What's the population of New York City?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-10-27T19:43:24.748282",
+      "user_id": "demo",
+      "question": "What's the population of New York City?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-10-27T19:44:30.026442",
+      "user_id": "demo",
+      "question": "Show me median income trends from 2015 to 2020",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-10-27T19:45:28.507992",
+      "user_id": "demo",
+      "question": "Compare population by county in California",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-10-27T19:46:34.509089",
+      "user_id": "demo",
+      "question": "What's the median income in Los Angeles County?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-10-27T19:57:19.140909",
+      "user_id": "demo",
+      "question": "What's the population of New York City?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-10-27T19:58:18.080900",
+      "user_id": "demo",
+      "question": "Show me median income trends from 2015 to 2020",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-10-27T19:58:58.142012",
+      "user_id": "demo",
+      "question": "Compare population by county in California",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-10-27T19:59:44.274214",
+      "user_id": "demo",
+      "question": "What's the median income in Los Angeles County?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-10-27T20:06:57.777125",
+      "user_id": "demo",
+      "question": "What's the population of New York City?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-10-27T20:08:23.059677",
+      "user_id": "demo",
+      "question": "Show me median income trends from 2015 to 2020",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-10-27T20:09:03.198729",
+      "user_id": "demo",
+      "question": "Compare population by county in California",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-10-27T20:09:29.813463",
+      "user_id": "demo",
+      "question": "What's the median income in Los Angeles County?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-10-27T20:26:59.249548",
+      "user_id": "demo",
+      "question": "What's the population of New York City?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-10-27T20:28:03.523037",
+      "user_id": "demo",
+      "question": "Show me median income trends from 2015 to 2020",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-10-27T20:28:51.729956",
+      "user_id": "demo",
+      "question": "Compare population by county in California",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-10-27T20:29:17.248226",
+      "user_id": "demo",
+      "question": "What's the median income in Los Angeles County?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-10-29T19:42:31.678245",
+      "user_id": "demo",
+      "question": "What is the population of DuPage and Cook counties in Illinois?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    }
+  ],
+  "last_updated": "2025-10-29T19:42:31.679757"
+}

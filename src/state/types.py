@@ -9,7 +9,8 @@ class CensusState(BaseModel):
         default_factory=list, description="Chat turns; reducer: append"
     )
     original_query: Optional[str] = Field(
-        None, description="Original user query (preserved for pattern matching); reducer: overwrite"
+        None,
+        description="Original user query (preserved for pattern matching); reducer: overwrite",
     )
     intent: Optional[Dict[str, Any]] = Field(
         None, description="Intent analysis; reducer: overwrite"

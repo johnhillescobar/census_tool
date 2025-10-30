@@ -6,8 +6,6 @@ import hashlib
 import time
 import os
 
-from src.utils.file_utils import load_json_file, save_json_file
-
 
 def compute_cache_signature(
     year: int, dataset: str, variables: List[str], geo: Dict[str, Any]

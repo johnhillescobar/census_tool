@@ -1,21 +1,26 @@
 """
 Census API Utils
 """
+
 import sys
 import os
 from pathlib import Path
 from typing import Dict, List, Any
 import requests
 import time
+from dotenv import load_dotenv
+import logging
 
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 from config import (
     CENSUS_API_TIMEOUT,
     CENSUS_API_MAX_RETRIES,
     CENSUS_API_BACKOFF_FACTOR,
 )
 
-import logging
+# Load environment variables
+load_dotenv()
+
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 logger = logging.getLogger(__name__)
 
@@ -96,7 +101,11 @@ def build_census_url(
     url = f"{base_url}/{year}/{dataset}"
 
     # Handle variables - can be list of variables or group syntax
-    if isinstance(variables, list) and len(variables) == 1 and variables[0].startswith("group("):
+    if (
+        isinstance(variables, list)
+        and len(variables) == 1
+        and variables[0].startswith("group(")
+    ):
         # Group syntax for subject tables
         variables_str = variables[0]
     else:
@@ -108,8 +117,14 @@ def build_census_url(
     for key, value in geo.get("filters", {}).items():
         # URL encode complex geography names like "metropolitan statistical area/micropolitan statistical area"
         import urllib.parse
+
         encoded_value = urllib.parse.quote(str(value))
         geo_filters.append(f"{key}={encoded_value}")
+
+    # Add Census API key if available
+    census_api_key = os.getenv("CENSUS_API_KEY")
+    if census_api_key:
+        geo_filters.append(f"key={census_api_key}")
 
     # Combine all parameters
     params = [f"get={variables_str}"] + geo_filters
@@ -119,14 +134,11 @@ def build_census_url(
 
 
 def build_census_url_from_metadata(
-    table_metadata: Dict,
-    year: int,
-    geo: Dict[str, Any],
-    variables: List[str] = None
+    table_metadata: Dict, year: int, geo: Dict[str, Any], variables: List[str] = None
 ) -> str:
     """
     Build Census API URL from table metadata
-    
+
     Args:
         table_metadata: Dict from ChromaDB with keys:
             - table_code: str (e.g., "S0101", "DP03", "B01003")
@@ -136,30 +148,30 @@ def build_census_url_from_metadata(
         year: Census year (e.g., 2023)
         geo: Geography dict with 'filters' key
         variables: List of variable codes (only needed if uses_groups=False)
-    
+
     Returns:
         Complete Census API URL string
-    
+
     Examples:
         # Subject table
-        metadata = {'table_code': 'S0101', 'uses_groups': True, 
+        metadata = {'table_code': 'S0101', 'uses_groups': True,
                     'dataset': 'acs/acs5/subject', 'category': 'subject'}
         url = build_census_url_from_metadata(metadata, 2023, {'filters': {'for': 'state:*'}})
         # → https://api.census.gov/data/2023/acs/acs5/subject?get=group(S0101)&for=state:*
-        
+
         # Detail table
         metadata = {'table_code': 'B01003', 'uses_groups': False,
                     'dataset': 'acs/acs5', 'category': 'detail'}
-        url = build_census_url_from_metadata(metadata, 2023, 
+        url = build_census_url_from_metadata(metadata, 2023,
                                              {'filters': {'for': 'state:*'}},
                                              variables=['B01003_001E'])
         # → https://api.census.gov/data/2023/acs/acs5?get=B01003_001E&for=state:*
     """
-    
+
     # Extract what you need from table_metadata
-    table_code = table_metadata['table_code']
-    category = table_metadata['category']
-    uses_groups = table_metadata['uses_groups']
+    table_code = table_metadata["table_code"]
+    category = table_metadata["category"]
+    uses_groups = table_metadata["uses_groups"]
 
     # Bring basic URL
     base_url = "https://api.census.gov/data"
@@ -185,17 +197,23 @@ def build_census_url_from_metadata(
         get_param = f"group({table_code})"
     else:
         get_param = ",".join(variables)
-    
+
     # Build the geography filters
     geo_filters = []
     for key, value in geo.get("filters", {}).items():
         geo_filters.append(f"{key}={value}")
-    
+
+    # Add Census API key if available
+    census_api_key = os.getenv("CENSUS_API_KEY")
+    if census_api_key:
+        geo_filters.append(f"key={census_api_key}")
+
     # Combine parameters
     params = [f"get={get_param}"] + geo_filters
     param_string = "&".join(params)
-    
+
     return f"{base_url}/{year}/{dataset_path}?{param_string}"
+
 
 def parse_census_response(response: Dict) -> Dict:
     """Parse the Census API response"""
@@ -206,103 +224,105 @@ def handle_api_errors(response: Dict) -> Dict:
     """Handle Census API errors"""
     pass
 
+
 def test_build_census_url_from_metadata():
     """Test URL building for all 5 categories"""
-    
+
     # Test 1: Detail table (B01003)
     print("Test 1: Detail table")
     metadata_detail = {
-        'table_code': 'B01003',
-        'category': 'detail',
-        'dataset': 'acs/acs5',
-        'uses_groups': False
+        "table_code": "B01003",
+        "category": "detail",
+        "dataset": "acs/acs5",
+        "uses_groups": False,
     }
     url = build_census_url_from_metadata(
         metadata_detail,
         year=2023,
-        geo={'filters': {'for': 'state:*'}},
-        variables=['B01003_001E']
+        geo={"filters": {"for": "state:*"}},
+        variables=["B01003_001E"],
     )
     expected = "https://api.census.gov/data/2023/acs/acs5?get=B01003_001E&for=state:*"
     print(f"  Generated: {url}")
     print(f"  Expected:  {expected}")
     print(f"  Match: {url == expected}\n")
-    
+
     # Test 2: Subject table (S0101)
     print("Test 2: Subject table")
     metadata_subject = {
-        'table_code': 'S0101',
-        'category': 'subject',
-        'dataset': 'acs/acs5/subject',
-        'uses_groups': True
+        "table_code": "S0101",
+        "category": "subject",
+        "dataset": "acs/acs5/subject",
+        "uses_groups": True,
     }
     url = build_census_url_from_metadata(
-        metadata_subject,
-        year=2023,
-        geo={'filters': {'for': 'state:*'}}
+        metadata_subject, year=2023, geo={"filters": {"for": "state:*"}}
     )
-    expected = "https://api.census.gov/data/2023/acs/acs5/subject?get=group(S0101)&for=state:*"
-    print(f"  Generated: {url}")
-    print(f"  Expected:  {expected}")
-    print(f"  Match: {url == expected}\n")
-    
-    # Test 3: Profile table (DP03)
-    print("Test 3: Profile table")
-    metadata_profile = {
-        'table_code': 'DP03',
-        'category': 'profile',
-        'dataset': 'acs/acs1/profile',
-        'uses_groups': True
-    }
-    url = build_census_url_from_metadata(
-        metadata_profile,
-        year=2023,
-        geo={'filters': {'for': 'state:06'}}
+    expected = (
+        "https://api.census.gov/data/2023/acs/acs5/subject?get=group(S0101)&for=state:*"
     )
-    expected = "https://api.census.gov/data/2023/acs/acs1/profile?get=group(DP03)&for=state:06"
-    print(f"  Generated: {url}")
-    print(f"  Expected:  {expected}")
-    print(f"  Match: {url == expected}\n")
-    
-    # Test 4: Comparison table (CP03)
-    print("Test 4: Comparison table")
-    metadata_cprofile = {
-        'table_code': 'CP03',
-        'category': 'cprofile',
-        'dataset': 'acs/acs5/cprofile',
-        'uses_groups': True
-    }
-    url = build_census_url_from_metadata(
-        metadata_cprofile,
-        year=2023,
-        geo={'filters': {'for': 'state:*'}}
-    )
-    expected = "https://api.census.gov/data/2023/acs/acs5/cprofile?get=group(CP03)&for=state:*"
     print(f"  Generated: {url}")
     print(f"  Expected:  {expected}")
     print(f"  Match: {url == expected}\n")
 
+    # Test 3: Profile table (DP03)
+    print("Test 3: Profile table")
+    metadata_profile = {
+        "table_code": "DP03",
+        "category": "profile",
+        "dataset": "acs/acs1/profile",
+        "uses_groups": True,
+    }
+    url = build_census_url_from_metadata(
+        metadata_profile, year=2023, geo={"filters": {"for": "state:06"}}
+    )
+    expected = (
+        "https://api.census.gov/data/2023/acs/acs1/profile?get=group(DP03)&for=state:06"
+    )
+    print(f"  Generated: {url}")
+    print(f"  Expected:  {expected}")
+    print(f"  Match: {url == expected}\n")
+
+    # Test 4: Comparison table (CP03)
+    print("Test 4: Comparison table")
+    metadata_cprofile = {
+        "table_code": "CP03",
+        "category": "cprofile",
+        "dataset": "acs/acs5/cprofile",
+        "uses_groups": True,
+    }
+    url = build_census_url_from_metadata(
+        metadata_cprofile, year=2023, geo={"filters": {"for": "state:*"}}
+    )
+    expected = (
+        "https://api.census.gov/data/2023/acs/acs5/cprofile?get=group(CP03)&for=state:*"
+    )
+    print(f"  Generated: {url}")
+    print(f"  Expected:  {expected}")
+    print(f"  Match: {url == expected}\n")
+
+
 def test_real_census_api():
     """Test with actual Census API calls"""
     import requests
-    
+
     # Test 1: Subject table S0101 for California
     print("Calling real Census API for S0101 (Age and Sex)...")
     metadata = {
-        'table_code': 'S0101',
-        'category': 'subject',
-        'dataset': 'acs/acs5/subject',
-        'uses_groups': True
+        "table_code": "S0101",
+        "category": "subject",
+        "dataset": "acs/acs5/subject",
+        "uses_groups": True,
     }
     url = build_census_url_from_metadata(
         metadata,
         year=2022,  # Use 2022 (2023 might not be available yet)
-        geo={'filters': {'for': 'state:06'}}  # California
+        geo={"filters": {"for": "state:06"}},  # California
     )
-    
+
     print(f"URL: {url}")
     response = requests.get(url, timeout=30)
-    
+
     if response.status_code == 200:
         data = response.json()
         print(f" SUCCESS! Received {len(data)} rows")

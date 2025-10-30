@@ -8,7 +8,6 @@ Both interfaces use the same underlying LangGraph workflow.
 
 import sys
 import subprocess
-from pathlib import Path
 
 
 def show_menu():
@@ -106,4 +105,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

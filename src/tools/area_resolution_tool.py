@@ -2,21 +2,21 @@ import os
 import sys
 import logging
 import json
-from typing import Optional, Dict
 from langchain_core.tools import BaseTool
-from pydantic import ConfigDict, BaseModel
+from pydantic import ConfigDict
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from src.utils.geography_registry import GeographyRegistry
-from src.tools.geography_schemas import AreaResolutionInput, GeographyLevel
+from src.tools.geography_schemas import GeographyLevel
 
 
 logger = logging.getLogger(__name__)
 
+
 class AreaResolutionTool(BaseTool):
     """Resolve friendly area names to Census codes"""
-    
+
     name: str = "resolve_area_name"
     description: str = """
     Resolve a friendly geography name to its Census code.
@@ -37,10 +37,10 @@ class AreaResolutionTool(BaseTool):
 
     # args_schema: type[BaseModel] = AreaResolutionInput  # Disabled for ReAct compatibility
     model_config = ConfigDict(arbitrary_types_allowed=True)
-      
+
     def _run(self, tool_input: str) -> str:
         """Resolve area name to Census code
-        
+
         Accepts JSON string input from ReAct agent
         """
         # Parse JSON input
@@ -51,37 +51,37 @@ class AreaResolutionTool(BaseTool):
                 params = tool_input
         except json.JSONDecodeError as e:
             return f"Error: Invalid JSON input - {e}"
-        
+
         # Extract parameters
         name = params.get("name")
         geography_type = params.get("geography_type", "state")
         dataset = params.get("dataset", "acs/acs5")
         year = params.get("year", 2023)
         parent = params.get("parent", None)
-        
+
         if not name:
             return "Error: 'name' parameter is required"
-        
+
         # Handle GeographyLevel enum
         if isinstance(geography_type, GeographyLevel):
             geo_token = geography_type.value
         else:
             geo_token = geography_type
-        
+
         logger.info(f"Resolving: {name} ({geo_token})")
         registry = GeographyRegistry()
-        
+
         result = registry.find_area_code(
             friendly_name=name,
             geo_token=geo_token,
             dataset=dataset,
             year=year,
-            parent_geo=parent
+            parent_geo=parent,
         )
-        
+
         if result is None:
             error_msg = f"No match found for '{name}' in {geo_token}"
             logger.warning(error_msg)
             return error_msg
-        
+
         return json.dumps(result)

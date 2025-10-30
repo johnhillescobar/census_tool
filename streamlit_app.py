@@ -8,19 +8,19 @@ Both interfaces use the same underlying LangGraph workflow and processing logic.
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-import plotly.graph_objects as go
 from pathlib import Path
 import sys
 import logging
-from typing import Dict, Any, List
+from typing import Dict, Any
+from datetime import datetime
+from src.utils.pdf_generator import generate_session_pdf
+from app import create_census_graph
+from src.state.types import CensusState
+from langchain_core.runnables import RunnableConfig
 
 # Add project root to path
 project_root = Path(__file__).parent
 sys.path.append(str(project_root))
-
-from app import create_census_graph
-from src.state.types import CensusState
-from langchain_core.runnables import RunnableConfig
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -203,7 +203,6 @@ def display_table_streamlit(final: Dict[str, Any]):
 
     data = final.get("data", [])
     total_rows = final.get("total_rows", 0)
-    columns = final.get("columns", [])
 
     st.info(f"📊 Table Data ({total_rows} rows)")
 
@@ -264,6 +263,10 @@ def process_question(user_input: str) -> Dict[str, Any]:
     """Process a user question through the LangGraph workflow"""
 
     try:
+        logger.info(f"Processing question: {user_input}")
+        # Ensure session state is initialized
+        initialize_session_state()
+
         # Create initial state
         initial_state = CensusState(
             messages=[{"role": "user", "content": user_input}],
@@ -291,10 +294,19 @@ def process_question(user_input: str) -> Dict[str, Any]:
 
         # Process through graph
         result = st.session_state.graph.invoke(initial_state, config)
+        final = result.get("final", {})
+        answer_text = final.get("answer_text", "No answer available")
+        generated_files = final.get("generated_files", [])
 
         # Add to conversation history
         st.session_state.conversation_history.append(
-            {"question": user_input, "result": result, "timestamp": pd.Timestamp.now()}
+            {
+                "question": user_input,
+                "answer_text": answer_text,
+                "generated_files": generated_files,
+                "timestamp": pd.Timestamp.now(),
+                "result": result,
+            }
         )
 
         return result
@@ -339,6 +351,35 @@ def main():
             st.session_state.current_result = None
             st.rerun()
 
+        # Add PDF export section
+        st.sidebar.markdown("---")
+        st.sidebar.subheader("📄 Session Export")
+
+        if st.session_state.conversation_history:
+            if st.sidebar.button("📥 Download Session as PDF", type="primary"):
+                try:
+                    pdf_bytes = generate_session_pdf(
+                        conversation_history=st.session_state.conversation_history,
+                        user_id=st.session_state.user_id,
+                        session_metadata={
+                            "thread_id": st.session_state.thread_id,
+                            "generated_at": datetime.now(),
+                        },
+                    )
+
+                    st.sidebar.download_button(
+                        label="📥 Download PDF",
+                        data=pdf_bytes,
+                        file_name=f"census_session_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf",
+                        mime="application/pdf",
+                    )
+                    st.sidebar.success("PDF ready for download!")
+
+                except Exception as e:
+                    st.sidebar.error(f"PDF generation failed: {e}")
+        else:
+            st.sidebar.info("No conversations to export yet")
+
         # Conversation history
         if st.session_state.conversation_history:
             st.header("📜 Conversation History")
@@ -377,18 +418,26 @@ def main():
         help="Type your question about Census data here",
     )
 
-    # Clear example question after use
-    if "example_question" in st.session_state:
-        del st.session_state.example_question
+    # Debug info
+    st.write(f"Debug: user_input = '{user_input}'")
+    st.write(f"Debug: user_input.strip() = '{user_input.strip()}'")
+    st.write(
+        f"Debug: example_question in session_state = {'example_question' in st.session_state}"
+    )
 
     # Process button
     if st.button("🔍 Ask Question", type="primary") and user_input.strip():
+        st.write(f"Debug: Button clicked with input: '{user_input.strip()}'")
         with st.spinner("🔍 Processing your question..."):
             result = process_question(user_input.strip())
             st.session_state.current_result = result
 
         # Display results
         display_streamlit_results(result)
+
+        # Clear example question after use
+        if "example_question" in st.session_state:
+            del st.session_state.example_question
 
     # Display current result if available
     elif st.session_state.current_result:
@@ -404,4 +453,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
