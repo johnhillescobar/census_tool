@@ -556,6 +556,8 @@ census_tool/
 │   │   └── table_tool.py                # TableTool
 │   ├── llm/             # LLM integration
 │   │   ├── config.py              # LLM settings and prompts
+│   │   ├── factory_legacy.py      # Legacy LLM creation - fallback if factory fails
+│   │   ├── factory.py             # Centralized LLM factory supporting multiple providers
 │   │   ├── intent_enhancer.py     # Intent parsing and answer generation
 │   │   ├── category_detector.py   # Census data category detection
 │   │   └── geography_resolver.py  # LLM-based geography resolution
