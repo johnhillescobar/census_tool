@@ -1,0 +1,39 @@
+{
+  "user_id": "tucu",
+  "default_geo": {},
+  "preferred_dataset": "acs/acs5",
+  "default_year_range": [
+    2012,
+    2023
+  ],
+  "preferred_level": "place",
+  "var_aliases": {},
+  "usage_stats": {
+    "total_queries": 2,
+    "success_queries": 2,
+    "last_query_date": "2025-10-31T20:35:27.980646"
+  },
+  "history": [
+    {
+      "timestamp": "2025-10-31T20:34:26.436546",
+      "user_id": "tucu",
+      "question": "What's the population of New York City?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-10-31T20:35:27.980646",
+      "user_id": "tucu",
+      "question": "Show me median income trends from 2015 to 2020",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    }
+  ],
+  "last_updated": "2025-10-31T20:35:27.980646"
+}
