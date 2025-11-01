@@ -9,9 +9,9 @@
   "preferred_level": "place",
   "var_aliases": {},
   "usage_stats": {
-    "total_queries": 43,
-    "success_queries": 43,
-    "last_query_date": "2025-10-31T20:30:07.589815"
+    "total_queries": 44,
+    "success_queries": 44,
+    "last_query_date": "2025-11-01T07:44:48.701571"
   },
   "history": [
     {
@@ -443,7 +443,17 @@
       "plan_summary": "",
       "answer_type": "Unknown",
       "success": true
+    },
+    {
+      "timestamp": "2025-11-01T07:44:48.701571",
+      "user_id": "demo",
+      "question": "What's the population of New York City?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
     }
   ],
-  "last_updated": "2025-10-31T20:30:07.591190"
+  "last_updated": "2025-11-01T07:44:48.701571"
 }

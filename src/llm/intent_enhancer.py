@@ -5,8 +5,6 @@ import logging
 from typing import Dict, Any, List
 from dotenv import load_dotenv
 
-from langchain_openai import ChatOpenAI
-
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from .config import (
     LLM_CONFIG,
@@ -14,6 +12,7 @@ from .config import (
     CLARIFICATION_PROMPT_TEMPLATE,
     ANSWER_PROMPT_TEMPLATE,
 )
+from .factory import create_llm
 
 load_dotenv()
 
@@ -37,19 +36,9 @@ def parse_intent_with_llm(
         recent_queries="No recent queries",  # Could enhance with conversation history
     )
 
-    # Call LLM (you'll need to implement the actual LLM call)
-    llm = ChatOpenAI(model=LLM_CONFIG["model"], temperature=LLM_CONFIG["temperature"])
+    # Call LLM
+    llm = create_llm(temperature=LLM_CONFIG["temperature"])
     llm_response = llm.invoke(prompt)
-
-    # llm_response = {
-    #     "is_census": True,  # Assume census for now
-    #     "answer_type": "single",  # Default
-    #     "measures": ["population"],  # Default
-    #     "time": {},
-    #     "geo_hint": user_text,
-    #     "confidence": 0.8,  # LLM confidence
-    #     "method": "llm",
-    # }
 
     llm_response = json.loads(llm_response.content)
 
@@ -101,7 +90,7 @@ def generate_intelligent_clarification(
         user_profile="No profile available",  # TODO review this when you have finished
     )
 
-    llm = ChatOpenAI(model=LLM_CONFIG["model"], temperature=LLM_CONFIG["temperature"])
+    llm = create_llm(temperature=LLM_CONFIG["temperature"])
 
     try:
         response = llm.invoke(prompt)
@@ -189,9 +178,7 @@ def generate_llm_answer(
         geo_context=geo_text,
     )
 
-    llm = ChatOpenAI(
-        model=LLM_CONFIG["model"], temperature=LLM_CONFIG["temperature_text"]
-    )
+    llm = create_llm(temperature=LLM_CONFIG["temperature_text"])
 
     try:
         response = llm.invoke(prompt)

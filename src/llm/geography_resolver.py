@@ -5,13 +5,13 @@ from typing import Optional
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field
 
-from langchain_openai import ChatOpenAI
 from langchain_core.output_parsers import PydanticOutputParser
 from langchain_core.prompts import PromptTemplate
 
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from src.llm.config import LLM_CONFIG
+from src.llm.factory import create_llm
 
 # Handle both relative and absolute imports
 from src.state.types import ResolvedGeography
@@ -41,9 +41,7 @@ class LLMGeographyResolver:
     """Intelligent geography resolver using LangChain and structured output parsing"""
 
     def __init__(self):
-        self.llm = ChatOpenAI(
-            model=LLM_CONFIG["model"], temperature=LLM_CONFIG["temperature_text"]
-        )
+        self.llm = create_llm(temperature=LLM_CONFIG["temperature_text"])
 
         # Create the parser FIRST
         self.parser = PydanticOutputParser(pydantic_object=GeographyResolution)

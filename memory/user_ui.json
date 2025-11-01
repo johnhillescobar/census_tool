@@ -1,0 +1,39 @@
+{
+  "user_id": "ui",
+  "default_geo": {},
+  "preferred_dataset": "acs/acs5",
+  "default_year_range": [
+    2012,
+    2023
+  ],
+  "preferred_level": "place",
+  "var_aliases": {},
+  "usage_stats": {
+    "total_queries": 2,
+    "success_queries": 2,
+    "last_query_date": "2025-11-01T08:23:03.828330"
+  },
+  "history": [
+    {
+      "timestamp": "2025-11-01T08:21:40.468845",
+      "user_id": "ui",
+      "question": "What's the population of New York City?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-01T08:23:03.828330",
+      "user_id": "ui",
+      "question": "What's the population of New York City?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    }
+  ],
+  "last_updated": "2025-11-01T08:23:03.828330"
+}
