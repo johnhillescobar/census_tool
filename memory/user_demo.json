@@ -9,9 +9,9 @@
   "preferred_level": "place",
   "var_aliases": {},
   "usage_stats": {
-    "total_queries": 38,
-    "success_queries": 38,
-    "last_query_date": "2025-10-29T19:42:31.679757"
+    "total_queries": 39,
+    "success_queries": 39,
+    "last_query_date": "2025-10-29T20:06:38.984361"
   },
   "history": [
     {
@@ -393,7 +393,17 @@
       "plan_summary": "",
       "answer_type": "Unknown",
       "success": true
+    },
+    {
+      "timestamp": "2025-10-29T20:06:38.983344",
+      "user_id": "demo",
+      "question": "what are the characteristics of people by language spoken of DuPage and Cook counties in Illinois?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
     }
   ],
-  "last_updated": "2025-10-29T19:42:31.679757"
+  "last_updated": "2025-10-29T20:06:38.984361"
 }
