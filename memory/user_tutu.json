@@ -22,9 +22,9 @@
   "var_aliases": {},
   "last_geo": "Unknown",
   "usage_stats": {
-    "total_queries": 2,
-    "success_queries": 1,
-    "last_query_date": "2025-10-12T11:28:36.481067"
+    "total_queries": 3,
+    "success_queries": 2,
+    "last_query_date": "2025-10-31T21:13:01.174801"
   },
   "history": [
     {
@@ -60,7 +60,17 @@
       "plan_summary": "1 queries for years [2023] using ['acs/acs5']",
       "answer_type": "Unknown",
       "success": true
+    },
+    {
+      "timestamp": "2025-10-31T21:13:01.173739",
+      "user_id": "tutu",
+      "question": "What's the population of New York City?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
     }
   ],
-  "last_updated": "2025-10-12T11:28:36.481067"
+  "last_updated": "2025-10-31T21:13:01.174801"
 }

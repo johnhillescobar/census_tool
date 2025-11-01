@@ -29,6 +29,7 @@ data/
 
 # Database files
 checkpoints.db
+check*
 census_vars.db
 census_vars.db-shm
 census_vars.db-wal
@@ -45,3 +46,5 @@ extension_resource_monitor.ps1
 quick_cursor_restart.ps1
 
 memos.md
+
+.DS_Store
