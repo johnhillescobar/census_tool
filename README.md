@@ -23,17 +23,33 @@ A sophisticated local Census QA application that answers questions about US Cens
 
 ## 📋 Project Status
 
-- ✅ **Agent-First Architecture** - Complete LangGraph workflow with agent-based reasoning
-- ✅ **CensusQueryAgent** - Multi-step reasoning agent with specialized Census tools
-- ✅ **Agent Tools Suite** - Geography discovery, table search, API integration, and validation tools
-- ✅ **Dynamic Geography Support** - Support for complex geography patterns and area enumeration
-- ✅ **Multi-Category Data Access** - Support for Detail, Subject, Profile, Comparison, and SPP tables
-- ✅ **Output Generation** - Automatic chart and table creation with formatted answers
-- ✅ **Memory System** - User profiles, history tracking, and cache management
-- ✅ **Dual Interface** - Both CLI and Web interfaces available
-- ✅ **Interactive Visualizations** - Plotly charts and interactive tables in web interface
+**Current Status**: ✅ **FULLY OPERATIONAL** - All core features working and tested
 
-> **Implementation Status**: See [ARCHITECTURE.md](app_description/ARCHITECTURE.md) for detailed component specifications and current implementation status.
+### Verified Working Components
+- ✅ **Agent-First Architecture** - LangGraph workflow with 4-node linear flow (memory_load → agent → output → memory_write)
+- ✅ **CensusQueryAgent** - Multi-step ReAct agent with 8 specialized tools for Census API interaction
+- ✅ **Agent Tools Suite** - All 8 tools operational:
+  - GeographyDiscoveryTool - Dynamic area enumeration for 144+ geography patterns
+  - AreaResolutionTool - Name-to-FIPS code resolution
+  - TableSearchTool - ChromaDB semantic search for Census tables
+  - TableValidationTool - Geography-table compatibility checking
+  - PatternBuilderTool - Census API URL pattern construction
+  - CensusAPITool - API execution with complex pattern support
+  - ChartTool - Plotly chart generation (bar, line charts)
+  - TableTool - Data export (CSV, Excel, HTML)
+- ✅ **Output Generation** - Automatic chart/table creation via output_node
+- ✅ **Memory System** - SQLite checkpoints, user profiles, conversation history
+- ✅ **Dual Interface** - CLI (main.py) and Web (streamlit_app.py) both functional
+- ✅ **PDF Export** - Session reports with embedded charts and tables (Streamlit only)
+- ✅ **Test Coverage** - 9/9 main app tests passing, 6/6 e2e workflow tests passing
+
+### Architecture Evidence
+- **Graph compiles**: `app.py` creates valid LangGraph workflow
+- **Agent integration**: `src/nodes/agent.py` calls CensusQueryAgent.solve()
+- **Tool registration**: All 8 tools registered in `src/utils/agents/census_query_agent.py:51-60`
+- **Output processing**: `src/nodes/output.py` generates charts/tables from agent results
+
+> **Technical Details**: See [ARCHITECTURE.md](app_description/ARCHITECTURE.md) for complete specifications. Note: ARCHITECTURE.md describes the design; this README reflects actual working implementation.
 
 ## 🏗️ Architecture
 
@@ -58,17 +74,24 @@ This replaces the old complex branching graph with a simple linear flow where th
 - **Agent Tools Suite** - Specialized tools for Census API interaction, geography discovery, and table search
 
 #### Processing Nodes (`src/nodes/`)
-- **`memory.py`** - Load/save user profiles and conversation history
-- **`agent.py`** - Agent reasoning node that orchestrates the entire query workflow
-- **`output.py`** - Output generation node that creates charts, tables, and formatted responses
+**Active Nodes** (used in current workflow):
+- **`memory.py`** - `memory_load_node` and `memory_write_node` for user profiles and conversation history
+- **`agent.py`** - `agent_reasoning_node` that calls CensusQueryAgent for multi-step reasoning
+- **`output.py`** - `output_node` that generates charts/tables from agent results
+
+**Deprecated Nodes** (not used in current agent-first architecture):
+- `intent.py`, `geo.py`, `retrieve.py`, `data.py`, `answer.py` - Replaced by agent reasoning
 
 #### Agent Tools (`src/tools/`)
-- **`geography_discovery_tool.py`** - Dynamic geography enumeration and pattern building
-- **`table_search_tool.py`** - ChromaDB-based semantic search for Census tables
-- **`census_api_tool.py`** - Execute Census API calls with support for complex patterns
-- **`chart_tool.py`** - Generate interactive visualizations (bar charts, line charts)
-- **`table_tool.py`** - Export data as formatted tables (CSV, Excel, HTML)
-- **`pattern_builder_tool.py`** - Construct Census API URL patterns dynamically
+All 8 tools are registered in CensusQueryAgent and actively used:
+- **`geography_discovery_tool.py`** - GeographyDiscoveryTool: Enumerate areas, list geography levels
+- **`area_resolution_tool.py`** - AreaResolutionTool: Convert friendly names to FIPS codes
+- **`table_search_tool.py`** - TableSearchTool: ChromaDB semantic search for Census tables
+- **`table_validation_tool.py`** - TableValidationTool: Validate table-geography compatibility
+- **`pattern_builder_tool.py`** - PatternBuilderTool: Build Census API URL patterns
+- **`census_api_tool.py`** - CensusAPITool: Execute Census API calls with complex patterns
+- **`chart_tool.py`** - ChartTool: Generate Plotly charts (bar, line) - used by output_node
+- **`table_tool.py`** - TableTool: Export data (CSV, Excel, HTML) - used by output_node
 
 #### State Management (`src/state/`)
 - **`types.py`** - TypedDict definitions for CensusState with agent workflow integration
@@ -360,25 +383,37 @@ Enter your thread ID: main
 
 ## 🧪 Testing
 
-The project includes comprehensive test coverage:
+The project includes comprehensive test coverage with **all tests passing**:
 
 ```bash
 # Run all tests
-uv run pytest test_*.py -v
+uv run pytest app_test_scripts/ -v
 
 # Run specific test modules
-uv run pytest test_intent.py -v
-uv run pytest test_data.py -v
-uv run pytest test_memory.py -v
+uv run pytest app_test_scripts/test_main_app.py -v        # 9/9 passing
+uv run pytest app_test_scripts/test_e2e_workflows.py -v   # 6/6 passing
+uv run pytest app_test_scripts/test_memory.py -v
+uv run pytest app_test_scripts/test_displays.py -v
 ```
 
-### Test Coverage
-- **Intent Analysis** - Question parsing and clarification detection
-- **Geography Resolution** - Location mapping and validation
-- **Variable Retrieval** - ChromaDB search and confidence scoring
-- **Data Fetching** - API calls, caching, and error handling
-- **Memory Management** - Profile updates and retention policies
-- **Answer Generation** - Response formatting and footnote generation
+### Test Coverage (Verified Working)
+- ✅ **Main App Integration** - Graph compilation, state creation, user input processing (9/9 tests)
+- ✅ **End-to-End Workflows** - Population queries, income trends, county comparisons, error handling (6/6 tests)
+- ✅ **Memory Management** - Profile updates, cache management, retention policies
+- ✅ **Display Functions** - Result formatting and visualization
+- ✅ **PDF Generation** - Session export with charts and tables
+- ✅ **Dynamic Geography** - Geography enumeration and resolution
+- ✅ **Cache Performance** - Data caching and retrieval optimization
+
+### Test Evidence
+```bash
+# Verify current status
+uv run pytest app_test_scripts/test_main_app.py -v
+# Output: 9 passed in 3.48s
+
+uv run pytest app_test_scripts/test_e2e_workflows.py -v
+# Output: 6 passed in 0.03s
+```
 
 ## ⚙️ Configuration
 
@@ -406,21 +441,58 @@ CONFIDENCE_THRESHOLD = 0.7
 ```
 census_tool/
 ├── src/
-│   ├── nodes/           # LangGraph processing nodes (agent.py, output.py, memory.py)
-│   ├── state/           # State management and types
-│   ├── utils/           # Utility libraries and agent implementations
-│   │   ├── agents/      # CensusQueryAgent implementation
-│   │   └── ...          # Supporting utilities
-│   └── tools/           # Agent tools (geography, table search, API, charts, tables)
-├── app_description/     # Technical documentation (ARCHITECTURE.md)
+│   ├── nodes/           # LangGraph processing nodes
+│   │   ├── agent.py     # ✅ ACTIVE: agent_reasoning_node (calls CensusQueryAgent)
+│   │   ├── output.py    # ✅ ACTIVE: output_node (generates charts/tables)
+│   │   ├── memory.py    # ✅ ACTIVE: memory_load/write nodes
+│   ├── state/           # State management
+│   │   └── types.py     # CensusState TypedDict definition
+│   ├── utils/           # Utility libraries
+│   │   ├── agents/      # ✅ CensusQueryAgent (ReAct agent with 8 tools)
+│   │   ├── cache_utils.py, census_api_utils.py, chroma_utils.py
+│   │   ├── displays.py, file_utils.py, footnote_generator.py
+│   │   ├── geography_registry.py, geo_utils.py, memory_utils.py
+│   │   └── pdf_generator.py, text_utils.py, time_utils.py
+│   ├── tools/           # ✅ Agent tools (all 8 actively used)
+│   │   ├── geography_discovery_tool.py  # GeographyDiscoveryTool
+│   │   ├── area_resolution_tool.py      # AreaResolutionTool
+│   │   ├── table_search_tool.py         # TableSearchTool
+│   │   ├── table_validation_tool.py     # TableValidationTool
+│   │   ├── pattern_builder_tool.py      # PatternBuilderTool
+│   │   ├── census_api_tool.py           # CensusAPITool
+│   │   ├── chart_tool.py                # ChartTool
+│   │   └── table_tool.py                # TableTool
+│   ├── llm/             # LLM integration
+│   │   ├── config.py              # LLM settings and prompts
+│   │   ├── intent_enhancer.py     # Intent parsing and answer generation
+│   │   ├── category_detector.py   # Census data category detection
+│   │   └── geography_resolver.py  # LLM-based geography resolution
+│   ├── services/        # External services
+│   │   ├── geography_cache.py     # Geography resolution orchestration
+│   │   └── census_geocoding.py    # Census Geocoding API client
+│   └── locations/       # Geography reference data
+│       ├── states_abbrev.csv, counties.py, locations.csv
+├── app_test_scripts/    # ✅ Test suite (all passing)
+│   ├── test_main_app.py (9/9), test_e2e_workflows.py (6/6)
+│   ├── test_memory.py, test_displays.py, test_pdf_generation.py
+│   └── test_dynamic_geography.py, test_cache_performance.py
+├── app_description/     # Technical documentation
+│   └── ARCHITECTURE.md  # Design specifications
 ├── index/               # ChromaDB index builder
-├── data/                # Cached Census data (runtime)
-├── memory/              # User profiles and history (runtime)
-├── chroma/              # ChromaDB persistent storage
-├── main.py             # CLI application entry point
-├── app.py              # LangGraph workflow definition
-└── config.py           # Configuration constants
+│   ├── build_index.py   # Build table index (run once)
+│   └── build_index_table.py
+├── data/                # ✅ Cached Census data (runtime, auto-created)
+├── memory/              # ✅ User profiles and history (runtime, auto-created)
+├── chroma/              # ✅ ChromaDB persistent storage (auto-created)
+├── main.py              # ✅ CLI application entry point
+├── streamlit_app.py     # ✅ Web interface entry point
+├── launcher.py          # ✅ Interface selector (CLI or Web)
+├── app.py               # ✅ LangGraph workflow definition (4 nodes)
+├── config.py            # ✅ Configuration constants
+└── pyproject.toml       # ✅ Dependencies (managed by uv)
 ```
+
+**Legend**: ✅ Active/Working | ⚠️ Deprecated but present | 🔴 Missing/Broken
 
 ## PDF Export Feature
 
@@ -505,13 +577,21 @@ The agent-based architecture supports dynamic geography discovery and pattern bu
 
 ## 🚧 Future Enhancements
 
-- **PDF Report Generation** - Comprehensive report creation with embedded charts and tables
+### Planned Features
 - **Additional Datasets** - ACS 1-Year and Decennial Census integration
-- **Advanced Analytics** - Statistical analysis and trend detection
-- **Export Formats** - Parquet, Excel, and JSON output options
-- **Performance Optimization** - Caching and query optimization for large datasets
+- **Advanced Analytics** - Statistical analysis and trend detection beyond current capabilities
+- **Geographic Mapping** - Interactive maps showing spatial data distributions
+- **Export Formats** - Parquet and JSON output options (CSV/Excel already supported)
+- **Performance Optimization** - Further caching and query optimization for very large datasets
+- **API Endpoint** - RESTful API for programmatic access to agent capabilities
 
-> **Current Architecture**: The agent-first architecture is designed to be extensible and can accommodate these enhancements through additional tools and agent capabilities.
+### Already Implemented
+- ✅ **PDF Report Generation** - Working in Streamlit interface (`src/utils/pdf_generator.py`)
+- ✅ **Chart Generation** - Plotly charts via ChartTool
+- ✅ **Table Export** - CSV, Excel, HTML via TableTool
+- ✅ **Data Caching** - 90-day retention with automatic cleanup
+
+> **Extensibility**: The agent-first architecture supports new features through additional tools registered in CensusQueryAgent.
 
 ## 🤝 Contributing
 

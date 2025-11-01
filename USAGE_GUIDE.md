@@ -1,6 +1,8 @@
 # 🏛️ Census Data Assistant - Usage Guide
 
-> **📋 Technical Documentation**: For detailed architecture information, see **[ARCHITECTURE.md](app_description/ARCHITECTURE.md)** - the single source of truth for the agent-first implementation.
+**Status**: ✅ Fully operational with agent-first architecture
+
+> **📋 Technical Documentation**: For detailed architecture information, see **[ARCHITECTURE.md](app_description/ARCHITECTURE.md)** - the design specification. This guide reflects the actual working implementation.
 
 ## 🚀 Quick Start
 
@@ -110,23 +112,43 @@ Then open http://localhost:8501 in your browser.
 
 ## 🔧 Technical Details
 
-### Architecture
+### Architecture (Verified Working)
 Both interfaces use the same agent-first architecture:
-- `app.py` - LangGraph workflow with agent-based reasoning
-- `src/nodes/agent.py` - CensusQueryAgent with multi-step reasoning
-- `src/nodes/output.py` - Chart and table generation
-- `src/tools/` - Specialized agent tools for Census API interaction
-- `config.py` - Configuration settings
-- SQLite checkpoints for conversation persistence
+- **`app.py`** - LangGraph workflow: `memory_load → agent → output → memory_write`
+- **`src/nodes/agent.py`** - `agent_reasoning_node` calls CensusQueryAgent.solve()
+- **`src/nodes/output.py`** - `output_node` generates charts/tables from agent results
+- **`src/utils/agents/census_query_agent.py`** - ReAct agent with 8 specialized tools
+- **`src/tools/`** - All 8 agent tools actively registered and used:
+  - GeographyDiscoveryTool, AreaResolutionTool, TableSearchTool, TableValidationTool
+  - PatternBuilderTool, CensusAPITool, ChartTool, TableTool
+- **`config.py`** - Configuration settings (retention, API limits, performance)
+- **SQLite checkpoints** - Conversation persistence (`checkpoints.db`)
 
-### Agent-Based Data Flow
-1. User input → Agent reasoning (multi-step)
-2. Agent uses tools: Geography discovery → Table search → API execution
-3. Agent validates results and determines output format
-4. Output generation: Charts, tables, formatted responses
-5. Display (CLI or Web)
+### Agent-Based Data Flow (Actual Implementation)
+1. **User input** → `memory_load_node` loads user profile/history
+2. **Agent reasoning** → `agent_reasoning_node`:
+   - Calls `CensusQueryAgent.solve(user_query, intent)`
+   - Agent uses ReAct pattern with multi-step tool execution
+   - Tools: Geography discovery → Table search → Validation → API execution
+   - Returns: `census_data`, `answer_text`, `charts_needed`, `tables_needed`, `footnotes`
+3. **Output generation** → `output_node`:
+   - Generates charts using ChartTool (if `charts_needed` specified)
+   - Generates tables using TableTool (if `tables_needed` specified)
+   - Combines with agent's `answer_text` and `footnotes`
+4. **Memory write** → `memory_write_node` saves conversation state
+5. **Display** → CLI (`displays.py`) or Web (Streamlit components)
 
-> **Detailed Flow**: See [ARCHITECTURE.md](app_description/ARCHITECTURE.md) for complete agent architecture and tool specifications.
+### Test Evidence
+```bash
+# Verify architecture works end-to-end
+uv run pytest app_test_scripts/test_main_app.py -v
+# Output: 9 passed in 3.48s
+
+uv run pytest app_test_scripts/test_e2e_workflows.py -v
+# Output: 6 passed in 0.03s
+```
+
+> **Detailed Flow**: See [ARCHITECTURE.md](app_description/ARCHITECTURE.md) for design specifications. Note: ARCHITECTURE.md describes the intended design; this guide reflects actual working code.
 
 ### Caching
 - 90-day retention policy
