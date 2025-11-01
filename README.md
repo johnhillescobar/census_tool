@@ -417,6 +417,8 @@ uv run pytest app_test_scripts/test_e2e_workflows.py -v
 
 ## ⚙️ Configuration
 
+### Application Settings
+
 Key settings in `config.py`:
 
 ```python
@@ -434,6 +436,96 @@ CENSUS_API_VARIABLE_LIMIT = 48
 MAX_CONCURRENCY = 5
 RETRIEVAL_TOP_K = 12
 CONFIDENCE_THRESHOLD = 0.7
+```
+
+### LLM Provider Configuration
+
+The application uses a centralized LLM factory (`src/llm/factory.py`) that supports multiple providers with automatic compatibility handling.
+
+#### Supported Models
+
+**OpenAI:**
+- `gpt-4o`, `gpt-4o-mini` - Standard Chat Completions API
+- `gpt-4.1` - Chat Completions API compatible
+- `gpt-5`, `gpt-5-mini` - Responses API only (requires special handling)
+- `o1`, `o1-preview`, `o1-mini` - Reasoning models, Responses API
+- `o3`, `o3-mini` - Advanced reasoning models, Responses API
+
+**Anthropic:**
+- `claude-sonnet-4-5-20250929` - Latest Claude Sonnet 4.5
+- `claude-3-5-sonnet-20241022` - Legacy Claude Sonnet
+- `claude-3-opus-20240229`, `claude-3-sonnet-20240229`, `claude-3-haiku-20240307` - Legacy models
+
+**Google Gemini:**
+- `gemini-2.5-pro`, `gemini-2.5-flash` - Latest Gemini 2.5 models
+- `gemini-2.0-pro`, `gemini-2.0-flash` - Gemini 2.0 models
+- `gemini-1.5-pro`, `gemini-1.5-flash` - Legacy Gemini 1.5 models
+
+#### Configuring Your LLM
+
+Edit `src/llm/config.py` to set your provider and model:
+
+```python
+LLM_CONFIG = {
+    "provider": "openai",  # or "anthropic" or "google"
+    "model": "gpt-4o",
+    "temperature": 0.1,
+    "temperature_text": 0.5,
+    "max_tokens": 2000,
+    "timeout": 30,
+    "fallback_model": "gpt-4o-mini",
+}
+```
+
+#### Known Compatibility Issues
+
+**Gemini 2.5 Flash Timeout (504 Deadline Exceeded):**
+- **Issue**: Gemini 2.5 Flash may produce large outputs that exceed the 30-second timeout when generating complex Census data responses
+- **Symptoms**: "504 Deadline Exceeded" error when agent returns large JSON responses
+- **Workaround**: Use `gpt-4o`, `gpt-4.1`, or `claude-sonnet-4-5-20250929` for queries requiring large output responses
+- **Future**: Consider increasing `max_output_tokens` and `timeout` for Gemini-specific configuration
+
+**GPT-5 Responses API Compatibility:**
+- GPT-5 and O-series models (o1, o3) use OpenAI's Responses API, which has different parameter requirements
+- The factory automatically handles this with `.bind(stop=None)` and `output_version="responses/v1"`
+- No manual configuration needed - just set `model="gpt-5"` and the factory applies the correct settings
+
+#### Environment Variables
+
+**Required for LLM APIs:**
+```bash
+# OpenAI (required for OpenAI models)
+OPENAI_API_KEY=your_openai_api_key_here
+
+# Anthropic (required for Claude models)
+ANTHROPIC_API_KEY=your_anthropic_api_key_here
+
+# Google (required for Gemini models)
+GOOGLE_API_KEY=your_google_api_key_here
+```
+
+**Optional: LangSmith Performance Tracing**
+```bash
+# Enable LangSmith tracing for performance monitoring
+LANGCHAIN_TRACING_V2=true
+LANGCHAIN_API_KEY=your_langsmith_api_key_here
+LANGCHAIN_PROJECT=census-tool
+
+# These are optional for debugging and monitoring only
+# They enable visualization of agent execution traces, LLM calls, and tool usage
+```
+
+Create a `.env` file in the project root with these variables:
+```bash
+# .env
+OPENAI_API_KEY=sk-...
+ANTHROPIC_API_KEY=sk-ant-...
+GOOGLE_API_KEY=AIza...
+
+# Optional: LangSmith
+LANGCHAIN_TRACING_V2=true
+LANGCHAIN_API_KEY=lsv2_pt_...
+LANGCHAIN_PROJECT=census-tool
 ```
 
 ## 📁 Project Structure
