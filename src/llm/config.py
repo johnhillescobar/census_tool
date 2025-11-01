@@ -4,13 +4,44 @@ import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 LLM_CONFIG = {
-    "provider": "openai",
-    "model": "gpt-4.1",
+    "provider": "openai",  # openai | anthropic | google
+    "model": "gpt-4.1",  # gpt-4.1 |gpt-5 | claude-sonnet-4-5-20250929 |gemini-2.5-flash
     "temperature": 0.1,
     "temperature_text": 0.5,
-    "max_tokens": 500,
+    "max_tokens": 20000,
     "timeout": 30,
     "fallback_model": "gpt-4o-mini",
+}
+
+# Provider-specific model mappings (for validation)
+SUPPORTED_MODELS = {
+    "openai": [
+        "gpt-4o",
+        "gpt-4o-mini",
+        "gpt-4.1",
+        "gpt-5",
+        "gpt-5-mini",
+        "o1",
+        "o1-preview",
+        "o1-mini",
+        "o3",
+        "o3-mini",
+    ],
+    "anthropic": [
+        "claude-sonnet-4-5-20250929",  # Latest Claude Sonnet 4.5
+        "claude-3-5-sonnet-20241022",  # Deprecated but may still work
+        "claude-3-opus-20240229",
+        "claude-3-sonnet-20240229",
+        "claude-3-haiku-20240307",
+    ],
+    "google": [
+        "gemini-2.5-pro",  # Latest Gemini 2.5 Pro
+        "gemini-2.5-flash",  # Latest Gemini 2.5 Flash
+        "gemini-2.0-pro",  # Gemini 2.0 Pro
+        "gemini-2.0-flash",  # Gemini 2.0 Flash
+        "gemini-1.5-pro",  # Legacy Gemini 1.5 Pro
+        "gemini-1.5-flash",  # Legacy Gemini 1.5 Flash
+    ],
 }
 
 INTENT_PROMPT_TEMPLATE = """

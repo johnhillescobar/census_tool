@@ -17,11 +17,11 @@ except ImportError:
     except ImportError:
         # Last resort: create a fallback
         create_react_agent = None
-from langchain_openai import ChatOpenAI
 from langchain.prompts import PromptTemplate
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from src.llm.config import LLM_CONFIG, AGENT_PROMPT_TEMPLATE
+from src.llm.factory import create_llm
 from src.tools.geography_discovery_tool import GeographyDiscoveryTool
 from src.tools.table_search_tool import TableSearchTool
 from src.tools.census_api_tool import CensusAPITool
@@ -43,9 +43,7 @@ class CensusQueryAgent:
     """
 
     def __init__(self):
-        self.llm = ChatOpenAI(
-            model=LLM_CONFIG["model"], temperature=LLM_CONFIG["temperature"]
-        )
+        self.llm = create_llm(temperature=LLM_CONFIG["temperature"])
 
         # Initialize tools
         self.tools = [

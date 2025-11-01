@@ -8,10 +8,10 @@ import sys
 import json
 import logging
 from typing import Dict, Any, Optional
-from langchain_openai import ChatOpenAI
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from src.llm.config import LLM_CONFIG, CATEGORY_DETECTION_PROMPT_TEMPLATE
+from src.llm.factory import create_llm
 
 logger = logging.getLogger(__name__)
 
@@ -48,9 +48,7 @@ def detect_category_with_llm(user_question: str) -> Dict[str, Any]:
         prompt = CATEGORY_DETECTION_PROMPT_TEMPLATE.format(user_question=user_question)
 
         # Call the LLM
-        llm = ChatOpenAI(
-            model=LLM_CONFIG["model"], temperature=LLM_CONFIG["temperature"]
-        )
+        llm = create_llm(temperature=LLM_CONFIG["temperature"])
         response = llm.invoke(prompt)
 
         # Parse JSON response
