@@ -24,8 +24,9 @@ sketch*.py
 # .ps1 files
 *.ps1
 
-# data/*
+# data/* and articles/
 data/
+articles/
 
 # Database files
 checkpoints.db
@@ -48,3 +49,5 @@ quick_cursor_restart.ps1
 memos.md
 
 .DS_Store
+
+logs/

@@ -1,10 +1,10 @@
 import os
 import sys
-import re
 import logging
 import json
-from typing import Dict
+from typing import Dict, List, Any, Optional
 from dotenv import load_dotenv
+from pydantic import BaseModel, ValidationError
 
 from langchain.agents import AgentExecutor
 
@@ -34,6 +34,22 @@ from src.tools.area_resolution_tool import AreaResolutionTool
 load_dotenv()
 
 logger = logging.getLogger(__name__)
+
+
+class CensusData(BaseModel):
+    success: bool
+    data: List[List[Any]]
+    variables: Optional[Dict[str, str]] = None
+
+
+class AgentOutput(BaseModel):
+    census_data: CensusData
+    data_summary: str
+    reasoning_trace: str
+    answer_text: str
+    charts_needed: List[Dict[str, str]] = []
+    tables_needed: List[Dict[str, str]] = []
+    footnotes: List[str] = []
 
 
 class CensusQueryAgent:
@@ -93,119 +109,166 @@ Intent: {intent}"""
 
     def _parse_solution(self, result: Dict) -> Dict:
         """
-        Parse agent output into structured format.
-        Extract the JSON from the ReAct agent's Final Answer.
+        Parse agent output - extract JSON after 'Final Answer:' prefix.
+        Simplified to 2 methods: direct parse or prefix extraction.
         """
         output = result.get("output", "")
         logger.info(f"Parsing agent output (length: {len(output)} chars)")
-        logger.debug(f"Output first 200 chars: {output[:200]}...")
 
-        # Method 1: LangChain agent executor returns final answer directly in output
-        # Try to parse the entire output as JSON first
-        try:
-            parsed = json.loads(output)
-            if isinstance(parsed, dict) and "census_data" in parsed:
-                # Ensure footnotes key exists (add empty list if missing)
-                if "footnotes" not in parsed:
-                    parsed["footnotes"] = []
-                logger.info("Successfully parsed agent output as JSON directly")
-                return parsed
-            else:
-                logger.debug(
-                    f"Parsed JSON but missing census_data key. Keys: {parsed.keys() if isinstance(parsed, dict) else 'not a dict'}"
-                )
-        except (json.JSONDecodeError, TypeError) as e:
-            logger.debug(f"Output is not direct JSON: {e}")
+        # Method 1: Direct JSON parse (when AgentExecutor strips prefix)
+        parsed = self._try_direct_json_parse(output)
+        if parsed:
+            return parsed
 
-        # Find all potential JSON matches
-        potential_jsons = []
+        # Method 2: Extract after "Final Answer:" prefix
+        parsed = self._extract_after_final_answer(output)
+        if parsed:
+            return parsed
 
-        # Try to find JSON on single line first (most common with new prompt)
-        single_line_match = re.search(
-            r'\{[^{}]*"census_data"[^{}]*(?:\{(?:[^{}]*|\{[^{}]*\})*\}[^{}]*)*\}',
-            output,
-        )
-        if single_line_match:
-            potential_jsons.append(single_line_match.group(0))
+        # Fallback: Return empty structure with diagnostics
+        logger.warning("All parsing methods failed")
+        logger.debug(f"Raw output sample: {output[:500]}")
 
-        # Also try splitting and looking for JSON blocks
-        if '{"census_data"' in output:
-            start_idx = output.find('{"census_data"')
-            if start_idx != -1:
-                # Find the matching closing brace
-                brace_count = 0
-                end_idx = start_idx
-                for i, char in enumerate(output[start_idx:], start=start_idx):
-                    if char == "{":
-                        brace_count += 1
-                    elif char == "}":
-                        brace_count -= 1
-                        if brace_count == 0:
-                            end_idx = i + 1
-                            break
-
-                if end_idx > start_idx:
-                    potential_jsons.append(output[start_idx:end_idx])
-
-        # Try parsing each potential JSON
-        for json_str in potential_jsons:
-            try:
-                parsed = json.loads(json_str)
-                if isinstance(parsed, dict) and "census_data" in parsed:
-                    logger.info("Successfully extracted and parsed agent JSON")
-                    return parsed
-            except (json.JSONDecodeError, TypeError) as e:
-                logger.debug(f"Failed to parse JSON candidate: {e}")
-                continue
-
-        # Method 3: Try to extract from intermediate_steps as fallback
         intermediate_steps = result.get("intermediate_steps", [])
-        for step in reversed(intermediate_steps):
-            if isinstance(step, dict) and "tool_output" in step:
-                tool_output = step["tool_output"]
-                if isinstance(tool_output, str):
-                    try:
-                        parsed_output = json.loads(tool_output)
-                        if (
-                            isinstance(parsed_output, dict)
-                            and parsed_output.get("success")
-                            and "data" in parsed_output
-                        ):
-                            census_result = parsed_output["data"]
-                            if (
-                                isinstance(census_result, dict)
-                                and "data" in census_result
-                            ):
-                                # Extract first data row for simple fallback
-                                census_data_rows = census_result["data"]
-                                if len(census_data_rows) > 1:
-                                    headers = census_data_rows[0]
-                                    data_row = census_data_rows[1]
-                                    census_dict = dict(zip(headers, data_row))
-
-                                    return {
-                                        "census_data": {
-                                            "data": census_data_rows,
-                                            "variables": {
-                                                "B01003_001E": "Total Population"
-                                            },
-                                        },
-                                        "data_summary": f"Retrieved Census data for {census_dict.get('NAME', 'location')}",
-                                        "reasoning_trace": "Data extracted from agent's tool execution",
-                                        "answer_text": f"Population: {census_dict.get('B01003_001E', 'N/A')}",
-                                    }
-                    except (json.JSONDecodeError, TypeError, IndexError, KeyError):
-                        continue
-
-        # Method 4: If all else fails, return empty structure but log the issue
-        logger.warning(
-            "Agent did not return valid JSON - agent may have hit iteration limit"
-        )
-        logger.debug(f"Raw output (first 500 chars): {output[:500]}...")
-
         return {
             "census_data": {},
-            "data_summary": "Agent execution completed but no parseable JSON found",
-            "reasoning_trace": f"Execution steps: {len(intermediate_steps)}",
+            "data_summary": "Parsing failed - see logs",
+            "reasoning_trace": f"Steps: {len(intermediate_steps)}",
             "answer_text": "Agent execution completed but output parsing failed",
+            "footnotes": [],
         }
+
+    def _try_direct_json_parse(self, output: str) -> Optional[Dict]:
+        """Attempt direct JSON parsing of entire output."""
+        try:
+            logger.error(
+                f"[PARSE DEBUG] Attempting direct JSON parse. Output length: {len(output)}, first 200 chars: {output[:200]}"
+            )
+            parsed = json.loads(output)
+            logger.error(
+                f"[PARSE DEBUG] json.loads() succeeded. Type: {type(parsed)}, has census_data: {'census_data' in parsed if isinstance(parsed, dict) else 'N/A'}"
+            )
+            if isinstance(parsed, dict) and "census_data" in parsed:
+                logger.error("[PARSE DEBUG] Attempting Pydantic validation...")
+                validated = AgentOutput(**parsed)  # Pydantic validation
+                logger.info("Successfully parsed as direct JSON")
+                return validated.model_dump()
+            else:
+                logger.error(
+                    f"[PARSE DEBUG] Direct parse - parsed but missing census_data. Keys: {list(parsed.keys()) if isinstance(parsed, dict) else 'not a dict'}"
+                )
+        except json.JSONDecodeError as e:
+            logger.error(f"[PARSE DEBUG] Direct parse JSONDecodeError: {str(e)[:300]}")
+        except ValidationError as e:
+            logger.error(
+                f"[PARSE DEBUG] Direct parse Pydantic ValidationError: {str(e)[:500]}"
+            )
+        except Exception as e:
+            logger.error(
+                f"[PARSE DEBUG] Direct parse unexpected error: {type(e).__name__}: {str(e)[:300]}"
+            )
+        return None
+
+    def _extract_after_final_answer(self, output: str) -> Optional[Dict]:
+        """Extract JSON after 'Final Answer:' prefix using state machine."""
+        # Find "Final Answer:" marker
+        marker = "Final Answer:"
+        idx = output.find(marker)
+        if idx == -1:
+            logger.error(
+                f"[PARSE DEBUG] No 'Final Answer:' marker found. Output length: {len(output)}, First 300 chars: {output[:300]}"
+            )
+            return None
+
+        # Start after the marker
+        json_start = idx + len(marker)
+        json_text = output[json_start:].strip()
+        logger.error(
+            f"[PARSE DEBUG] Found 'Final Answer:' at position {idx}. Text after marker (first 200 chars): {json_text[:200]}"
+        )
+
+        # Extract JSON using brace-matching state machine
+        extracted = self._extract_json_with_state_machine(json_text)
+        if not extracted:
+            logger.error(
+                f"[PARSE DEBUG] State machine failed to extract JSON. json_text length: {len(json_text)}, starts with: {json_text[:50]}"
+            )
+            return None
+
+        logger.error(f"[PARSE DEBUG] Extracted JSON length: {len(extracted)} chars")
+        logger.error(f"[PARSE DEBUG] First 150 chars: {extracted[:150]}")
+        logger.error(f"[PARSE DEBUG] Last 150 chars: {extracted[-150:]}")
+
+        try:
+            parsed = json.loads(extracted)
+            if isinstance(parsed, dict) and "census_data" in parsed:
+                validated = AgentOutput(**parsed)  # Pydantic validation
+                logger.info("Successfully extracted JSON after 'Final Answer:'")
+                return validated.model_dump()
+            else:
+                logger.error(
+                    f"[PARSE DEBUG] Parsed JSON but missing 'census_data' key. Keys: {list(parsed.keys()) if isinstance(parsed, dict) else 'not a dict'}"
+                )
+        except (json.JSONDecodeError, ValidationError) as e:
+            logger.error(
+                f"[PARSE DEBUG] JSON parse or Pydantic validation failed: {type(e).__name__}: {str(e)[:300]}"
+            )
+        return None
+
+    def _extract_json_with_state_machine(self, text: str) -> Optional[str]:
+        """
+        Extract JSON object using state machine that handles:
+        - Nested objects/arrays
+        - Escaped quotes in strings
+        - Braces inside string values
+        - Square brackets in arrays
+        """
+        if not text:
+            return None
+
+        # Find first opening brace
+        start_idx = text.find("{")
+        if start_idx == -1:
+            return None
+
+        brace_count = 0
+        bracket_count = 0  # Track array brackets too
+        in_string = False
+        escape_next = False
+
+        for i in range(start_idx, len(text)):
+            char = text[i]
+
+            if escape_next:
+                escape_next = False
+                continue
+
+            if char == "\\":
+                escape_next = True
+                continue
+
+            if char == '"':
+                in_string = not in_string
+                continue
+
+            if in_string:
+                continue
+
+            # Not in string, count braces and brackets
+            if char == "{":
+                brace_count += 1
+            elif char == "}":
+                brace_count -= 1
+                if brace_count == 0:
+                    # Found matching closing brace
+                    return text[start_idx : i + 1]
+            elif char == "[":
+                bracket_count += 1
+            elif char == "]":
+                bracket_count -= 1
+
+        # If we got here, no complete JSON found
+        logger.debug(
+            f"State machine: Incomplete JSON (brace_count={brace_count}, bracket_count={bracket_count})"
+        )
+        return None

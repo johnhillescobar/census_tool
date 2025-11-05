@@ -14,6 +14,7 @@ import logging
 from typing import Dict, Any
 from datetime import datetime
 from src.utils.pdf_generator import generate_session_pdf
+from src.utils.session_logger import SessionLogger
 from app import create_census_graph
 from src.state.types import CensusState
 from langchain_core.runnables import RunnableConfig
@@ -23,7 +24,7 @@ project_root = Path(__file__).parent
 sys.path.append(str(project_root))
 
 # Set up logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 # Page configuration
@@ -51,6 +52,37 @@ def initialize_session_state():
 
     if "current_result" not in st.session_state:
         st.session_state.current_result = None
+
+    # Initialize session logger state
+    if "session_logger" not in st.session_state:
+        st.session_state.session_logger = None
+
+    if "logged_user_id" not in st.session_state:
+        st.session_state.logged_user_id = None
+
+    if "log_file_path" not in st.session_state:
+        st.session_state.log_file_path = None
+
+    # Check if user_id changed - start new logger
+    if st.session_state.logged_user_id != st.session_state.user_id:
+        # Stop previous logger if it exists
+        if st.session_state.session_logger:
+            try:
+                st.session_state.session_logger.stop()
+            except Exception as e:
+                logger.warning(f"Error stopping previous logger: {e}")
+
+        # Start new logger for current user
+        try:
+            session_logger = SessionLogger(st.session_state.user_id)
+            log_file = session_logger.start()
+            st.session_state.session_logger = session_logger
+            st.session_state.logged_user_id = st.session_state.user_id
+            st.session_state.log_file_path = log_file
+            logger.info(f"Session logging started for user: {st.session_state.user_id}")
+            logger.info(f"Log file: {log_file}")
+        except Exception as e:
+            logger.error(f"Error starting session logger: {e}")
 
 
 def display_streamlit_results(result: Dict[str, Any]):
@@ -344,6 +376,10 @@ def main():
             value=st.session_state.thread_id,
             help="Enter thread ID to continue conversations",
         )
+
+        # Display log file location
+        if st.session_state.log_file_path:
+            st.info(f"📝 Session logging to:\n`{st.session_state.log_file_path}`")
 
         # Clear conversation button
         if st.button("🗑️ Clear Conversation"):

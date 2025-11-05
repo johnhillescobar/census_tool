@@ -573,7 +573,10 @@ Reference ARCHITECTURE.md as main technical doc
    - Expected: Agent reasoning trace shows enumeration
    
 5. "Show population trends for NYC from 2015 to 2020"
-   - Expected: Time series data
+   - Expected: Time series data with 6 data points (one per year)
+   - Expected: Line chart generated automatically
+   - Expected: Agent makes 6 separate census_api_call invocations
+   - Expected: Data restructured as [["Year", "Population"], ["2015", "..."], ["2016", "..."], ...]
    - Expected: If save_pdf=True, PDF generated
 ```
 

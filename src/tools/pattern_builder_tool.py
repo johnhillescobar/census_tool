@@ -73,20 +73,35 @@ class PatternBuilderTool(BaseTool):
 
         # Determine variable format based on table category and use_groups parameter
         if custom_variables:
+            # User/agent specified exact variables - use them
             variables = (
                 custom_variables
                 if isinstance(custom_variables, list)
                 else [custom_variables]
             )
-        elif use_groups is True or (
-            use_groups is None
-            and table_category in ["subject", "profile", "cprofile", "spp"]
-        ):
-            # Use group syntax for subject/profile tables
+        elif use_groups is True:
+            # Explicit group request
             variables = [f"group({table_code})"]
-        else:
-            # Default detail table variables
+            logger.warning(
+                f"Using group({table_code}) - will fetch ALL variables from this table. "
+                f"Consider specifying only needed variables for better performance."
+            )
+        elif use_groups is False:
+            # Explicit no-group request
             variables = ["NAME", f"{table_code}_001E"]
+        else:
+            # Auto-detect: Only use groups for small tables or explicit need
+            # For profile/subject/cprofile, default to specific variables unless overridden
+            if table_category in ["subject", "profile", "cprofile", "spp"]:
+                logger.warning(
+                    f"Auto-using group() for {table_category} table {table_code}. "
+                    f"This may fetch 100+ variables. Consider specifying variables parameter "
+                    f"with only needed variables for faster responses."
+                )
+                variables = [f"group({table_code})"]
+            else:
+                # Default detail table variables
+                variables = ["NAME", f"{table_code}_001E"]
 
         # Format variables parameter
         if isinstance(variables, list):
