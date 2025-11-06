@@ -140,7 +140,7 @@ https://api.census.gov/data/2023/acs/acs5/groups.json
 
 Census APIs are pretty flexible or dynamic. These are some basic examples:
 
-|| Geography Hierarchy | Geography Level | Example URL |
+| Geography Hierarchy | Geography Level | Example URL |
 |---------------------|-----------------|-------------|
 | us                  | 010             | `https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=us:*&key=YOUR_KEY_GOES_HERE`  |
 |                     |                 | `https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=us:1&key=YOUR_KEY_GOES_HERE`  |
@@ -155,7 +155,13 @@ Census APIs are pretty flexible or dynamic. These are some basic examples:
 |                     |                 | `https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=county:037&in=state:06&key=YOUR_KEY_GOES_HERE`  |
 
 
-You will find the full description for geography hierarchy and summary level / geography level here: https://api.census.gov/data/2023/acs/acs5/examples.html
+You will find the full description for geography hierarchy and summary level / geography level here: 
+
+* Detail Tables (B or C): https://api.census.gov/data/2023/acs/acs5/examples.html
+* Detail Profiles (DP): https://api.census.gov/data/2023/acs/acs5/profile/examples.html
+* Comparison Tables (CP): https://api.census.gov/data/2023/acs/acs5/cprofile/examples.html
+* Selected Population Profiles (SPP): https://api.census.gov/data/2024/acs/acs1/spp/geography.html
+* Subject Tables (S): https://api.census.gov/data/2023/acs/acs5/subject/examples.html
 
 Caveat: Notice that examples are delivered by year. Data is pretty stable year to year, but it can change, though.
 
