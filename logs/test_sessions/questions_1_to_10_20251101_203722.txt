@@ -1,0 +1,128 @@
+2025-11-01 20:37:22 - INFO - root - ================================================================================
+2025-11-01 20:37:22 - INFO - root - SESSION START: questions_1_to_10
+2025-11-01 20:37:22 - INFO - root - Timestamp: 20251101_203722
+2025-11-01 20:37:22 - INFO - root - Log file: logs\test_sessions\questions_1_to_10_20251101_203722.txt
+2025-11-01 20:37:22 - INFO - root - ================================================================================
+2025-11-01 20:37:22 - INFO - root - Initializing Census graph...
+2025-11-01 20:37:22 - INFO - app - Removing old checkpoints for agent architecture migration
+2025-11-01 20:37:22 - INFO - app - Removed checkpoints.db - starting fresh with agent architecture
+2025-11-01 20:37:22 - INFO - app - SQLite checkpointer initialized for agent architecture
+2025-11-01 20:37:22 - INFO - root - 
+TEST 1: What's the total population/age summary for the U.S. in 2023?
+2025-11-01 20:37:22 - INFO - src.nodes.memory - Loading user memory for user_id: test_user
+2025-11-01 20:37:22 - INFO - src.llm.factory - Creating LLM: provider=openai, model=gpt-4.1, temperature=0.1
+2025-11-01 20:37:24 - INFO - src.llm.factory - Using standard Chat Completions API for gpt-4.1
+2025-11-01 20:37:25 - INFO - httpx - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-11-01 20:37:27 - INFO - src.tools.table_search_tool - Running TableSearchTool with query: {"query": "age and population summary"} and category: None
+2025-11-01 20:37:27 - INFO - src.tools.table_search_tool - Searching ChromaDB for tables matching query: {"query": "age and population summary"} and category: None
+2025-11-01 20:37:29 - INFO - httpx - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2025-11-01 20:37:29 - INFO - src.tools.table_search_tool - Found 5 tables
+2025-11-01 20:37:30 - INFO - httpx - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-11-01 20:37:32 - INFO - src.tools.census_api_tool - Fetching Census data: acs/acs5/2023
+2025-11-01 20:37:33 - INFO - src.tools.census_api_tool - Census data fetched successfully: {'success': True, 'data': [['NAME', 'B01003_001E', 'us'], ['United States', '332387540', '1']], 'url': 'https://api.census.gov/data/2023/acs/acs5?get=NAME,B01003_001E&for=us%3A1&key=94ade8975eeeac63c2c681c90dbe7bd2fcf861e7', 'attempt': 1}
+2025-11-01 20:37:34 - INFO - httpx - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-11-01 20:37:37 - INFO - src.tools.census_api_tool - Fetching Census data: acs/acs5/2023
+2025-11-01 20:37:38 - INFO - src.tools.census_api_tool - Census data fetched successfully: {'success': True, 'data': [['B01001_001E', 'B01001_003E', 'B01001_020E', 'B01001_027E', 'us'], ['332387540', '9688436', '3713703', '9251463', '1']], 'url': 'https://api.census.gov/data/2023/acs/acs5?get=B01001_001E,B01001_003E,B01001_020E,B01001_027E&for=us%3A1&key=94ade8975eeeac63c2c681c90dbe7bd2fcf861e7', 'attempt': 1}
+2025-11-01 20:37:39 - INFO - httpx - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-11-01 20:37:46 - INFO - src.utils.agents.census_query_agent - Parsing agent output (length: 1472 chars)
+2025-11-01 20:37:46 - ERROR - src.utils.agents.census_query_agent - [PARSE DEBUG] Attempting direct JSON parse. Output length: 1472, first 200 chars: {"census_data":{"success":true,"data":[["NAME","Total Population","Male Under 5","Male 65-66","Female 65-66"],["United States","332,387,540","9,688,436","3,713,703","9,251,463"]]},"data_summary":"2023
+2025-11-01 20:37:46 - ERROR - src.utils.agents.census_query_agent - [PARSE DEBUG] json.loads() succeeded. Type: <class 'dict'>, has census_data: True
+2025-11-01 20:37:46 - ERROR - src.utils.agents.census_query_agent - [PARSE DEBUG] Attempting Pydantic validation...
+2025-11-01 20:37:46 - INFO - src.utils.agents.census_query_agent - Successfully parsed as direct JSON
+2025-11-01 20:37:46 - INFO - src.nodes.output - === output_node Chart Generation ===
+2025-11-01 20:37:46 - INFO - src.nodes.output - Chart type: bar
+2025-11-01 20:37:46 - INFO - src.nodes.output - Chart params: x=NAME, y=Total Population
+2025-11-01 20:37:46 - INFO - src.nodes.output - Census data keys: ['success', 'data', 'variables']
+2025-11-01 20:37:46 - INFO - src.nodes.output - Data is list with 2 elements
+2025-11-01 20:37:46 - INFO - src.nodes.output - Data headers: ['NAME', 'Total Population', 'Male Under 5', 'Male 65-66', 'Female 65-66']
+2025-11-01 20:37:46 - INFO - src.nodes.output - First data row: ['United States', '332,387,540', '9,688,436', '3,713,703', '9,251,463']
+2025-11-01 20:37:46 - INFO - src.nodes.output - Checking if selected columns exist in headers...
+2025-11-01 20:37:46 - INFO - src.nodes.output -   x_column 'NAME' in headers: True
+2025-11-01 20:37:46 - INFO - src.nodes.output -   y_column 'Total Population' in headers: True
+2025-11-01 20:37:46 - INFO - src.nodes.output - === Calling ChartTool ===
+
+2025-11-01 20:37:46 - INFO - src.tools.chart_tool - === ChartTool Data Extraction Debug ===
+2025-11-01 20:37:46 - INFO - src.tools.chart_tool - Input json_obj type: <class 'dict'>
+2025-11-01 20:37:46 - INFO - src.tools.chart_tool - Input json_obj keys: ['success', 'data', 'variables']
+2025-11-01 20:37:46 - INFO - src.tools.chart_tool - Detected simple format: {'data': [...]}
+2025-11-01 20:37:46 - INFO - src.tools.chart_tool - Extracted data type: <class 'list'>
+2025-11-01 20:37:46 - INFO - src.tools.chart_tool - Extracted data length: 2
+2025-11-01 20:37:46 - INFO - src.tools.chart_tool - Headers: ['NAME', 'Total Population', 'Male Under 5', 'Male 65-66', 'Female 65-66']
+2025-11-01 20:37:46 - INFO - src.tools.chart_tool - First data row: ['United States', '332,387,540', '9,688,436', '3,713,703', '9,251,463']
+2025-11-01 20:37:46 - INFO - src.tools.chart_tool - Number of data rows: 1
+2025-11-01 20:37:46 - INFO - src.tools.chart_tool - DataFrame created with shape: (1, 5), columns: ['NAME', 'Total Population', 'Male Under 5', 'Male 65-66', 'Female 65-66']
+2025-11-01 20:37:46 - INFO - src.tools.chart_tool - DataFrame dtypes BEFORE conversion: {'NAME': dtype('O'), 'Total Population': dtype('O'), 'Male Under 5': dtype('O'), 'Male 65-66': dtype('O'), 'Female 65-66': dtype('O')}
+2025-11-01 20:37:46 - INFO - src.tools.chart_tool - First row values with types: {'NAME': ('United States', 'str'), 'Total Population': ('332,387,540', 'str'), 'Male Under 5': ('9,688,436', 'str'), 'Male 65-66': ('3,713,703', 'str'), 'Female 65-66': ('9,251,463', 'str')}
+2025-11-01 20:37:46 - INFO - src.tools.chart_tool - Skipping column 'NAME' (text column)
+2025-11-01 20:37:46 - INFO - src.tools.chart_tool - Processing column 'Total Population' for numeric conversion...
+2025-11-01 20:37:46 - INFO - src.tools.chart_tool -   Sample values: ['332,387,540']
+2025-11-01 20:37:46 - INFO - src.tools.chart_tool -   Converted 'Total Population': object -> int64
+2025-11-01 20:37:46 - INFO - src.tools.chart_tool -   Post-conversion values: [332387540]
+2025-11-01 20:37:46 - INFO - src.tools.chart_tool -   NaN count: 0
+2025-11-01 20:37:46 - INFO - src.tools.chart_tool - Processing column 'Male Under 5' for numeric conversion...
+2025-11-01 20:37:46 - INFO - src.tools.chart_tool -   Sample values: ['9,688,436']
+2025-11-01 20:37:46 - INFO - src.tools.chart_tool -   Converted 'Male Under 5': object -> int64
+2025-11-01 20:37:46 - INFO - src.tools.chart_tool -   Post-conversion values: [9688436]
+2025-11-01 20:37:46 - INFO - src.tools.chart_tool -   NaN count: 0
+2025-11-01 20:37:46 - INFO - src.tools.chart_tool - Processing column 'Male 65-66' for numeric conversion...
+2025-11-01 20:37:46 - INFO - src.tools.chart_tool -   Sample values: ['3,713,703']
+2025-11-01 20:37:46 - INFO - src.tools.chart_tool -   Converted 'Male 65-66': object -> int64
+2025-11-01 20:37:46 - INFO - src.tools.chart_tool -   Post-conversion values: [3713703]
+2025-11-01 20:37:46 - INFO - src.tools.chart_tool -   NaN count: 0
+2025-11-01 20:37:46 - INFO - src.tools.chart_tool - Processing column 'Female 65-66' for numeric conversion...
+2025-11-01 20:37:46 - INFO - src.tools.chart_tool -   Sample values: ['9,251,463']
+2025-11-01 20:37:46 - INFO - src.tools.chart_tool -   Converted 'Female 65-66': object -> int64
+2025-11-01 20:37:46 - INFO - src.tools.chart_tool -   Post-conversion values: [9251463]
+2025-11-01 20:37:46 - INFO - src.tools.chart_tool -   NaN count: 0
+2025-11-01 20:37:46 - INFO - src.tools.chart_tool - Final DataFrame dtypes: {'NAME': dtype('O'), 'Total Population': dtype('int64'), 'Male Under 5': dtype('int64'), 'Male 65-66': dtype('int64'), 'Female 65-66': dtype('int64')}
+2025-11-01 20:37:46 - INFO - src.tools.chart_tool - Sample data (first 3 rows):
+            NAME  Total Population  Male Under 5  Male 65-66  Female 65-66
+0  United States         332387540       9688436     3713703       9251463
+2025-11-01 20:37:46 - INFO - src.tools.chart_tool - DataFrame index reset. Index range: 0 to 0
+2025-11-01 20:37:46 - INFO - src.tools.chart_tool - === End Data Extraction Debug ===
+
+2025-11-01 20:37:46 - INFO - src.tools.chart_tool - === Pre-Plot Validation ===
+2025-11-01 20:37:46 - INFO - src.tools.chart_tool - Chart type: bar
+2025-11-01 20:37:46 - INFO - src.tools.chart_tool - X column: 'NAME' | Y column: 'Total Population'
+2025-11-01 20:37:46 - INFO - src.tools.chart_tool - X data type: object
+2025-11-01 20:37:46 - INFO - src.tools.chart_tool - Y data type: int64
+2025-11-01 20:37:46 - INFO - src.tools.chart_tool - X data sample (first 5): ['United States']
+2025-11-01 20:37:46 - INFO - src.tools.chart_tool - Y data sample (first 5): [332387540]
+2025-11-01 20:37:46 - INFO - src.tools.chart_tool - Y data range: 332387540 to 332387540 (mean: 332387540.00)
+2025-11-01 20:37:46 - INFO - src.tools.chart_tool - DataFrame shape for plotting: (1, 5)
+2025-11-01 20:37:46 - INFO - src.tools.chart_tool - === End Pre-Plot Validation ===
+
+2025-11-01 20:37:46 - INFO - choreographer.browsers.chromium - Chromium init'ed with kwargs {}
+2025-11-01 20:37:46 - INFO - choreographer.browsers.chromium - Found chromium path: C:\Program Files\Google\Chrome\Application\chrome.exe
+2025-11-01 20:37:46 - INFO - choreographer.utils._tmpfile - Temp directory created: C:\Users\johnh\AppData\Local\Temp\tmpgqje3vpn.
+2025-11-01 20:37:46 - INFO - choreographer.browser_async - Opening browser.
+2025-11-01 20:37:46 - INFO - choreographer.utils._tmpfile - Temp directory created: C:\Users\johnh\AppData\Local\Temp\tmp8g8rj1lp.
+2025-11-01 20:37:46 - INFO - choreographer.browsers.chromium - Temporary directory at: C:\Users\johnh\AppData\Local\Temp\tmp8g8rj1lp
+2025-11-01 20:37:47 - INFO - kaleido.kaleido - Conforming 1 to file:///C:/Users/johnh/AppData/Local/Temp/tmpgqje3vpn/index.html
+2025-11-01 20:37:47 - INFO - kaleido.kaleido - Waiting on all navigates
+2025-11-01 20:37:49 - INFO - kaleido.kaleido - All navigates done, putting them all in queue.
+2025-11-01 20:37:49 - INFO - kaleido.kaleido - Getting tab from queue (has 1)
+2025-11-01 20:37:49 - INFO - kaleido.kaleido - Got D6B1
+2025-11-01 20:37:49 - INFO - kaleido._kaleido_tab - Processing Total_Population_by_NAME.png
+2025-11-01 20:37:49 - INFO - kaleido._kaleido_tab - Sending big command for Total_Population_by_NAME.png.
+2025-11-01 20:37:49 - INFO - kaleido._kaleido_tab - Sent big command for Total_Population_by_NAME.png.
+2025-11-01 20:37:49 - INFO - kaleido.kaleido - Reloading tab D6B1 before return.
+2025-11-01 20:37:49 - INFO - kaleido.kaleido - Putting tab D6B1 back (queue size: 0).
+2025-11-01 20:37:49 - INFO - kaleido.kaleido - Waiting for all cleanups to finish.
+2025-11-01 20:37:49 - INFO - kaleido.kaleido - Exiting Kaleido
+2025-11-01 20:37:49 - INFO - choreographer.browser_async - Closing browser.
+2025-11-01 20:37:49 - INFO - choreographer.browser_async - Closing browser.
+2025-11-01 20:37:49 - INFO - choreographer.utils._tmpfile - TemporaryDirectory.cleanup() worked.
+2025-11-01 20:37:49 - INFO - choreographer.utils._tmpfile - shutil.rmtree worked.
+2025-11-01 20:37:49 - INFO - kaleido.kaleido - Cancelling tasks.
+2025-11-01 20:37:49 - INFO - kaleido.kaleido - Exiting Kaleido/Choreo
+2025-11-01 20:37:49 - INFO - choreographer.utils._tmpfile - TemporaryDirectory.cleanup() worked.
+2025-11-01 20:37:49 - INFO - choreographer.utils._tmpfile - shutil.rmtree worked.
+2025-11-01 20:37:49 - INFO - choreographer.utils._tmpfile - TemporaryDirectory.cleanup() worked.
+2025-11-01 20:37:49 - INFO - choreographer.utils._tmpfile - shutil.rmtree worked.
+2025-11-01 20:37:49 - INFO - kaleido.kaleido - Cancelling tasks.
+2025-11-01 20:37:49 - INFO - kaleido.kaleido - Exiting Kaleido/Choreo
+2025-11-01 20:37:49 - INFO - src.tools.chart_tool - Chart saved to data\charts\chart_bar_20251101_203746.png
+2025-11-01 20:37:49 - INFO - src.tools.table_tool - Table saved to data\tables\us_population_age_summary_2023.csv
+2025-11-01 20:37:50 - INFO - src.nodes.memory - Writing user memory for user_id: test_user
+2025-11-01 20:37:50 - INFO - root - Status: PASS
