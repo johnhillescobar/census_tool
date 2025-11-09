@@ -5,7 +5,7 @@ Census API Utils
 import sys
 import os
 from pathlib import Path
-from typing import Dict, List, Any, Iterable, Optional, Tuple
+from typing import Dict, List, Any, Iterable, Optional
 import requests
 import time
 from urllib.parse import quote

@@ -10,4 +10,3 @@ def test_build_enumeration_filters_returns_geo_dicts():
     assert data["filters"]["for"] == "county:*"
     assert data["geo_for"] == {"county": "*"}
     assert data["geo_in"] == {"state": "06"}
-

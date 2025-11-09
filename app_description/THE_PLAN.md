@@ -209,7 +209,13 @@ for metadata in results["metadatas"]:
 }
 ```
 
-**Evidence of Success**: No "unknown variable" errors in test logs
+**Status**: COMPLETE ✅
+- `validate_variables()` helper queries `census_vars` with live variables.json fallback
+- `variable_validation` LangChain tool exposes validation/list actions
+- Agent toolset updated to include variable validation
+- Unit tests cover helper, tool, alternatives, and filtering
+
+**Evidence of Success**: `test_variable_validator.py` + `test_variable_validation_tool.py` pass; validation tool now available to agent.
 
 ---
 

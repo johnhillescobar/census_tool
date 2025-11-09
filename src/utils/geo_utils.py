@@ -21,7 +21,9 @@ def _parse_filter_clause(clause: Optional[str]) -> Dict[str, str]:
     return parsed
 
 
-def _mapping_entry(level: str, geo_for: str, *, geo_in: Optional[str] = None, note: str = "") -> Dict[str, Any]:
+def _mapping_entry(
+    level: str, geo_for: str, *, geo_in: Optional[str] = None, note: str = ""
+) -> Dict[str, Any]:
     filters: Dict[str, str] = {"for": geo_for}
     if geo_in:
         filters["in"] = geo_in
@@ -38,8 +40,12 @@ def _mapping_entry(level: str, geo_for: str, *, geo_in: Optional[str] = None, no
 # Geography mappings from hints to Census API filters
 GEOGRAPHY_MAPPINGS: Dict[str, Dict[str, Any]] = {
     # Place level (city/town)
-    "nyc": _mapping_entry("place", "place:51000", geo_in="state:36", note="New York City"),
-    "new_york_city": _mapping_entry("place", "place:51000", geo_in="state:36", note="New York City"),
+    "nyc": _mapping_entry(
+        "place", "place:51000", geo_in="state:36", note="New York City"
+    ),
+    "new_york_city": _mapping_entry(
+        "place", "place:51000", geo_in="state:36", note="New York City"
+    ),
     # State level
     "california": _mapping_entry("state", "state:06", note="California"),
     "ca": _mapping_entry("state", "state:06", note="California"),
@@ -49,7 +55,9 @@ GEOGRAPHY_MAPPINGS: Dict[str, Dict[str, Any]] = {
     "fl": _mapping_entry("state", "state:12", note="Florida"),
     "illinois": _mapping_entry("state", "state:17", note="Illinois"),
     "il": _mapping_entry("state", "state:17", note="Illinois"),
-    "chicago": _mapping_entry("place", "place:14000", geo_in="state:17", note="Chicago"),
+    "chicago": _mapping_entry(
+        "place", "place:14000", geo_in="state:17", note="Chicago"
+    ),
     # Nation level
     "nation": _mapping_entry("nation", "us:1", note="United States"),
     "national": _mapping_entry("nation", "us:1", note="United States"),

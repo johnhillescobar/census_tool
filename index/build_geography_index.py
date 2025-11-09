@@ -48,7 +48,9 @@ class ExampleRow:
     example_url: str
     notes: List[str]
 
+
 WORKSPACE_ROOT = Path(__file__).resolve().parents[1]
+
 
 def build_logger(log_dir: Path) -> logging.Logger:
     ts = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
@@ -199,7 +201,9 @@ def summarize_by_hierarchy(rows: List[ExampleRow]) -> Dict[Tuple[str, int, str],
     return grouped
 
 
-def build_document(hierarchy: str, ordering: List[str], level_code: str, example_url: str) -> str:
+def build_document(
+    hierarchy: str, ordering: List[str], level_code: str, example_url: str
+) -> str:
     ordering_clause = " → ".join(ordering) if ordering else "n/a"
     return (
         f"Geography hierarchy: {hierarchy}. "
@@ -209,7 +213,9 @@ def build_document(hierarchy: str, ordering: List[str], level_code: str, example
     )
 
 
-def build_metadata(dataset: str, year: int, hierarchy: str, level_code: str, examples: List[str]) -> Dict[str, object]:
+def build_metadata(
+    dataset: str, year: int, hierarchy: str, level_code: str, examples: List[str]
+) -> Dict[str, object]:
     parts = [part.strip() for part in hierarchy.split("›") if part.strip()]
     for_level = parts[-1] if parts else ""
     ordering_list = json.dumps(parts[:-1])

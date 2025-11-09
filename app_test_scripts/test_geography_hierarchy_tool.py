@@ -7,7 +7,10 @@ def test_geography_hierarchy_tool_returns_order(monkeypatch):
     # Mock helper to return ordering
     monkeypatch.setattr(
         "src.tools.geography_hierarchy_tool.get_hierarchy_ordering",
-        lambda dataset, year, for_level: ["metropolitan statistical area/micropolitan statistical area", "state (or part)"],
+        lambda dataset, year, for_level: [
+            "metropolitan statistical area/micropolitan statistical area",
+            "state (or part)",
+        ],
     )
 
     # Mock initialize client -> metadata
@@ -64,4 +67,3 @@ def test_geography_hierarchy_tool_handles_missing_order(monkeypatch):
     data = json.loads(output)
     assert data["ordered_parents"] == ["state"]
     assert data["warnings"]
-

@@ -18,4 +18,3 @@ def test_resolve_geography_hint_profile_default_augmented():
 def test_default_geo_contains_geo_dict():
     assert DEFAULT_GEO["geo_for"] == {"place": "51000"}
     assert DEFAULT_GEO["geo_in"] == {"state": "36"}
-

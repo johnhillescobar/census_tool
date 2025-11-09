@@ -23,7 +23,9 @@ class FakeClient:
 
 
 def test_build_metadata_serializes_ordering_list():
-    meta = build_metadata("acs/acs5", 2023, "state › county › tract", "140", ["https://example"])
+    meta = build_metadata(
+        "acs/acs5", 2023, "state › county › tract", "140", ["https://example"]
+    )
     assert isinstance(meta["ordering_list"], str)
     assert json.loads(meta["ordering_list"]) == ["state", "county"]
 

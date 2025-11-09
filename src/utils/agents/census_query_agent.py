@@ -31,6 +31,7 @@ from src.tools.table_tool import TableTool
 from src.tools.table_validation_tool import TableValidationTool
 from src.tools.pattern_builder_tool import PatternBuilderTool
 from src.tools.area_resolution_tool import AreaResolutionTool
+from src.tools.variable_validation_tool import VariableValidationTool
 
 load_dotenv()
 
@@ -73,6 +74,7 @@ class CensusQueryAgent:
             AreaResolutionTool(),
             ChartTool(),
             GeographyHierarchyTool(),
+            VariableValidationTool(),
         ]
 
         # Create agent with compatibility for different LangChain versions

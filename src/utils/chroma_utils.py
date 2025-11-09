@@ -75,11 +75,13 @@ def get_chroma_collection_tables(
         }
     return collection
 
+
 def _normalize_geo_token(token: str) -> str:
     if not token:
         return token
     key = token.strip().lower()
     return _GEO_TOKEN_CANONICAL.get(key, token.strip())
+
 
 @lru_cache(maxsize=512)
 def get_hierarchy_ordering(dataset: str, year: int, for_level: str) -> List[str]:
@@ -123,7 +125,7 @@ def get_hierarchy_ordering(dataset: str, year: int, for_level: str) -> List[str]
     except json.JSONDecodeError:
         return []
 
-    return [ _normalize_geo_token(token) for token in ordering ]
+    return [_normalize_geo_token(token) for token in ordering]
 
 
 def validate_and_fix_geo_params(

@@ -1,6 +1,5 @@
 import json
 
-import pytest
 
 from src.utils import chroma_utils
 
@@ -77,4 +76,3 @@ def test_validate_and_fix_geo_params_orders_and_normalizes(monkeypatch):
         ("state", "06"),
         ("metropolitan statistical area/micropolitan statistical area", "35620"),
     ]
-

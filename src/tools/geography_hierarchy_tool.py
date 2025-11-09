@@ -17,12 +17,19 @@ logger = logging.getLogger(__name__)
 class GeographyHierarchyInput(BaseModel):
     """Input schema for geography hierarchy tool."""
 
-    action: str = Field(default="get_hierarchy_ordering", description="Currently only get_hierarchy_ordering is supported.")
+    action: str = Field(
+        default="get_hierarchy_ordering",
+        description="Currently only get_hierarchy_ordering is supported.",
+    )
     dataset: str = Field(..., description="Dataset path, e.g. acs/acs5")
     year: int = Field(..., description="Census year")
     for_level: str = Field(..., description="Target geography level (e.g. county)")
-    parent_hint: Optional[List[str]] = Field(default=None, description="Optional expected parent ordering list")
-    include_metadata: bool = Field(default=False, description="Return raw metadata payload when True")
+    parent_hint: Optional[List[str]] = Field(
+        default=None, description="Optional expected parent ordering list"
+    )
+    include_metadata: bool = Field(
+        default=False, description="Return raw metadata payload when True"
+    )
 
 
 class GeographyHierarchyTool(BaseTool):
@@ -48,7 +55,9 @@ class GeographyHierarchyTool(BaseTool):
 
     def _run(self, tool_input: str) -> str:
         try:
-            params = json.loads(tool_input) if isinstance(tool_input, str) else tool_input
+            params = (
+                json.loads(tool_input) if isinstance(tool_input, str) else tool_input
+            )
         except json.JSONDecodeError as exc:
             return f"Error: Invalid JSON input - {exc}"
 
@@ -60,7 +69,9 @@ class GeographyHierarchyTool(BaseTool):
         if payload.action != "get_hierarchy_ordering":
             return f"Error: Unsupported action '{payload.action}'"
 
-        ordered_parents = get_hierarchy_ordering(payload.dataset, payload.year, payload.for_level)
+        ordered_parents = get_hierarchy_ordering(
+            payload.dataset, payload.year, payload.for_level
+        )
 
         warnings: List[str] = []
         metadata = None
@@ -78,7 +89,9 @@ class GeographyHierarchyTool(BaseTool):
                 warnings.append("Unable to connect to Chroma for metadata lookup.")
             else:
                 try:
-                    collection = client.get_collection(CHROMA_GEOGRAPHY_HIERARCHY_COLLECTION_NAME)
+                    collection = client.get_collection(
+                        CHROMA_GEOGRAPHY_HIERARCHY_COLLECTION_NAME
+                    )
                     result = collection.get(
                         where={
                             "$and": [
@@ -121,4 +134,3 @@ class GeographyHierarchyTool(BaseTool):
 
 
 __all__ = ["GeographyHierarchyTool"]
-
