@@ -98,6 +98,9 @@ CHROMA_GEOGRAPHY_HIERARCHY_COLLECTION_NAME = "census_geography_hierarchies"
 - Add `validate_and_fix_geo_params()` to restructure geo_for/geo_in correctly
 - Apply hierarchy ordering to all geography builders
 - Add geography token mapping (nation→us, cbsa→metropolitan statistical area/micropolitan statistical area)
+- ✅ Shared helper `build_geo_filters()` now routes all URL builders through hierarchy-aware ordering
+- ✅ Geography producers (geo utils mappings, enumeration detector, registry enumeration) now emit canonical dictionaries plus pre-encoded filters
+- ✅ Unit coverage added for hierarchy lookup (`test_chroma_utils.py`), geography hint resolution (`test_geo_utils.py`), and enumeration filters (`test_enumeration_detector.py`)
 
 **Evidence of Success**: Test URLs match official examples exactly, no 400 errors on geography syntax
 
@@ -134,7 +137,12 @@ CHROMA_GEOGRAPHY_HIERARCHY_COLLECTION_NAME = "census_geography_hierarchies"
 }
 ```
 
-**Evidence of Success**: Agent uses tool before API calls, constructs correct URLs
+**Status**: COMPLETE ✅
+- Implemented `src/tools/geography_hierarchy_tool.py` invoking `get_hierarchy_ordering`
+- Tool registered inside `CensusQueryAgent`
+- Added unit tests (`test_geography_hierarchy_tool.py`)
+
+**Evidence of Success**: Agent can query `geography_hierarchy` tool to confirm parent ordering (e.g., county → metro division → metro area → state (or part)) before building URLs.
 
 ---
 

@@ -5,9 +5,10 @@ Census API Utils
 import sys
 import os
 from pathlib import Path
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Iterable, Optional, Tuple
 import requests
 import time
+from urllib.parse import quote
 from dotenv import load_dotenv
 import logging
 
@@ -16,6 +17,7 @@ from config import (
     CENSUS_API_MAX_RETRIES,
     CENSUS_API_BACKOFF_FACTOR,
 )
+from src.utils.chroma_utils import validate_and_fix_geo_params
 
 # Load environment variables
 load_dotenv()
@@ -23,6 +25,53 @@ load_dotenv()
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 logger = logging.getLogger(__name__)
+
+_GEO_SAFE_CHARS = ":/()*"
+
+
+def _combine_geo_in(
+    geo_in: Optional[Dict[str, str]],
+    chained_in: Optional[Iterable[Dict[str, str]]],
+) -> Dict[str, str]:
+    combined: Dict[str, str] = {} if geo_in is None else dict(geo_in)
+    if chained_in:
+        for in_dict in chained_in:
+            if isinstance(in_dict, dict):
+                combined.update(in_dict)
+    return combined
+
+
+def build_geo_filters(
+    dataset: str,
+    year: int,
+    geo_for: Dict[str, str],
+    geo_in: Optional[Dict[str, str]] = None,
+    geo_in_chained: Optional[Iterable[Dict[str, str]]] = None,
+) -> Dict[str, str]:
+    """
+    Produce encoded `for` / `in` parameters using hierarchy ordering.
+    """
+    combined_in = _combine_geo_in(geo_in, geo_in_chained)
+    for_token, for_value, ordered_in = validate_and_fix_geo_params(
+        dataset=dataset,
+        year=year,
+        geo_for=geo_for,
+        geo_in=combined_in,
+    )
+
+    for_clause = f"{for_token}:{for_value}"
+    encoded_for = quote(for_clause, safe=_GEO_SAFE_CHARS)
+
+    encoded_in = None
+    if ordered_in:
+        in_clause = " ".join(f"{token}:{value}" for token, value in ordered_in)
+        encoded_in = quote(in_clause, safe=_GEO_SAFE_CHARS)
+
+    filters: Dict[str, str] = {"for": encoded_for}
+    if encoded_in:
+        filters["in"] = encoded_in
+
+    return filters
 
 
 def fetch_census_data(
@@ -112,14 +161,16 @@ def build_census_url(
         # Regular variable list
         variables_str = ",".join(variables)
 
-    # Add the geography filters - handle complex patterns from CENSUS_DISCUSSION.md
+    # Add the geography filters - assume values already encoded by build_geo_filters
     geo_filters = []
     for key, value in geo.get("filters", {}).items():
-        # URL encode complex geography names like "metropolitan statistical area/micropolitan statistical area"
-        import urllib.parse
-
-        encoded_value = urllib.parse.quote(str(value))
-        geo_filters.append(f"{key}={encoded_value}")
+        if value is None:
+            continue
+        if isinstance(value, str) and " " in value and "%" not in value:
+            encoded = quote(value, safe=_GEO_SAFE_CHARS)
+        else:
+            encoded = value
+        geo_filters.append(f"{key}={encoded}")
 
     # Add Census API key if available
     census_api_key = os.getenv("CENSUS_API_KEY")
@@ -199,9 +250,16 @@ def build_census_url_from_metadata(
         get_param = ",".join(variables)
 
     # Build the geography filters
+    filters = geo.get("filters", {})
     geo_filters = []
-    for key, value in geo.get("filters", {}).items():
-        geo_filters.append(f"{key}={value}")
+    for key, value in filters.items():
+        if value is None:
+            continue
+        if isinstance(value, str) and " " in value and "%" not in value:
+            encoded = quote(value, safe=_GEO_SAFE_CHARS)
+        else:
+            encoded = value
+        geo_filters.append(f"{key}={encoded}")
 
     # Add Census API key if available
     census_api_key = os.getenv("CENSUS_API_KEY")

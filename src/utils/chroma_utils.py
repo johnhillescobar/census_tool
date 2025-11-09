@@ -97,9 +97,11 @@ def get_hierarchy_ordering(dataset: str, year: int, for_level: str) -> List[str]
         collection = client.get_collection(CHROMA_GEOGRAPHY_HIERARCHY_COLLECTION_NAME)
         result = collection.get(
             where={
-                "dataset": dataset,
-                "year": year,
-                "for_level": for_level,
+                "$and": [
+                    {"dataset": {"$eq": dataset}},
+                    {"year": {"$eq": year}},
+                    {"for_level": {"$eq": for_level}},
+                ]
             },
             include=["metadatas"],
         )

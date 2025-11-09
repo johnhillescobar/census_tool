@@ -23,6 +23,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from src.llm.config import LLM_CONFIG, AGENT_PROMPT_TEMPLATE
 from src.llm.factory import create_llm
 from src.tools.geography_discovery_tool import GeographyDiscoveryTool
+from src.tools.geography_hierarchy_tool import GeographyHierarchyTool
 from src.tools.table_search_tool import TableSearchTool
 from src.tools.census_api_tool import CensusAPITool
 from src.tools.chart_tool import ChartTool
@@ -71,6 +72,7 @@ class CensusQueryAgent:
             PatternBuilderTool(),
             AreaResolutionTool(),
             ChartTool(),
+            GeographyHierarchyTool(),
         ]
 
         # Create agent with compatibility for different LangChain versions

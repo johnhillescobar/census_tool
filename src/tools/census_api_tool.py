@@ -6,7 +6,7 @@ from langchain_core.tools import BaseTool
 from pydantic import ConfigDict
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from src.utils.census_api_utils import fetch_census_data
+from src.utils.census_api_utils import fetch_census_data, build_geo_filters
 
 
 logger = logging.getLogger(__name__)
@@ -67,34 +67,26 @@ class CensusAPITool(BaseTool):
 
         logger.info(f"Fetching Census data: {dataset}/{year}")
 
+        def _coerce_geo_dict(raw_value):
+            if isinstance(raw_value, dict):
+                return raw_value
+            if isinstance(raw_value, str):
+                clauses = {}
+                for clause in raw_value.split():
+                    token, _, val = clause.partition(":")
+                    if val:
+                        clauses[token] = val
+                return clauses
+            return {}
+
         try:
-            # Build geo parameter in the correct format for fetch_census_data
-            geo_filters = {}
-
-            # Convert geo_for dict to Census API format - handle complex cases
-            if geo_for:
-                for_clauses = []
-                for key, value in geo_for.items():
-                    for_clauses.append(f"{key}:{value}")
-                geo_filters["for"] = " ".join(for_clauses)
-
-            # Handle complex geo_in cases - support chained in= clauses
-            in_clauses = []
-
-            # Standard geo_in dict
-            if geo_in:
-                for key, value in geo_in.items():
-                    in_clauses.append(f"{key}:{value}")
-
-            # Handle chained geo_in for complex hierarchies (e.g., state within CBSA within division)
-            if geo_in_chained and isinstance(geo_in_chained, list):
-                for in_dict in geo_in_chained:
-                    if isinstance(in_dict, dict):
-                        for key, value in in_dict.items():
-                            in_clauses.append(f"{key}:{value}")
-
-            if in_clauses:
-                geo_filters["in"] = " ".join(in_clauses)
+            geo_filters = build_geo_filters(
+                dataset=dataset,
+                year=year,
+                geo_for=_coerce_geo_dict(geo_for),
+                geo_in=_coerce_geo_dict(geo_in),
+                geo_in_chained=geo_in_chained,
+            )
 
             geo_params = {"filters": geo_filters}
 

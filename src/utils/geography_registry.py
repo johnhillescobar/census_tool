@@ -11,6 +11,8 @@ import pickle
 import urllib.parse
 from datetime import datetime, timedelta
 
+from src.utils.census_api_utils import build_geo_filters
+
 logger = logging.getLogger(__name__)
 
 
@@ -167,15 +169,18 @@ class GeographyRegistry:
             base_url = f"https://api.census.gov/data/{year}/{dataset}"
             params = ["get=NAME,GEO_ID"]
 
-            # Add parent geography filter
-            geo_filter = f"for={urllib.parse.quote(geo_token)}:*"
+            filters = build_geo_filters(
+                dataset=dataset,
+                year=year,
+                geo_for={geo_token: "*"},
+                geo_in=parent_geo or {},
+            )
 
-            # Add parent geography filter if provided
-            if parent_geo:
-                for key, value in parent_geo.items():
-                    geo_filter += f"&in={key}:{value}"
+            params.append(f"for={filters['for']}")
+            if filters.get("in"):
+                params.append(f"in={filters['in']}")
 
-            url = f"{base_url}?{'&'.join(params)}&{geo_filter}"
+            url = f"{base_url}?{'&'.join(params)}"
 
             logger.debug(f"Calling Census API URL: {url}")
 
