@@ -131,8 +131,6 @@ class GeographyRegistry:
             {'Los Angeles County, California': {'code': '037', ...}, ...}
         """
 
-        parent_geo = parent_geo or self._infer_parent_geo(friendly_name)
-
         # Normalize geography parameters and enforce hierarchy ordering
         for_token, for_value, ordered_in = validate_and_fix_geo_params(
             dataset=dataset,
@@ -407,6 +405,9 @@ class GeographyRegistry:
             >>> registry.find_area_code("Los Angeles", "county", "acs/acs5", 2023, {"state": "06"})
             {'code': '037', 'geo_id': '0500000US06037', 'full_name': 'Los Angeles County, California', 'confidence': 0.95}
         """
+
+        if parent_geo is None:
+            parent_geo = self._infer_parent_geo(friendly_name) or {}
 
         # Get all areas at this level
         areas = self.enumerate_areas(dataset, year, geo_token, parent_geo)

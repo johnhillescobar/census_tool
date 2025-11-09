@@ -14,9 +14,25 @@ project_root = Path(__file__).parent
 sys.path.append(str(project_root))
 
 # Set up logging
-logging.basicConfig(
-    level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s"
-)
+LOG_FORMAT = "%(asctime)s - %(levelname)s - %(name)s - %(message)s"
+logs_dir = project_root / "logs"
+logs_dir.mkdir(exist_ok=True)
+debug_log_path = logs_dir / "cli_debug.log"
+
+console_handler = logging.StreamHandler()
+console_handler.setLevel(logging.INFO)
+console_handler.setFormatter(logging.Formatter(LOG_FORMAT))
+
+file_handler = logging.FileHandler(debug_log_path, mode="a", encoding="utf-8")
+file_handler.setLevel(logging.DEBUG)
+file_handler.setFormatter(logging.Formatter(LOG_FORMAT))
+
+root_logger = logging.getLogger()
+root_logger.setLevel(logging.DEBUG)
+root_logger.handlers.clear()
+root_logger.addHandler(console_handler)
+root_logger.addHandler(file_handler)
+
 logger = logging.getLogger(__name__)
 
 load_dotenv()

@@ -91,7 +91,8 @@ class CensusQueryAgent:
             agent=self.agent,
             tools=self.tools,
             verbose=True,
-            max_iterations=15,
+            max_iterations=30,
+            max_execution_time=180,
             handle_parsing_errors="Check your output format. You must output: 'Thought: I now know the final answer' followed by 'Final Answer: {valid JSON on single line}'",
         )
 
@@ -117,6 +118,10 @@ Intent: {intent}"""
         Simplified to 2 methods: direct parse or prefix extraction.
         """
         output = result.get("output", "")
+        if self._did_reach_iteration_limit(result, output):
+            return self._build_iteration_limit_response(result, output)
+        if not output:
+            return self._build_empty_output_response(result)
         logger.info(f"Parsing agent output (length: {len(output)} chars)")
 
         # Method 1: Direct JSON parse (when AgentExecutor strips prefix)
@@ -139,6 +144,8 @@ Intent: {intent}"""
             "data_summary": "Parsing failed - see logs",
             "reasoning_trace": f"Steps: {len(intermediate_steps)}",
             "answer_text": "Agent execution completed but output parsing failed",
+            "charts_needed": [],
+            "tables_needed": [],
             "footnotes": [],
         }
 
@@ -171,6 +178,121 @@ Intent: {intent}"""
             logger.error(
                 f"[PARSE DEBUG] Direct parse unexpected error: {type(e).__name__}: {str(e)[:300]}"
             )
+        return None
+
+    def _build_empty_output_response(self, result: Dict) -> Dict[str, Any]:
+        intermediate_steps = result.get("intermediate_steps", []) or []
+        step_count = len(intermediate_steps)
+
+        last_tool = None
+        last_observation = None
+        if intermediate_steps:
+            last_step = intermediate_steps[-1]
+            if isinstance(last_step, (tuple, list)) and len(last_step) == 2:
+                action, observation = last_step
+                last_tool = getattr(action, "tool", None)
+                last_observation = observation
+
+        summary_parts = [
+            f"The agent completed {step_count} tool steps but did not emit a final answer payload."
+        ]
+        if last_tool:
+            summary_parts.append(f"Last tool invoked: {last_tool}.")
+        if last_observation:
+            summary_parts.append("Review the session log for the final tool output.")
+
+        data_summary = " ".join(summary_parts)
+        answer_text = (
+            "I gathered intermediate results but the response formatter did not run. "
+            "Please rerun the question and I will try again."
+        )
+
+        census_data_payload: Dict[str, Any] = {"success": False, "error": "empty_output"}
+        observation_dict = self._coerce_observation_to_dict(last_observation)
+        if observation_dict and isinstance(observation_dict, dict):
+            census_data_payload = observation_dict
+
+        return {
+            "census_data": census_data_payload,
+            "data_summary": data_summary,
+            "reasoning_trace": f"No final output after {step_count} steps.",
+            "answer_text": answer_text,
+            "charts_needed": [],
+            "tables_needed": [],
+            "footnotes": [],
+        }
+
+    def _did_reach_iteration_limit(self, result: Dict, output: str) -> bool:
+        if not output:
+            return False
+
+        text = output.lower()
+        if "agent stopped due to iteration limit" in text:
+            return True
+        if "agent stopped due to time limit" in text:
+            return True
+
+        error = result.get("error")
+        if isinstance(error, str):
+            lowered = error.lower()
+            if "iteration limit" in lowered or "time limit" in lowered:
+                return True
+        return False
+
+    def _build_iteration_limit_response(self, result: Dict, output: str) -> Dict[str, Any]:
+        intermediate_steps = result.get("intermediate_steps", []) or []
+        step_count = len(intermediate_steps)
+
+        last_tool = None
+        last_observation = None
+        if intermediate_steps:
+            last_step = intermediate_steps[-1]
+            if isinstance(last_step, (tuple, list)) and len(last_step) == 2:
+                action, observation = last_step
+                last_tool = getattr(action, "tool", None)
+                last_observation = observation
+
+        summary_parts = [
+            f"Stopped after {step_count} steps because the agent hit its iteration limit."
+        ]
+        if last_tool:
+            summary_parts.append(f"Last tool invoked: {last_tool}.")
+        if last_observation:
+            summary_parts.append("Review the session log for the final tool output.")
+
+        data_summary = " ".join(summary_parts)
+        answer_text = (
+            "I gathered data but reached the reasoning step limit before formatting the final answer. "
+            "Please rerun the question or adjust it and I will try again."
+        )
+
+        census_data_payload: Dict[str, Any] = {"success": False, "error": "iteration_limit"}
+        observation_dict = self._coerce_observation_to_dict(last_observation)
+        if observation_dict and isinstance(observation_dict, dict):
+            census_data_payload = observation_dict
+
+        return {
+            "census_data": census_data_payload,
+            "data_summary": data_summary,
+            "reasoning_trace": f"Iteration limit reached after {step_count} steps.",
+            "answer_text": answer_text,
+            "charts_needed": [],
+            "tables_needed": [],
+            "footnotes": [],
+        }
+
+    def _coerce_observation_to_dict(self, observation: Any) -> Optional[Dict[str, Any]]:
+        if isinstance(observation, dict):
+            return observation
+        if isinstance(observation, str):
+            text = observation.strip()
+            if text.startswith("{") and text.endswith("}"):
+                try:
+                    parsed = json.loads(text)
+                    if isinstance(parsed, dict):
+                        return parsed
+                except json.JSONDecodeError:
+                    return None
         return None
 
     def _extract_after_final_answer(self, output: str) -> Optional[Dict]:
