@@ -22,6 +22,8 @@ from langchain_core.runnables import RunnableConfig
 # Add project root to path
 project_root = Path(__file__).parent
 sys.path.append(str(project_root))
+streamlit_logs_dir = project_root / "logs" / "streamlit_logs"
+streamlit_logs_dir.mkdir(parents=True, exist_ok=True)
 
 # Set up logging
 logging.basicConfig(level=logging.DEBUG)
@@ -74,7 +76,11 @@ def initialize_session_state():
 
         # Start new logger for current user
         try:
-            session_logger = SessionLogger(st.session_state.user_id)
+            session_logger = SessionLogger(
+                st.session_state.user_id,
+                log_dir=streamlit_logs_dir,
+                filename_prefix=f"streamlit_{st.session_state.user_id}",
+            )
             log_file = session_logger.start()
             st.session_state.session_logger = session_logger
             st.session_state.logged_user_id = st.session_state.user_id

@@ -40,11 +40,19 @@ class SessionLogger:
         logger.stop()
     """
 
-    def __init__(self, user_id: str):
+    def __init__(
+        self,
+        user_id: str,
+        *,
+        log_dir: Path | None = None,
+        filename_prefix: str | None = None,
+    ):
         self.user_id = user_id
         self.timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        self.log_dir = Path("logs")
-        self.log_file = self.log_dir / f"{user_id}_{self.timestamp}.txt"
+        self.log_dir = Path(log_dir) if log_dir else Path("logs")
+        prefix = filename_prefix or user_id
+        self.filename_prefix = prefix
+        self.log_file = self.log_dir / f"{self.filename_prefix}_{self.timestamp}.txt"
         self.file_handler = None
         self.stdout_file = None
         self.stdout_logger = None

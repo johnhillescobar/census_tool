@@ -12,6 +12,9 @@ from src.utils.session_logger import SessionLogger
 logging.basicConfig(level=logging.DEBUG, format="%(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
+TEST_LOG_DIR = Path("logs/test_logs")
+TEST_LOG_DIR.mkdir(parents=True, exist_ok=True)
+
 
 def test_basic_logging():
     """Test basic session logging with different log levels and print statements"""
@@ -20,7 +23,11 @@ def test_basic_logging():
     print("=" * 50)
 
     user_id = "test_user"
-    session_logger = SessionLogger(user_id)
+    session_logger = SessionLogger(
+        user_id,
+        log_dir=TEST_LOG_DIR,
+        filename_prefix=f"test_{user_id}",
+    )
 
     print(f"Starting session for user: {user_id}")
     log_file = session_logger.start()
@@ -86,7 +93,11 @@ def test_multiple_sessions():
         print(f"\nStarting session {i + 1}...")
         time.sleep(1.1)  # Ensure different timestamps
 
-        session_logger = SessionLogger(user_id)
+        session_logger = SessionLogger(
+            user_id,
+            log_dir=TEST_LOG_DIR,
+            filename_prefix=f"test_{user_id}",
+        )
         log_file = session_logger.start()
 
         print(f"Session {i + 1}: This is a test message")
@@ -117,7 +128,11 @@ def test_different_users():
     log_files = {}
 
     for user in users:
-        session_logger = SessionLogger(user)
+        session_logger = SessionLogger(
+            user,
+            log_dir=TEST_LOG_DIR,
+            filename_prefix=f"test_{user}",
+        )
         log_file = session_logger.start()
 
         print(f"User {user}: Hello from {user}!")
@@ -148,12 +163,11 @@ def test_logs_directory():
     print("TEST 4: Log Directory Structure")
     print("=" * 50)
 
-    logs_dir = Path("logs")
-    print(f"Expected directory: {logs_dir.absolute()}")
-    print(f"Directory exists: {'✅' if logs_dir.exists() else '❌'}")
+    print(f"Expected directory: {TEST_LOG_DIR.absolute()}")
+    print(f"Directory exists: {'✅' if TEST_LOG_DIR.exists() else '❌'}")
 
-    if logs_dir.exists():
-        log_files = list(logs_dir.glob("*.txt"))
+    if TEST_LOG_DIR.exists():
+        log_files = list(TEST_LOG_DIR.glob("*.txt"))
         print(f"\nLog files in directory: {len(log_files)}")
         for log_file in sorted(log_files)[-5:]:  # Show last 5
             print(f"  - {log_file.name}")

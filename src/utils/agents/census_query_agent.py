@@ -69,7 +69,7 @@ class CensusQueryAgent:
             TableSearchTool(),
             CensusAPITool(),
             TableTool(),
-            TableValidationTool(),
+            # TableValidationTool(),  # REMOVED - validation happens at API level
             PatternBuilderTool(),
             AreaResolutionTool(),
             ChartTool(),
@@ -111,6 +111,44 @@ Intent: {intent}"""
         )
 
         return self._parse_solution(result)
+
+    def _did_reach_iteration_limit(self, result: Dict, output: str) -> bool:
+        """Check if agent exhausted iterations or time without completing."""
+        intermediate_steps = result.get("intermediate_steps", [])
+        
+        # Hit max_iterations (30) or max_execution_time (180s)
+        if len(intermediate_steps) >= 28:  # Close to limit
+            return True
+        
+        # Check for repetitive tool calls (stuck in loop)
+        if len(intermediate_steps) >= 10:
+            recent_tools = [step[0].tool for step in intermediate_steps[-10:]]
+            # If same tool called 5+ times in last 10 steps, likely stuck
+            if any(recent_tools.count(tool) >= 5 for tool in set(recent_tools)):
+                return True
+        
+        return False
+
+    def _build_iteration_limit_response(self, result: Dict, output: str) -> Dict:
+        """Build error response when agent gets stuck."""
+        intermediate_steps = result.get("intermediate_steps", [])
+        recent_actions = [
+            f"{step[0].tool}({step[0].tool_input[:50]}...)" 
+            for step in intermediate_steps[-5:]
+        ]
+        
+        return {
+            "census_data": {"success": False, "data": []},
+            "data_summary": "Agent exceeded iteration limit",
+            "reasoning_trace": f"Agent made {len(intermediate_steps)} attempts. Recent: {recent_actions}",
+            "answer_text": "I was unable to complete this query due to repeated validation failures. The Census API may not support this specific combination of table, geography, and year. Please try rephrasing your question or requesting a different geography level (e.g., state instead of county).",
+            "charts_needed": [],
+            "tables_needed": [],
+            "footnotes": [
+                "This query exceeded the maximum number of processing attempts.",
+                "Try simplifying your request or using a more common geography level."
+            ]
+        }
 
     def _parse_solution(self, result: Dict) -> Dict:
         """

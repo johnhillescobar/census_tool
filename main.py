@@ -1,5 +1,6 @@
 import sys
 from pathlib import Path
+from datetime import datetime
 import logging
 from dotenv import load_dotenv
 
@@ -17,7 +18,10 @@ sys.path.append(str(project_root))
 LOG_FORMAT = "%(asctime)s - %(levelname)s - %(name)s - %(message)s"
 logs_dir = project_root / "logs"
 logs_dir.mkdir(exist_ok=True)
-debug_log_path = logs_dir / "cli_debug.log"
+cli_logs_dir = logs_dir / "cli_logs"
+cli_logs_dir.mkdir(parents=True, exist_ok=True)
+cli_timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+debug_log_path = cli_logs_dir / f"cli_log_{cli_timestamp}.txt"
 
 console_handler = logging.StreamHandler()
 console_handler.setLevel(logging.INFO)
@@ -57,7 +61,11 @@ def main():
             thread_id = "main"
 
         # Initialize session logger to capture all output
-        session_logger = SessionLogger(user_id)
+        session_logger = SessionLogger(
+            user_id,
+            log_dir=cli_logs_dir,
+            filename_prefix=f"cli_session_{user_id}",
+        )
         log_file = session_logger.start()
 
         print(f"\n👤 User: {user_id}")

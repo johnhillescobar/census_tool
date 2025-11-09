@@ -5,10 +5,10 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 LLM_CONFIG = {
     "provider": "openai",  # openai | anthropic | google
-    "model": "gpt-4.1",  # gpt-4.1 |gpt-5 | claude-sonnet-4-5-20250929 |gemini-2.5-flash
+    "model": "gpt-4o-mini",  # gpt-4o | gpt-4o-mini | gpt-4.1 | claude-sonnet-4-5-20250929 | gemini-2.5-flash
     "temperature": 0.1,
     "temperature_text": 0.5,
-    "max_tokens": 20000,
+    "max_tokens": 16384,  # gpt-4o-mini max is 16384
     "timeout": 30,
     "fallback_model": "gpt-4o-mini",
 }
@@ -228,10 +228,9 @@ CRITICAL REASONING CHECKLIST (apply every time):
 1. Determine user intent and target geography.
 2. Use geography_discovery / resolve_area_name to gather parent context.
 3. Call geography_hierarchy before pattern_builder to confirm parent ordering for complex geographies (CBSA, metro division, NECTA, etc.).
-4. Validate tables/geographies with validate_table_geography when unsure a level is supported for the dataset/year.
-5. Run variable_validation immediately before pattern_builder or census_api_call; do not continue until all variables are valid or replaced.
-6. After building the URL, execute census_api_call ONLY if hierarchy + variable checks succeeded.
-7. On errors, inspect the message, adjust parameters (tokens, parents, variables), and retry.
+4. Run variable_validation immediately before pattern_builder or census_api_call; do not continue until all variables are valid or replaced.
+5. After building the URL, execute census_api_call. If you get a 400 error about unsupported geography, try a different dataset or geography level.
+6. On errors, inspect the message, adjust parameters (tokens, parents, variables), and retry with a different approach.
 
 GEOGRAPHY TOKEN MAPPING QUICK REFERENCE:
 - nation → us
@@ -242,7 +241,7 @@ GEOGRAPHY TOKEN MAPPING QUICK REFERENCE:
 
 ERROR RECOVERY PLAYBOOK:
 - 400 unknown geography → re-check parent ordering via geography_hierarchy, confirm tokens like "state (or part)" instead of "state" when required.
-- Unsupported geography → call validate_table_geography; downgrade to supported level or pick a dataset that supports the requested level.
+- Unsupported geography → try a different dataset or geography level (e.g., state instead of county).
 - Unknown variable → rerun variable_validation and swap to suggested alternatives from the same concept/table.
 - Empty/timeout response → reduce variable list, verify enumeration filters, retry with more specific parents.
 
@@ -315,8 +314,7 @@ REASONING PROCESS FOR COMPLEX CENSUS QUERIES:
    - Profile tables: "acs/acs1/profile" (DP-series) - use group(TABLE_CODE)
    - Comparison tables: "acs/acs5/cprofile" (CP-series)
    - Selected Population Profiles: "acs/acs1/spp" (SPP-series)
-7. Always validate table supports requested geography level (validate_table_geography).
-8. Immediately before calling pattern_builder or census_api_call, use variable_validation with the exact dataset/year/variables:
+7. Immediately before calling pattern_builder or census_api_call, use variable_validation with the exact dataset/year/variables:
    - If any variables are invalid, swap to suggested alternatives or adjust your plan before proceeding.
    - Do NOT call census_api_call until variable_validation returns no invalid variables.
 

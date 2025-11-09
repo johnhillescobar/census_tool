@@ -16,9 +16,9 @@
   "preferred_dataset": "Unknown",
   "var_aliases": {},
   "usage_stats": {
-    "total_queries": 76,
-    "success_queries": 76,
-    "last_query_date": "2025-11-01T21:06:10.280200"
+    "total_queries": 223,
+    "success_queries": 223,
+    "last_query_date": "2025-11-09T17:47:39.335498"
   },
   "history": [
     {
@@ -1112,8 +1112,1478 @@
       "plan_summary": "",
       "answer_type": "Unknown",
       "success": true
+    },
+    {
+      "timestamp": "2025-11-09T14:47:21.824999",
+      "user_id": "test_user",
+      "question": "What's the total population/age summary for the U.S. in 2023?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T14:47:52.755088",
+      "user_id": "test_user",
+      "question": "What's the median household income by state in 2022?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T14:48:47.361354",
+      "user_id": "test_user",
+      "question": "Show total population for all California counties in 2023.",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T14:49:39.192295",
+      "user_id": "test_user",
+      "question": "Give me the labor force comparison profile for Florida (2018 vs 2023).",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T14:50:08.543012",
+      "user_id": "test_user",
+      "question": "What are the housing characteristics for Chicago in 2022?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T14:50:27.918852",
+      "user_id": "test_user",
+      "question": "What languages are spoken at home across Massachusetts counties in 2023?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T14:50:55.847602",
+      "user_id": "test_user",
+      "question": "What's the median gross rent in ZIP Code 60601 (2023)?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T14:51:19.007466",
+      "user_id": "test_user",
+      "question": "Show poverty by age (full B17001) for all states (2021).",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T14:51:27.036430",
+      "user_id": "test_user",
+      "question": "List all available ACS 2023 5-year detail groups.",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T14:52:11.641607",
+      "user_id": "test_user",
+      "question": "List all variables and labels in ACS 2023 5-year detail.",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T14:54:41.596451",
+      "user_id": "test_user",
+      "question": "List all metro and micropolitan areas for 2023.",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T14:54:50.093414",
+      "user_id": "test_user",
+      "question": "List all metropolitan divisions for 2023.",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T14:55:18.184425",
+      "user_id": "test_user",
+      "question": "List all combined statistical areas (CSAs) for 2023.",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T14:55:28.030969",
+      "user_id": "test_user",
+      "question": "List all New England City and Town Areas (NECTAs).",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T14:56:23.648705",
+      "user_id": "test_user",
+      "question": "List all Urban Areas for 2023.",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T14:56:39.299890",
+      "user_id": "test_user",
+      "question": "Which counties are in CBSA 35620?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T14:56:48.189024",
+      "user_id": "test_user",
+      "question": "Which states overlap CBSA 35620?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T14:57:07.569526",
+      "user_id": "test_user",
+      "question": "Which counties are in Metro Division 35614?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T14:57:53.427680",
+      "user_id": "test_user",
+      "question": "Show tract-level population for Los Angeles County, CA (2023).",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T14:58:08.920067",
+      "user_id": "test_user",
+      "question": "Show block-group median rent in Manhattan tract 003100 (2023).",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T14:59:35.518560",
+      "user_id": "test_user",
+      "question": "Population for all Arizona places (2022).",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T15:00:01.107365",
+      "user_id": "test_user",
+      "question": "Population for Massachusetts county subdivisions (2021).",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T15:00:36.071698",
+      "user_id": "test_user",
+      "question": "List all tracts within the Navajo Nation.",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T15:01:00.538183",
+      "user_id": "test_user",
+      "question": "Population by PUMA in New York (2023).",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T15:01:24.352599",
+      "user_id": "test_user",
+      "question": "Population by congressional district in Georgia (2023).",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T15:01:46.969200",
+      "user_id": "test_user",
+      "question": "Age profile for Michigan State Senate districts (2023).",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T15:02:07.370155",
+      "user_id": "test_user",
+      "question": "Education profile for NC State House districts (2022).",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T15:02:50.695856",
+      "user_id": "test_user",
+      "question": "Health insurance coverage by state (2023).",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T15:03:38.223911",
+      "user_id": "test_user",
+      "question": "Educational attainment by state (2019).",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T15:04:08.899846",
+      "user_id": "test_user",
+      "question": "What languages are spoken at home in Los Angeles (2023)?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T15:04:49.613032",
+      "user_id": "test_user",
+      "question": "Show employment and income highlights for the U.S. (2023).",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T15:05:33.681715",
+      "user_id": "test_user",
+      "question": "Housing characteristics for California counties (2023).",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T15:06:06.756325",
+      "user_id": "test_user",
+      "question": "Show income stats for Ohio counties (2023).",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T15:06:26.927887",
+      "user_id": "test_user",
+      "question": "Poverty metrics for Texas unified school districts (2023).",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T15:06:50.011510",
+      "user_id": "test_user",
+      "question": "How do people commute to work by state (2022)?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T15:07:09.052017",
+      "user_id": "test_user",
+      "question": "Health insurance coverage for Florida counties (2023).",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T15:07:38.566957",
+      "user_id": "test_user",
+      "question": "Owner vs. renter counts for Washington counties (2023).",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T15:08:00.438160",
+      "user_id": "test_user",
+      "question": "Race counts by county in Washington (2022).",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T15:08:45.381700",
+      "user_id": "test_user",
+      "question": "Hispanic population by state (2023).",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T15:09:05.375686",
+      "user_id": "test_user",
+      "question": "Veteran status for Virginia counties (2021).",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T15:09:22.995517",
+      "user_id": "test_user",
+      "question": "Languages spoken at home by state (2018).",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T15:09:43.003672",
+      "user_id": "test_user",
+      "question": "Social characteristics comparison profile for the U.S. (2023).",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T15:10:03.583922",
+      "user_id": "test_user",
+      "question": "Median home value by county in California (2023).",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T15:10:25.028926",
+      "user_id": "test_user",
+      "question": "Education by sex for Texas (2020).",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T15:11:00.219765",
+      "user_id": "test_user",
+      "question": "Disability characteristics by state (2023).",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T15:11:23.639691",
+      "user_id": "test_user",
+      "question": "Internet subscription and computer use for NY counties (2022).",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T15:11:49.802427",
+      "user_id": "test_user",
+      "question": "Social characteristics profile for the U.S. (2019).",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T15:12:19.728939",
+      "user_id": "test_user",
+      "question": "Commuting patterns for Illinois counties (2023).",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T15:13:27.693360",
+      "user_id": "test_user",
+      "question": "Marital status by state (2023).",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T15:13:57.470733",
+      "user_id": "test_user",
+      "question": "Occupation distribution by state (2023).",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T15:15:53.297102",
+      "user_id": "test_user",
+      "question": "Show me median household income trends by state from 2015 to 2020.",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T15:16:28.689724",
+      "user_id": "test_user",
+      "question": "Show population trends for California counties from 2010 to 2023.",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T15:18:19.221333",
+      "user_id": "test_user",
+      "question": "How did median age change by state from 2015 to 2023?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T15:19:32.959897",
+      "user_id": "test_user",
+      "question": "Track median gross rent in New York City from 2012 to 2023.",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T15:20:35.425558",
+      "user_id": "test_user",
+      "question": "Show poverty trends for Texas counties from 2016 to 2023.",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T15:21:22.685151",
+      "user_id": "test_user",
+      "question": "How did educational attainment change by state since 2010?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T15:22:13.147191",
+      "user_id": "test_user",
+      "question": "Show health insurance coverage trends by state from 2014 to 2023.",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T15:22:43.124033",
+      "user_id": "test_user",
+      "question": "Show unemployment and earnings trends for Florida from 2015 to 2023.",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T15:23:21.516324",
+      "user_id": "test_user",
+      "question": "Track housing indicators for Illinois counties from 2012 to 2023.",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T15:24:23.947928",
+      "user_id": "test_user",
+      "question": "How has race composition changed in Washington counties since 2010?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T15:24:55.272244",
+      "user_id": "test_user",
+      "question": "How did languages spoken at home shift across Massachusetts counties since 2010?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T15:25:28.002326",
+      "user_id": "test_user",
+      "question": "Track median home value by California county since 2010.",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T15:25:57.289298",
+      "user_id": "test_user",
+      "question": "Show per capita income trends across metro/micro areas since 2010.",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T15:27:13.625374",
+      "user_id": "test_user",
+      "question": "How did commute modes change in New York since 2010?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T15:28:00.486317",
+      "user_id": "test_user",
+      "question": "Show veteran population trends for Virginia counties since 2010.",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T15:28:29.046406",
+      "user_id": "test_user",
+      "question": "How has the occupation mix changed by state since 2010?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T15:28:54.146009",
+      "user_id": "test_user",
+      "question": "Show internet subscription trends for New York counties from 2013 to 2023.",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T15:29:22.586276",
+      "user_id": "test_user",
+      "question": "How has rent burden changed across Arizona places since 2010?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T15:30:12.750653",
+      "user_id": "test_user",
+      "question": "Show changes in household types by state since 2010.",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T15:30:47.404598",
+      "user_id": "test_user",
+      "question": "Track educational attainment in Chicago since 2010.",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T15:33:01.140511",
+      "user_id": "test_user",
+      "question": "What's the total population/age summary for the U.S. in 2023?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T15:33:23.735241",
+      "user_id": "test_user",
+      "question": "What's the median household income by state in 2022?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T15:33:53.082799",
+      "user_id": "test_user",
+      "question": "Show total population for all California counties in 2023.",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T15:34:23.260678",
+      "user_id": "test_user",
+      "question": "Give me the labor force comparison profile for Florida (2018 vs 2023).",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T15:35:11.160530",
+      "user_id": "test_user",
+      "question": "What are the housing characteristics for Chicago in 2022?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T15:35:26.469248",
+      "user_id": "test_user",
+      "question": "What languages are spoken at home across Massachusetts counties in 2023?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T15:35:46.610426",
+      "user_id": "test_user",
+      "question": "What's the median gross rent in ZIP Code 60601 (2023)?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T15:36:04.000170",
+      "user_id": "test_user",
+      "question": "Show poverty by age (full B17001) for all states (2021).",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T15:36:46.288316",
+      "user_id": "test_user",
+      "question": "List all available ACS 2023 5-year detail groups.",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T15:37:35.536575",
+      "user_id": "test_user",
+      "question": "List all variables and labels in ACS 2023 5-year detail.",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T15:39:49.672640",
+      "user_id": "test_user",
+      "question": "List all metro and micropolitan areas for 2023.",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T15:40:13.314104",
+      "user_id": "test_user",
+      "question": "List all metropolitan divisions for 2023.",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T15:40:48.848291",
+      "user_id": "test_user",
+      "question": "List all combined statistical areas (CSAs) for 2023.",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T15:40:58.294428",
+      "user_id": "test_user",
+      "question": "List all New England City and Town Areas (NECTAs).",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T15:41:28.226072",
+      "user_id": "test_user",
+      "question": "List all Urban Areas for 2023.",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T15:41:52.428003",
+      "user_id": "test_user",
+      "question": "Which counties are in CBSA 35620?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T15:42:02.688423",
+      "user_id": "test_user",
+      "question": "Which states overlap CBSA 35620?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T15:42:23.869046",
+      "user_id": "test_user",
+      "question": "Which counties are in Metro Division 35614?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T15:42:54.737238",
+      "user_id": "test_user",
+      "question": "Show tract-level population for Los Angeles County, CA (2023).",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T15:43:05.905532",
+      "user_id": "test_user",
+      "question": "Show block-group median rent in Manhattan tract 003100 (2023).",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T15:44:40.527958",
+      "user_id": "test_user",
+      "question": "Population for all Arizona places (2022).",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T15:44:59.834619",
+      "user_id": "test_user",
+      "question": "Population for Massachusetts county subdivisions (2021).",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T15:45:33.782961",
+      "user_id": "test_user",
+      "question": "List all tracts within the Navajo Nation.",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T15:45:54.918812",
+      "user_id": "test_user",
+      "question": "Population by PUMA in New York (2023).",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T15:46:17.767109",
+      "user_id": "test_user",
+      "question": "Population by congressional district in Georgia (2023).",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T15:46:40.131299",
+      "user_id": "test_user",
+      "question": "Age profile for Michigan State Senate districts (2023).",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T15:46:56.911693",
+      "user_id": "test_user",
+      "question": "Education profile for NC State House districts (2022).",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T15:47:54.010280",
+      "user_id": "test_user",
+      "question": "Health insurance coverage by state (2023).",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T15:48:38.128721",
+      "user_id": "test_user",
+      "question": "Educational attainment by state (2019).",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T15:49:02.649138",
+      "user_id": "test_user",
+      "question": "What languages are spoken at home in Los Angeles (2023)?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T15:49:23.383827",
+      "user_id": "test_user",
+      "question": "Show employment and income highlights for the U.S. (2023).",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T15:49:59.059548",
+      "user_id": "test_user",
+      "question": "Housing characteristics for California counties (2023).",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T15:50:31.944543",
+      "user_id": "test_user",
+      "question": "Show income stats for Ohio counties (2023).",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T15:50:46.569334",
+      "user_id": "test_user",
+      "question": "Poverty metrics for Texas unified school districts (2023).",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T15:51:34.045152",
+      "user_id": "test_user",
+      "question": "How do people commute to work by state (2022)?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T15:51:49.942254",
+      "user_id": "test_user",
+      "question": "Health insurance coverage for Florida counties (2023).",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T15:52:30.513115",
+      "user_id": "test_user",
+      "question": "Owner vs. renter counts for Washington counties (2023).",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T15:52:48.848244",
+      "user_id": "test_user",
+      "question": "Race counts by county in Washington (2022).",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T15:53:22.070510",
+      "user_id": "test_user",
+      "question": "Hispanic population by state (2023).",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T15:53:40.810050",
+      "user_id": "test_user",
+      "question": "Veteran status for Virginia counties (2021).",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T15:53:57.019680",
+      "user_id": "test_user",
+      "question": "Languages spoken at home by state (2018).",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T15:54:15.096631",
+      "user_id": "test_user",
+      "question": "Social characteristics comparison profile for the U.S. (2023).",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T15:54:44.392215",
+      "user_id": "test_user",
+      "question": "Median home value by county in California (2023).",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T15:55:05.419034",
+      "user_id": "test_user",
+      "question": "Education by sex for Texas (2020).",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T15:55:24.033193",
+      "user_id": "test_user",
+      "question": "Disability characteristics by state (2023).",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T15:55:42.825827",
+      "user_id": "test_user",
+      "question": "Internet subscription and computer use for NY counties (2022).",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T15:56:26.343353",
+      "user_id": "test_user",
+      "question": "Social characteristics profile for the U.S. (2019).",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T15:56:43.163397",
+      "user_id": "test_user",
+      "question": "Commuting patterns for Illinois counties (2023).",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T15:56:59.241399",
+      "user_id": "test_user",
+      "question": "Marital status by state (2023).",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T15:57:18.204008",
+      "user_id": "test_user",
+      "question": "Occupation distribution by state (2023).",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T15:58:44.031681",
+      "user_id": "test_user",
+      "question": "Show me median household income trends by state from 2015 to 2020.",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T15:59:11.537742",
+      "user_id": "test_user",
+      "question": "Show population trends for California counties from 2010 to 2023.",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T16:01:28.684737",
+      "user_id": "test_user",
+      "question": "How did median age change by state from 2015 to 2023?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T16:02:38.694732",
+      "user_id": "test_user",
+      "question": "Track median gross rent in New York City from 2012 to 2023.",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T16:03:29.350536",
+      "user_id": "test_user",
+      "question": "Show poverty trends for Texas counties from 2016 to 2023.",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T16:04:30.186405",
+      "user_id": "test_user",
+      "question": "How did educational attainment change by state since 2010?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T16:05:12.017366",
+      "user_id": "test_user",
+      "question": "Show health insurance coverage trends by state from 2014 to 2023.",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T16:06:13.308458",
+      "user_id": "test_user",
+      "question": "Show unemployment and earnings trends for Florida from 2015 to 2023.",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T16:09:25.805737",
+      "user_id": "test_user",
+      "question": "How has race composition changed in Washington counties since 2010?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T16:09:47.815854",
+      "user_id": "test_user",
+      "question": "How did languages spoken at home shift across Massachusetts counties since 2010?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T16:10:22.448949",
+      "user_id": "test_user",
+      "question": "Track median home value by California county since 2010.",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T16:10:46.974860",
+      "user_id": "test_user",
+      "question": "Show per capita income trends across metro/micro areas since 2010.",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T16:11:20.996306",
+      "user_id": "test_user",
+      "question": "How did commute modes change in New York since 2010?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T16:11:43.056390",
+      "user_id": "test_user",
+      "question": "Show veteran population trends for Virginia counties since 2010.",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T16:12:08.601534",
+      "user_id": "test_user",
+      "question": "How has the occupation mix changed by state since 2010?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T16:12:46.359124",
+      "user_id": "test_user",
+      "question": "Show internet subscription trends for New York counties from 2013 to 2023.",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T17:32:01.561262",
+      "user_id": "test_user",
+      "question": "Show total population for all California counties in 2023.",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T17:34:00.688305",
+      "user_id": "test_user",
+      "question": "Give me the labor force comparison profile for Florida (2018 vs 2023).",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T17:34:40.296941",
+      "user_id": "test_user",
+      "question": "Show poverty by age (full B17001) for all states (2021).",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T17:34:55.912320",
+      "user_id": "test_user",
+      "question": "List all variables and labels in ACS 2023 5-year detail.",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T17:39:35.297252",
+      "user_id": "test_user",
+      "question": "List all metro and micropolitan areas for 2023.",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T17:44:55.443072",
+      "user_id": "test_user",
+      "question": "List all metropolitan divisions for 2023.",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T17:45:58.804073",
+      "user_id": "test_user",
+      "question": "List all combined statistical areas (CSAs) for 2023.",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T17:46:09.015176",
+      "user_id": "test_user",
+      "question": "List all New England City and Town Areas (NECTAs).",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T17:46:51.347984",
+      "user_id": "test_user",
+      "question": "Which counties are in CBSA 35620?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T17:47:01.868178",
+      "user_id": "test_user",
+      "question": "Which states overlap CBSA 35620?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-09T17:47:39.335498",
+      "user_id": "test_user",
+      "question": "Which counties are in Metro Division 35614?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
     }
   ],
   "user_id": "test_user",
-  "last_updated": "2025-11-01T21:06:10.280200"
+  "last_updated": "2025-11-09T17:47:39.335498"
 }

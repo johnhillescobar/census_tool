@@ -4,6 +4,9 @@ import logging
 import sys
 from pathlib import Path
 from dotenv import load_dotenv
+# Directories
+TEST_LOG_DIR = Path("logs/test_logs")
+TEST_LOG_DIR.mkdir(parents=True, exist_ok=True)
 
 from app import create_census_graph
 from src.state.types import CensusState
@@ -56,6 +59,11 @@ def run_single_question(
         generated_files = final.get("generated_files", [])
         error = result.get("error")
 
+        # Check if agent hit iteration limit
+        if "exceeded iteration limit" in answer.lower() or "unable to complete" in answer.lower():
+            logging.warning(f"Question {question_no} hit agent iteration limit")
+            error = "Agent iteration limit exceeded"
+
         success = bool(answer and answer != "No answer" and not error)
 
         return {
@@ -79,7 +87,11 @@ def test_all_questions():
     """Test all 70 questions from test_questions_new.csv with logging"""
 
     # Start session logging
-    session = SessionLogger("full_test_suite")
+    session = SessionLogger(
+        "full_test_suite",
+        log_dir=TEST_LOG_DIR,
+        filename_prefix="test_suite",
+    )
     log_file = session.start()
 
     print("=" * 80)
@@ -176,14 +188,14 @@ Errors: {errors} ({errors / total * 100:.1f}%)
     logging.info(summary)
 
     # Save detailed results
-    results_file = Path("logs") / "test_sessions" / f"results_{session.timestamp}.json"
+    results_file = TEST_LOG_DIR / f"results_{session.timestamp}.json"
     with open(results_file, "w", encoding="utf-8") as f:
         json.dump(results, f, indent=2)
 
     logging.info(f"Detailed results saved to: {results_file}")
 
     # Create summary report
-    summary_file = Path("logs") / "test_sessions" / f"summary_{session.timestamp}.txt"
+    summary_file = TEST_LOG_DIR / f"summary_{session.timestamp}.txt"
     with open(summary_file, "w", encoding="utf-8") as f:
         f.write(summary)
         f.write("\n\nDETAILED RESULTS:\n")
