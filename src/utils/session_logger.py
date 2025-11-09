@@ -32,7 +32,7 @@ class SessionLogger:
     """
     Captures all logs and print statements for an application session.
     Saves to timestamped file in logs/ directory.
-    
+
     Usage:
         logger = SessionLogger("user_id")
         logger.start()

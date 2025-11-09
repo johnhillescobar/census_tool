@@ -53,6 +53,22 @@ CHROMA_GEOGRAPHY_HIERARCHY_COLLECTION_NAME = "census_geography_hierarchies"
 
 ---
 
+#### 1.1.B Runbook: Census Geography Hierarchy Ingestion
+1. Pull dataset/year ranges from `config.py` (`DEFAULT_DATASETS`).
+2. Run `python scripts/extract_census_examples.py --log-dir chroma_logs --output app_description`.  
+   - Generates `chroma_logs/YYYYMMDD-HHMMSS-fetch.txt` with per-URL status (success, HTTP error, parsing error).  
+   - Writes one markdown file per `(dataset, year)` under `app_description`.
+3. Inspect log file:
+   - `SUCCESS` → markdown ready.  
+   - `FETCH_ERROR` → retry after network check.  
+   - `PARSE_ERROR` → review HTML change; update parser before re-running.
+4. Convert markdown rows into structured documents:
+   - Fields: `table_category`, `year`, `geography_hierarchy`, `geography_level`, `ordering_list`, `example_url`, `retrieved_at`.
+   - Upsert into Chroma collection `census_geography_hierarchies`.
+5. Re-run the ingestion whenever Census publishes new examples. Keep all log files for audit.
+
+
+
 ### 1.2: Fix Geography API URL Construction Bugs
 
 **Files**: `src/tools/census_api_tool.py`, `src/utils/census_api_utils.py`, `src/utils/geography_registry.py`, `src/tools/pattern_builder_tool.py`

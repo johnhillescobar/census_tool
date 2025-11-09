@@ -17,6 +17,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
 def create_viz_graph(compiled_graph):
     # Keep graph visualization logic
     try:
@@ -26,7 +27,6 @@ def create_viz_graph(compiled_graph):
         logger.warning(f"Could not generate graph visualization: {e}")
 
     return compiled_graph
-
 
 
 def create_reducers():
@@ -120,5 +120,3 @@ def create_census_graph():
             compiled_graph = workflow.compile()
             create_viz_graph(compiled_graph)
             return compiled_graph
-
-    

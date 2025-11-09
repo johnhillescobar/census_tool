@@ -225,7 +225,3 @@ MULTI-YEAR SUPPORT: {"WORKING" if passed > total * 0.8 else "NEEDS REVIEW"}
 if __name__ == "__main__":
     all_pass = test_questions_51_to_70()
     sys.exit(0 if all_pass else 1)
-
-
-
-

@@ -155,7 +155,8 @@ def build_markdown(
 
     for row in rows:
         row_values = [
-            (value.replace("|", "\\|") if value else "") for value in row[: len(headers)]
+            (value.replace("|", "\\|") if value else "")
+            for value in row[: len(headers)]
         ]
         lines.append(f"| {' | '.join(row_values)} |")
 
@@ -209,7 +210,9 @@ def main() -> None:
             combined_notes.extend(notes)
             combined_rows.extend(rows)
 
-        markdown = build_markdown(title, source.url, combined_headers, combined_notes, combined_rows)
+        markdown = build_markdown(
+            title, source.url, combined_headers, combined_notes, combined_rows
+        )
 
         filename = ensure_slug(source) + ".md"
         output_path = OUTPUT_DIR / filename
@@ -219,4 +222,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

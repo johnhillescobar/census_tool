@@ -1,0 +1,113 @@
+2025-11-09 07:49:09,460 INFO FETCH_START category=detail year=2012 url=https://api.census.gov/data/2012/acs/acs5/examples.html
+2025-11-09 07:49:10,470 INFO FETCH_SUCCESS category=detail year=2012 count=80 duration=1.02s
+2025-11-09 07:49:10,474 INFO FETCH_START category=detail year=2013 url=https://api.census.gov/data/2013/acs/acs5/examples.html
+2025-11-09 07:49:11,489 INFO FETCH_SUCCESS category=detail year=2013 count=87 duration=1.02s
+2025-11-09 07:49:11,493 INFO FETCH_START category=detail year=2014 url=https://api.census.gov/data/2014/acs/acs5/examples.html
+2025-11-09 07:49:12,603 INFO FETCH_SUCCESS category=detail year=2014 count=87 duration=1.12s
+2025-11-09 07:49:12,608 INFO FETCH_START category=detail year=2015 url=https://api.census.gov/data/2015/acs/acs5/examples.html
+2025-11-09 07:49:13,743 INFO FETCH_SUCCESS category=detail year=2015 count=87 duration=1.12s
+2025-11-09 07:49:13,747 INFO FETCH_START category=detail year=2016 url=https://api.census.gov/data/2016/acs/acs5/examples.html
+2025-11-09 07:49:14,819 INFO FETCH_SUCCESS category=detail year=2016 count=87 duration=1.06s
+2025-11-09 07:49:14,822 INFO FETCH_START category=detail year=2017 url=https://api.census.gov/data/2017/acs/acs5/examples.html
+2025-11-09 07:49:15,776 INFO FETCH_SUCCESS category=detail year=2017 count=85 duration=0.95s
+2025-11-09 07:49:15,778 INFO FETCH_START category=detail year=2018 url=https://api.census.gov/data/2018/acs/acs5/examples.html
+2025-11-09 07:49:16,758 INFO FETCH_SUCCESS category=detail year=2018 count=85 duration=0.97s
+2025-11-09 07:49:16,762 INFO FETCH_START category=detail year=2019 url=https://api.census.gov/data/2019/acs/acs5/examples.html
+2025-11-09 07:49:17,727 INFO FETCH_SUCCESS category=detail year=2019 count=87 duration=0.95s
+2025-11-09 07:49:17,729 INFO FETCH_START category=detail year=2020 url=https://api.census.gov/data/2020/acs/acs5/examples.html
+2025-11-09 07:49:18,629 INFO FETCH_SUCCESS category=detail year=2020 count=87 duration=0.89s
+2025-11-09 07:49:18,634 INFO FETCH_START category=detail year=2021 url=https://api.census.gov/data/2021/acs/acs5/examples.html
+2025-11-09 07:49:19,622 INFO FETCH_SUCCESS category=detail year=2021 count=87 duration=1.00s
+2025-11-09 07:49:19,631 INFO FETCH_START category=detail year=2022 url=https://api.census.gov/data/2022/acs/acs5/examples.html
+2025-11-09 07:49:20,480 INFO FETCH_SUCCESS category=detail year=2022 count=87 duration=0.86s
+2025-11-09 07:49:20,484 INFO FETCH_START category=detail year=2023 url=https://api.census.gov/data/2023/acs/acs5/examples.html
+2025-11-09 07:49:21,435 INFO FETCH_SUCCESS category=detail year=2023 count=65 duration=0.95s
+2025-11-09 07:49:21,439 INFO FETCH_START category=subject year=2012 url=https://api.census.gov/data/2012/acs/acs5/subject/examples.html
+2025-11-09 07:49:22,402 INFO FETCH_SUCCESS category=subject year=2012 count=34 duration=0.97s
+2025-11-09 07:49:22,406 INFO FETCH_START category=subject year=2013 url=https://api.census.gov/data/2013/acs/acs5/subject/examples.html
+2025-11-09 07:49:23,525 INFO FETCH_SUCCESS category=subject year=2013 count=34 duration=1.12s
+2025-11-09 07:49:23,528 INFO FETCH_START category=subject year=2014 url=https://api.census.gov/data/2014/acs/acs5/subject/examples.html
+2025-11-09 07:49:24,489 INFO FETCH_SUCCESS category=subject year=2014 count=34 duration=0.95s
+2025-11-09 07:49:24,493 INFO FETCH_START category=subject year=2015 url=https://api.census.gov/data/2015/acs/acs5/subject/examples.html
+2025-11-09 07:49:25,415 INFO FETCH_SUCCESS category=subject year=2015 count=34 duration=0.94s
+2025-11-09 07:49:25,418 INFO FETCH_START category=subject year=2016 url=https://api.census.gov/data/2016/acs/acs5/subject/examples.html
+2025-11-09 07:49:26,123 INFO FETCH_SUCCESS category=subject year=2016 count=34 duration=0.70s
+2025-11-09 07:49:26,126 INFO FETCH_START category=subject year=2017 url=https://api.census.gov/data/2017/acs/acs5/subject/examples.html
+2025-11-09 07:49:26,731 INFO FETCH_SUCCESS category=subject year=2017 count=34 duration=0.61s
+2025-11-09 07:49:26,734 INFO FETCH_START category=subject year=2018 url=https://api.census.gov/data/2018/acs/acs5/subject/examples.html
+2025-11-09 07:49:27,505 INFO FETCH_SUCCESS category=subject year=2018 count=34 duration=0.77s
+2025-11-09 07:49:27,506 INFO FETCH_START category=subject year=2019 url=https://api.census.gov/data/2019/acs/acs5/subject/examples.html
+2025-11-09 07:49:28,240 INFO FETCH_SUCCESS category=subject year=2019 count=34 duration=0.73s
+2025-11-09 07:49:28,243 INFO FETCH_START category=subject year=2020 url=https://api.census.gov/data/2020/acs/acs5/subject/examples.html
+2025-11-09 07:49:28,868 INFO FETCH_SUCCESS category=subject year=2020 count=34 duration=0.64s
+2025-11-09 07:49:28,870 INFO FETCH_START category=subject year=2021 url=https://api.census.gov/data/2021/acs/acs5/subject/examples.html
+2025-11-09 07:49:29,574 INFO FETCH_SUCCESS category=subject year=2021 count=34 duration=0.70s
+2025-11-09 07:49:29,577 INFO FETCH_START category=subject year=2022 url=https://api.census.gov/data/2022/acs/acs5/subject/examples.html
+2025-11-09 07:49:30,363 INFO FETCH_SUCCESS category=subject year=2022 count=34 duration=0.78s
+2025-11-09 07:49:30,365 INFO FETCH_START category=subject year=2023 url=https://api.census.gov/data/2023/acs/acs5/subject/examples.html
+2025-11-09 07:49:31,125 INFO FETCH_SUCCESS category=subject year=2023 count=30 duration=0.77s
+2025-11-09 07:49:31,128 INFO FETCH_START category=profile year=2012 url=https://api.census.gov/data/2012/acs/acs1/profile/examples.html
+2025-11-09 07:49:31,794 INFO FETCH_SUCCESS category=profile year=2012 count=24 duration=0.67s
+2025-11-09 07:49:31,796 INFO FETCH_START category=profile year=2013 url=https://api.census.gov/data/2013/acs/acs1/profile/examples.html
+2025-11-09 07:49:32,484 INFO FETCH_SUCCESS category=profile year=2013 count=24 duration=0.69s
+2025-11-09 07:49:32,485 INFO FETCH_START category=profile year=2014 url=https://api.census.gov/data/2014/acs/acs1/profile/examples.html
+2025-11-09 07:49:33,257 INFO FETCH_SUCCESS category=profile year=2014 count=24 duration=0.77s
+2025-11-09 07:49:33,262 INFO FETCH_START category=profile year=2015 url=https://api.census.gov/data/2015/acs/acs1/profile/examples.html
+2025-11-09 07:49:34,025 INFO FETCH_SUCCESS category=profile year=2015 count=24 duration=0.75s
+2025-11-09 07:49:34,029 INFO FETCH_START category=profile year=2016 url=https://api.census.gov/data/2016/acs/acs1/profile/examples.html
+2025-11-09 07:49:34,705 INFO FETCH_SUCCESS category=profile year=2016 count=24 duration=0.67s
+2025-11-09 07:49:34,711 INFO FETCH_START category=profile year=2017 url=https://api.census.gov/data/2017/acs/acs1/profile/examples.html
+2025-11-09 07:49:35,505 INFO FETCH_SUCCESS category=profile year=2017 count=24 duration=0.80s
+2025-11-09 07:49:35,509 INFO FETCH_START category=profile year=2018 url=https://api.census.gov/data/2018/acs/acs1/profile/examples.html
+2025-11-09 07:49:36,168 INFO FETCH_SUCCESS category=profile year=2018 count=24 duration=0.67s
+2025-11-09 07:49:36,170 INFO FETCH_START category=profile year=2019 url=https://api.census.gov/data/2019/acs/acs1/profile/examples.html
+2025-11-09 07:49:36,757 INFO FETCH_SUCCESS category=profile year=2019 count=24 duration=0.58s
+2025-11-09 07:49:36,761 INFO FETCH_START category=profile year=2020 url=https://api.census.gov/data/2020/acs/acs1/profile/examples.html
+2025-11-09 07:49:37,418 ERROR FETCH_FAILURE category=profile year=2020 url=https://api.census.gov/data/2020/acs/acs1/profile/examples.html error=404 Client Error:  for url: https://api.census.gov/data/2020/acs/acs1/profile/examples.html
+2025-11-09 07:49:37,421 INFO FETCH_START category=profile year=2021 url=https://api.census.gov/data/2021/acs/acs1/profile/examples.html
+2025-11-09 07:49:38,080 INFO FETCH_SUCCESS category=profile year=2021 count=23 duration=0.66s
+2025-11-09 07:49:38,083 INFO FETCH_START category=profile year=2022 url=https://api.census.gov/data/2022/acs/acs1/profile/examples.html
+2025-11-09 07:49:38,961 INFO FETCH_SUCCESS category=profile year=2022 count=23 duration=0.88s
+2025-11-09 07:49:38,964 INFO FETCH_START category=profile year=2023 url=https://api.census.gov/data/2023/acs/acs1/profile/examples.html
+2025-11-09 07:49:39,798 INFO FETCH_SUCCESS category=profile year=2023 count=19 duration=0.83s
+2025-11-09 07:49:39,801 INFO FETCH_START category=cprofile year=2014 url=https://api.census.gov/data/2014/acs/acs5/cprofile/examples.html
+2025-11-09 07:49:40,752 ERROR FETCH_FAILURE category=cprofile year=2014 url=https://api.census.gov/data/2014/acs/acs5/cprofile/examples.html error=404 Client Error:  for url: https://api.census.gov/data/2014/acs/acs5/cprofile/examples.html
+2025-11-09 07:49:40,757 INFO FETCH_START category=cprofile year=2015 url=https://api.census.gov/data/2015/acs/acs5/cprofile/examples.html
+2025-11-09 07:49:41,630 INFO FETCH_SUCCESS category=cprofile year=2015 count=6 duration=0.88s
+2025-11-09 07:49:41,633 INFO FETCH_START category=cprofile year=2016 url=https://api.census.gov/data/2016/acs/acs5/cprofile/examples.html
+2025-11-09 07:49:42,487 INFO FETCH_SUCCESS category=cprofile year=2016 count=6 duration=0.86s
+2025-11-09 07:49:42,490 INFO FETCH_START category=cprofile year=2017 url=https://api.census.gov/data/2017/acs/acs5/cprofile/examples.html
+2025-11-09 07:49:43,354 INFO FETCH_SUCCESS category=cprofile year=2017 count=6 duration=0.88s
+2025-11-09 07:49:43,355 INFO FETCH_START category=cprofile year=2018 url=https://api.census.gov/data/2018/acs/acs5/cprofile/examples.html
+2025-11-09 07:49:44,089 INFO FETCH_SUCCESS category=cprofile year=2018 count=6 duration=0.73s
+2025-11-09 07:49:44,091 INFO FETCH_START category=cprofile year=2019 url=https://api.census.gov/data/2019/acs/acs5/cprofile/examples.html
+2025-11-09 07:49:44,843 INFO FETCH_SUCCESS category=cprofile year=2019 count=6 duration=0.75s
+2025-11-09 07:49:44,848 INFO FETCH_START category=cprofile year=2020 url=https://api.census.gov/data/2020/acs/acs5/cprofile/examples.html
+2025-11-09 07:49:45,642 INFO FETCH_SUCCESS category=cprofile year=2020 count=6 duration=0.80s
+2025-11-09 07:49:45,647 INFO FETCH_START category=cprofile year=2021 url=https://api.census.gov/data/2021/acs/acs5/cprofile/examples.html
+2025-11-09 07:49:46,408 INFO FETCH_SUCCESS category=cprofile year=2021 count=6 duration=0.77s
+2025-11-09 07:49:46,411 INFO FETCH_START category=cprofile year=2022 url=https://api.census.gov/data/2022/acs/acs5/cprofile/examples.html
+2025-11-09 07:49:47,239 INFO FETCH_SUCCESS category=cprofile year=2022 count=5 duration=0.83s
+2025-11-09 07:49:47,242 INFO FETCH_START category=cprofile year=2023 url=https://api.census.gov/data/2023/acs/acs5/cprofile/examples.html
+2025-11-09 07:49:48,023 INFO FETCH_SUCCESS category=cprofile year=2023 count=5 duration=0.78s
+2025-11-09 07:49:48,027 INFO FETCH_START category=spp year=2014 url=https://api.census.gov/data/2014/acs/acs1/spp/geography.html
+2025-11-09 07:49:48,848 INFO FETCH_SUCCESS category=spp year=2014 count=0 duration=0.81s
+2025-11-09 07:49:48,854 INFO FETCH_START category=spp year=2015 url=https://api.census.gov/data/2015/acs/acs1/spp/geography.html
+2025-11-09 07:49:49,703 INFO FETCH_SUCCESS category=spp year=2015 count=0 duration=0.84s
+2025-11-09 07:49:49,706 INFO FETCH_START category=spp year=2016 url=https://api.census.gov/data/2016/acs/acs1/spp/geography.html
+2025-11-09 07:49:50,461 INFO FETCH_SUCCESS category=spp year=2016 count=0 duration=0.75s
+2025-11-09 07:49:50,465 INFO FETCH_START category=spp year=2017 url=https://api.census.gov/data/2017/acs/acs1/spp/geography.html
+2025-11-09 07:49:51,331 INFO FETCH_SUCCESS category=spp year=2017 count=0 duration=0.86s
+2025-11-09 07:49:51,334 INFO FETCH_START category=spp year=2018 url=https://api.census.gov/data/2018/acs/acs1/spp/geography.html
+2025-11-09 07:49:52,228 INFO FETCH_SUCCESS category=spp year=2018 count=0 duration=0.91s
+2025-11-09 07:49:52,231 INFO FETCH_START category=spp year=2019 url=https://api.census.gov/data/2019/acs/acs1/spp/geography.html
+2025-11-09 07:49:53,088 INFO FETCH_SUCCESS category=spp year=2019 count=0 duration=0.86s
+2025-11-09 07:49:53,091 INFO FETCH_START category=spp year=2020 url=https://api.census.gov/data/2020/acs/acs1/spp/geography.html
+2025-11-09 07:49:53,937 ERROR FETCH_FAILURE category=spp year=2020 url=https://api.census.gov/data/2020/acs/acs1/spp/geography.html error=404 Client Error:  for url: https://api.census.gov/data/2020/acs/acs1/spp/geography.html
+2025-11-09 07:49:53,941 INFO FETCH_START category=spp year=2021 url=https://api.census.gov/data/2021/acs/acs1/spp/geography.html
+2025-11-09 07:49:54,924 INFO FETCH_SUCCESS category=spp year=2021 count=0 duration=0.98s
+2025-11-09 07:49:54,930 INFO FETCH_START category=spp year=2022 url=https://api.census.gov/data/2022/acs/acs1/spp/geography.html
+2025-11-09 07:49:55,829 INFO FETCH_SUCCESS category=spp year=2022 count=0 duration=0.91s
+2025-11-09 07:49:55,834 INFO FETCH_START category=spp year=2023 url=https://api.census.gov/data/2023/acs/acs1/spp/geography.html
+2025-11-09 07:49:56,638 INFO FETCH_SUCCESS category=spp year=2023 count=0 duration=0.81s
+2025-11-09 07:49:56,762 INFO UPSERT_START docs=1724
