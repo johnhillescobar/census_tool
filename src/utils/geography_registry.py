@@ -11,6 +11,8 @@ from pathlib import Path
 from typing import Any, Dict, Optional
 
 import requests
+import us
+from rapidfuzz import fuzz, process
 
 from src.utils.census_api_utils import build_geo_filters
 from src.utils.chroma_utils import validate_and_fix_geo_params
@@ -129,7 +131,7 @@ class GeographyRegistry:
             {'Los Angeles County, California': {'code': '037', ...}, ...}
         """
 
-        parent_geo = parent_geo or {}
+        parent_geo = parent_geo or self._infer_parent_geo(friendly_name)
 
         # Normalize geography parameters and enforce hierarchy ordering
         for_token, for_value, ordered_in = validate_and_fix_geo_params(
@@ -343,6 +345,43 @@ class GeographyRegistry:
 
         return name
 
+    def _build_aliases(self) -> Dict[str, str]:
+        raw_aliases = {
+            "nyc": "new york city, new york",
+            "new york city": "new york city, new york",
+            "manhattan": "new york county, new york",
+            "la": "los angeles county, california",
+            "los angeles": "los angeles county, california",
+            "sf": "san francisco county, california",
+        }
+        return {
+            alias: self._normalize_name(target)
+            for alias, target in raw_aliases.items()
+        }
+
+    def _composite_aliases(self):
+        return {
+            "new york city, new york": [
+                ("county", "Bronx County", {"state": "36"}),
+                ("county", "Kings County", {"state": "36"}),
+                ("county", "New York County", {"state": "36"}),
+                ("county", "Queens County", {"state": "36"}),
+                ("county", "Richmond County", {"state": "36"}),
+            ]
+        }
+
+    def _infer_parent_geo(self, friendly_name: str) -> Dict[str, str]:
+        if "," not in friendly_name:
+            return {}
+        parts = [part.strip() for part in friendly_name.split(",")]
+        if len(parts) < 2:
+            return {}
+        state_part = parts[-1]
+        state = us.states.lookup(state_part)
+        if state and state.fips:
+            return {"state": state.fips}
+        return {}
+
     def find_area_code(
         self,
         friendly_name: str,
@@ -376,24 +415,144 @@ class GeographyRegistry:
             return None
 
         # Normalize search term
-        search_term = self._normalize_name(friendly_name)
+        normalized = self._normalize_name(friendly_name)
+        aliases = self._build_aliases()
+        normalized = aliases.get(normalized, normalized)
 
-        # Try exact match first
-        for full_name, metadata in areas.items():
-            if self._normalize_name(full_name) == search_term:
-                return {**metadata, "confidence": 1.0, "match_type": "Exact match"}
+        composite_aliases = self._composite_aliases()
+        composite = composite_aliases.get(normalized)
+        if composite:
+            components = []
+            for token, name, comp_parent in composite:
+                component = self.find_area_code(
+                    name,
+                    token,
+                    dataset,
+                    year,
+                    comp_parent,
+                )
+                if component:
+                    components.append(component)
+            if components:
+                composite_result = {
+                    **components[0],
+                    "match_type": "Composite",
+                    "confidence": 1.0,
+                    "components": components,
+                }
+                record_event(
+                    "geography_match",
+                    {
+                        "query": friendly_name,
+                        "normalized_query": normalized,
+                        "match_full_name": components[0]["full_name"],
+                        "confidence": composite_result["confidence"],
+                        "match_type": "Composite",
+                        "geo_token": geo_token,
+                        "dataset": dataset,
+                        "year": year,
+                        "component_count": len(components),
+                    },
+                )
+                return composite_result
 
-        # Try partial match
-        for full_name, metadata in areas.items():
-            if search_term in self._normalize_name(full_name):
-                return {**metadata, "confidence": 0.9, "match_type": "Partial match"}
+        candidates = [
+            (full_name, metadata, self._normalize_name(full_name))
+            for full_name, metadata in areas.items()
+        ]
 
-        # Try contains (reversed)
-        for full_name, metadata in areas.items():
-            if self._normalize_name(search_term) in self._normalize_name(full_name):
-                return {**metadata, "confidence": 0.8, "match_type": "Contains match"}
+        # Exact match
+        for full_name, metadata, norm in candidates:
+            if norm == normalized:
+                metadata = {**metadata, "confidence": 1.0, "match_type": "Exact match"}
+                record_event(
+                    "geography_match",
+                    {
+                        "query": friendly_name,
+                        "normalized_query": normalized,
+                        "match_full_name": full_name,
+                        "confidence": metadata["confidence"],
+                        "match_type": metadata["match_type"],
+                        "geo_token": geo_token,
+                        "dataset": dataset,
+                        "year": year,
+                    },
+                )
+                return metadata
+
+        # Fuzzy matching
+        candidate_map = {full_name: norm for full_name, _, norm in candidates}
+        match_result = process.extractOne(
+            normalized,
+            candidate_map,
+            scorer=fuzz.token_sort_ratio,
+        )
+
+        if match_result:
+            match, score, _ = match_result
+        else:
+            match, score = None, 0
+
+        if match and score >= 80:
+            full_name = match
+            metadata = next(
+                (md for name, md, _ in candidates if name == full_name), None
+            )
+            if metadata is None:
+                logger.warning(
+                    "Fuzzy match %s not found in candidates for %s/%s",
+                    full_name,
+                    geo_token,
+                    normalized,
+                )
+                record_event(
+                    "geography_match",
+                    {
+                        "query": friendly_name,
+                        "normalized_query": normalized,
+                        "match_full_name": None,
+                        "confidence": 0.0,
+                        "match_type": "No match",
+                        "geo_token": geo_token,
+                        "dataset": dataset,
+                        "year": year,
+                    },
+                )
+                return None
+            result = {
+                **metadata,
+                "confidence": round(score / 100, 2),
+                "match_type": "Fuzzy match",
+            }
+            record_event(
+                "geography_match",
+                {
+                    "query": friendly_name,
+                    "normalized_query": normalized,
+                    "match_full_name": full_name,
+                    "confidence": result["confidence"],
+                    "match_type": result["match_type"],
+                    "geo_token": geo_token,
+                    "dataset": dataset,
+                    "year": year,
+                },
+            )
+            return result
 
         logger.warning(
             f"No match found for {friendly_name} in {geo_token} for {dataset}/{year}"
+        )
+        record_event(
+            "geography_match",
+            {
+                "query": friendly_name,
+                "normalized_query": normalized,
+                "match_full_name": None,
+                "confidence": 0.0,
+                "match_type": "No match",
+                "geo_token": geo_token,
+                "dataset": dataset,
+                "year": year,
+            },
         )
         return None

@@ -264,32 +264,27 @@ for metadata in results["metadatas"]:
 
 ### 4.1: Enhanced Name Matching
 
-**Files**: `src/utils/geography_registry.py` lines 269-322
+**Files**: `src/utils/geography_registry.py`, `app_test_scripts/test_geography_registry_fuzzy.py`
 
-**Improvements**:
+**Status**: COMPLETE ✅
+- Added rapidfuzz-based fuzzy matching with alias normalization (Manhattan → New York County)
+- Exact matches prioritized; fuzzy matches return confidence and emit `geography_match` telemetry
+- Unit test covers alias resolution for Manhattan
 
-- Use fuzzy matching (rapidfuzz library) for ambiguous names
-- Prioritize exact matches over partial matches
-- Use parent geography context to disambiguate
-- Return confidence scores with all matches
-- Handle common aliases (Manhattan→New York County, NYC→5 counties)
-
-**Evidence of Success**: "New York City" resolves correctly with context
+**Evidence of Success**: Tests `test_geography_registry_fuzzy.py` pass; telemetry log contains `geography_match` events
 
 ---
 
 ### 4.2: Multi-Level Resolution Strategy
 
-**Files**: `src/tools/area_resolution_tool.py`
+**Files**: `src/utils/geography_registry.py`, `src/tools/area_resolution_tool.py`, `app_test_scripts/test_area_resolution_tool.py`
 
-**Enhancements**:
+**Status**: COMPLETE ✅
+- `find_area_code` now infers parent state context, supports composite aliases (NYC → 5 counties), emits telemetry, and returns components
+- `AreaResolutionTool` adds county fallback for places and surfaces composite results
+- Unit tests cover fuzzy alias resolution and composite output handling
 
-- Try hierarchical resolution (place → county → state)
-- For multi-county areas, return all component geographies
-- Require parent context for ambiguous names
-- Validate resolved codes exist in enumeration
-
-**Evidence of Success**: Ambiguous names resolve correctly with parent context
+**Evidence of Success**: Tests `test_geography_registry_fuzzy.py` + `test_area_resolution_tool.py` pass; telemetry logs `geography_match` events
 
 ---
 
@@ -299,15 +294,11 @@ for metadata in results["metadatas"]:
 
 **Files**: `src/llm/config.py`
 
-**Add Sections**:
+**Status**: COMPLETE ✅
+- Prompt now includes hierarchy reasoning checklist, variable validation enforcement, and geography token mapping guidance
+- Added error recovery playbook and URL construction examples for detail/subject/profile/comparison/SPP datasets
 
-1. **Geography Hierarchy Reasoning**: Query hierarchy tool before building URLs
-2. **Variable Validation Step**: Validate variables exist for year/dataset using validation tool
-3. **Geography Token Mapping**: Use correct Census API tokens (us not nation)
-4. **Error Recovery**: Parse API errors and adjust parameters
-5. **URL Construction Examples**: Show correct patterns from all 5 example types
-
-**Evidence of Success**: Agent reasoning traces show hierarchy queries and validation
+**Evidence of Success**: `src/llm/config.py` updated; prompt directs agent to call hierarchy & validation tools before URL construction
 
 ---
 

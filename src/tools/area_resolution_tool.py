@@ -79,6 +79,18 @@ class AreaResolutionTool(BaseTool):
             parent_geo=parent,
         )
 
+        if result is None and geo_token in {"place", "city", "town"}:
+            fallback = registry.find_area_code(
+                friendly_name=name,
+                geo_token="county",
+                dataset=dataset,
+                year=year,
+                parent_geo=parent,
+            )
+            if fallback:
+                fallback["note"] = "Resolved via county fallback for multi-level place"
+                result = fallback
+
         if result is None:
             error_msg = f"No match found for '{name}' in {geo_token}"
             logger.warning(error_msg)
