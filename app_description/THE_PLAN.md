@@ -31,14 +31,14 @@ Fix the core purpose of the Census Tool: dynamically construct correct Census AP
 
 ```python
 {
-  "document": "Geography hierarchy: metropolitan statistical area/micropolitan statistical area › metropolitan division › state (or part) › county. Ordering: CBSA then division then state. Example: for=county:*&in=metropolitan statistical area/micropolitan statistical area:31080 metropolitan division:31084 state (or part):06",
+  "document": "Geography hierarchy: metropolitan statistical area/micropolitan statistical area › metropolitan division › state (or part) › county. Ordering: CBSA then division then state. Example: for=county:*&in=metropolitan%20statistical%20area/micropolitan%20statistical%20area:31080%20metropolitan%20division:31084%20state%20(or%20part):06",
   "metadata": {
     "year": "2023",
     "dataset": "acs/acs5",
     "geography_hierarchy": "metropolitan statistical area/micropolitan statistical area › metropolitan division › state (or part) › county",
     "for_level": "county",
     "ordering_list": ["metropolitan statistical area/micropolitan statistical area", "metropolitan division", "state (or part)"],
-    "example_url": "for=county:*&in=metropolitan statistical area/micropolitan statistical area:31080 metropolitan division:31084 state (or part):06"
+    "example_url": "for=county:*&in=metropolitan%20statistical%20area/micropolitan%20statistical%20area:31080%20metropolitan%20division:31084%20state%20(or%20part):06"
   }
 }
 ```

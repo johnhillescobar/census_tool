@@ -9,9 +9,15 @@
   "preferred_level": "place",
   "var_aliases": {},
   "usage_stats": {
+<<<<<<< Updated upstream
     "total_queries": 64,
     "success_queries": 64,
     "last_query_date": "2025-11-04T21:25:17.059229"
+=======
+    "total_queries": 46,
+    "success_queries": 46,
+    "last_query_date": "2025-11-07T14:27:28.170981"
+>>>>>>> Stashed changes
   },
   "history": [
     {
@@ -455,7 +461,11 @@
       "success": true
     },
     {
+<<<<<<< Updated upstream
       "timestamp": "2025-11-03T14:14:19.348780",
+=======
+      "timestamp": "2025-11-07T14:01:19.154618",
+>>>>>>> Stashed changes
       "user_id": "demo",
       "question": "What's the population of New York City?",
       "intent": {},
@@ -465,6 +475,7 @@
       "success": true
     },
     {
+<<<<<<< Updated upstream
       "timestamp": "2025-11-04T20:59:49.530953",
       "user_id": "demo",
       "question": "What's the population of New York City?",
@@ -496,6 +507,9 @@
     },
     {
       "timestamp": "2025-11-04T21:02:05.990036",
+=======
+      "timestamp": "2025-11-07T14:27:28.169471",
+>>>>>>> Stashed changes
       "user_id": "demo",
       "question": "What's the median income in Los Angeles County?",
       "intent": {},
@@ -503,6 +517,7 @@
       "plan_summary": "",
       "answer_type": "Unknown",
       "success": true
+<<<<<<< Updated upstream
     },
     {
       "timestamp": "2025-11-04T21:03:50.773986",
@@ -656,4 +671,9 @@
     }
   ],
   "last_updated": "2025-11-04T21:25:17.059229"
+=======
+    }
+  ],
+  "last_updated": "2025-11-07T14:27:28.170981"
+>>>>>>> Stashed changes
 }
