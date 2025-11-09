@@ -48,11 +48,13 @@ class ExampleRow:
     example_url: str
     notes: List[str]
 
+WORKSPACE_ROOT = Path(__file__).resolve().parents[1]
 
 def build_logger(log_dir: Path) -> logging.Logger:
-    log_dir.mkdir(parents=True, exist_ok=True)
     ts = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
-    log_path = log_dir / f"{ts}-hierarchy-index.txt"
+    absolute_dir = (WORKSPACE_ROOT / log_dir).resolve()
+    absolute_dir.mkdir(parents=True, exist_ok=True)
+    log_path = absolute_dir / f"{ts}-hierarchy-index.txt"
 
     logger = logging.getLogger("geography_index")
     logger.setLevel(logging.INFO)
@@ -62,6 +64,7 @@ def build_logger(log_dir: Path) -> logging.Logger:
     logger.handlers.clear()
     logger.addHandler(handler)
     logger.addHandler(logging.StreamHandler())
+    print(f"[build_geography_index] logging to {log_path}")
     return logger
 
 
@@ -196,29 +199,20 @@ def summarize_by_hierarchy(rows: List[ExampleRow]) -> Dict[Tuple[str, int, str],
     return grouped
 
 
-def build_document(
-    hierarchy: str, level_code: str, examples: List[str], notes: Iterable[str]
-) -> str:
-    lines = [
-        f"Hierarchy: {hierarchy}",
-        f"Summary level code: {level_code}",
-        "Examples:",
-    ]
-    lines.extend(f"- {url}" for url in examples)
-    if notes:
-        lines.append("Notes:")
-        lines.extend(f"- {note}" for note in notes if note)
-    return "\n".join(lines)
+def build_document(hierarchy: str, ordering: List[str], level_code: str, example_url: str) -> str:
+    ordering_clause = " → ".join(ordering) if ordering else "n/a"
+    return (
+        f"Geography hierarchy: {hierarchy}. "
+        f"Ordering: {ordering_clause}. "
+        f"Summary level code: {level_code}. "
+        f"Example: {example_url}"
+    )
 
 
-def build_metadata(
-    dataset: str, year: int, hierarchy: str, level_code: str
-) -> Dict[str, object]:
-    parts = [part.strip() for part in hierarchy.split("›")]
-    parts = [part for part in parts if part]
+def build_metadata(dataset: str, year: int, hierarchy: str, level_code: str, examples: List[str]) -> Dict[str, object]:
+    parts = [part.strip() for part in hierarchy.split("›") if part.strip()]
     for_level = parts[-1] if parts else ""
     ordering_list = json.dumps(parts[:-1])
-
     return {
         "dataset": dataset,
         "table_category": dataset,
@@ -227,6 +221,7 @@ def build_metadata(
         "geography_level": level_code,
         "for_level": for_level,
         "ordering_list": ordering_list,
+        "example_urls": json.dumps(examples),
         "retrieved_at": datetime.now(timezone.utc).isoformat(),
     }
 
@@ -248,12 +243,16 @@ def upsert_documents(
     for (dataset, year, hierarchy), payload in docs.items():
         doc_id = f"{dataset}:{year}:{hierarchy}"
         ids.append(doc_id)
+
+        ordering_parts = [part.strip() for part in hierarchy.split("›") if part.strip()]
+        canonical_example = payload["examples"][0] if payload["examples"] else ""
+
         documents.append(
             build_document(
                 hierarchy=payload["hierarchy"],
+                ordering=ordering_parts[:-1],
                 level_code=payload["level_code"],
-                examples=payload["examples"],
-                notes=payload["notes"],
+                example_url=canonical_example,
             )
         )
         metadatas.append(
@@ -262,6 +261,7 @@ def upsert_documents(
                 year=payload["year"],
                 hierarchy=payload["hierarchy"],
                 level_code=payload["level_code"],
+                examples=payload["examples"],
             )
         )
 
@@ -272,7 +272,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(
         description="Build census geography hierarchy vector database."
     )
-    parser.add_argument("--log-dir", type=Path, default=Path("chroma_logs"))
+    parser.add_argument("--log-dir", type=Path, default=Path("logs/chroma_logs"))
     parser.add_argument(
         "--persist-dir", type=Path, default=Path(CHROMA_PERSIST_DIRECTORY)
     )
