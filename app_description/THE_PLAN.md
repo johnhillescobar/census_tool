@@ -223,14 +223,12 @@ for metadata in results["metadatas"]:
 
 **Files**: `src/llm/config.py` (agent prompt), `src/utils/agents/census_query_agent.py`
 
-**Updates**:
+**Status**: COMPLETE ✅
+- Prompt now documents `variable_validation` tool with required JSON schema
+- Added directive: run `variable_validation` immediately before `pattern_builder`/`census_api_call` and resolve invalid variables first
+- Tool already registered in `CensusQueryAgent`
 
-- Add variable validation step to agent reasoning workflow
-- Add `variable_validation_tool` to agent's tool list
-- Instruct agent to validate variables before census_api_call
-- Handle validation failures gracefully (use alternatives or adjust query)
-
-**Evidence of Success**: Agent validates variables in reasoning traces
+**Evidence of Success**: Updated prompt guides reasoning to validate variables pre-URL construction
 
 ---
 
@@ -238,40 +236,27 @@ for metadata in results["metadatas"]:
 
 ### 3.1: Fix Geography Registry Enumeration
 
-**Files**: `src/utils/geography_registry.py`
+**Files**: `src/utils/geography_registry.py`, `app_test_scripts/test_geography_registry.py`
 
-**Fixes**:
+**Status**: COMPLETE ✅
+- `enumerate_areas` now canonicalizes parents via `validate_and_fix_geo_params` (hierarchy-aware)
+- Telemetry events emitted for cache hits, API calls, and failures
+- Added unit test covering multi-level parents (CBSA → division → state)
 
-1. Line 176: Space-separate parent geography levels in single `in=` parameter
-2. Add hierarchy ordering enforcement (query geography hierarchy collection for correct order)
-3. Support complex statistical areas (CBSA, Metropolitan Divisions, NECTAs)
-
-**Implementation**:
-
-```python
-# Before building enumeration URL:
-ordering = get_hierarchy_ordering(year, dataset, for_level, parent_geo.keys())
-sorted_parents = [(k, parent_geo[k]) for k in ordering if k in parent_geo]
-in_parts = [f"{k}:{v}" for k, v in sorted_parents]
-geo_filter += f"&in={' '.join(in_parts)}"
-```
-
-**Evidence of Success**: Can enumerate counties in Metro Divisions, tracts in CBSAs
+**Evidence of Success**: Test `test_enumerate_areas_orders_parents` passes; telemetry logs include ordered parents and URL.
 
 ---
 
 ### 3.2: Dataset-Specific Geography Support Validation
 
-**Files**: `src/utils/dataset_geography_validator.py` (NEW), `src/tools/table_validation_tool.py`
+**Files**: `src/utils/dataset_geography_validator.py` (NEW), `src/tools/table_validation_tool.py`, `app_test_scripts/test_dataset_geography_validator.py`, `app_test_scripts/test_table_validation_tool.py`
 
-**Implementation**:
+**Status**: COMPLETE ✅
+- Added geography validator that scrapes `geography.html`, caches results (memory + disk), and logs telemetry
+- `table_validation_tool` now returns dataset/year-aware validation results with telemetry
+- Unit tests cover cache usage, network failure fallback, and tool integration
 
-- Query `geography.html` per dataset/year: `https://api.census.gov/data/{year}/{dataset}/geography.html`
-- Parse HTML to extract available geography levels
-- Cache per dataset/year in memory dict
-- Replace stub validation in table_validation_tool.py
-
-**Evidence of Success**: Agent knows which geographies are supported before querying
+**Evidence of Success**: Tests `test_dataset_geography_validator.py` and `test_table_validation_tool.py` pass; telemetry events recorded for validations
 
 ---
 

@@ -15,6 +15,7 @@ from src.utils.chroma_utils import (
     get_chroma_collection_variables,
     initialize_chroma_client,
 )
+from src.utils.telemetry import record_event
 
 logger = logging.getLogger(__name__)
 
@@ -256,6 +257,18 @@ def validate_variables(
             if metadata:
                 result["details"][var] = _normalize_variable_payload(metadata)
 
+    record_event(
+        "variable_validation",
+        {
+            "dataset": dataset,
+            "year": year,
+            "requested": variables,
+            "valid": result["valid"],
+            "invalid": result["invalid"],
+            "warnings": result["warnings"],
+        },
+    )
+
     return result
 
 
@@ -286,7 +299,7 @@ def list_variables(
     matches.sort(key=lambda item: item[0])
     trimmed = matches[:limit] if limit else matches
 
-    return {
+    response = {
         "dataset": dataset,
         "year": year,
         "count": len(trimmed),
@@ -300,6 +313,20 @@ def list_variables(
             for name, meta in trimmed
         ],
     }
+
+    record_event(
+        "variable_list",
+        {
+            "dataset": dataset,
+            "year": year,
+            "table_code": table_prefix,
+            "concept": concept_lower,
+            "limit": limit,
+            "returned": response["count"],
+        },
+    )
+
+    return response
 
 
 __all__ = ["validate_variables", "list_variables", "VariableValidationError"]

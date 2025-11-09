@@ -3,15 +3,18 @@ Geography Registry - Dynamic geography discovery and caching
 Part of Phase 9F: Census API Flexibility
 """
 
-import requests
 import logging
-from typing import Dict, Optional, Any
-from pathlib import Path
 import pickle
 import urllib.parse
 from datetime import datetime, timedelta
+from pathlib import Path
+from typing import Any, Dict, Optional
+
+import requests
 
 from src.utils.census_api_utils import build_geo_filters
+from src.utils.chroma_utils import validate_and_fix_geo_params
+from src.utils.telemetry import record_event
 
 logger = logging.getLogger(__name__)
 
@@ -126,14 +129,23 @@ class GeographyRegistry:
             {'Los Angeles County, California': {'code': '037', ...}, ...}
         """
 
-        # Build cache key
-        if parent_geo:
-            # Sort for consistent cache keys - handles all multi-parent cases
-            parent_key = ",".join([f"{k}={v}" for k, v in sorted(parent_geo.items())])
-        else:
-            parent_key = "none"
+        parent_geo = parent_geo or {}
 
-        cache_key = f"{dataset}:{year}:{geo_token}:{parent_key}"
+        # Normalize geography parameters and enforce hierarchy ordering
+        for_token, for_value, ordered_in = validate_and_fix_geo_params(
+            dataset=dataset,
+            year=year,
+            geo_for={geo_token: "*"},
+            geo_in=parent_geo,
+        )
+
+        parent_key = (
+            ",".join(f"{token}={value}" for token, value in ordered_in)
+            if ordered_in
+            else "none"
+        )
+
+        cache_key = f"{dataset}:{year}:{for_token}:{parent_key}"
 
         # Cache disk cache
         safe_filename = (
@@ -157,6 +169,18 @@ class GeographyRegistry:
                     logger.info(
                         f"Loaded {len(areas)} areas from disk cache: {geo_token}"
                     )
+                    record_event(
+                        "enumerate_areas",
+                        {
+                            "dataset": dataset,
+                            "year": year,
+                            "for_level": for_token,
+                            "parent_levels": ordered_in,
+                            "url": None,
+                            "area_count": len(areas),
+                            "cache_hit": True,
+                        },
+                    )
                     return areas
 
                 except Exception as e:
@@ -172,8 +196,8 @@ class GeographyRegistry:
             filters = build_geo_filters(
                 dataset=dataset,
                 year=year,
-                geo_for={geo_token: "*"},
-                geo_in=parent_geo or {},
+                geo_for={for_token: for_value},
+                geo_in=dict(ordered_in),
             )
 
             params.append(f"for={filters['for']}")
@@ -221,18 +245,66 @@ class GeographyRegistry:
                 except Exception as e:
                     logger.warning(f"Error saving areas to disk cache: {e}")
 
+                record_event(
+                    "enumerate_areas",
+                    {
+                        "dataset": dataset,
+                        "year": year,
+                        "for_level": for_token,
+                        "parent_levels": ordered_in,
+                        "url": url,
+                        "area_count": len(areas),
+                        "cache_hit": False,
+                    },
+                )
                 return areas
 
             else:
                 logger.warning(f"No areas found for {geo_token}")
+                record_event(
+                    "enumerate_areas",
+                    {
+                        "dataset": dataset,
+                        "year": year,
+                        "for_level": for_token,
+                        "parent_levels": ordered_in,
+                        "url": url,
+                        "area_count": 0,
+                        "warning": "empty_response",
+                    },
+                )
                 return {}
 
         except requests.exceptions.RequestException as e:
             logger.error(f"Failed to enumerate areas for {geo_token}: {e}")
+            record_event(
+                "enumerate_areas",
+                {
+                    "dataset": dataset,
+                    "year": year,
+                    "for_level": for_token,
+                    "parent_levels": ordered_in,
+                    "url": url,
+                    "area_count": 0,
+                    "error": str(e),
+                },
+            )
             return {}
 
         except Exception as e:
             logger.error(f"Error enumerating areas: {e}")
+            record_event(
+                "enumerate_areas",
+                {
+                    "dataset": dataset,
+                    "year": year,
+                    "for_level": for_token,
+                    "parent_levels": ordered_in,
+                    "url": url if "url" in locals() else None,
+                    "area_count": 0,
+                    "error": str(e),
+                },
+            )
             return {}
 
     def _url_encode_dict(self, text: str) -> str:

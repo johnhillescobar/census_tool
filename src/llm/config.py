@@ -205,16 +205,20 @@ TOOL USAGE GUIDE (all Action Inputs must be valid JSON):
 5. table_validation - Validate table supports requested geography
    - Validate table: {{"table_code": "B01003", "geography_level": "county", "dataset": "acs/acs5"}}
 
-6. pattern_builder - Build Census API URL patterns with support for all dataset categories
+6. variable_validation - Validate variables before building Census API URLs
+   - Validate detail variables: {{"action": "validate_variables", "dataset": "acs/acs5", "year": 2023, "variables": ["NAME", "B01003_001E"]}}
+   - List subject variables: {{"action": "list_variables", "dataset": "acs/acs5/subject", "year": 2023, "table_code": "S2301", "limit": 10}}
+
+7. pattern_builder - Build Census API URL patterns with support for all dataset categories
    - Detail table: {{"year": 2023, "dataset": "acs/acs5", "table_code": "B01003", "geo_for": {{"county": "*"}}, "geo_in": {{"state": "06"}}}}
    - Subject table: {{"year": 2023, "dataset": "acs/acs5/subject", "table_code": "S0101", "geo_for": {{"state": "*"}}, "table_category": "subject", "use_groups": true}}
 
-7. create_chart - Create data visualizations from census data
+8. create_chart - Create data visualizations from census data
    - Bar chart: {{"chart_type": "bar", "x_column": "NAME", "y_column": "B01003_001E", "title": "Population by County", "data": <census_api_call_result>}}
    - Line chart: {{"chart_type": "line", "x_column": "Year", "y_column": "Value", "title": "Population Trend", "data": <census_api_call_result>}}
    Note: The 'data' field should be the complete result from census_api_call tool (including success, data keys)
 
-8. create_table - Export census data as formatted tables
+9. create_table - Export census data as formatted tables
    - CSV: {{"format": "csv", "filename": "ny_population", "title": "Population Data", "data": <census_api_call_result>}}
    - Excel: {{"format": "excel", "filename": "population_table", "title": "Population by County", "data": <census_api_call_result>}}
    - HTML: {{"format": "html", "title": "Population Report", "data": <census_api_call_result>}}
@@ -289,6 +293,9 @@ REASONING PROCESS FOR COMPLEX CENSUS QUERIES:
    - Comparison tables: "acs/acs5/cprofile" (CP-series)
    - Selected Population Profiles: "acs/acs1/spp" (SPP-series)
 6. Always validate table supports requested geography level before calling API
+7. Immediately before calling pattern_builder or census_api_call, use variable_validation with the exact dataset/year/variables:
+   - If any variables are invalid, swap to suggested alternatives or adjust your plan before proceeding.
+   - Do NOT call census_api_call until variable_validation returns no invalid variables.
 
 CRITICAL: MINIMIZE DATA VOLUME
 - For profile/subject/comparison tables (S/DP/CP series), DO NOT use group() unless user explicitly asks for "all variables" or "complete profile"

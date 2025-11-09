@@ -7,6 +7,7 @@ from pydantic import ConfigDict
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from src.utils.census_api_utils import fetch_census_data, build_geo_filters
+from src.utils.telemetry import record_event
 
 
 logger = logging.getLogger(__name__)
@@ -95,6 +96,18 @@ class CensusAPITool(BaseTool):
             )
 
             logger.info(f"Census data fetched successfully: {result}")
+
+            record_event(
+                "census_api_call",
+                {
+                    "dataset": dataset,
+                    "year": year,
+                    "variables": variables,
+                    "geo_filters": geo_params["filters"],
+                    "success": True,
+                    "row_count": len(result) if result else 0,
+                },
+            )
             return json.dumps(
                 {
                     "success": True,
@@ -105,4 +118,14 @@ class CensusAPITool(BaseTool):
 
         except Exception as e:
             logger.error(f"Census API error: {e}")
+            record_event(
+                "census_api_call",
+                {
+                    "dataset": dataset,
+                    "year": year,
+                    "variables": variables,
+                    "success": False,
+                    "error": str(e),
+                },
+            )
             return json.dumps({"success": False, "error": str(e)})
