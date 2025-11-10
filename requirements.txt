@@ -25,6 +25,7 @@ plotly>=6.3.0
 pydantic>=2.11.7
 pytest>=8.4.2
 python-dotenv>=1.1.1
+rapidfuzz>=3.6.1
 reportlab>=4.4.4
 requests>=2.32.5
 ruff>=0.14.2
