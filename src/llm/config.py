@@ -5,10 +5,10 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 LLM_CONFIG = {
     "provider": "openai",  # openai | anthropic | google
-    "model": "gpt-4o-mini",  # gpt-4o | gpt-4o-mini | gpt-4.1 | claude-sonnet-4-5-20250929 | gemini-2.5-flash
+    "model": "gpt-4.1",  # gpt-4o | gpt-4o-mini | gpt-4.1 | claude-sonnet-4-5-20250929 | gemini-2.5-flash
     "temperature": 0.1,
     "temperature_text": 0.5,
-    "max_tokens": 16384,  # gpt-4o-mini max is 16384
+    "max_tokens": 20000,  # gpt-4o-mini max is 16384
     "timeout": 30,
     "fallback_model": "gpt-4o-mini",
 }
@@ -172,6 +172,16 @@ If no specific category preference is detected, return null for preferred_catego
 AGENT_PROMPT_TEMPLATE = """Answer the following questions as best you can. You have access to the following tools:
 
 {tools}
+
+CRITICAL OUTPUT FORMAT RULE:
+You MUST ALWAYS output your final answer in this EXACT format:
+
+Thought: I now know the final answer
+Final Answer: {{complete JSON on single line}}
+
+NEVER output bare JSON without the "Final Answer:" prefix.
+NEVER return tool output directly as your final answer.
+ALWAYS wrap your final JSON response with "Final Answer:" prefix.
 
 Use the following format:
 
@@ -402,6 +412,13 @@ OUTPUT GENERATION GUIDELINES:
    - Include general disclaimer (e.g., "This tool is for informational purposes only. Verify critical data at census.gov.")
    - Format: ["footnote 1", "footnote 2", "footnote 3", ...]
    - Minimum 2 footnotes (source + disclaimer), typically 3-5 total
+
+REMINDER - CRITICAL OUTPUT FORMAT:
+When you have gathered all data and are ready to provide the final answer:
+1. Write "Thought: I now know the final answer" on its own line
+2. Write "Final Answer: " followed by the complete JSON on the SAME line
+3. NEVER output bare JSON without the "Final Answer:" prefix
+4. The JSON must include all 7 required keys: census_data, data_summary, reasoning_trace, answer_text, charts_needed, tables_needed, footnotes
 
 Begin!
 

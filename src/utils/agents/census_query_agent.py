@@ -87,6 +87,15 @@ class CensusQueryAgent:
             llm=self.llm, tools=self.tools, prompt=self._build_prompt()
         )
 
+        # Import conversation summarizer
+        from src.utils.conversation_summarizer import ConversationSummarizer
+        
+        # Create summarization callback
+        self.summarizer = ConversationSummarizer(
+            token_threshold=100000,  # Trigger at 100k tokens (80% of 128k limit)
+            keep_recent=5  # Keep last 5 tool calls in full detail
+        )
+
         self.agent_executor = AgentExecutor(
             agent=self.agent,
             tools=self.tools,
@@ -94,6 +103,7 @@ class CensusQueryAgent:
             max_iterations=30,
             max_execution_time=180,
             handle_parsing_errors="Check your output format. You must output: 'Thought: I now know the final answer' followed by 'Final Answer: {valid JSON on single line}'",
+            callbacks=[self.summarizer],
         )
 
     def _build_prompt(self):
@@ -109,6 +119,15 @@ class CensusQueryAgent:
 Intent: {intent}"""
             }
         )
+
+        # Trim intermediate steps if they're too large (context length management)
+        intermediate_steps = result.get("intermediate_steps", [])
+        if len(intermediate_steps) > 10:
+            from src.utils.conversation_summarizer import summarize_intermediate_steps
+            result["intermediate_steps"] = summarize_intermediate_steps(
+                intermediate_steps, keep_recent=5
+            )
+            logger.info(f"Trimmed intermediate steps from {len(intermediate_steps)} to {len(result['intermediate_steps'])}")
 
         return self._parse_solution(result)
 
@@ -171,6 +190,13 @@ Intent: {intent}"""
         parsed = self._extract_after_final_answer(output)
         if parsed:
             return parsed
+
+        # Method 3: Check if output is valid JSON without "Final Answer:" prefix (fallback)
+        if self._is_valid_json_without_prefix(output):
+            logger.warning("Agent returned bare JSON without 'Final Answer:' prefix, attempting direct parse")
+            parsed = self._try_direct_json_parse(output)
+            if parsed:
+                return parsed
 
         # Fallback: Return empty structure with diagnostics
         logger.warning("All parsing methods failed")
@@ -436,3 +462,28 @@ Intent: {intent}"""
             f"State machine: Incomplete JSON (brace_count={brace_count}, bracket_count={bracket_count})"
         )
         return None
+
+    def _is_valid_json_without_prefix(self, output: str) -> bool:
+        """
+        Check if output is valid JSON but missing the 'Final Answer:' prefix.
+        This handles cases where the agent returns tool output directly.
+        """
+        if not output or "Final Answer:" in output:
+            return False
+        
+        # Check if it starts with a JSON object
+        stripped = output.strip()
+        if not stripped.startswith("{"):
+            return False
+        
+        # Try to parse as JSON
+        try:
+            parsed = json.loads(stripped)
+            # Check if it has the expected structure
+            if isinstance(parsed, dict) and "census_data" in parsed:
+                logger.info("Detected bare JSON output without 'Final Answer:' prefix")
+                return True
+        except json.JSONDecodeError:
+            pass
+        
+        return False
