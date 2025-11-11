@@ -24,11 +24,11 @@ from src.llm.config import LLM_CONFIG, AGENT_PROMPT_TEMPLATE
 from src.llm.factory import create_llm
 from src.tools.geography_discovery_tool import GeographyDiscoveryTool
 from src.tools.geography_hierarchy_tool import GeographyHierarchyTool
+from src.tools.geography_validation_tool import GeographyValidationTool
 from src.tools.table_search_tool import TableSearchTool
 from src.tools.census_api_tool import CensusAPITool
 from src.tools.chart_tool import ChartTool
 from src.tools.table_tool import TableTool
-from src.tools.table_validation_tool import TableValidationTool
 from src.tools.pattern_builder_tool import PatternBuilderTool
 from src.tools.area_resolution_tool import AreaResolutionTool
 from src.tools.variable_validation_tool import VariableValidationTool
@@ -66,6 +66,7 @@ class CensusQueryAgent:
         # Initialize tools
         self.tools = [
             GeographyDiscoveryTool(),
+            GeographyValidationTool(),
             TableSearchTool(),
             CensusAPITool(),
             TableTool(),
@@ -89,11 +90,11 @@ class CensusQueryAgent:
 
         # Import conversation summarizer
         from src.utils.conversation_summarizer import ConversationSummarizer
-        
+
         # Create summarization callback
         self.summarizer = ConversationSummarizer(
             token_threshold=100000,  # Trigger at 100k tokens (80% of 128k limit)
-            keep_recent=5  # Keep last 5 tool calls in full detail
+            keep_recent=5,  # Keep last 5 tool calls in full detail
         )
 
         self.agent_executor = AgentExecutor(
@@ -124,38 +125,41 @@ Intent: {intent}"""
         intermediate_steps = result.get("intermediate_steps", [])
         if len(intermediate_steps) > 10:
             from src.utils.conversation_summarizer import summarize_intermediate_steps
+
             result["intermediate_steps"] = summarize_intermediate_steps(
                 intermediate_steps, keep_recent=5
             )
-            logger.info(f"Trimmed intermediate steps from {len(intermediate_steps)} to {len(result['intermediate_steps'])}")
+            logger.info(
+                f"Trimmed intermediate steps from {len(intermediate_steps)} to {len(result['intermediate_steps'])}"
+            )
 
         return self._parse_solution(result)
 
     def _did_reach_iteration_limit(self, result: Dict, output: str) -> bool:
         """Check if agent exhausted iterations or time without completing."""
         intermediate_steps = result.get("intermediate_steps", [])
-        
+
         # Hit max_iterations (30) or max_execution_time (180s)
         if len(intermediate_steps) >= 28:  # Close to limit
             return True
-        
+
         # Check for repetitive tool calls (stuck in loop)
         if len(intermediate_steps) >= 10:
             recent_tools = [step[0].tool for step in intermediate_steps[-10:]]
             # If same tool called 5+ times in last 10 steps, likely stuck
             if any(recent_tools.count(tool) >= 5 for tool in set(recent_tools)):
                 return True
-        
+
         return False
 
     def _build_iteration_limit_response(self, result: Dict, output: str) -> Dict:
         """Build error response when agent gets stuck."""
         intermediate_steps = result.get("intermediate_steps", [])
         recent_actions = [
-            f"{step[0].tool}({step[0].tool_input[:50]}...)" 
+            f"{step[0].tool}({step[0].tool_input[:50]}...)"
             for step in intermediate_steps[-5:]
         ]
-        
+
         return {
             "census_data": {"success": False, "data": []},
             "data_summary": "Agent exceeded iteration limit",
@@ -165,8 +169,8 @@ Intent: {intent}"""
             "tables_needed": [],
             "footnotes": [
                 "This query exceeded the maximum number of processing attempts.",
-                "Try simplifying your request or using a more common geography level."
-            ]
+                "Try simplifying your request or using a more common geography level.",
+            ],
         }
 
     def _parse_solution(self, result: Dict) -> Dict:
@@ -193,7 +197,9 @@ Intent: {intent}"""
 
         # Method 3: Check if output is valid JSON without "Final Answer:" prefix (fallback)
         if self._is_valid_json_without_prefix(output):
-            logger.warning("Agent returned bare JSON without 'Final Answer:' prefix, attempting direct parse")
+            logger.warning(
+                "Agent returned bare JSON without 'Final Answer:' prefix, attempting direct parse"
+            )
             parsed = self._try_direct_json_parse(output)
             if parsed:
                 return parsed
@@ -271,7 +277,10 @@ Intent: {intent}"""
             "Please rerun the question and I will try again."
         )
 
-        census_data_payload: Dict[str, Any] = {"success": False, "error": "empty_output"}
+        census_data_payload: Dict[str, Any] = {
+            "success": False,
+            "error": "empty_output",
+        }
         observation_dict = self._coerce_observation_to_dict(last_observation)
         if observation_dict and isinstance(observation_dict, dict):
             census_data_payload = observation_dict
@@ -303,7 +312,9 @@ Intent: {intent}"""
                 return True
         return False
 
-    def _build_iteration_limit_response(self, result: Dict, output: str) -> Dict[str, Any]:
+    def _build_iteration_limit_response(
+        self, result: Dict, output: str
+    ) -> Dict[str, Any]:
         intermediate_steps = result.get("intermediate_steps", []) or []
         step_count = len(intermediate_steps)
 
@@ -330,7 +341,10 @@ Intent: {intent}"""
             "Please rerun the question or adjust it and I will try again."
         )
 
-        census_data_payload: Dict[str, Any] = {"success": False, "error": "iteration_limit"}
+        census_data_payload: Dict[str, Any] = {
+            "success": False,
+            "error": "iteration_limit",
+        }
         observation_dict = self._coerce_observation_to_dict(last_observation)
         if observation_dict and isinstance(observation_dict, dict):
             census_data_payload = observation_dict
@@ -470,12 +484,12 @@ Intent: {intent}"""
         """
         if not output or "Final Answer:" in output:
             return False
-        
+
         # Check if it starts with a JSON object
         stripped = output.strip()
         if not stripped.startswith("{"):
             return False
-        
+
         # Try to parse as JSON
         try:
             parsed = json.loads(stripped)
@@ -485,5 +499,5 @@ Intent: {intent}"""
                 return True
         except json.JSONDecodeError:
             pass
-        
+
         return False

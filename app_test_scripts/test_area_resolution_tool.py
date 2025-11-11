@@ -37,4 +37,3 @@ def test_area_resolution_tool_returns_components(monkeypatch):
     data = json.loads(output)
     assert data["match_type"] == "Composite"
     assert len(data["components"]) == 2
-

@@ -88,12 +88,63 @@ class GeographyRegistry:
             # Subdivisions
             "county subdivision": "county subdivision",
             "county subdivisions": "county subdivision",
-            # Tribal
-            "tribal tract": "tribal census tract (or part)",
-            "tribal tracts": "tribal census tract (or part)",
-            "tribal area": "american indian area/alaska native area (reservation or statistical entity only)",
-            "tribal areas": "american indian area/alaska native area (reservation or statistical entity only)",
+            # Tribal geographies (comprehensive)
+            "tribal tract": "tribal census tract",
+            "tribal tracts": "tribal census tract",
+            "tribal census tract": "tribal census tract",
+            "tribal census tract or part": "tribal census tract (or part)",
+            "tribal census tract (or part)": "tribal census tract (or part)",
+            "tribal block group": "tribal block group",
+            "tribal block groups": "tribal block group",
+            "tribal block group or part": "tribal block group (or part)",
+            "tribal block group (or part)": "tribal block group (or part)",
+            "tribal subdivision": "tribal subdivision/remainder",
+            "tribal subdivision/remainder": "tribal subdivision/remainder",
+            "tribal area": "american indian area/alaska native area/hawaiian home land",
+            "tribal areas": "american indian area/alaska native area/hawaiian home land",
+            "american indian area": "american indian area/alaska native area/hawaiian home land",
+            "alaska native area": "american indian area/alaska native area/hawaiian home land",
+            "hawaiian home land": "american indian area/alaska native area/hawaiian home land",
+            "aiannh": "american indian area/alaska native area/hawaiian home land",
             "reservation": "american indian area/alaska native area (reservation or statistical entity only)",
+            "reservations": "american indian area/alaska native area (reservation or statistical entity only)",
+            "tribal reservation": "american indian area/alaska native area (reservation or statistical entity only)",
+            "american indian reservation": "american indian area/alaska native area (reservation or statistical entity only)",
+            "trust land": "american indian area (off-reservation trust land only)/hawaiian home land",
+            "trust lands": "american indian area (off-reservation trust land only)/hawaiian home land",
+            "off-reservation trust land": "american indian area (off-reservation trust land only)/hawaiian home land",
+            "alaska native regional corporation": "alaska native regional corporation",
+            "anrc": "alaska native regional corporation",
+            # Statistical areas with (or part) variants
+            "metropolitan statistical area": "metropolitan statistical area/micropolitan statistical area",
+            "micropolitan statistical area": "metropolitan statistical area/micropolitan statistical area",
+            "metropolitan division": "metropolitan division",
+            "metropolitan division or part": "metropolitan division (or part)",
+            "metropolitan division (or part)": "metropolitan division (or part)",
+            "combined statistical area or part": "combined statistical area (or part)",
+            "combined statistical area (or part)": "combined statistical area (or part)",
+            # (or part) geography variants
+            "state or part": "state (or part)",
+            "state (or part)": "state (or part)",
+            "county or part": "county (or part)",
+            "county (or part)": "county (or part)",
+            "place or part": "place (or part)",
+            "place (or part)": "place (or part)",
+            "place/remainder or part": "place/remainder (or part)",
+            "place/remainder (or part)": "place/remainder (or part)",
+            "principal city or part": "principal city (or part)",
+            "principal city (or part)": "principal city (or part)",
+            "msa or part": "metropolitan statistical area/micropolitan statistical area (or part)",
+            "metropolitan statistical area/micropolitan statistical area (or part)": "metropolitan statistical area/micropolitan statistical area (or part)",
+            "aiannh or part": "american indian area/alaska native area/hawaiian home land (or part)",
+            "american indian area/alaska native area/hawaiian home land (or part)": "american indian area/alaska native area/hawaiian home land (or part)",
+            "tribal area or part": "american indian area/alaska native area (reservation or statistical entity only) (or part)",
+            "american indian area/alaska native area (reservation or statistical entity only) (or part)": "american indian area/alaska native area (reservation or statistical entity only) (or part)",
+            "trust land or part": "american indian area (off-reservation trust land only)/hawaiian home land (or part)",
+            "american indian area (off-reservation trust land only)/hawaiian home land (or part)": "american indian area (off-reservation trust land only)/hawaiian home land (or part)",
+            # Additional common variants
+            "consolidated city": "consolidated city",
+            "subminor civil division": "subminor civil division",
         }
 
     def enumerate_areas(
@@ -307,6 +358,547 @@ class GeographyRegistry:
             )
             return {}
 
+    def enumerate_tribal_areas(
+        self,
+        dataset: str,
+        year: int,
+        geo_token: str = "american indian area/alaska native area/hawaiian home land",
+        state_code: Optional[str] = None,
+        force_refresh: bool = False,
+    ) -> Dict[str, Dict[str, Any]]:
+        """
+        Enumerate tribal areas with support for special code suffixes
+
+        Args:
+            dataset: Census dataset (e.g., "acs/acs5")
+            year: Year (e.g., 2023)
+            geo_token: Tribal geography type
+            state_code: Optional state FIPS code to filter results
+            force_refresh: Force API call even if cached
+
+        Returns:
+            Dict mapping tribal area names to metadata with code suffixes
+
+        Example:
+            >>> registry.enumerate_tribal_areas("acs/acs5", 2023, state_code="40")
+            {'Absentee-Shawnee OTSA': {'code': '0010', 'geo_id': '...', 'full_name': '...', 'suffix': None}, ...}
+        """
+        parent_geo = {"state": state_code} if state_code else None
+
+        # Use standard enumerate_areas but with 7-day cache TTL
+        cache_key = f"{dataset}:{year}:{geo_token}:{state_code or 'all'}"
+        safe_filename = (
+            cache_key.replace(":", "_")
+            .replace("/", "_")
+            .replace(" ", "_")
+            .replace("(", "")
+            .replace(")", "")
+        )
+        cache_file = self.cache_dir / f"{safe_filename}.pkl"
+
+        if not force_refresh and cache_file.exists():
+            # Check if cache is recent (less than 7 days old for tribal areas)
+            if (
+                datetime.now() - datetime.fromtimestamp(cache_file.stat().st_mtime)
+            ) < timedelta(days=7):
+                try:
+                    with open(cache_file, "rb") as f:
+                        areas = pickle.load(f)
+                    logger.info(
+                        f"Loaded {len(areas)} tribal areas from disk cache: {geo_token}"
+                    )
+                    return areas
+                except Exception as e:
+                    logger.error(f"Error loading cache file {cache_file}: {e}")
+
+        # Call Census API
+        logger.info(f"Enumerating tribal areas: {geo_token} for {dataset}/{year}")
+
+        try:
+            base_url = f"https://api.census.gov/data/{year}/{dataset}"
+            params = ["get=NAME,GEO_ID"]
+
+            # Build geography filters
+            filters = build_geo_filters(
+                dataset=dataset,
+                year=year,
+                geo_for={geo_token: "*"},
+                geo_in=parent_geo,
+            )
+
+            params.append(f"for={filters['for']}")
+            if filters.get("in"):
+                params.append(f"in={filters['in']}")
+
+            url = f"{base_url}?{'&'.join(params)}"
+            logger.debug(f"Calling Census API URL: {url}")
+
+            response = requests.get(url, timeout=30)
+            response.raise_for_status()
+            data = response.json()
+
+            areas = {}
+
+            if len(data) > 1:
+                header = data[0]
+                name_idx = header.index("NAME")
+                geo_id_idx = header.index("GEO_ID")
+                code_idx = len(header) - 1
+
+                for row in data[1:]:
+                    name = row[name_idx]
+                    geo_id = row[geo_id_idx]
+                    code = row[code_idx]
+
+                    # Detect suffix (R for reservation, T for trust land)
+                    suffix = None
+                    if code.endswith("R"):
+                        suffix = "R"
+                        code_base = code[:-1]
+                    elif code.endswith("T"):
+                        suffix = "T"
+                        code_base = code[:-1]
+                    else:
+                        code_base = code
+
+                    areas[name] = {
+                        "code": code,
+                        "code_base": code_base,
+                        "suffix": suffix,
+                        "geo_id": geo_id,
+                        "full_name": name,
+                    }
+
+                logger.info(f"Enumerated {len(areas)} tribal areas for {geo_token}")
+
+                # Save to disk with 7-day TTL
+                try:
+                    with open(cache_file, "wb") as f:
+                        pickle.dump(areas, f)
+                    logger.debug(f"Saved {len(areas)} tribal areas to disk cache")
+                except Exception as e:
+                    logger.warning(f"Error saving tribal areas to disk cache: {e}")
+
+                record_event(
+                    "enumerate_tribal_areas",
+                    {
+                        "dataset": dataset,
+                        "year": year,
+                        "geo_token": geo_token,
+                        "state_code": state_code,
+                        "area_count": len(areas),
+                        "cache_hit": False,
+                    },
+                )
+                return areas
+            else:
+                logger.warning(f"No tribal areas found for {geo_token}")
+                return {}
+
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Failed to enumerate tribal areas: {e}")
+            return {}
+        except Exception as e:
+            logger.error(f"Error enumerating tribal areas: {e}")
+            return {}
+
+    def resolve_tribal_area(
+        self,
+        name: str,
+        dataset: str,
+        year: int,
+        geo_token: str = "american indian area/alaska native area/hawaiian home land",
+        state_code: Optional[str] = None,
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Resolve tribal area name to Census code with fuzzy matching
+
+        Args:
+            name: Tribal area name (e.g., "Navajo Nation")
+            dataset: Census dataset
+            year: Year
+            geo_token: Tribal geography type
+            state_code: Optional state FIPS code to narrow search
+
+        Returns:
+            Dict with code, suffix, and metadata, or None if not found
+
+        Example:
+            >>> registry.resolve_tribal_area("Navajo", "acs/acs5", 2023)
+            {'code': '5620R', 'code_base': '5620', 'suffix': 'R', 'confidence': 0.92, ...}
+        """
+        areas = self.enumerate_tribal_areas(dataset, year, geo_token, state_code)
+
+        if not areas:
+            return None
+
+        # Normalize search term
+        normalized = name.lower().strip()
+
+        # Try exact match first
+        for area_name, metadata in areas.items():
+            if area_name.lower() == normalized:
+                return {**metadata, "confidence": 1.0, "match_type": "exact"}
+
+        # Fuzzy match using rapidfuzz
+        choices = list(areas.keys())
+        result = process.extractOne(
+            name,
+            choices,
+            scorer=fuzz.WRatio,
+            score_cutoff=70,
+        )
+
+        if result:
+            matched_name, score, _ = result
+            confidence = score / 100.0
+            metadata = areas[matched_name]
+
+            logger.info(
+                f"Matched '{name}' to '{matched_name}' (confidence: {confidence:.2f})"
+            )
+
+            record_event(
+                "resolve_tribal_area",
+                {
+                    "search_term": name,
+                    "matched_name": matched_name,
+                    "confidence": confidence,
+                    "geo_token": geo_token,
+                },
+            )
+
+            return {
+                **metadata,
+                "confidence": confidence,
+                "match_type": "fuzzy",
+                "matched_name": matched_name,
+            }
+
+        logger.warning(f"No match found for tribal area: {name}")
+        return None
+
+    def _cache_tribal_areas(
+        self,
+        dataset: str,
+        year: int,
+        geo_token: str,
+        state_code: Optional[str] = None,
+    ) -> None:
+        """
+        Pre-cache tribal areas for faster lookups
+
+        Args:
+            dataset: Census dataset
+            year: Year
+            geo_token: Tribal geography type
+            state_code: Optional state FIPS code
+        """
+        logger.info(f"Pre-caching tribal areas: {geo_token} for {dataset}/{year}")
+        self.enumerate_tribal_areas(
+            dataset, year, geo_token, state_code, force_refresh=True
+        )
+
+    def enumerate_statistical_areas(
+        self,
+        area_type: str,
+        dataset: str,
+        year: int,
+        force_refresh: bool = False,
+    ) -> Dict[str, Dict[str, Any]]:
+        """
+        Enumerate statistical areas (CBSAs, CSAs, urban areas)
+
+        Args:
+            area_type: Type of statistical area (e.g., "metropolitan statistical area/micropolitan statistical area", "combined statistical area", "urban area")
+            dataset: Census dataset
+            year: Year
+            force_refresh: Force API call even if cached
+
+        Returns:
+            Dict mapping area names to metadata
+
+        Example:
+            >>> registry.enumerate_statistical_areas("metropolitan statistical area/micropolitan statistical area", "acs/acs5", 2023)
+            {'New York-Newark-Jersey City, NY-NJ-PA Metro Area': {'code': '35620', ...}, ...}
+        """
+        cache_key = f"{dataset}:{year}:{area_type}"
+        safe_filename = (
+            cache_key.replace(":", "_")
+            .replace("/", "_")
+            .replace(" ", "_")
+            .replace("(", "")
+            .replace(")", "")
+        )
+        cache_file = self.cache_dir / f"{safe_filename}.pkl"
+
+        if not force_refresh and cache_file.exists():
+            # Check if cache is recent (less than 30 days old for statistical areas)
+            if (
+                datetime.now() - datetime.fromtimestamp(cache_file.stat().st_mtime)
+            ) < timedelta(days=30):
+                try:
+                    with open(cache_file, "rb") as f:
+                        areas = pickle.load(f)
+                    logger.info(
+                        f"Loaded {len(areas)} statistical areas from disk cache: {area_type}"
+                    )
+                    return areas
+                except Exception as e:
+                    logger.error(f"Error loading cache file {cache_file}: {e}")
+
+        # Call Census API
+        logger.info(f"Enumerating statistical areas: {area_type} for {dataset}/{year}")
+
+        try:
+            base_url = f"https://api.census.gov/data/{year}/{dataset}"
+            params = ["get=NAME,GEO_ID"]
+
+            filters = build_geo_filters(
+                dataset=dataset,
+                year=year,
+                geo_for={area_type: "*"},
+                geo_in=None,
+            )
+
+            params.append(f"for={filters['for']}")
+
+            url = f"{base_url}?{'&'.join(params)}"
+            logger.debug(f"Calling Census API URL: {url}")
+
+            response = requests.get(url, timeout=30)
+            response.raise_for_status()
+            data = response.json()
+
+            areas = {}
+
+            if len(data) > 1:
+                header = data[0]
+                name_idx = header.index("NAME")
+                geo_id_idx = header.index("GEO_ID")
+                code_idx = len(header) - 1
+
+                for row in data[1:]:
+                    name = row[name_idx]
+                    geo_id = row[geo_id_idx]
+                    code = row[code_idx]
+
+                    areas[name] = {
+                        "code": code,
+                        "geo_id": geo_id,
+                        "full_name": name,
+                    }
+
+                logger.info(
+                    f"Enumerated {len(areas)} statistical areas for {area_type}"
+                )
+
+                # Save to disk with 30-day TTL
+                try:
+                    with open(cache_file, "wb") as f:
+                        pickle.dump(areas, f)
+                    logger.debug(f"Saved {len(areas)} statistical areas to disk cache")
+                except Exception as e:
+                    logger.warning(f"Error saving statistical areas to disk cache: {e}")
+
+                record_event(
+                    "enumerate_statistical_areas",
+                    {
+                        "dataset": dataset,
+                        "year": year,
+                        "area_type": area_type,
+                        "area_count": len(areas),
+                        "cache_hit": False,
+                    },
+                )
+                return areas
+            else:
+                logger.warning(f"No statistical areas found for {area_type}")
+                return {}
+
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Failed to enumerate statistical areas: {e}")
+            return {}
+        except Exception as e:
+            logger.error(f"Error enumerating statistical areas: {e}")
+            return {}
+
+    def resolve_statistical_area(
+        self,
+        name: str,
+        area_type: str,
+        dataset: str,
+        year: int,
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Resolve statistical area name to Census code with fuzzy matching
+
+        Args:
+            name: Statistical area name (e.g., "New York metro")
+            area_type: Type of statistical area
+            dataset: Census dataset
+            year: Year
+
+        Returns:
+            Dict with code and metadata, or None if not found
+
+        Example:
+            >>> registry.resolve_statistical_area("New York", "metropolitan statistical area/micropolitan statistical area", "acs/acs5", 2023)
+            {'code': '35620', 'confidence': 0.95, ...}
+        """
+        areas = self.enumerate_statistical_areas(area_type, dataset, year)
+
+        if not areas:
+            return None
+
+        # Normalize search term
+        normalized = name.lower().strip()
+
+        # Try exact match first
+        for area_name, metadata in areas.items():
+            if area_name.lower() == normalized:
+                return {**metadata, "confidence": 1.0, "match_type": "exact"}
+
+        # Fuzzy match using rapidfuzz
+        choices = list(areas.keys())
+        result = process.extractOne(
+            name,
+            choices,
+            scorer=fuzz.WRatio,
+            score_cutoff=70,
+        )
+
+        if result:
+            matched_name, score, _ = result
+            confidence = score / 100.0
+            metadata = areas[matched_name]
+
+            logger.info(
+                f"Matched '{name}' to '{matched_name}' (confidence: {confidence:.2f})"
+            )
+
+            record_event(
+                "resolve_statistical_area",
+                {
+                    "search_term": name,
+                    "matched_name": matched_name,
+                    "confidence": confidence,
+                    "area_type": area_type,
+                },
+            )
+
+            return {
+                **metadata,
+                "confidence": confidence,
+                "match_type": "fuzzy",
+                "matched_name": matched_name,
+            }
+
+        logger.warning(f"No match found for statistical area: {name}")
+        return None
+
+    def _cache_statistical_areas(
+        self,
+        area_type: str,
+        dataset: str,
+        year: int,
+    ) -> None:
+        """
+        Pre-cache statistical areas for faster lookups
+
+        Args:
+            area_type: Type of statistical area
+            dataset: Census dataset
+            year: Year
+        """
+        logger.info(f"Pre-caching statistical areas: {area_type} for {dataset}/{year}")
+        self.enumerate_statistical_areas(area_type, dataset, year, force_refresh=True)
+
+    def _resolve_part_geography(
+        self,
+        child_token: str,
+        parent_token: str,
+        parent_code: str,
+        dataset: str,
+        year: int,
+    ) -> Dict[str, Dict[str, Any]]:
+        """
+        Resolve "(or part)" geography under a parent statistical area
+
+        Args:
+            child_token: Child geography token (e.g., "county (or part)")
+            parent_token: Parent geography token (e.g., "metropolitan statistical area/micropolitan statistical area")
+            parent_code: Parent area code
+            dataset: Census dataset
+            year: Year
+
+        Returns:
+            Dict mapping child area names to metadata
+
+        Example:
+            >>> registry._resolve_part_geography("county (or part)", "metropolitan statistical area/micropolitan statistical area", "35620", "acs/acs5", 2023)
+            {'Bronx County, NY': {'code': '005', ...}, ...}
+        """
+        logger.info(f"Resolving {child_token} under {parent_token}={parent_code}")
+
+        try:
+            base_url = f"https://api.census.gov/data/{year}/{dataset}"
+            params = ["get=NAME,GEO_ID"]
+
+            filters = build_geo_filters(
+                dataset=dataset,
+                year=year,
+                geo_for={child_token: "*"},
+                geo_in={parent_token: parent_code},
+            )
+
+            params.append(f"for={filters['for']}")
+            if filters.get("in"):
+                params.append(f"in={filters['in']}")
+
+            url = f"{base_url}?{'&'.join(params)}"
+            logger.debug(f"Calling Census API URL: {url}")
+
+            response = requests.get(url, timeout=30)
+            response.raise_for_status()
+            data = response.json()
+
+            areas = {}
+
+            if len(data) > 1:
+                header = data[0]
+                name_idx = header.index("NAME")
+                geo_id_idx = header.index("GEO_ID")
+                code_idx = len(header) - 1
+
+                for row in data[1:]:
+                    name = row[name_idx]
+                    geo_id = row[geo_id_idx]
+                    code = row[code_idx]
+
+                    areas[name] = {
+                        "code": code,
+                        "geo_id": geo_id,
+                        "full_name": name,
+                        "parent_token": parent_token,
+                        "parent_code": parent_code,
+                    }
+
+                logger.info(f"Resolved {len(areas)} {child_token} areas")
+                return areas
+            else:
+                logger.warning(
+                    f"No {child_token} areas found under {parent_token}={parent_code}"
+                )
+                return {}
+
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Failed to resolve {child_token}: {e}")
+            return {}
+        except Exception as e:
+            logger.error(f"Error resolving {child_token}: {e}")
+            return {}
+
     def _url_encode_dict(self, text: str) -> str:
         """URL encode spaces and special characters"""
         return urllib.parse.quote(text)
@@ -353,8 +945,7 @@ class GeographyRegistry:
             "sf": "san francisco county, california",
         }
         return {
-            alias: self._normalize_name(target)
-            for alias, target in raw_aliases.items()
+            alias: self._normalize_name(target) for alias, target in raw_aliases.items()
         }
 
     def _composite_aliases(self):
@@ -408,6 +999,37 @@ class GeographyRegistry:
 
         if parent_geo is None:
             parent_geo = self._infer_parent_geo(friendly_name) or {}
+
+        # Route to specialized methods for tribal and statistical areas
+        tribal_tokens = {
+            "american indian area/alaska native area/hawaiian home land",
+            "american indian area/alaska native area (reservation or statistical entity only)",
+            "american indian area (off-reservation trust land only)/hawaiian home land",
+            "tribal subdivision/remainder",
+            "tribal census tract",
+            "tribal census tract (or part)",
+            "tribal block group",
+            "tribal block group (or part)",
+            "alaska native regional corporation",
+        }
+
+        statistical_area_tokens = {
+            "metropolitan statistical area/micropolitan statistical area",
+            "metropolitan division",
+            "combined statistical area",
+            "urban area",
+        }
+
+        if geo_token in tribal_tokens:
+            state_code = parent_geo.get("state") if parent_geo else None
+            return self.resolve_tribal_area(
+                friendly_name, dataset, year, geo_token, state_code
+            )
+
+        if geo_token in statistical_area_tokens:
+            return self.resolve_statistical_area(
+                friendly_name, geo_token, dataset, year
+            )
 
         # Get all areas at this level
         areas = self.enumerate_areas(dataset, year, geo_token, parent_geo)

@@ -39,4 +39,3 @@ def record_event(event_type: str, payload: Dict[str, Any]) -> None:
 
 
 __all__ = ["record_event"]
-

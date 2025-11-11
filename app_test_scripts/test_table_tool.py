@@ -1,5 +1,4 @@
 import json
-import os
 from pathlib import Path
 
 import pytest
@@ -76,5 +75,3 @@ def test_run_saves_clean_csv(tmp_path, monkeypatch, sample_census_payload):
     saved = pd.read_csv(expected_path)
     assert saved["C27012_022E"].iloc[0] == 132980
     assert "Table created successfully" in result
-
-

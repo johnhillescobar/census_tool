@@ -200,17 +200,24 @@ TOOL USAGE GUIDE (all Action Inputs must be valid JSON):
    - List levels: {{"action": "list_levels", "dataset": "acs/acs5", "year": 2023}}
    - Enumerate areas: {{"action": "enumerate_areas", "level": "county", "parent": {{"state": "06"}}}}
 
-2. resolve_area_name - Convert area names to Census codes
+2. validate_geography_params - IMPORTANT: Validate geography parameters BEFORE calling census_api_call
+   - Validate params: {{"dataset": "acs/acs5", "year": 2023, "geo_for": {{"county": "*"}}, "geo_in": {{"state": "06"}}}}
+   - This tool checks hierarchy requirements, auto-corrects ordering, and returns warnings/errors
+   - ALWAYS use this before census_api_call to avoid API failures
+   - If validation returns errors, fix the parameters based on the error message
+
+3. resolve_area_name - Convert area names to Census codes
    - Get state code: {{"name": "California", "geography_type": "state"}}
    - Get county code: {{"name": "Los Angeles County", "geography_type": "county", "parent": {{"state": "06"}}}}
    
-3. table_search - Find Census tables by topic
+4. table_search - Find Census tables by topic
    - Search tables: {{"query": "population data"}}
 
-4. census_api_call - Execute Census API query and fetch data with complex patterns support
+5. census_api_call - Execute Census API query and fetch data with complex patterns support
    - Simple: {{"year": 2023, "dataset": "acs/acs5", "variables": ["NAME", "B01003_001E"], "geo_for": {{"county": "*"}}, "geo_in": {{"state": "06"}}}}
    - Subject table: {{"year": 2023, "dataset": "acs/acs5/subject", "variables": ["group(S0101)"], "geo_for": {{"state": "*"}}}}
    - Complex CBSA: {{"year": 2023, "dataset": "acs/acs5", "variables": ["NAME", "B01001_001E"], "geo_for": {{"state (or part)": "*"}}, "geo_in": {{"metropolitan statistical area/micropolitan statistical area": "35620"}}}}
+   - IMPORTANT: Use validate_geography_params BEFORE this tool to ensure parameters are correct
 
 5. table_validation - Validate table supports requested geography
    - Validate table: {{"table_code": "B01003", "geography_level": "county", "dataset": "acs/acs5"}}
@@ -238,9 +245,10 @@ CRITICAL REASONING CHECKLIST (apply every time):
 1. Determine user intent and target geography.
 2. Use geography_discovery / resolve_area_name to gather parent context.
 3. Call geography_hierarchy before pattern_builder to confirm parent ordering for complex geographies (CBSA, metro division, NECTA, etc.).
-4. Run variable_validation immediately before pattern_builder or census_api_call; do not continue until all variables are valid or replaced.
-5. After building the URL, execute census_api_call. If you get a 400 error about unsupported geography, try a different dataset or geography level.
-6. On errors, inspect the message, adjust parameters (tokens, parents, variables), and retry with a different approach.
+4. BEFORE calling census_api_call, use validate_geography_params to check your geography parameters and get corrected versions if needed.
+5. Run variable_validation immediately before pattern_builder or census_api_call; do not continue until all variables are valid or replaced.
+6. After building the URL, execute census_api_call using the validated/corrected geography parameters. If you get a 400 error about unsupported geography, try a different dataset or geography level.
+7. On errors, inspect the message, adjust parameters (tokens, parents, variables), and retry with a different approach.
 
 GEOGRAPHY TOKEN MAPPING QUICK REFERENCE:
 - nation → us

@@ -27,7 +27,10 @@ def test_enumerate_areas_orders_parents(monkeypatch, tmp_path):
             next(iter(geo_for.keys())),
             next(iter(geo_for.values())),
             [
-                ("metropolitan statistical area/micropolitan statistical area", "35620"),
+                (
+                    "metropolitan statistical area/micropolitan statistical area",
+                    "35620",
+                ),
                 ("metropolitan division", "35614"),
                 ("state (or part)", "36"),
             ],
@@ -70,4 +73,3 @@ def test_enumerate_areas_orders_parents(monkeypatch, tmp_path):
     assert captured["payload"]["parent_levels"][0][0] == (
         "metropolitan statistical area/micropolitan statistical area"
     )
-

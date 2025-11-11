@@ -81,13 +81,22 @@ class CensusAPITool(BaseTool):
             return {}
 
         try:
+            # Log original geography parameters
+            geo_for_dict = _coerce_geo_dict(geo_for)
+            geo_in_dict = _coerce_geo_dict(geo_in)
+
+            logger.info(f"Original geo_for: {geo_for_dict}, geo_in: {geo_in_dict}")
+
+            # Validate and auto-repair geography parameters
             geo_filters = build_geo_filters(
                 dataset=dataset,
                 year=year,
-                geo_for=_coerce_geo_dict(geo_for),
-                geo_in=_coerce_geo_dict(geo_in),
+                geo_for=geo_for_dict,
+                geo_in=geo_in_dict,
                 geo_in_chained=geo_in_chained,
             )
+
+            logger.info(f"Repaired geo_filters: {geo_filters}")
 
             geo_params = {"filters": geo_filters}
 
@@ -95,7 +104,9 @@ class CensusAPITool(BaseTool):
                 dataset=dataset, year=year, variables=variables, geo=geo_params
             )
 
-            logger.info(f"Census data fetched successfully: {result}")
+            logger.info(
+                f"Census data fetched successfully: {len(result.get('data', [])) if isinstance(result, dict) else 0} rows"
+            )
 
             record_event(
                 "census_api_call",
@@ -116,6 +127,28 @@ class CensusAPITool(BaseTool):
                 }
             )
 
+        except ValueError as e:
+            # Geography validation error - provide helpful message
+            error_msg = str(e)
+            logger.error(f"Geography validation failed: {error_msg}")
+            record_event(
+                "census_api_call",
+                {
+                    "dataset": dataset,
+                    "year": year,
+                    "variables": variables,
+                    "success": False,
+                    "error": error_msg,
+                    "error_type": "validation",
+                },
+            )
+            return json.dumps(
+                {
+                    "success": False,
+                    "error": f"Geography validation failed: {error_msg}",
+                    "suggestion": "Use geography_hierarchy tool to check required parent geographies",
+                }
+            )
         except Exception as e:
             logger.error(f"Census API error: {e}")
             record_event(

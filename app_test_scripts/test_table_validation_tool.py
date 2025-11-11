@@ -35,4 +35,3 @@ def test_table_validation_tool_invalid_input():
     tool = TableValidationTool()
     result = tool._run(json.dumps({"table_code": "B01003"}))
     assert result.startswith("Error:")
-

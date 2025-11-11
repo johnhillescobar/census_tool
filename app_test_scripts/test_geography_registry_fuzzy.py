@@ -18,7 +18,9 @@ def test_find_area_code_uses_fuzzy_matching(monkeypatch):
     }
 
     monkeypatch.setattr(
-        registry, "enumerate_areas", lambda dataset, year, geo_token, parent_geo: sample_areas
+        registry,
+        "enumerate_areas",
+        lambda dataset, year, geo_token, parent_geo: sample_areas,
     )
 
     result = registry.find_area_code(
@@ -27,4 +29,3 @@ def test_find_area_code_uses_fuzzy_matching(monkeypatch):
     assert result is not None
     assert result["code"] == "061"
     assert result["match_type"] in {"Exact match", "Fuzzy match"}
-

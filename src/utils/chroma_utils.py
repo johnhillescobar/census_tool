@@ -135,6 +135,7 @@ def validate_and_fix_geo_params(
     geo_in: Optional[Dict[str, str]] = None,
     *,
     extra_in: Optional[Iterable[Tuple[str, str]]] = None,
+    validate_completeness: bool = False,
 ) -> Tuple[str, str, List[Tuple[str, str]]]:
     """
     Normalize geo_for/geo_in into a canonical (for_token, for_value, ordered_in list).
@@ -143,6 +144,21 @@ def validate_and_fix_geo_params(
     - Moves parent levels from geo_for into the `in` set.
     - Applies hierarchy ordering from the geography collection.
     - Performs token normalization (nation→us, cbsa→metropolitan statistical area/micropolitan statistical area, etc.)
+    - Optionally validates that all required parent geographies are provided.
+
+    Args:
+        dataset: Census dataset path
+        year: Census year
+        geo_for: Geography for clause
+        geo_in: Geography in clause (optional)
+        extra_in: Additional in clauses (optional)
+        validate_completeness: If True, raise ValueError if required parent geographies are missing
+
+    Returns:
+        Tuple of (for_token, for_value, ordered_in_list)
+
+    Raises:
+        ValueError: If geo_for is empty or if validate_completeness=True and required parents are missing
     """
     if not geo_for:
         raise ValueError("geo_for is required")
@@ -184,4 +200,90 @@ def validate_and_fix_geo_params(
         seen.add((token, value))
         ordered_in.append((token, value))
 
+    # Optional validation of hierarchy completeness
+    if validate_completeness:
+        provided_parents = [token for token, _ in ordered_in]
+        is_valid, missing, error_msg = validate_geography_hierarchy(
+            dataset, year, for_token, provided_parents
+        )
+        if not is_valid:
+            raise ValueError(error_msg)
+
     return for_token, for_value, ordered_in
+
+
+def validate_geography_hierarchy(
+    dataset: str,
+    year: int,
+    for_token: str,
+    provided_parents: List[str],
+) -> Tuple[bool, List[str], str]:
+    """
+    Validate that all required parent geographies are provided.
+
+    Args:
+        dataset: Census dataset (e.g., "acs/acs5")
+        year: Census year
+        for_token: Target geography token (e.g., "county")
+        provided_parents: List of parent geography tokens that were provided
+
+    Returns:
+        Tuple of (is_valid, missing_parents, error_message)
+
+    Example:
+        >>> validate_geography_hierarchy("acs/acs5", 2023, "county", ["state"])
+        (True, [], "")
+        >>> validate_geography_hierarchy("acs/acs5", 2023, "county", [])
+        (False, ["state"], "Missing required parent geography: state. For 'county', you must specify: ['state']")
+    """
+    # Get expected hierarchy ordering
+    ordering = get_hierarchy_ordering(dataset, year, for_token)
+
+    if not ordering:
+        # No hierarchy information available - assume valid
+        logger.debug(
+            f"No hierarchy ordering found for {dataset}/{year}/{for_token}, skipping validation"
+        )
+        return (True, [], "")
+
+    # Check if all required parents are provided
+    provided_set = set(provided_parents)
+    required_set = set(ordering)
+    missing = required_set - provided_set
+
+    if missing:
+        missing_list = sorted(
+            missing, key=lambda x: ordering.index(x) if x in ordering else 999
+        )
+        error_msg = (
+            f"Missing required parent geography: {', '.join(missing_list)}. "
+            f"For '{for_token}', you must specify: {ordering}"
+        )
+
+        # Try to get example URL from metadata
+        client = initialize_chroma_client()
+        if not isinstance(client, dict):
+            try:
+                collection = client.get_collection(
+                    CHROMA_GEOGRAPHY_HIERARCHY_COLLECTION_NAME
+                )
+                result = collection.get(
+                    where={
+                        "$and": [
+                            {"dataset": {"$eq": dataset}},
+                            {"year": {"$eq": year}},
+                            {"for_level": {"$eq": for_token}},
+                        ]
+                    },
+                    include=["metadatas"],
+                )
+                metadatas = result.get("metadatas") or []
+                if metadatas and metadatas[0].get("example_url"):
+                    error_msg += f"\n\nExample: {metadatas[0]['example_url']}"
+            except Exception as e:
+                logger.debug(f"Could not fetch example URL: {e}")
+
+        logger.warning(error_msg)
+        return (False, missing_list, error_msg)
+
+    return (True, [], "")

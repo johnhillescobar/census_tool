@@ -4,14 +4,15 @@ import logging
 import sys
 from pathlib import Path
 from dotenv import load_dotenv
-# Directories
-TEST_LOG_DIR = Path("logs/test_logs")
-TEST_LOG_DIR.mkdir(parents=True, exist_ok=True)
 
 from app import create_census_graph
 from src.state.types import CensusState
 from langchain_core.runnables import RunnableConfig
 from src.utils.session_logger import SessionLogger
+
+# Directories
+TEST_LOG_DIR = Path("logs/test_logs")
+TEST_LOG_DIR.mkdir(parents=True, exist_ok=True)
 
 # Load environment variables
 load_dotenv()
@@ -60,7 +61,10 @@ def run_single_question(
         error = result.get("error")
 
         # Check if agent hit iteration limit
-        if "exceeded iteration limit" in answer.lower() or "unable to complete" in answer.lower():
+        if (
+            "exceeded iteration limit" in answer.lower()
+            or "unable to complete" in answer.lower()
+        ):
             logging.warning(f"Question {question_no} hit agent iteration limit")
             error = "Agent iteration limit exceeded"
 

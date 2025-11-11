@@ -7,7 +7,7 @@ from __future__ import annotations
 import logging
 import pickle
 from pathlib import Path
-from typing import Dict, List, Optional, Set
+from typing import Dict, Optional, Set
 
 import requests
 from bs4 import BeautifulSoup
@@ -59,8 +59,7 @@ def _parse_geography_levels(html_text: str) -> Set[str]:
     # geography.html contains tables with Summary Level and Geography entries
     for table in soup.find_all("table"):
         headers = [
-            header.get_text(" ", strip=True).lower()
-            for header in table.find_all("th")
+            header.get_text(" ", strip=True).lower() for header in table.find_all("th")
         ]
         for row in table.find_all("tr"):
             cells = [cell.get_text(" ", strip=True) for cell in row.find_all("td")]
@@ -73,7 +72,9 @@ def _parse_geography_levels(html_text: str) -> Set[str]:
     return levels
 
 
-def fetch_dataset_geography_levels(dataset: str, year: int, *, force_refresh: bool = False) -> Set[str]:
+def fetch_dataset_geography_levels(
+    dataset: str, year: int, *, force_refresh: bool = False
+) -> Set[str]:
     """
     Fetch the set of supported geography levels for dataset/year using geography.html.
     """
@@ -129,7 +130,9 @@ def fetch_dataset_geography_levels(dataset: str, year: int, *, force_refresh: bo
         return set()
 
 
-def geography_supported(dataset: str, year: int, geography_level: str) -> Dict[str, object]:
+def geography_supported(
+    dataset: str, year: int, geography_level: str
+) -> Dict[str, object]:
     """
     Check if a geography level is supported for a dataset/year.
     """
@@ -147,4 +150,3 @@ def geography_supported(dataset: str, year: int, geography_level: str) -> Dict[s
 
 
 __all__ = ["fetch_dataset_geography_levels", "geography_supported"]
-
