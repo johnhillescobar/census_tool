@@ -60,7 +60,23 @@ class CensusQueryAgent:
     Uses ReAct pattern with Census tools
     """
 
-    def __init__(self):
+    def __init__(self, allow_offline: bool = True):
+        self.offline_mode = False
+
+        missing_api_key = not os.getenv("OPENAI_API_KEY")
+        if allow_offline and missing_api_key:
+            self.offline_mode = True
+            logger.warning(
+                "OPENAI_API_KEY not set. Initializing CensusQueryAgent in offline mode. "
+                "Agent execution will be disabled; only parsing helpers are available."
+            )
+            self.llm = None
+            self.tools = []
+            self.agent = None
+            self.summarizer = None
+            self.agent_executor = None
+            return
+
         self.llm = create_llm(temperature=LLM_CONFIG["temperature"])
 
         # Initialize tools
@@ -114,6 +130,23 @@ class CensusQueryAgent:
         """
         Reason through the query and return structured data
         """
+        if self.offline_mode:
+            logger.warning(
+                "CensusQueryAgent.solve called in offline mode without API credentials."
+            )
+            return {
+                "census_data": {"success": False, "data": []},
+                "data_summary": "Agent execution skipped (no API credentials available)",
+                "reasoning_trace": "Agent skipped because OPENAI_API_KEY is not configured",
+                "answer_text": "Unable to complete this request because the CensusQueryAgent is running without LLM credentials. Provide OPENAI_API_KEY to enable agent execution.",
+                "charts_needed": [],
+                "tables_needed": [],
+                "footnotes": [
+                    "Agent execution disabled due to missing OPENAI_API_KEY.",
+                    "Set OPENAI_API_KEY before running automated workflows or tests.",
+                ],
+            }
+
         result = self.agent_executor.invoke(
             {
                 "input": f"""User query: {user_query}

@@ -540,29 +540,35 @@ class GeographyRegistry:
             if area_name.lower() == normalized:
                 return {**metadata, "confidence": 1.0, "match_type": "exact"}
 
-        # Fuzzy match using rapidfuzz
+        # Fuzzy match using rapidfuzz with multiple scorers to handle partial matches
         choices = list(areas.keys())
-        result = process.extractOne(
-            name,
-            choices,
-            scorer=fuzz.WRatio,
-            score_cutoff=70,
-        )
+        best_match = None
+        best_score = 0
 
-        if result:
-            matched_name, score, _ = result
-            confidence = score / 100.0
-            metadata = areas[matched_name]
+        for candidate in choices:
+            scores = (
+                fuzz.WRatio(name, candidate),
+                fuzz.partial_ratio(name, candidate),
+                fuzz.token_set_ratio(name, candidate),
+            )
+            candidate_score = max(scores)
+            if candidate_score > best_score:
+                best_score = candidate_score
+                best_match = candidate
+
+        if best_match and best_score >= 60:
+            confidence = best_score / 100.0
+            metadata = areas[best_match]
 
             logger.info(
-                f"Matched '{name}' to '{matched_name}' (confidence: {confidence:.2f})"
+                f"Matched '{name}' to '{best_match}' (confidence: {confidence:.2f})"
             )
 
             record_event(
                 "resolve_tribal_area",
                 {
                     "search_term": name,
-                    "matched_name": matched_name,
+                    "matched_name": best_match,
                     "confidence": confidence,
                     "geo_token": geo_token,
                 },
@@ -572,7 +578,7 @@ class GeographyRegistry:
                 **metadata,
                 "confidence": confidence,
                 "match_type": "fuzzy",
-                "matched_name": matched_name,
+                "matched_name": best_match,
             }
 
         logger.warning(f"No match found for tribal area: {name}")

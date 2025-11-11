@@ -5,6 +5,7 @@ Build the census_geography_hierarchies Chroma collection from Census example tab
 from __future__ import annotations
 
 import sys
+import os
 import argparse
 import logging
 from collections import defaultdict
@@ -232,10 +233,30 @@ def build_metadata(
     }
 
 
+class _DummyEmbeddingFunction:
+    def __init__(self, model_name: str):
+        self.model_name = model_name
+
+    def __call__(self, texts):
+        if isinstance(texts, str):
+            texts = [texts]
+        return [[0.0] for _ in texts]
+
+
+def _create_embedding_function():
+    api_key = os.getenv("CHROMA_OPENAI_API_KEY") or os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        LOGGER.warning(
+            "CHROMA_OPENAI_API_KEY not set. Using dummy embedding function during offline execution."
+        )
+        return _DummyEmbeddingFunction(CHROMA_EMBEDDING_MODEL)
+    return OpenAIEmbeddingFunction(model_name=CHROMA_EMBEDDING_MODEL)
+
+
 def upsert_documents(
     client: chromadb.PersistentClient, docs: Dict[Tuple[str, int, str], Dict]
 ) -> None:
-    embedding_function = OpenAIEmbeddingFunction(model_name=CHROMA_EMBEDDING_MODEL)
+    embedding_function = _create_embedding_function()
     collection = client.get_or_create_collection(
         CHROMA_GEOGRAPHY_HIERARCHY_COLLECTION_NAME,
         metadata={"description": "Census geography hierarchy ordering examples"},
