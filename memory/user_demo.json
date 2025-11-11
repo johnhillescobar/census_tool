@@ -9,9 +9,9 @@
   "preferred_level": "place",
   "var_aliases": {},
   "usage_stats": {
-    "total_queries": 4,
-    "success_queries": 4,
-    "last_query_date": "2025-11-09T13:37:15.418031"
+    "total_queries": 28,
+    "success_queries": 28,
+    "last_query_date": "2025-11-10T19:33:58.182368"
   },
   "history": [
     {
@@ -53,7 +53,247 @@
       "plan_summary": "",
       "answer_type": "Unknown",
       "success": true
+    },
+    {
+      "timestamp": "2025-11-10T18:05:34.362560",
+      "user_id": "demo",
+      "question": "What's the population of New York City?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-10T18:07:28.206643",
+      "user_id": "demo",
+      "question": "Show me median income trends from 2015 to 2020",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-10T18:08:22.064531",
+      "user_id": "demo",
+      "question": "Compare population by county in California",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-10T18:09:36.722933",
+      "user_id": "demo",
+      "question": "What's the total population/age summary for the U.S. in 2023?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-10T18:10:48.457744",
+      "user_id": "demo",
+      "question": "What's the median household income by state in 2022?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-10T18:12:30.453543",
+      "user_id": "demo",
+      "question": "Show total population for all California counties in 2023.",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-10T18:13:33.432002",
+      "user_id": "demo",
+      "question": "Give me the labor force comparison profile for Florida (2018 vs 2023).",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-10T18:14:50.306581",
+      "user_id": "demo",
+      "question": "What are the housing characteristics for Chicago in 2022?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-10T18:15:30.655670",
+      "user_id": "demo",
+      "question": "What languages are spoken at home across Massachusetts counties in 2023?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-10T18:17:53.404566",
+      "user_id": "demo",
+      "question": "What's the median gross rent in ZIP Code 60601 (2023)?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-10T18:19:34.297161",
+      "user_id": "demo",
+      "question": "Show poverty by age (full B17001) for all states (2021).",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-10T18:20:26.468760",
+      "user_id": "demo",
+      "question": "List all metropolitan divisions for 2023.",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-10T18:29:55.215917",
+      "user_id": "demo",
+      "question": "Which counties are in CBSA 35620?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-10T18:30:45.827578",
+      "user_id": "demo",
+      "question": "Which counties are in Metro Division 35614?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-10T18:34:57.755407",
+      "user_id": "demo",
+      "question": "Show tract-level population for Los Angeles County, CA (2023).",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-10T18:37:56.099632",
+      "user_id": "demo",
+      "question": "Show tract-level population for Los Angeles County, CA (2023).",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-10T18:41:49.497800",
+      "user_id": "demo",
+      "question": "Population for all Arizona places (2022).",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-10T18:43:37.752952",
+      "user_id": "demo",
+      "question": "Population for Massachusetts county subdivisions (2021).",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-10T18:45:22.616061",
+      "user_id": "demo",
+      "question": "Population by congressional district in Georgia (2023).",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-10T18:47:07.756802",
+      "user_id": "demo",
+      "question": "Age profile for Michigan State Senate districts (2023).",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-10T18:49:23.940009",
+      "user_id": "demo",
+      "question": "Age profile for Michigan State Senate districts (2023).",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-10T18:51:15.573858",
+      "user_id": "demo",
+      "question": "Health insurance coverage by state (2023).",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-10T18:59:25.777340",
+      "user_id": "demo",
+      "question": "Educational attainment by state (2019).",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-10T19:33:58.182368",
+      "user_id": "demo",
+      "question": "Show employment and income highlights for the U.S. (2023).",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
     }
   ],
-  "last_updated": "2025-11-09T13:37:15.418031"
+  "last_updated": "2025-11-10T19:33:58.182994"
 }

@@ -90,8 +90,21 @@ class TableTool(BaseTool):
                 continue
 
             try:
+                cleaned = (
+                    df[col]
+                    .astype(str)
+                    .str.replace(",", "", regex=False)
+                    .str.replace("%", "", regex=False)
+                    .str.strip()
+                )
                 # Try to convert to numeric, coercing errors to NaN
-                df[col] = pd.to_numeric(df[col], errors="coerce")
+                df[col] = pd.to_numeric(cleaned, errors="coerce")
+                if df[col].isna().all():
+                    logger.warning(
+                        "Conversion produced all NaNs for column '%s'; original sample: %s",
+                        col,
+                        df[col].head(3).tolist(),
+                    )
             except (ValueError, TypeError):
                 # If conversion fails, leave as string
                 continue
