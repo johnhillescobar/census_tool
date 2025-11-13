@@ -9,9 +9,9 @@
   "preferred_level": "place",
   "var_aliases": {},
   "usage_stats": {
-    "total_queries": 3,
-    "success_queries": 3,
-    "last_query_date": "2025-11-13T06:06:28.126618"
+    "total_queries": 7,
+    "success_queries": 7,
+    "last_query_date": "2025-11-13T06:45:20.164444"
   },
   "history": [
     {
@@ -43,7 +43,47 @@
       "plan_summary": "",
       "answer_type": "Unknown",
       "success": true
+    },
+    {
+      "timestamp": "2025-11-13T06:34:27.759631",
+      "user_id": "test1113",
+      "question": "Show me median income trends from 2015 to 2020",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-13T06:36:39.780415",
+      "user_id": "test1113",
+      "question": "high school enrollment since 2018 in illinois",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-13T06:42:35.894579",
+      "user_id": "test1113",
+      "question": "high school enrollment since 2018 in illinois and texas",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-13T06:45:20.163431",
+      "user_id": "test1113",
+      "question": "high school enrollment since 2018 in illinois",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
     }
   ],
-  "last_updated": "2025-11-13T06:06:28.126618"
+  "last_updated": "2025-11-13T06:45:20.164444"
 }

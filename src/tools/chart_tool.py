@@ -38,11 +38,15 @@ class ChartTool(BaseTool):
     description: str = """
     Create data visualizations from census data
     
+    Supports both single-series and multi-series charts (auto-detected).
+    Multi-series charts automatically group by geography when multiple areas are present.
+    
     Input must be valid JSON with these fields:
     - chart_type: Chart type (bar, line)
     - x_column: Column name for x-axis
     - y_column: Column name for y-axis  
     - title: Chart title (optional, defaults to 'Census Data Visualization')
+    - color_column: Optional column name for multi-series grouping (auto-detected if not provided)
     - data: Census data dict from census_api_call tool
     """
 
@@ -63,6 +67,7 @@ class ChartTool(BaseTool):
             x_column = params.get("x_column")
             y_column = params.get("y_column")
             title = params.get("title", "Census Data Visualization")
+            color_column = params.get("color_column")  # Optional: for multi-series
             data = params.get("data")
 
             # Validate required parameters
@@ -84,10 +89,25 @@ class ChartTool(BaseTool):
                 logger.error(error_msg)
                 return error_msg
 
+            # Validate color_column if provided
+            if color_column:
+                if color_column not in df.columns:
+                    logger.warning(
+                        f"color_column '{color_column}' not found in data. Available columns: {list(df.columns)}. Proceeding without color grouping."
+                    )
+                    color_column = None
+                else:
+                    unique_values = df[color_column].nunique()
+                    logger.info(
+                        f"Multi-series chart: {unique_values} unique values in color_column '{color_column}'"
+                    )
+
             # Log actual data being plotted
             logger.info("=== Pre-Plot Validation ===")
             logger.info(f"Chart type: {chart_type}")
             logger.info(f"X column: '{x_column}' | Y column: '{y_column}'")
+            if color_column:
+                logger.info(f"Color column: '{color_column}' (multi-series)")
             logger.info(f"X data type: {df[x_column].dtype}")
             logger.info(f"Y data type: {df[y_column].dtype}")
             logger.info(f"X data sample (first 5): {df[x_column].head(5).tolist()}")
@@ -118,18 +138,27 @@ class ChartTool(BaseTool):
             logger.info(f"DataFrame shape for plotting: {df.shape}")
             logger.info("=== End Pre-Plot Validation ===\n")
 
-            # Set default color for charts. # Chosen as a deep blue for visual distinction.
-            chart_color = "#111184"
-
             # Create chart based on type
             if chart_type == "bar":
-                fig = px.bar(df, x=x_column, y=y_column, title=title)
-                # Set color for all bars using marker_color
-                fig.update_traces(marker_color=chart_color)
+                if color_column:
+                    # Multi-series bar chart: use color parameter for grouping
+                    fig = px.bar(
+                        df, x=x_column, y=y_column, color=color_column, title=title
+                    )
+                else:
+                    # Single-series bar chart: use default color
+                    fig = px.bar(df, x=x_column, y=y_column, title=title)
+                    fig.update_traces(marker_color="#111184")
             elif chart_type == "line":
-                fig = px.line(df, x=x_column, y=y_column, title=title)
-                # Set color for line using line_color
-                fig.update_traces(line_color=chart_color)
+                if color_column:
+                    # Multi-series line chart: use color parameter for grouping
+                    fig = px.line(
+                        df, x=x_column, y=y_column, color=color_column, title=title
+                    )
+                else:
+                    # Single-series line chart: use default color
+                    fig = px.line(df, x=x_column, y=y_column, title=title)
+                    fig.update_traces(line_color="#111184")
             else:
                 return f"Error: Unsupported chart type: {chart_type}. Supported types: bar, line"
 

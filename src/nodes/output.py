@@ -2,7 +2,8 @@ import os
 import sys
 import logging
 import json
-from typing import Dict, Any
+import pandas as pd
+from typing import Dict, Any, Optional
 from langchain_core.runnables import RunnableConfig
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -13,10 +14,109 @@ from src.tools.table_tool import TableTool
 logger = logging.getLogger(__name__)
 
 
+def format_chart_title(
+    y_column: str, x_column: str, chart_type: str, variables: Dict[str, str] = None
+) -> str:
+    """
+    Format chart title with human-readable variable name and code.
+
+    Args:
+        y_column: Variable code (e.g., "B01003_001E")
+        x_column: X-axis column name (e.g., "NAME")
+        chart_type: "bar" or "line"
+        variables: Optional dict mapping variable codes to labels
+                   e.g., {"B01003_001E": "Total Population"}
+
+    Returns:
+        Formatted title like "Total Population (B01003_001E) by NAME"
+        or "B01003_001E by NAME" if no label available
+
+    Examples:
+        >>> format_chart_title("B01003_001E", "NAME", "bar", {"B01003_001E": "Total Population"})
+        'Total Population (B01003_001E) by NAME'
+        >>> format_chart_title("B01003_001E", "NAME", "bar", None)
+        'B01003_001E by NAME'
+        >>> format_chart_title("S2701_C01_001E", "NAME", "line", {"S2701_C01_001E": "Health Insurance Coverage"})
+        'Health Insurance Coverage (S2701_C01_001E) Trend'
+    """
+    # Get human-readable label if available
+    y_label = None
+    if variables and y_column in variables:
+        y_label = variables[y_column].strip()
+        # Validate: empty string after strip means invalid label
+        if not y_label:
+            logger.warning(
+                f"Variable '{y_column}' has empty label in variables dict - using code-only title"
+            )
+            y_label = None
+
+    # Format y-axis part: use label with code in parentheses, or just code
+    if y_label:
+        y_display = f"{y_label} ({y_column})"
+    else:
+        y_display = y_column
+
+    # Format title based on chart type
+    if chart_type == "bar":
+        title = f"{y_display} by {x_column}"
+    elif chart_type == "line":
+        title = f"{y_display} Trend"
+    else:
+        title = f"{y_display} - Census Data Visualization"
+
+    return title
+
+
+def _detect_geography_column(
+    df: pd.DataFrame, headers: list, x_column: str = None
+) -> Optional[str]:
+    """
+    Detect geography column with priority order (less granular first).
+
+    Priority: state > county > place > NAME > other geography columns
+
+    Args:
+        df: DataFrame with data
+        headers: List of column headers
+        x_column: Optional x-axis column to exclude from consideration
+
+    Returns:
+        Column name if found, None otherwise.
+    """
+    # Geography column priority order (less granular first)
+    geography_priority = [
+        "state",
+        "county",
+        "place",
+        "NAME",  # Full geographic name
+        "geo_id",
+        "GEO_ID",
+    ]
+
+    # Check priority order (exclude x_column)
+    for geo_col in geography_priority:
+        if geo_col in headers and geo_col != x_column:
+            return geo_col
+
+    # Check for columns containing geography keywords (lower priority)
+    for header in headers:
+        if header == x_column:
+            continue  # Skip x_column
+        header_lower = header.lower()
+        if any(
+            keyword in header_lower
+            for keyword in ["state", "county", "place", "name", "geo", "area", "region"]
+        ):
+            return header
+
+    return None
+
+
 def get_chart_params(census_data: Dict[str, Any], chart_type: str) -> Dict[str, str]:
     """
     Dynamically determine chart parameters from actual data structure.
     Adapts to ANY column names the agent provides.
+    Auto-detects multi-series when geography + time columns exist.
     """
     try:
         # Extract headers from data
@@ -31,6 +131,9 @@ def get_chart_params(census_data: Dict[str, Any], chart_type: str) -> Dict[str, 
 
         if len(headers) < 2:
             raise ValueError("Need at least 2 columns for chart")
+
+        # Create DataFrame temporarily to detect geography columns
+        df_temp = pd.DataFrame(census_data["data"][1:], columns=headers)
 
         # Identify column types by content inspection
         text_columns = []
@@ -87,15 +190,51 @@ def get_chart_params(census_data: Dict[str, Any], chart_type: str) -> Dict[str, 
             # Fallback: use second column if available
             y_column = headers[1] if len(headers) > 1 else headers[0]
 
+        # Auto-detect multi-series: check for geography column + multiple unique values
+        color_column = None
+        geography_column = _detect_geography_column(df_temp, headers, x_column)
+
+        if geography_column:
+            # Check if multiple unique values exist (indicates multi-series)
+            unique_geos = df_temp[geography_column].nunique()
+            if unique_geos > 1:
+                # Multi-series detected: use geography column for color grouping
+                color_column = geography_column
+                logger.info(
+                    f"Multi-series detected: {unique_geos} unique values in '{geography_column}' column"
+                )
+            else:
+                logger.info(
+                    f"Single geography detected: only 1 unique value in '{geography_column}' - no color grouping"
+                )
+
         # Generate title
-        if chart_type == "bar":
-            title = f"{y_column} by {x_column}"
-        elif chart_type == "line":
-            title = f"{y_column} Trend"
+        if chart_type in ["bar", "line"]:
+            # Extract variables mapping if available
+            variables = census_data.get("variables", {})
+
+            # Log if variables dict is missing (helps debug title formatting)
+            if not variables:
+                logger.info(
+                    f"No variables dict provided in census_data - using code-only title for '{y_column}'"
+                )
+
+            # For multi-series: exclude geography from title (legend will show it)
+            # For single-series: include x_column in title as before
+            if color_column:
+                # Multi-series: title should be "Variable by X" (geography in legend)
+                title = format_chart_title(y_column, x_column, chart_type, variables)
+            else:
+                # Single-series: original behavior
+                title = format_chart_title(y_column, x_column, chart_type, variables)
         else:
             title = "Census Data Visualization"
 
-        return {"x_column": x_column, "y_column": y_column, "title": title}
+        result = {"x_column": x_column, "y_column": y_column, "title": title}
+        if color_column:
+            result["color_column"] = color_column
+
+        return result
 
     except Exception as e:
         logger.error(f"Error determining chart parameters: {e}")
@@ -173,17 +312,18 @@ def output_node(state: CensusState, config: RunnableConfig) -> Dict[str, Any]:
                 logger.info("=== Calling ChartTool ===\n")
 
                 # Call the tool with proper JSON format
-                result = chart_tool._run(
-                    json.dumps(
-                        {
-                            "chart_type": chart_spec.get("type", "bar"),
-                            "x_column": chart_params["x_column"],
-                            "y_column": chart_params["y_column"],
-                            "title": chart_params["title"],
-                            "data": census_data,
-                        }
-                    )
-                )
+                chart_input = {
+                    "chart_type": chart_spec.get("type", "bar"),
+                    "x_column": chart_params["x_column"],
+                    "y_column": chart_params["y_column"],
+                    "title": chart_params["title"],
+                    "data": census_data,
+                }
+                # Add color_column if multi-series was detected
+                if "color_column" in chart_params:
+                    chart_input["color_column"] = chart_params["color_column"]
+
+                result = chart_tool._run(json.dumps(chart_input))
 
                 generated_files.append(result)
             except Exception as e:
