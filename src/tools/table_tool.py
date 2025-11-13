@@ -85,8 +85,35 @@ class TableTool(BaseTool):
 
         # Convert numeric columns from strings to proper numeric types
         for col in df.columns:
-            # Skip NAME column and other text columns
-            if col.lower() in ["name", "geo_id", "state", "county"]:
+            col_lower = col.lower()
+            
+            # Skip identifier/text columns using pattern matching
+            # Match columns containing: name, geo, code (as identifiers), label, concept, variable
+            # Also skip standard geography identifiers
+            skip_patterns = [
+                "name",           # Matches: NAME, Area Name, CSA Name, etc.
+                "geo",            # Matches: GeoID, GEO_ID, geo_id, etc.
+                "code",           # Matches: Code, CSA Code, etc. (but be careful - some codes are numeric)
+                "label",          # Matches: Label
+                "concept",        # Matches: Concept
+                "variable",       # Matches: Variable
+                "state",          # Matches: state, State (part)
+                "county",         # Matches: county, County Name
+            ]
+            
+            # Check if column name contains any skip pattern
+            should_skip = any(pattern in col_lower for pattern in skip_patterns)
+            
+            # Special case: "Code" columns might be numeric identifiers (like CBSA codes)
+            # Only skip if it's clearly a text identifier (e.g., "CSA Code" when there's also "CSA Name")
+            if "code" in col_lower and not should_skip:
+                # Check if there's a corresponding "Name" column that suggests this is an identifier
+                # If Code column is the only identifier, it might be numeric
+                has_name_column = any("name" in c.lower() for c in df.columns if c != col)
+                if has_name_column:
+                    should_skip = True
+            
+            if should_skip:
                 continue
 
             try:
@@ -99,15 +126,45 @@ class TableTool(BaseTool):
                 )
                 # Try to convert to numeric, coercing errors to NaN
                 df[col] = pd.to_numeric(cleaned, errors="coerce")
+                
+                # If conversion produced all NaNs, it was likely a text column
+                # Revert to original string values
                 if df[col].isna().all():
                     logger.warning(
-                        "Conversion produced all NaNs for column '%s'; original sample: %s",
+                        "Conversion produced all NaNs for column '%s'; reverting to string type. Original sample: %s",
                         col,
-                        df[col].head(3).tolist(),
+                           cleaned.head(3).tolist() if len(df) > 0 else [],
                     )
+                    # Revert to original string values
+                    df[col] = cleaned
             except (ValueError, TypeError):
                 # If conversion fails, leave as string
                 continue
+
+        # Reorder columns: geography identifiers first, then value columns
+        geography_cols = []
+        value_cols = []
+
+        for col in df.columns:
+            col_lower = col.lower()
+            # Use same patterns as type conversion skip list
+            is_geography = any(pattern in col_lower for pattern in [
+                "name", "geo", "code", "label", "concept", "variable", "state", "county", "place", "tract",
+            ])
+            
+            # Special case: "Code" columns - treat as geography if there's a corresponding "Name" column
+            if "code" in col_lower:
+                has_name_column = any("name" in c.lower() for c in df.columns if c != col)
+                if has_name_column:
+                    is_geography = True
+            
+            if is_geography:
+                geography_cols.append(col)
+            else:
+                value_cols.append(col)
+
+        # Reorder: geography first, then values
+        df = df[geography_cols + value_cols]
 
         return df
 

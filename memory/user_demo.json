@@ -9,9 +9,9 @@
   "preferred_level": "place",
   "var_aliases": {},
   "usage_stats": {
-    "total_queries": 28,
-    "success_queries": 28,
-    "last_query_date": "2025-11-10T19:33:58.182368"
+    "total_queries": 32,
+    "success_queries": 32,
+    "last_query_date": "2025-11-12T20:08:24.768749"
   },
   "history": [
     {
@@ -293,7 +293,47 @@
       "plan_summary": "",
       "answer_type": "Unknown",
       "success": true
+    },
+    {
+      "timestamp": "2025-11-12T19:55:37.084621",
+      "user_id": "demo",
+      "question": "What's the population of New York City?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-12T19:57:54.436775",
+      "user_id": "demo",
+      "question": "Housing characteristics for California counties (2023)",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-12T20:04:28.157168",
+      "user_id": "demo",
+      "question": "Housing characteristics for California counties (2023)",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-12T20:08:24.768749",
+      "user_id": "demo",
+      "question": "Housing characteristics for Cook County IL by census tract in 2022",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
     }
   ],
-  "last_updated": "2025-11-10T19:33:58.182994"
+  "last_updated": "2025-11-12T20:08:24.768749"
 }

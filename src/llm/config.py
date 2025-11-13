@@ -8,7 +8,7 @@ LLM_CONFIG = {
     "model": "gpt-5",  # gpt-4o | gpt-4o-mini | gpt-4.1 | claude-sonnet-4-5-20250929 | gemini-2.5-flash
     "temperature": 0.1,
     "temperature_text": 0.5,
-    "max_tokens": 20000,  # gpt-4o-mini max is 16384
+    "max_tokens": 50000,  # gpt-4o-mini max is 16384
     "timeout": 30,
     "fallback_model": "gpt-4o-mini",
 }
