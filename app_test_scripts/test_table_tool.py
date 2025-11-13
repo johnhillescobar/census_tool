@@ -75,3 +75,22 @@ def test_run_saves_clean_csv(tmp_path, monkeypatch, sample_census_payload):
     saved = pd.read_csv(expected_path)
     assert saved["C27012_022E"].iloc[0] == 132980
     assert "Table created successfully" in result
+
+
+def test_preserves_identifier_columns():
+    """Test that Area Name, GeoID, CSA Name are preserved"""
+    tool = TableTool()
+    data = {
+        "data": {
+            "success": True,
+            "data": [
+                ["Area Name", "Code", "GeoID"],
+                ["Aberdeen, SD Micro Area", "10100", "310M700US10100"],
+            ]
+        }
+    }
+    df = tool._create_dataframe_from_json(data)
+    assert df["Area Name"].dtype == object
+    assert df["Area Name"].iloc[0] == "Aberdeen, SD Micro Area"
+    assert df["GeoID"].dtype == object
+    assert df["GeoID"].iloc[0] == "310M700US10100"

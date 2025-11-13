@@ -1,0 +1,119 @@
+{
+  "user_id": "test1112",
+  "default_geo": {},
+  "preferred_dataset": "acs/acs5",
+  "default_year_range": [
+    2012,
+    2023
+  ],
+  "preferred_level": "place",
+  "var_aliases": {},
+  "usage_stats": {
+    "total_queries": 10,
+    "success_queries": 10,
+    "last_query_date": "2025-11-12T21:53:19.867740"
+  },
+  "history": [
+    {
+      "timestamp": "2025-11-12T20:28:37.521948",
+      "user_id": "test1112",
+      "question": "give me the health insurance coverage by state in 2023",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-12T20:36:07.791047",
+      "user_id": "test1112",
+      "question": "During the past 12 months, was this person covered by any kind of health insurance or health coverage plan?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-12T21:02:29.135254",
+      "user_id": "test1112",
+      "question": "List all urban areas for 2023",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-12T21:05:41.021860",
+      "user_id": "test1112",
+      "question": "Which counties are in the New York-Newark-Jersey City metro area?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-12T21:22:10.674740",
+      "user_id": "test1112",
+      "question": "Compare population by county in California",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-12T21:25:00.725240",
+      "user_id": "test1112",
+      "question": "List sample variables from the 2023 ACS detail tables",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-12T21:34:10.433782",
+      "user_id": "test1112",
+      "question": "education in texas by sex by county 2021",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-12T21:45:19.080296",
+      "user_id": "test1112",
+      "question": "ducation in texas by sex by county 2021",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-12T21:48:30.382191",
+      "user_id": "test1112",
+      "question": "ducation in austin texas by sex 2021",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-12T21:53:19.867740",
+      "user_id": "test1112",
+      "question": "education in austin texas by sex 2021",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    }
+  ],
+  "last_updated": "2025-11-12T21:53:19.867740"
+}
