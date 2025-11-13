@@ -33,6 +33,10 @@ from src.tools.pattern_builder_tool import PatternBuilderTool
 from src.tools.area_resolution_tool import AreaResolutionTool
 from src.tools.variable_validation_tool import VariableValidationTool
 
+# Import conversation summarizer
+from src.utils.conversation_summarizer import ConversationSummarizer
+from src.utils.conversation_summarizer import summarize_intermediate_steps
+
 load_dotenv()
 
 logger = logging.getLogger(__name__)
@@ -86,7 +90,6 @@ class CensusQueryAgent:
             TableSearchTool(),
             CensusAPITool(),
             TableTool(),
-            # TableValidationTool(),  # REMOVED - validation happens at API level
             PatternBuilderTool(),
             AreaResolutionTool(),
             ChartTool(),
@@ -103,9 +106,6 @@ class CensusQueryAgent:
         self.agent = create_react_agent(
             llm=self.llm, tools=self.tools, prompt=self._build_prompt()
         )
-
-        # Import conversation summarizer
-        from src.utils.conversation_summarizer import ConversationSummarizer
 
         # Create summarization callback
         self.summarizer = ConversationSummarizer(
@@ -150,15 +150,13 @@ class CensusQueryAgent:
         result = self.agent_executor.invoke(
             {
                 "input": f"""User query: {user_query}
-Intent: {intent}"""
+                Intent: {intent}"""
             }
         )
 
         # Trim intermediate steps if they're too large (context length management)
         intermediate_steps = result.get("intermediate_steps", [])
         if len(intermediate_steps) > 10:
-            from src.utils.conversation_summarizer import summarize_intermediate_steps
-
             result["intermediate_steps"] = summarize_intermediate_steps(
                 intermediate_steps, keep_recent=5
             )

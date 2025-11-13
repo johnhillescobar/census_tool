@@ -5,7 +5,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 LLM_CONFIG = {
     "provider": "openai",  # openai | anthropic | google
-    "model": "gpt-4.1",  # gpt-4o | gpt-4o-mini | gpt-4.1 | claude-sonnet-4-5-20250929 | gemini-2.5-flash
+    "model": "gpt-5",  # gpt-4o | gpt-4o-mini | gpt-4.1 | claude-sonnet-4-5-20250929 | gemini-2.5-flash
     "temperature": 0.1,
     "temperature_text": 0.5,
     "max_tokens": 20000,  # gpt-4o-mini max is 16384
