@@ -9,9 +9,9 @@
   "preferred_level": "place",
   "var_aliases": {},
   "usage_stats": {
-    "total_queries": 10,
-    "success_queries": 10,
-    "last_query_date": "2025-11-12T21:53:19.867740"
+    "total_queries": 14,
+    "success_queries": 14,
+    "last_query_date": "2025-11-12T22:50:08.274827"
   },
   "history": [
     {
@@ -113,7 +113,47 @@
       "plan_summary": "",
       "answer_type": "Unknown",
       "success": true
+    },
+    {
+      "timestamp": "2025-11-12T22:33:05.622937",
+      "user_id": "test1112",
+      "question": "Compare population by county in California",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-12T22:43:41.953741",
+      "user_id": "test1112",
+      "question": "Compare population by county in California",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-12T22:48:53.781200",
+      "user_id": "test1112",
+      "question": "compare population by county in California",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-12T22:50:08.274827",
+      "user_id": "test1112",
+      "question": "2015 median household income trend",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
     }
   ],
-  "last_updated": "2025-11-12T21:53:19.867740"
+  "last_updated": "2025-11-12T22:50:08.275360"
 }

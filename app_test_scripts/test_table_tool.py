@@ -8,6 +8,7 @@ pytest.importorskip("langchain_core.tools")
 import pandas as pd
 
 from src.tools.table_tool import TableTool
+from src.utils.dataframe_utils import _create_dataframe_from_json
 
 
 @pytest.fixture
@@ -41,9 +42,7 @@ def sample_census_payload():
 
 
 def test_create_dataframe_from_json_strips_formatting(sample_census_payload):
-    tool = TableTool()
-
-    df = tool._create_dataframe_from_json(sample_census_payload)
+    df = _create_dataframe_from_json(sample_census_payload)
 
     assert df["C27012_001E"].dtype.kind in {"i", "f"}
     assert df["C27012_001E"].iloc[0] == 2911005
@@ -79,17 +78,16 @@ def test_run_saves_clean_csv(tmp_path, monkeypatch, sample_census_payload):
 
 def test_preserves_identifier_columns():
     """Test that Area Name, GeoID, CSA Name are preserved"""
-    tool = TableTool()
     data = {
         "data": {
             "success": True,
             "data": [
                 ["Area Name", "Code", "GeoID"],
                 ["Aberdeen, SD Micro Area", "10100", "310M700US10100"],
-            ]
+            ],
         }
     }
-    df = tool._create_dataframe_from_json(data)
+    df = _create_dataframe_from_json(data)
     assert df["Area Name"].dtype == object
     assert df["Area Name"].iloc[0] == "Aberdeen, SD Micro Area"
     assert df["GeoID"].dtype == object

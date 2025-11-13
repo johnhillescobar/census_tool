@@ -561,15 +561,12 @@ census_tool/
 │   │   ├── intent_enhancer.py     # Intent parsing and answer generation
 │   │   ├── category_detector.py   # Census data category detection
 │   │   └── geography_resolver.py  # LLM-based geography resolution
-│   ├── services/        # External services
-│   │   ├── geography_cache.py     # Geography resolution orchestration
-│   │   └── census_geocoding.py    # Census Geocoding API client
 │   └── locations/       # Geography reference data
 │       ├── states_abbrev.csv, counties.py, locations.csv
 ├── app_test_scripts/    # ✅ Test suite (all passing)
 │   ├── test_main_app.py (9/9), test_e2e_workflows.py (6/6)
 │   ├── test_memory.py, test_displays.py, test_pdf_generation.py
-│   └── test_dynamic_geography.py, test_cache_performance.py
+│   └── test_cache_performance.py
 ├── app_description/     # Technical documentation
 │   └── ARCHITECTURE.md  # Design specifications
 ├── index/               # ChromaDB index builder
