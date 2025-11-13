@@ -118,7 +118,7 @@ class ChartTool(BaseTool):
             logger.info(f"DataFrame shape for plotting: {df.shape}")
             logger.info("=== End Pre-Plot Validation ===\n")
 
-            # Set default color for charts
+            # Set default color for charts. # Chosen as a deep blue for visual distinction.
             chart_color = "#111184"
 
             # Create chart based on type
