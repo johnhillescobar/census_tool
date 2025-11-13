@@ -1,0 +1,49 @@
+{
+  "user_id": "dd",
+  "default_geo": {},
+  "preferred_dataset": "acs/acs5",
+  "default_year_range": [
+    2012,
+    2023
+  ],
+  "preferred_level": "place",
+  "var_aliases": {},
+  "usage_stats": {
+    "total_queries": 3,
+    "success_queries": 3,
+    "last_query_date": "2025-11-01T15:54:31.541950"
+  },
+  "history": [
+    {
+      "timestamp": "2025-11-01T15:51:21.575909",
+      "user_id": "dd",
+      "question": "What's the population of New York City?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-01T15:52:03.970088",
+      "user_id": "dd",
+      "question": "Show me median income trends from 2015 to 2020",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-01T15:54:31.541950",
+      "user_id": "dd",
+      "question": "compare population by county in California",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    }
+  ],
+  "last_updated": "2025-11-01T15:54:31.541950"
+}

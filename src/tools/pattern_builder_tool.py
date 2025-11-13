@@ -6,7 +6,7 @@ import json
 from pydantic import ConfigDict
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
+from src.utils.census_api_utils import build_geo_filters
 
 logger = logging.getLogger(__name__)
 
@@ -73,20 +73,35 @@ class PatternBuilderTool(BaseTool):
 
         # Determine variable format based on table category and use_groups parameter
         if custom_variables:
+            # User/agent specified exact variables - use them
             variables = (
                 custom_variables
                 if isinstance(custom_variables, list)
                 else [custom_variables]
             )
-        elif use_groups is True or (
-            use_groups is None
-            and table_category in ["subject", "profile", "cprofile", "spp"]
-        ):
-            # Use group syntax for subject/profile tables
+        elif use_groups is True:
+            # Explicit group request
             variables = [f"group({table_code})"]
-        else:
-            # Default detail table variables
+            logger.warning(
+                f"Using group({table_code}) - will fetch ALL variables from this table. "
+                f"Consider specifying only needed variables for better performance."
+            )
+        elif use_groups is False:
+            # Explicit no-group request
             variables = ["NAME", f"{table_code}_001E"]
+        else:
+            # Auto-detect: Only use groups for small tables or explicit need
+            # For profile/subject/cprofile, default to specific variables unless overridden
+            if table_category in ["subject", "profile", "cprofile", "spp"]:
+                logger.warning(
+                    f"Auto-using group() for {table_category} table {table_code}. "
+                    f"This may fetch 100+ variables. Consider specifying variables parameter "
+                    f"with only needed variables for faster responses."
+                )
+                variables = [f"group({table_code})"]
+            else:
+                # Default detail table variables
+                variables = ["NAME", f"{table_code}_001E"]
 
         # Format variables parameter
         if isinstance(variables, list):
@@ -94,35 +109,31 @@ class PatternBuilderTool(BaseTool):
         else:
             variables_str = variables
 
-        # Handle complex geo_for - can be string or dict
-        if isinstance(geo_for, dict):
-            for_clauses = []
-            for key, value in geo_for.items():
-                for_clauses.append(f"{key}:{value}")
-            geo_for_str = " ".join(for_clauses)
-        else:
-            geo_for_str = geo_for
+        def _coerce_geo_dict(raw_value):
+            if isinstance(raw_value, dict):
+                return raw_value
+            if isinstance(raw_value, str):
+                clauses = {}
+                for clause in raw_value.split():
+                    token, _, val = clause.partition(":")
+                    if val:
+                        clauses[token] = val
+                return clauses
+            return {}
 
-        # Handle complex geo_in - can be string or dict
-        if isinstance(geo_in, dict):
-            import urllib.parse
+        geo_filters = build_geo_filters(
+            dataset=dataset,
+            year=year,
+            geo_for=_coerce_geo_dict(geo_for),
+            geo_in=_coerce_geo_dict(geo_in),
+        )
 
-            in_clauses = []
-            for key, value in geo_in.items():
-                encoded_value = urllib.parse.quote(str(value))
-                in_clauses.append(f"{key}:{encoded_value}")
-            geo_in_str = " ".join(in_clauses)
-        elif geo_in:
-            geo_in_str = geo_in
-        else:
-            geo_in_str = None
+        for_param = geo_filters["for"]
+        in_param = geo_filters.get("in")
 
-        # Build URL with proper encoding for complex geography names
-        import urllib.parse
-
-        url = f"{base_url}?get={variables_str}&for={urllib.parse.quote(geo_for_str)}"
-        if geo_in_str:
-            url += f"&in={urllib.parse.quote(geo_in_str)}"
+        url = f"{base_url}?get={variables_str}&for={for_param}"
+        if in_param:
+            url += f"&in={in_param}"
 
         logger.info(f"Built Census URL: {url}")
 
@@ -131,8 +142,8 @@ class PatternBuilderTool(BaseTool):
                 "url": url,
                 "base_url": base_url,
                 "variables": variables_str,
-                "geo_for": geo_for_str,
-                "geo_in": geo_in_str,
+                "geo_for": for_param,
+                "geo_in": in_param,
                 "table_category": table_category,
                 "use_groups": use_groups
                 or table_category in ["subject", "profile", "cprofile", "spp"],

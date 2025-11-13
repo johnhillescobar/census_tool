@@ -1,0 +1,129 @@
+{
+  "user_id": "po",
+  "default_geo": {},
+  "preferred_dataset": "acs/acs5",
+  "default_year_range": [
+    2012,
+    2023
+  ],
+  "preferred_level": "place",
+  "var_aliases": {},
+  "usage_stats": {
+    "total_queries": 11,
+    "success_queries": 11,
+    "last_query_date": "2025-11-01T14:54:59.954823"
+  },
+  "history": [
+    {
+      "timestamp": "2025-11-01T14:32:33.066357",
+      "user_id": "po",
+      "question": "What's the total population/age summary for the U.S. in 2023?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-01T14:37:33.479993",
+      "user_id": "po",
+      "question": "What's the median household income by state in 2022?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-01T14:43:22.795326",
+      "user_id": "po",
+      "question": "Show total population for all California counties in 2023.",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-01T14:46:12.330361",
+      "user_id": "po",
+      "question": "Show total population for all California counties in 2023.",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-01T14:47:45.658943",
+      "user_id": "po",
+      "question": "I asked for total not county",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-01T14:48:15.320088",
+      "user_id": "po",
+      "question": "I asked for total population of California",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-01T14:48:51.105011",
+      "user_id": "po",
+      "question": "give the total for 2022",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-01T14:49:44.269317",
+      "user_id": "po",
+      "question": "I meant to say California total population in 2022",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-01T14:50:39.704846",
+      "user_id": "po",
+      "question": "Give me the labor force comparison profile for Florida (2018 vs 2023)",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-01T14:52:32.566954",
+      "user_id": "po",
+      "question": "Can you look the comparison for table CP03 instead?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-01T14:54:59.954823",
+      "user_id": "po",
+      "question": "Can you look the comparison for table CP03 for Florida",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    }
+  ],
+  "last_updated": "2025-11-01T14:54:59.954823"
+}

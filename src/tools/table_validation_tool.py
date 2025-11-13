@@ -1,9 +1,20 @@
-import logging
-from langchain_core.tools import BaseTool
 import json
-from pydantic import ConfigDict
+import logging
+
+from langchain_core.tools import BaseTool
+from pydantic import BaseModel, ConfigDict, Field
+
+from src.utils.dataset_geography_validator import geography_supported
+from src.utils.telemetry import record_event
 
 logger = logging.getLogger(__name__)
+
+
+class TableValidationInput(BaseModel):
+    table_code: str = Field(..., description="Table code like B01003")
+    geography_level: str = Field(..., description="Requested geography level")
+    dataset: str = Field(default="acs/acs5", description="Dataset path")
+    year: int = Field(default=2023, description="Census year")
 
 
 class TableValidationTool(BaseTool):
@@ -18,56 +29,57 @@ class TableValidationTool(BaseTool):
     Input must be valid JSON:
     - table_code: Table code like "B01003" (required)
     - geography_level: Level like "county" (required)
-    - dataset: Dataset like "acs/acs5" (optional)
+    - dataset: Dataset like "acs/acs5" (optional, default acs/acs5)
+    - year: Census year (optional, default 2023)
 
     Examples:
     - {"table_code": "B01003", "geography_level": "county"}
-    - {"table_code": "S0101", "geography_level": "tract", "dataset": "acs/acs5"}
+    - {"table_code": "S0101", "geography_level": "tract", "dataset": "acs/acs5/subject"}
     """
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     def _run(self, tool_input: str) -> str:
         """Validate table supports geography level"""
 
-        # Parse JSON input
         try:
-            if isinstance(tool_input, str):
-                params = json.loads(tool_input)
-            else:
-                params = tool_input
+            params = (
+                json.loads(tool_input) if isinstance(tool_input, str) else tool_input
+            )
         except json.JSONDecodeError as e:
             return f"Error: Invalid JSON input - {e}"
 
-        # Extract parameters
-        table_code = params.get("table_code")
-        geography_level = params.get("geography_level")
-        dataset = params.get("dataset", "acs/acs5")
+        try:
+            payload = TableValidationInput(**params)
+        except Exception as exc:
+            return f"Error: {exc}"
 
-        if not all([table_code, geography_level]):
-            return "Error: Missing required parameters (table_code, geography_level)"
+        logger.info(
+            "Validating table geography: table=%s level=%s dataset=%s year=%s",
+            payload.table_code,
+            payload.geography_level,
+            payload.dataset,
+            payload.year,
+        )
 
-        logger.info(f"Validating {table_code} for {geography_level}")
-
-        # Stub: Assume common tables support common geographies
-        # TODO: Query actual geography.html for real validation
-        common_geographies = [
-            "nation",
-            "state",
-            "county",
-            "place",
-            "tract",
-            "block group",
-        ]
-
-        supported = geography_level in common_geographies
-
-        return json.dumps(
+        result = geography_supported(
+            dataset=payload.dataset,
+            year=payload.year,
+            geography_level=payload.geography_level,
+        )
+        result.update(
             {
-                "table_code": table_code,
-                "geography_level": geography_level,
-                "dataset": dataset,
-                "supported": supported,
-                "available_geographies": common_geographies,
-                "note": "Stub validation - assumes common tables support common geographies",
+                "table_code": payload.table_code,
             }
         )
+
+        record_event(
+            "table_validation",
+            {
+                "dataset": payload.dataset,
+                "year": payload.year,
+                "geography_level": payload.geography_level,
+                "supported": result["supported"],
+            },
+        )
+
+        return json.dumps(result)

@@ -21,6 +21,7 @@ MAX_CONCURRENCY = 5  # maximum parallel requests
 CHROMA_PERSIST_DIRECTORY = "./chroma"
 CHROMA_COLLECTION_NAME = "census_vars"
 CHROMA_TABLE_COLLECTION_NAME = "census_tables"
+CHROMA_GEOGRAPHY_HIERARCHY_COLLECTION_NAME = "census_geography_hierarchies"
 CHROMA_EMBEDDING_MODEL = "text-embedding-3-large"
 
 # Census Datasets Configuration

@@ -6,6 +6,7 @@ import sys
 from pathlib import Path
 from datetime import datetime
 import pandas as pd
+import pytest
 
 from src.utils.pdf_generator import generate_session_pdf
 
@@ -87,15 +88,8 @@ def test_pdf_generation():
             f"File size mismatch: {file_size} vs {len(pdf_bytes)}"
         )
 
-        print(f"✅ PDF generated successfully: {test_pdf_path}")
-        print(f"📄 PDF size: {len(pdf_bytes)} bytes")
-        print(f"📊 Conversations processed: {len(conversation_history)}")
-
-        return True
-
     except Exception as e:
-        print(f"❌ PDF generation failed: {e}")
-        return False
+        pytest.fail(f"PDF generation failed: {e}")
 
 
 def test_empty_conversation():
@@ -117,12 +111,8 @@ def test_empty_conversation():
         assert len(pdf_bytes) > 500, f"Empty PDF too small: {len(pdf_bytes)} bytes"
         assert pdf_bytes.startswith(b"%PDF"), f"Invalid PDF header: {pdf_bytes[:10]}"
 
-        print("✅ Empty conversation PDF test PASSED")
-        return True
-
     except Exception as e:
-        print(f"❌ Empty conversation PDF test FAILED: {e}")
-        return False
+        pytest.fail(f"Empty conversation PDF test failed: {e}")
 
 
 def test_missing_files():
@@ -170,12 +160,8 @@ def test_missing_files():
         )
         assert pdf_bytes.startswith(b"%PDF"), f"Invalid PDF header: {pdf_bytes[:10]}"
 
-        print("✅ Missing files PDF test PASSED")
-        return True
-
     except Exception as e:
-        print(f"❌ Missing files PDF test FAILED: {e}")
-        return False
+        pytest.fail(f"Missing files PDF test failed: {e}")
 
 
 if __name__ == "__main__":

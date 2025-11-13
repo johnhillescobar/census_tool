@@ -5,10 +5,10 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 LLM_CONFIG = {
     "provider": "openai",  # openai | anthropic | google
-    "model": "gpt-4.1",  # gpt-4.1 |gpt-5 | claude-sonnet-4-5-20250929 |gemini-2.5-flash
+    "model": "gpt-5",  # gpt-4o | gpt-4o-mini | gpt-4.1 | claude-sonnet-4-5-20250929 | gemini-2.5-flash
     "temperature": 0.1,
     "temperature_text": 0.5,
-    "max_tokens": 20000,
+    "max_tokens": 20000,  # gpt-4o-mini max is 16384
     "timeout": 30,
     "fallback_model": "gpt-4o-mini",
 }
@@ -173,6 +173,16 @@ AGENT_PROMPT_TEMPLATE = """Answer the following questions as best you can. You h
 
 {tools}
 
+CRITICAL OUTPUT FORMAT RULE:
+You MUST ALWAYS output your final answer in this EXACT format:
+
+Thought: I now know the final answer
+Final Answer: {{complete JSON on single line}}
+
+NEVER output bare JSON without the "Final Answer:" prefix.
+NEVER return tool output directly as your final answer.
+ALWAYS wrap your final JSON response with "Final Answer:" prefix.
+
 Use the following format:
 
 Question: the input question you must answer
@@ -190,35 +200,68 @@ TOOL USAGE GUIDE (all Action Inputs must be valid JSON):
    - List levels: {{"action": "list_levels", "dataset": "acs/acs5", "year": 2023}}
    - Enumerate areas: {{"action": "enumerate_areas", "level": "county", "parent": {{"state": "06"}}}}
 
-2. resolve_area_name - Convert area names to Census codes
+2. validate_geography_params - IMPORTANT: Validate geography parameters BEFORE calling census_api_call
+   - Validate params: {{"dataset": "acs/acs5", "year": 2023, "geo_for": {{"county": "*"}}, "geo_in": {{"state": "06"}}}}
+   - This tool checks hierarchy requirements, auto-corrects ordering, and returns warnings/errors
+   - ALWAYS use this before census_api_call to avoid API failures
+   - If validation returns errors, fix the parameters based on the error message
+
+3. resolve_area_name - Convert area names to Census codes
    - Get state code: {{"name": "California", "geography_type": "state"}}
    - Get county code: {{"name": "Los Angeles County", "geography_type": "county", "parent": {{"state": "06"}}}}
    
-3. table_search - Find Census tables by topic
+4. table_search - Find Census tables by topic
    - Search tables: {{"query": "population data"}}
 
-4. census_api_call - Execute Census API query and fetch data with complex patterns support
+5. census_api_call - Execute Census API query and fetch data with complex patterns support
    - Simple: {{"year": 2023, "dataset": "acs/acs5", "variables": ["NAME", "B01003_001E"], "geo_for": {{"county": "*"}}, "geo_in": {{"state": "06"}}}}
    - Subject table: {{"year": 2023, "dataset": "acs/acs5/subject", "variables": ["group(S0101)"], "geo_for": {{"state": "*"}}}}
    - Complex CBSA: {{"year": 2023, "dataset": "acs/acs5", "variables": ["NAME", "B01001_001E"], "geo_for": {{"state (or part)": "*"}}, "geo_in": {{"metropolitan statistical area/micropolitan statistical area": "35620"}}}}
+   - IMPORTANT: Use validate_geography_params BEFORE this tool to ensure parameters are correct
 
 5. table_validation - Validate table supports requested geography
    - Validate table: {{"table_code": "B01003", "geography_level": "county", "dataset": "acs/acs5"}}
 
-6. pattern_builder - Build Census API URL patterns with support for all dataset categories
+6. variable_validation - Validate variables before building Census API URLs
+   - Validate detail variables: {{"action": "validate_variables", "dataset": "acs/acs5", "year": 2023, "variables": ["NAME", "B01003_001E"]}}
+   - List subject variables: {{"action": "list_variables", "dataset": "acs/acs5/subject", "year": 2023, "table_code": "S2301", "limit": 10}}
+
+7. pattern_builder - Build Census API URL patterns with support for all dataset categories
    - Detail table: {{"year": 2023, "dataset": "acs/acs5", "table_code": "B01003", "geo_for": {{"county": "*"}}, "geo_in": {{"state": "06"}}}}
    - Subject table: {{"year": 2023, "dataset": "acs/acs5/subject", "table_code": "S0101", "geo_for": {{"state": "*"}}, "table_category": "subject", "use_groups": true}}
 
-7. create_chart - Create data visualizations from census data
+8. create_chart - Create data visualizations from census data
    - Bar chart: {{"chart_type": "bar", "x_column": "NAME", "y_column": "B01003_001E", "title": "Population by County", "data": <census_api_call_result>}}
    - Line chart: {{"chart_type": "line", "x_column": "Year", "y_column": "Value", "title": "Population Trend", "data": <census_api_call_result>}}
    Note: The 'data' field should be the complete result from census_api_call tool (including success, data keys)
 
-8. create_table - Export census data as formatted tables
+9. create_table - Export census data as formatted tables
    - CSV: {{"format": "csv", "filename": "ny_population", "title": "Population Data", "data": <census_api_call_result>}}
    - Excel: {{"format": "excel", "filename": "population_table", "title": "Population by County", "data": <census_api_call_result>}}
    - HTML: {{"format": "html", "title": "Population Report", "data": <census_api_call_result>}}
    Note: filename is optional (will auto-generate with timestamp if not provided)
+
+CRITICAL REASONING CHECKLIST (apply every time):
+1. Determine user intent and target geography.
+2. Use geography_discovery / resolve_area_name to gather parent context.
+3. Call geography_hierarchy before pattern_builder to confirm parent ordering for complex geographies (CBSA, metro division, NECTA, etc.).
+4. BEFORE calling census_api_call, use validate_geography_params to check your geography parameters and get corrected versions if needed.
+5. Run variable_validation immediately before pattern_builder or census_api_call; do not continue until all variables are valid or replaced.
+6. After building the URL, execute census_api_call using the validated/corrected geography parameters. If you get a 400 error about unsupported geography, try a different dataset or geography level.
+7. On errors, inspect the message, adjust parameters (tokens, parents, variables), and retry with a different approach.
+
+GEOGRAPHY TOKEN MAPPING QUICK REFERENCE:
+- nation → us
+- metro area / CBSA → metropolitan statistical area/micropolitan statistical area
+- metro division → metropolitan division
+- New England city/town area → new england city and town area
+- Use geography_hierarchy + geography_registry helpers to normalize tokens before API calls.
+
+ERROR RECOVERY PLAYBOOK:
+- 400 unknown geography → re-check parent ordering via geography_hierarchy, confirm tokens like "state (or part)" instead of "state" when required.
+- Unsupported geography → try a different dataset or geography level (e.g., state instead of county).
+- Unknown variable → rerun variable_validation and swap to suggested alternatives from the same concept/table.
+- Empty/timeout response → reduce variable list, verify enumeration filters, retry with more specific parents.
 
 ANSWER TEXT REQUIREMENTS (CRITICAL - THIS IS YOUR PRIMARY OUTPUT):
 
@@ -261,6 +304,8 @@ RULES:
 3. The ENTIRE JSON object must be on ONE line with NO line breaks inside it
 4. Compress the JSON - no pretty printing, no indentation, no newlines
 5. Include all 7 keys: census_data, data_summary, reasoning_trace, answer_text, charts_needed, tables_needed, footnotes
+6. CRITICAL: Output COMPLETE, VALID JSON - NO ellipses (...), NO abbreviations, NO truncation
+7. If data is very large (100+ columns), include ALL data without abbreviation - the JSON must be parseable
 
 CORRECT example:
 Final Answer: {{"census_data":{{"success":true,"data":[["NAME","B01003_001E"],["Los Angeles County","9,848,406"]]}},"data_summary":"Population data for Los Angeles County from 2023 ACS","reasoning_trace":"Resolved LA to Los Angeles County, queried B01003 table","answer_text":"Los Angeles County has a population of 9,848,406 people according to 2023 ACS 5-Year estimates.","charts_needed":[{{"type":"bar","title":"Population by County"}}],"tables_needed":[{{"format":"csv","filename":"la_population","title":"Population Data"}}],"footnotes":["Source: U.S. Census Bureau, 2023 American Community Survey 5-Year Estimates.","Margins of error not shown. For statistical significance, refer to Census Bureau documentation."]}}
@@ -280,13 +325,76 @@ REASONING PROCESS FOR COMPLEX CENSUS QUERIES:
 2. For area resolution → use resolve_area_name with appropriate geography_type (state, county, CBSA, metropolitan division, etc.)
 3. For table finding → use table_search to find relevant tables by topic
 4. For complex geography hierarchies → chain tools to resolve nested relationships (e.g., counties within CBSAs)
-5. For API calls → use census_api_call with proper dataset category:
+5. Before building filters, call geography_hierarchy to confirm parent ordering; incorporate results into geo_for/geo_in.
+6. For API calls → use census_api_call with proper dataset category:
    - Detail tables: "acs/acs5" (B/C-series)
    - Subject tables: "acs/acs5/subject" (S-series) - use group(TABLE_CODE)
    - Profile tables: "acs/acs1/profile" (DP-series) - use group(TABLE_CODE)
    - Comparison tables: "acs/acs5/cprofile" (CP-series)
    - Selected Population Profiles: "acs/acs1/spp" (SPP-series)
-6. Always validate table supports requested geography level before calling API
+7. Immediately before calling pattern_builder or census_api_call, use variable_validation with the exact dataset/year/variables:
+   - If any variables are invalid, swap to suggested alternatives or adjust your plan before proceeding.
+   - Do NOT call census_api_call until variable_validation returns no invalid variables.
+
+CRITICAL: MINIMIZE DATA VOLUME
+- For profile/subject/comparison tables (S/DP/CP series), DO NOT use group() unless user explicitly asks for "all variables" or "complete profile"
+- Instead, use pattern_builder with custom variables list containing only relevant variables
+- Example: User asks "Florida counties employment rate" → use CP03 table but specify only employment variables, not entire group
+- Use table_search to identify which specific variables to request
+- Only use group() syntax when: (a) user asks for complete profile, or (b) you need 10+ variables from same table
+- Fetching entire groups can return 100+ variables causing slow responses and parsing failures
+
+URL CONSTRUCTION EXAMPLES (verify against official patterns):
+- Detail: https://api.census.gov/data/2023/acs/acs5?get=NAME,B01003_001E&for=county:*&in=state:06
+- Subject: https://api.census.gov/data/2023/acs/acs5/subject?get=group(S2301)&for=state:*
+- Profile: https://api.census.gov/data/2023/acs/acs1/profile?get=group(DP03)&for=state:*
+- Comparison: https://api.census.gov/data/2023/acs/acs5/cprofile?get=group(CP03)&for=metropolitan%20statistical%20area/micropolitan%20statistical%20area:35620
+- Selected Population Profile: https://api.census.gov/data/2023/acs/acs1/spp?get=group(S0201)&for=state:*
+
+MULTI-YEAR TIME SERIES QUERIES:
+
+For queries requesting data across multiple years (e.g., "2015 to 2020", "trends since 2010"):
+
+1. IDENTIFY year range from user question
+2. MAKE MULTIPLE census_api_call invocations - ONE PER YEAR:
+   - Example: For "2015 to 2020" → make 6 separate calls (2015, 2016, 2017, 2018, 2019, 2020)
+   - Use same dataset, variables, and geography for each year
+   
+3. AGGREGATE results into time series format:
+   - Restructure data with columns: ["Year", "Measure Name", "<other geography columns>"]
+   - Example output format:
+     [["Year", "Median Household Income (USD)", "Geography"],
+      ["2015", "53,889", "United States"],
+      ["2016", "55,322", "United States"],
+      ...]
+
+4. CHARTS for time series:
+   - ALWAYS use "line" chart type for multi-year trends
+   - Set x_column to "Year"
+   - Set y_column to the measure name
+   
+5. ANSWER TEXT for time series:
+   - Describe overall trend: "increased by X%" or "decreased from Y to Z"
+   - Mention starting value, ending value, and notable changes
+   - Example: "Median household income increased from $53,889 in 2015 to $68,700 in 2020, representing a 27.5% growth."
+
+6. ERROR HANDLING:
+   - If a year is unavailable, note it in answer_text
+   - Continue with available years
+   - Example: "Data available for 2015-2019 and 2021-2023 (2020 data unavailable)"
+
+Example multi-year reasoning:
+Thought: User wants trends from 2015 to 2020. I need to query each year separately.
+Action: census_api_call
+Action Input: {{"year": 2015, "dataset": "acs/acs5/subject", "variables": ["S1903_C03_001E"], "geo_for": {{"us": "1"}}}}
+Observation: [...2015 data...]
+Thought: Now query 2016
+Action: census_api_call
+Action Input: {{"year": 2016, "dataset": "acs/acs5/subject", "variables": ["S1903_C03_001E"], "geo_for": {{"us": "1"}}}}
+Observation: [...2016 data...]
+... (repeat for 2017, 2018, 2019, 2020)
+Thought: I now have all years. Restructure into time series format.
+Final Answer: {{"census_data": {{"success": true, "data": [["Year", "Median Household Income (USD)"], ["2015", "53,889"], ["2016", "55,322"], ...]}}...}}
 
 OUTPUT GENERATION GUIDELINES:
 7. ALWAYS generate charts for census data visualization:
@@ -312,6 +420,13 @@ OUTPUT GENERATION GUIDELINES:
    - Include general disclaimer (e.g., "This tool is for informational purposes only. Verify critical data at census.gov.")
    - Format: ["footnote 1", "footnote 2", "footnote 3", ...]
    - Minimum 2 footnotes (source + disclaimer), typically 3-5 total
+
+REMINDER - CRITICAL OUTPUT FORMAT:
+When you have gathered all data and are ready to provide the final answer:
+1. Write "Thought: I now know the final answer" on its own line
+2. Write "Final Answer: " followed by the complete JSON on the SAME line
+3. NEVER output bare JSON without the "Final Answer:" prefix
+4. The JSON must include all 7 required keys: census_data, data_summary, reasoning_trace, answer_text, charts_needed, tables_needed, footnotes
 
 Begin!
 

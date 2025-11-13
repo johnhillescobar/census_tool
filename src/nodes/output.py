@@ -15,129 +15,100 @@ logger = logging.getLogger(__name__)
 
 def get_chart_params(census_data: Dict[str, Any], chart_type: str) -> Dict[str, str]:
     """
-    Dynamically determine chart parameters based on census data structure.
-
-    Args:
-        census_data: Data from state.artifacts.census_data with format:
-                    {"data": [["headers"], ["rows"]], "variables": {...}}
-        chart_type: "bar" or "line"
-
-    Returns:
-        Dict with x_column, y_column, title keys
+    Dynamically determine chart parameters from actual data structure.
+    Adapts to ANY column names the agent provides.
     """
     try:
-        # Extract data array from census_data
+        # Extract headers from data
         if (
             "data" in census_data
             and isinstance(census_data["data"], list)
             and len(census_data["data"]) >= 2
         ):
-            headers = census_data["data"][0]  # First row is headers
-            data_rows = census_data["data"][1:]  # Remaining rows are data
+            headers = census_data["data"][0]
         else:
             raise ValueError("Invalid census_data format")
 
-        # Find NAME/LOCATION column (x-axis for both chart types)
-        name_column = None
-        for header in headers:
-            if header.upper() in ["NAME", "LOCATION"]:
-                name_column = header
-                break
+        if len(headers) < 2:
+            raise ValueError("Need at least 2 columns for chart")
 
-        # For time series data, use Year as x-axis
-        if chart_type == "line":
-            year_column = None
-            for header in headers:
-                if header.upper() in ["YEAR", "YEAR_END"]:
-                    year_column = header
-                    break
-
-            if year_column:
-                # Year is x-axis for time series
-                name_column = year_column
-
-        # Final fallback: use first column if still no name_column found
-        if not name_column:
-            name_column = headers[0] if headers else "Location"
-
-        # Find numeric columns (y-axis candidates)
+        # Identify column types by content inspection
+        text_columns = []
         numeric_columns = []
-        for header in headers:
-            # Exclude geography and time columns from y-axis
-            excluded_headers = [
-                "NAME",
-                "LOCATION",
-                "GEO_ID",
-                "STATE",
-                "COUNTY",
-                "YEAR",
-                "YEAR_END",
-            ]
-            if header.upper() not in excluded_headers:
-                # Check if this column has numeric data
-                try:
-                    # Test first few rows to see if they're numeric
-                    if data_rows:
-                        for row in data_rows[:3]:  # Check first 3 rows
-                            if len(row) > headers.index(header):
-                                value = row[headers.index(header)]
-                                if (
-                                    value
-                                    and str(value)
-                                    .replace(",", "")
-                                    .replace("-", "")
-                                    .isdigit()
-                                ):
-                                    numeric_columns.append(header)
-                                    break
-                except (IndexError, ValueError):
-                    continue
+        time_columns = []
 
-        # Select y_column based on chart type and available data
+        # Sample first data row to determine types
+        sample_row = census_data["data"][1] if len(census_data["data"]) > 1 else []
+
+        for i, header in enumerate(headers):
+            if i >= len(sample_row):
+                continue
+
+            value = str(sample_row[i]).replace(",", "")
+            header_upper = header.upper()
+
+            # Check for time columns
+            if any(
+                keyword in header_upper
+                for keyword in ["YEAR", "DATE", "TIME", "PERIOD"]
+            ):
+                time_columns.append(header)
+            # Check if numeric
+            elif value.replace(".", "").replace("-", "").isdigit():
+                numeric_columns.append(header)
+            # Otherwise text
+            else:
+                text_columns.append(header)
+
+        # Determine x_column (categorical or time axis)
+        x_column = None
+        if chart_type == "line" and time_columns:
+            # Time series: use time column for x-axis
+            x_column = time_columns[0]
+        elif text_columns:
+            # Use first text column for categorical x-axis
+            x_column = text_columns[0]
+        else:
+            # Fallback: use first column
+            x_column = headers[0]
+
+        # Determine y_column (numeric data)
         y_column = None
-
-        if chart_type == "line":
-            # For line charts, prioritize Census variable columns (usually longer codes)
+        if numeric_columns:
+            # Use first numeric column that isn't the x_column
             for col in numeric_columns:
-                if len(col) > 8 and col.startswith(
-                    ("B", "C", "S", "DP")
-                ):  # Census variable patterns
+                if col != x_column:
                     y_column = col
                     break
+            # If all numeric columns are x_column, use first numeric anyway
+            if not y_column:
+                y_column = numeric_columns[0]
+        else:
+            # Fallback: use second column if available
+            y_column = headers[1] if len(headers) > 1 else headers[0]
 
-        # Fallback for line charts or default for bar charts
-        if not y_column:
-            # Use first numeric column
-            y_column = (
-                numeric_columns[0]
-                if numeric_columns
-                else headers[1]
-                if len(headers) > 1
-                else headers[0]
-            )
-
-        # Generate appropriate title
-        title = f"Census Data by {name_column}"
+        # Generate title
         if chart_type == "bar":
-            title = f"Comparison of {y_column} by {name_column}"
+            title = f"{y_column} by {x_column}"
         elif chart_type == "line":
-            title = f"{y_column} Trends by {name_column}"
+            title = f"{y_column} Trend"
+        else:
+            title = "Census Data Visualization"
 
-        # Enhance title with variable description if available
-        if "variables" in census_data and y_column in census_data["variables"]:
-            var_desc = census_data["variables"][y_column]
-            title = f"{var_desc} by {name_column}"
-
-        return {"x_column": name_column, "y_column": y_column, "title": title}
+        return {"x_column": x_column, "y_column": y_column, "title": title}
 
     except Exception as e:
         logger.error(f"Error determining chart parameters: {e}")
-        # Fallback to safe defaults
-        return {
-            "x_column": "NAME",
-            "y_column": headers[1] if len(headers) > 1 else headers[0],
-            "title": f"Census Data Visualization ({chart_type})",
-        }
+        # SAFE fallback: use first two columns from actual data
+        if "data" in census_data and len(census_data.get("data", [])) > 0:
+            headers = census_data["data"][0]
+            return {
+                "x_column": headers[0] if headers else "Column1",
+                "y_column": headers[1] if len(headers) > 1 else "Column2",
+                "title": f"Census Data Visualization ({chart_type})",
+            }
+        # Ultimate fallback
+        return {"x_column": "Location", "y_column": "Value", "title": "Chart"}
 
 
 def output_node(state: CensusState, config: RunnableConfig) -> Dict[str, Any]:

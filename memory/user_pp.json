@@ -1,0 +1,59 @@
+{
+  "user_id": "pp",
+  "default_geo": {},
+  "preferred_dataset": "acs/acs5",
+  "default_year_range": [
+    2012,
+    2023
+  ],
+  "preferred_level": "place",
+  "var_aliases": {},
+  "usage_stats": {
+    "total_queries": 4,
+    "success_queries": 4,
+    "last_query_date": "2025-11-03T11:29:42.761153"
+  },
+  "history": [
+    {
+      "timestamp": "2025-11-03T11:19:35.825881",
+      "user_id": "pp",
+      "question": "What is the population of Peoria, IL",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-03T11:21:10.909032",
+      "user_id": "pp",
+      "question": "Can you tell me what is the population of kids below 6 years old in Peoria?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-03T11:27:24.089080",
+      "user_id": "pp",
+      "question": "Please, review table S0901 and bring the overview for childer in Peoria, IL for 2023",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-03T11:29:42.761153",
+      "user_id": "pp",
+      "question": "think through and step by step to research what are the tables that refer to children in the census data. Don't create grphas or tables. Just list them.",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    }
+  ],
+  "last_updated": "2025-11-03T11:29:42.761153"
+}

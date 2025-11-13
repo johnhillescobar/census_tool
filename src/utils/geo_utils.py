@@ -7,58 +7,71 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
+def _parse_filter_clause(clause: Optional[str]) -> Dict[str, str]:
+    """Convert a space-delimited geography clause into a dictionary."""
+    if not clause:
+        return {}
+    parts = clause.split()
+    parsed: Dict[str, str] = {}
+    for segment in parts:
+        token, _, value = segment.partition(":")
+        if token and value:
+            parsed[token] = value
+    return parsed
+
+
+def _mapping_entry(
+    level: str, geo_for: str, *, geo_in: Optional[str] = None, note: str = ""
+) -> Dict[str, Any]:
+    filters: Dict[str, str] = {"for": geo_for}
+    if geo_in:
+        filters["in"] = geo_in
+    entry = {
+        "level": level,
+        "filters": filters,
+        "geo_for": _parse_filter_clause(geo_for),
+        "geo_in": _parse_filter_clause(geo_in),
+        "note": note or "",
+    }
+    return entry
+
+
 # Geography mappings from hints to Census API filters
-GEOGRAPHY_MAPPINGS = {
+GEOGRAPHY_MAPPINGS: Dict[str, Dict[str, Any]] = {
     # Place level (city/town)
-    "nyc": {
-        "level": "place",
-        "filters": {"for": "place:51000", "in": "state:36"},
-        "note": "New York City",
-    },
-    "new_york_city": {
-        "level": "place",
-        "filters": {"for": "place:51000", "in": "state:36"},
-        "note": "New York City",
-    },
+    "nyc": _mapping_entry(
+        "place", "place:51000", geo_in="state:36", note="New York City"
+    ),
+    "new_york_city": _mapping_entry(
+        "place", "place:51000", geo_in="state:36", note="New York City"
+    ),
     # State level
-    "california": {
-        "level": "state",
-        "filters": {"for": "state:06"},
-        "note": "California",
-    },
-    "ca": {"level": "state", "filters": {"for": "state:06"}, "note": "California"},
-    "texas": {"level": "state", "filters": {"for": "state:48"}, "note": "Texas"},
-    "tx": {"level": "state", "filters": {"for": "state:48"}, "note": "Texas"},
-    "florida": {"level": "state", "filters": {"for": "state:12"}, "note": "Florida"},
-    "fl": {"level": "state", "filters": {"for": "state:12"}, "note": "Florida"},
-    "illinois": {"level": "state", "filters": {"for": "state:17"}, "note": "Illinois"},
-    "il": {"level": "state", "filters": {"for": "state:17"}, "note": "Illinois"},
-    "chicago": {
-        "level": "place",
-        "filters": {"for": "place:14000", "in": "state:17"},
-        "note": "Chicago",
-    },
+    "california": _mapping_entry("state", "state:06", note="California"),
+    "ca": _mapping_entry("state", "state:06", note="California"),
+    "texas": _mapping_entry("state", "state:48", note="Texas"),
+    "tx": _mapping_entry("state", "state:48", note="Texas"),
+    "florida": _mapping_entry("state", "state:12", note="Florida"),
+    "fl": _mapping_entry("state", "state:12", note="Florida"),
+    "illinois": _mapping_entry("state", "state:17", note="Illinois"),
+    "il": _mapping_entry("state", "state:17", note="Illinois"),
+    "chicago": _mapping_entry(
+        "place", "place:14000", geo_in="state:17", note="Chicago"
+    ),
     # Nation level
-    "nation": {"level": "nation", "filters": {"for": "us:1"}, "note": "United States"},
-    "national": {
-        "level": "nation",
-        "filters": {"for": "us:1"},
-        "note": "United States",
-    },
-    "usa": {"level": "nation", "filters": {"for": "us:1"}, "note": "United States"},
-    "united_states": {
-        "level": "nation",
-        "filters": {"for": "us:1"},
-        "note": "United States",
-    },
+    "nation": _mapping_entry("nation", "us:1", note="United States"),
+    "national": _mapping_entry("nation", "us:1", note="United States"),
+    "usa": _mapping_entry("nation", "us:1", note="United States"),
+    "united_states": _mapping_entry("nation", "us:1", note="United States"),
 }
 
 # Default geography (NYC)
-DEFAULT_GEO = {
-    "level": "place",
-    "filters": {"for": "place:51000", "in": "state:36"},
-    "note": "New York City (default)",
-}
+DEFAULT_GEO: Dict[str, Any] = _mapping_entry(
+    "place",
+    "place:51000",
+    geo_in="state:36",
+    note="New York City (default)",
+)
 
 
 def resolve_geography_hint(
@@ -77,7 +90,11 @@ def resolve_geography_hint(
     # First, try profile default if not specific hint
     if not geo_hint or geo_hint.strip() == "":
         if profile_default_geo and profile_default_geo.get("level"):
-            return profile_default_geo
+            result = profile_default_geo.copy()
+            if "geo_for" not in result and "filters" in result:
+                result["geo_for"] = _parse_filter_clause(result["filters"].get("for"))
+                result["geo_in"] = _parse_filter_clause(result["filters"].get("in"))
+            return result
         else:
             logger.info("No default geo found, using default")
             return DEFAULT_GEO
@@ -103,14 +120,13 @@ def resolve_geography_hint(
 
     # Handle special cases that need more complex resolution
     if "county" in hint_lower or "counties" in hint_lower:
-        return {
-            "level": "county",
-            "filters": {
-                "for": "county:*",
-                "in": "state:17",
-            },  # Default to Illinois for now
-            "note": f"County-level request for '{geo_hint}' - needs clarification",
-        }
+        entry = _mapping_entry(
+            "county",
+            "county:*",
+            geo_in="state:17",
+            note=f"County-level request for '{geo_hint}' - needs clarification",
+        )
+        return entry
 
     # Check for state names in the hint
     for state_hint, mapping in GEOGRAPHY_MAPPINGS.items():

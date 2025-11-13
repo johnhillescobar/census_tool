@@ -677,6 +677,7 @@ The agent-based architecture supports dynamic geography discovery and pattern bu
 - **Geographic Mapping** - Interactive maps showing spatial data distributions
 - **Export Formats** - Parquet and JSON output options (CSV/Excel already supported)
 - **Performance Optimization** - Further caching and query optimization for very large datasets
+- **LangChain Upgrade** - Migrate to the next LangChain release (post-`0.3.x`) and update agent execution away from the deprecated `AgentExecutor`
 - **API Endpoint** - RESTful API for programmatic access to agent capabilities
 
 ### Already Implemented

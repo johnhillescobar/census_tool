@@ -173,37 +173,35 @@ class EnumerationDetector:
 
         return None
 
-    def build_enumeration_filters(self, request: EnumerationRequest) -> Dict[str, str]:
+    def build_enumeration_filters(self, request: EnumerationRequest) -> Dict[str, Any]:
         """
         Build Census API filters for enumeration
 
         Args:
             request: EnumerationRequest from detect()
 
-        Returns:
-            Dictionary with 'for' and optionally 'in' keys
-
-        Examples:
-        - {"for": "county:*", "in": "state:06"}
-        - {"for": "place:*", "in": "state:48"}
+        Returns a dict containing raw filters and canonical geo dicts.
         """
         if not request.needs_enumeration:
-            return {}
+            return {"filters": {}, "geo_for": {}, "geo_in": {}}
 
         filters = {"for": f"{request.summary_level}:*"}
+        geo_in_dict: Dict[str, str] = {}
 
         if request.parent_geography:
-            # Build 'in' clause from parent geography
-            # Format: "state:06" (the "in=" will be added by build_census_url)
             in_parts = []
             for geo_type, geo_code in request.parent_geography.items():
+                geo_in_dict[geo_type] = geo_code
                 in_parts.append(f"{geo_type}:{geo_code}")
 
             if in_parts:
-                # Join multiple levels with &in= between them
-                filters["in"] = "&in=".join(in_parts)
+                filters["in"] = " ".join(in_parts)
 
-        return filters
+        return {
+            "filters": filters,
+            "geo_for": {request.summary_level: "*"},
+            "geo_in": geo_in_dict,
+        }
 
 
 def detect_and_build_enumeration(
@@ -229,14 +227,17 @@ def detect_and_build_enumeration(
 
     filters = detector.build_enumeration_filters(request)
 
-    return {
+    response = {
         "needs_enumeration": True,
         "level": request.summary_level,
-        "filters": filters,
+        "filters": filters["filters"],
+        "geo_for": filters["geo_for"],
+        "geo_in": filters["geo_in"],
         "parent_geography": request.parent_geography,
         "confidence": request.confidence,
         "reason": request.reason,
     }
+    return response
 
 
 if __name__ == "__main__":

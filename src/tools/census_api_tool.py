@@ -6,7 +6,8 @@ from langchain_core.tools import BaseTool
 from pydantic import ConfigDict
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from src.utils.census_api_utils import fetch_census_data
+from src.utils.census_api_utils import fetch_census_data, build_geo_filters
+from src.utils.telemetry import record_event
 
 
 logger = logging.getLogger(__name__)
@@ -67,34 +68,35 @@ class CensusAPITool(BaseTool):
 
         logger.info(f"Fetching Census data: {dataset}/{year}")
 
+        def _coerce_geo_dict(raw_value):
+            if isinstance(raw_value, dict):
+                return raw_value
+            if isinstance(raw_value, str):
+                clauses = {}
+                for clause in raw_value.split():
+                    token, _, val = clause.partition(":")
+                    if val:
+                        clauses[token] = val
+                return clauses
+            return {}
+
         try:
-            # Build geo parameter in the correct format for fetch_census_data
-            geo_filters = {}
+            # Log original geography parameters
+            geo_for_dict = _coerce_geo_dict(geo_for)
+            geo_in_dict = _coerce_geo_dict(geo_in)
 
-            # Convert geo_for dict to Census API format - handle complex cases
-            if geo_for:
-                for_clauses = []
-                for key, value in geo_for.items():
-                    for_clauses.append(f"{key}:{value}")
-                geo_filters["for"] = " ".join(for_clauses)
+            logger.info(f"Original geo_for: {geo_for_dict}, geo_in: {geo_in_dict}")
 
-            # Handle complex geo_in cases - support chained in= clauses
-            in_clauses = []
+            # Validate and auto-repair geography parameters
+            geo_filters = build_geo_filters(
+                dataset=dataset,
+                year=year,
+                geo_for=geo_for_dict,
+                geo_in=geo_in_dict,
+                geo_in_chained=geo_in_chained,
+            )
 
-            # Standard geo_in dict
-            if geo_in:
-                for key, value in geo_in.items():
-                    in_clauses.append(f"{key}:{value}")
-
-            # Handle chained geo_in for complex hierarchies (e.g., state within CBSA within division)
-            if geo_in_chained and isinstance(geo_in_chained, list):
-                for in_dict in geo_in_chained:
-                    if isinstance(in_dict, dict):
-                        for key, value in in_dict.items():
-                            in_clauses.append(f"{key}:{value}")
-
-            if in_clauses:
-                geo_filters["in"] = " ".join(in_clauses)
+            logger.info(f"Repaired geo_filters: {geo_filters}")
 
             geo_params = {"filters": geo_filters}
 
@@ -102,7 +104,21 @@ class CensusAPITool(BaseTool):
                 dataset=dataset, year=year, variables=variables, geo=geo_params
             )
 
-            logger.info(f"Census data fetched successfully: {result}")
+            logger.info(
+                f"Census data fetched successfully: {len(result.get('data', [])) if isinstance(result, dict) else 0} rows"
+            )
+
+            record_event(
+                "census_api_call",
+                {
+                    "dataset": dataset,
+                    "year": year,
+                    "variables": variables,
+                    "geo_filters": geo_params["filters"],
+                    "success": True,
+                    "row_count": len(result) if result else 0,
+                },
+            )
             return json.dumps(
                 {
                     "success": True,
@@ -111,6 +127,38 @@ class CensusAPITool(BaseTool):
                 }
             )
 
+        except ValueError as e:
+            # Geography validation error - provide helpful message
+            error_msg = str(e)
+            logger.error(f"Geography validation failed: {error_msg}")
+            record_event(
+                "census_api_call",
+                {
+                    "dataset": dataset,
+                    "year": year,
+                    "variables": variables,
+                    "success": False,
+                    "error": error_msg,
+                    "error_type": "validation",
+                },
+            )
+            return json.dumps(
+                {
+                    "success": False,
+                    "error": f"Geography validation failed: {error_msg}",
+                    "suggestion": "Use geography_hierarchy tool to check required parent geographies",
+                }
+            )
         except Exception as e:
             logger.error(f"Census API error: {e}")
+            record_event(
+                "census_api_call",
+                {
+                    "dataset": dataset,
+                    "year": year,
+                    "variables": variables,
+                    "success": False,
+                    "error": str(e),
+                },
+            )
             return json.dumps({"success": False, "error": str(e)})

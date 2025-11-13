@@ -1,0 +1,416 @@
+[
+  {
+    "question_no": 11,
+    "question": "List all metro and micropolitan areas for 2023.",
+    "status": "PASS",
+    "answer": "There are 935 metropolitan and micropolitan statistical areas in the United States and Puerto Rico for 2023. This includes areas like Los Angeles-Long",
+    "files": [
+      "Table created successfully: data\\tables\\metro_micro_areas_2023.csv"
+    ],
+    "error": null
+  },
+  {
+    "question_no": 12,
+    "question": "List all metropolitan divisions for 2023.",
+    "status": "PASS",
+    "answer": "There are no metropolitan divisions listed in the 2023 ACS 5-Year dataset. This may indicate that this geography is not supported or defined for that ",
+    "files": [],
+    "error": null
+  },
+  {
+    "question_no": 13,
+    "question": "List all combined statistical areas (CSAs) for 2023.",
+    "status": "PASS",
+    "answer": "There are 184 combined statistical areas (CSAs) in the United States and Puerto Rico according to the 2023 ACS 5-Year estimates. This list includes ma",
+    "files": [
+      "Table created successfully: data\\tables\\2023_csa_list.csv"
+    ],
+    "error": null
+  },
+  {
+    "question_no": 14,
+    "question": "List all New England City and Town Areas (NECTAs).",
+    "status": "PASS",
+    "answer": "I'm unable to retrieve a list of New England City and Town Areas (NECTAs) from the Census API at this time. This may be due to a limitation in the ava",
+    "files": [],
+    "error": null
+  },
+  {
+    "question_no": 15,
+    "question": "List all Urban Areas for 2023.",
+    "status": "PASS",
+    "answer": "Here is the complete list of Urban Areas for 2023, including both Urbanized Areas and Urban Clusters, as defined by the U.S. Census Bureau. Each entry",
+    "files": [
+      "Table created successfully: data\\tables\\urban_areas_2023.csv"
+    ],
+    "error": null
+  },
+  {
+    "question_no": 16,
+    "question": "Which counties are in CBSA 35620?",
+    "status": "PASS",
+    "answer": "The Census API does not support directly listing counties within CBSA 35620 (New York-Newark-Jersey City, NY-NJ-PA Metro Area). For a complete list, r",
+    "files": [],
+    "error": null
+  },
+  {
+    "question_no": 17,
+    "question": "Which states overlap CBSA 35620?",
+    "status": "PASS",
+    "answer": "CBSA 35620 (New York-Newark-Jersey City, NY-NJ Metro Area) overlaps the states of New Jersey and New York according to 2023 ACS 5-Year geography defin",
+    "files": [
+      "Table created successfully: data\\tables\\cbsa_35620_states.csv"
+    ],
+    "error": null
+  },
+  {
+    "question_no": 18,
+    "question": "Which counties are in Metro Division 35614?",
+    "status": "PASS",
+    "answer": "Metropolitan Division 35614 (New York-Jersey City-White Plains, NY-NJ) includes Bronx, Kings, New York, Putnam, Queens, Richmond, Rockland, and Westch",
+    "files": [
+      "Table created successfully: data\\tables\\metro_division_35614_counties.csv"
+    ],
+    "error": null
+  },
+  {
+    "question_no": 19,
+    "question": "Show tract-level population for Los Angeles County, CA (2023).",
+    "status": "PASS",
+    "answer": "Agent execution completed but output parsing failed",
+    "files": [],
+    "error": null
+  },
+  {
+    "question_no": 20,
+    "question": "Show block-group median rent in Manhattan tract 003100 (2023).",
+    "status": "PASS",
+    "answer": "In Manhattan's Census Tract 31, Block Group 1 has a median gross rent of $3,501 according to 2023 ACS 5-Year estimates. Data for Block Group 2 is not ",
+    "files": [
+      "Chart created successfully: data\\charts\\chart_bar_20251101_204805.png",
+      "Table created successfully: data\\tables\\manhattan_tract31_median_rent_2023.csv"
+    ],
+    "error": null
+  },
+  {
+    "question_no": 21,
+    "question": "Population for all Arizona places (2022).",
+    "status": "PASS",
+    "answer": "Here are the 2022 ACS 5-Year population estimates for all 467 places in Arizona. Phoenix city leads with 1,609,456 people, followed by Mesa city (503,",
+    "files": [
+      "Chart created successfully: data\\charts\\chart_bar_20251101_204915.png",
+      "Table created successfully: data\\tables\\arizona_places_population_2022.csv"
+    ],
+    "error": null
+  },
+  {
+    "question_no": 22,
+    "question": "Population for Massachusetts county subdivisions (2021).",
+    "status": "PASS",
+    "answer": "Here are the 2021 population figures for all county subdivisions (cities and towns) in Massachusetts. Boston city leads with 672,814 people, followed ",
+    "files": [
+      "Chart created successfully: data\\charts\\chart_bar_20251101_205018.png",
+      "Table created successfully: data\\tables\\ma_county_subdivision_population_2021.csv"
+    ],
+    "error": null
+  },
+  {
+    "question_no": 23,
+    "question": "List all tracts within the Navajo Nation.",
+    "status": "PASS",
+    "answer": "I'm unable to directly list all Census tracts within the Navajo Nation using the current Census API tools. The Navajo Nation spans Arizona, New Mexico",
+    "files": [],
+    "error": null
+  },
+  {
+    "question_no": 24,
+    "question": "Population by PUMA in New York (2023).",
+    "status": "PASS",
+    "answer": "Population by PUMA is not available in standard ACS 5-Year tables. Here is a complete list of all PUMAs in New York State for 2023, with their names a",
+    "files": [
+      "Table created successfully: data\\tables\\ny_pumas_2023.csv"
+    ],
+    "error": null
+  },
+  {
+    "question_no": 25,
+    "question": "Population by congressional district in Georgia (2023).",
+    "status": "PASS",
+    "answer": "Here's the population by congressional district in Georgia for 2023: District 10 has the highest population at 789,054, while District 2 has the lowes",
+    "files": [
+      "Chart created successfully: data\\charts\\chart_bar_20251101_205123.png",
+      "Table created successfully: data\\tables\\ga_congressional_population_2023.csv"
+    ],
+    "error": null
+  },
+  {
+    "question_no": 26,
+    "question": "Age profile for Michigan State Senate districts (2023).",
+    "status": "PASS",
+    "answer": "Unfortunately, age profile data for Michigan State Senate districts is not available from the 2023 ACS 5-Year estimates, as the relevant Census tables",
+    "files": [],
+    "error": null
+  },
+  {
+    "question_no": 27,
+    "question": "Education profile for NC State House districts (2022).",
+    "status": "PASS",
+    "answer": "Census data does not provide education profiles for NC State House districts, but here is the educational attainment profile for North Carolina Congre",
+    "files": [
+      "Chart created successfully: data\\charts\\chart_bar_20251101_205156.png",
+      "Table created successfully: data\\tables\\nc_congressional_education_2022.csv"
+    ],
+    "error": null
+  },
+  {
+    "question_no": 28,
+    "question": "Health insurance coverage by state (2023).",
+    "status": "PASS",
+    "answer": "In 2023, the percent of people with public health insurance coverage varies widely by state. Puerto Rico leads with 62.0%, followed by New Mexico at 5",
+    "files": [
+      "Chart created successfully: data\\charts\\chart_bar_20251101_205213.png",
+      "Table created successfully: data\\tables\\state_health_insurance_coverage_2023.csv"
+    ],
+    "error": null
+  },
+  {
+    "question_no": 29,
+    "question": "Educational attainment by state (2019).",
+    "status": "PASS",
+    "answer": "According to the 2019 ACS 5-Year estimates, the percent of adults with a bachelor's degree or higher varies by state. For example, Massachusetts leads",
+    "files": [
+      "Chart created successfully: data\\charts\\chart_bar_20251101_205231.png",
+      "Table created successfully: data\\tables\\educational_attainment_2019.csv"
+    ],
+    "error": null
+  },
+  {
+    "question_no": 30,
+    "question": "What languages are spoken at home in Los Angeles (2023)?",
+    "status": "PASS",
+    "answer": "In Los Angeles County, 4,184,371 people speak only English at home, while 5,145,238 speak a language other than English. Spanish is the most common no",
+    "files": [
+      "Chart created successfully: data\\charts\\chart_bar_20251101_205718.png",
+      "Table created successfully: data\\tables\\la_languages_2023.csv"
+    ],
+    "error": null
+  },
+  {
+    "question_no": 31,
+    "question": "Show employment and income highlights for the U.S. (2023).",
+    "status": "PASS",
+    "answer": "In 2023, the U.S. had an unemployment rate of 5.2% and a labor force participation rate of 63.5%. The median household income was $78,538, and the per",
+    "files": [
+      "Chart created successfully: data\\charts\\chart_bar_20251101_205742.png",
+      "Table created successfully: data\\tables\\us_employment_income_2023.csv"
+    ],
+    "error": null
+  },
+  {
+    "question_no": 32,
+    "question": "Housing characteristics for California counties (2023).",
+    "status": "PASS",
+    "answer": "Here's a summary of housing characteristics for California counties in 2023. Los Angeles County leads with 3,675,444 housing units, of which 3,450,470",
+    "files": [
+      "Chart created successfully: data\\charts\\chart_bar_20251101_205834.png",
+      "Table created successfully: data\\tables\\ca_county_housing_2023.csv"
+    ],
+    "error": null
+  },
+  {
+    "question_no": 33,
+    "question": "Show income stats for Ohio counties (2023).",
+    "status": "PASS",
+    "answer": "Here's the 2023 median household income for Ohio counties: Delaware County leads with $130,088, followed by Union County at $109,506 and Warren County",
+    "files": [
+      "Chart created successfully: data\\charts\\chart_bar_20251101_205856.png",
+      "Table created successfully: data\\tables\\ohio_county_income_2023.csv"
+    ],
+    "error": null
+  },
+  {
+    "question_no": 34,
+    "question": "Poverty metrics for Texas unified school districts (2023).",
+    "status": "PASS",
+    "answer": "Unfortunately, poverty metrics for Texas unified school districts are not available from the 2023 American Community Survey 5-Year estimates, as this ",
+    "files": [],
+    "error": null
+  },
+  {
+    "question_no": 35,
+    "question": "How do people commute to work by state (2022)?",
+    "status": "PASS",
+    "answer": "Here's how people commuted to work by state in 2022: For example, in California, 14,313,290 people drove alone, 662,772 used public transportation, 13",
+    "files": [
+      "Chart created successfully: data\\charts\\chart_bar_20251101_205937.png",
+      "Table created successfully: data\\tables\\commute_by_state_2022.csv"
+    ],
+    "error": null
+  },
+  {
+    "question_no": 36,
+    "question": "Health insurance coverage for Florida counties (2023).",
+    "status": "PASS",
+    "answer": "Here's the 2023 health insurance coverage data for Florida counties: Miami-Dade County has the highest number of uninsured residents at 227,185, follo",
+    "files": [
+      "Chart created successfully: data\\charts\\chart_bar_20251101_205956.png",
+      "Table created successfully: data\\tables\\florida_health_insurance_2023.csv"
+    ],
+    "error": null
+  },
+  {
+    "question_no": 37,
+    "question": "Owner vs. renter counts for Washington counties (2023).",
+    "status": "PASS",
+    "answer": "Here's the owner vs. renter housing unit breakdown for Washington counties in 2023: King County leads with 1,374,550 owner-occupied and 847,064 renter",
+    "files": [
+      "Chart created successfully: data\\charts\\chart_bar_20251101_210017.png",
+      "Table created successfully: data\\tables\\wa_owner_renter_counts_2023.csv"
+    ],
+    "error": null
+  },
+  {
+    "question_no": 38,
+    "question": "Race counts by county in Washington (2022).",
+    "status": "PASS",
+    "answer": "Here are the 2022 race counts by county in Washington. King County leads with 2,254,371 people, including 1,325,673 White alone, 146,998 Black or Afri",
+    "files": [
+      "Chart created successfully: data\\charts\\chart_bar_20251101_210044.png",
+      "Chart created successfully: data\\charts\\chart_bar_20251101_210048.png",
+      "Chart created successfully: data\\charts\\chart_bar_20251101_210051.png",
+      "Chart created successfully: data\\charts\\chart_bar_20251101_210054.png",
+      "Table created successfully: data\\tables\\wa_race_counts_2022.csv"
+    ],
+    "error": null
+  },
+  {
+    "question_no": 39,
+    "question": "Hispanic population by state (2023).",
+    "status": "PASS",
+    "answer": "Here's the Hispanic or Latino population by state according to the 2023 ACS 5-Year estimates. California has the largest Hispanic population at 15,630",
+    "files": [
+      "Chart created successfully: data\\charts\\chart_bar_20251101_210114.png",
+      "Table created successfully: data\\tables\\hispanic_population_by_state_2023.csv"
+    ],
+    "error": null
+  },
+  {
+    "question_no": 40,
+    "question": "Veteran status for Virginia counties (2021).",
+    "status": "PASS",
+    "answer": "Here's the veteran population for Virginia counties according to 2021 ACS 5-Year estimates. Fairfax County has the highest veteran population at 70,90",
+    "files": [
+      "Chart created successfully: data\\charts\\chart_bar_20251101_210134.png",
+      "Table created successfully: data\\tables\\va_counties_veterans_2021.csv"
+    ],
+    "error": null
+  },
+  {
+    "question_no": 41,
+    "question": "Languages spoken at home by state (2018).",
+    "status": "PASS",
+    "answer": "In 2018, California had the highest number of people speaking a language other than English at home (6,621,028), while states like Vermont and Wyoming",
+    "files": [
+      "Chart created successfully: data\\charts\\chart_bar_20251101_210157.png",
+      "Table created successfully: data\\tables\\languages_by_state_2018.csv"
+    ],
+    "error": null
+  },
+  {
+    "question_no": 42,
+    "question": "Social characteristics comparison profile for the U.S. (2023).",
+    "status": "PASS",
+    "answer": "Agent execution completed but output parsing failed",
+    "files": [],
+    "error": null
+  },
+  {
+    "question_no": 43,
+    "question": "Median home value by county in California (2023).",
+    "status": "PASS",
+    "answer": "Here's the median home value by county in California for 2023: San Mateo County leads with $1,494,500, followed by Marin County at $1,390,000 and Sant",
+    "files": [
+      "Chart created successfully: data\\charts\\chart_bar_20251101_210226.png",
+      "Table created successfully: data\\tables\\ca_county_median_home_value_2023.csv"
+    ],
+    "error": null
+  },
+  {
+    "question_no": 44,
+    "question": "Education by sex for Texas (2020).",
+    "status": "PASS",
+    "answer": "In 2020, Texas had 18,449,851 people age 25 and over. Of these, 9,011,589 were male and 9,438,262 were female. The detailed breakdown by educational a",
+    "files": [
+      "Chart created successfully: data\\charts\\chart_bar_20251101_210249.png",
+      "Table created successfully: data\\tables\\tx_education_by_sex_2020.csv"
+    ],
+    "error": null
+  },
+  {
+    "question_no": 45,
+    "question": "Disability characteristics by state (2023).",
+    "status": "PASS",
+    "answer": "In 2023, West Virginia had the highest percentage of people with a disability at 19.1%, followed by Puerto Rico at 22.8% (territory). California had 1",
+    "files": [
+      "Chart created successfully: data\\charts\\chart_bar_20251101_210318.png",
+      "Table created successfully: data\\tables\\disability_by_state_2023.csv"
+    ],
+    "error": null
+  },
+  {
+    "question_no": 46,
+    "question": "Internet subscription and computer use for NY counties (2022).",
+    "status": "PASS",
+    "answer": "Here's a breakdown of internet subscription and computer use for New York counties in 2022. For example, Kings County (Brooklyn) had 997,957 household",
+    "files": [
+      "Chart created successfully: data\\charts\\chart_bar_20251101_210347.png",
+      "Chart created successfully: data\\charts\\chart_bar_20251101_210351.png",
+      "Table created successfully: data\\tables\\ny_county_internet_2022.csv"
+    ],
+    "error": null
+  },
+  {
+    "question_no": 47,
+    "question": "Social characteristics profile for the U.S. (2019).",
+    "status": "PASS",
+    "answer": "In 2019, the United States had 120,756,048 households, an average household size of 2.62, 88.6% of people age 25+ with at least a high school diploma,",
+    "files": [
+      "Chart created successfully: data\\charts\\chart_bar_20251101_210414.png",
+      "Table created successfully: data\\tables\\us_social_characteristics_2019.csv"
+    ],
+    "error": null
+  },
+  {
+    "question_no": 48,
+    "question": "Commuting patterns for Illinois counties (2023).",
+    "status": "PASS",
+    "answer": "Here's a snapshot of commuting patterns for Illinois counties in 2023: In Cook County, 64.0% of workers drove alone, 7.8% used public transportation, ",
+    "files": [
+      "Chart created successfully: data\\charts\\chart_bar_20251101_210450.png",
+      "Chart created successfully: data\\charts\\chart_bar_20251101_210453.png",
+      "Chart created successfully: data\\charts\\chart_bar_20251101_210457.png",
+      "Table created successfully: data\\tables\\il_commuting_patterns_2023.csv"
+    ],
+    "error": null
+  },
+  {
+    "question_no": 49,
+    "question": "Marital status by state (2023).",
+    "status": "PASS",
+    "answer": "Here's the marital status breakdown by state for 2023 (ACS 5-Year estimates). Utah has the highest percentage of married adults at 55.1%, while the Di",
+    "files": [
+      "Chart created successfully: data\\charts\\chart_bar_20251101_210523.png",
+      "Chart created successfully: data\\charts\\chart_bar_20251101_210527.png",
+      "Table created successfully: data\\tables\\marital_status_by_state_2023.csv"
+    ],
+    "error": null
+  },
+  {
+    "question_no": 50,
+    "question": "Occupation distribution by state (2023).",
+    "status": "PASS",
+    "answer": "Agent execution completed but output parsing failed",
+    "files": [],
+    "error": null
+  }
+]

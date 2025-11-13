@@ -18,6 +18,17 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+def create_viz_graph(compiled_graph):
+    # Keep graph visualization logic
+    try:
+        compiled_graph.get_graph().draw_mermaid_png(output_file_path="graph.png")
+        logger.info("Graph visualization saved to graph.png")
+    except Exception as e:
+        logger.warning(f"Could not generate graph visualization: {e}")
+
+    return compiled_graph
+
+
 def create_reducers():
     def append_reducer(existing: List[str], new: List[str]) -> List[str]:
         """Append new items to existing list"""
@@ -92,6 +103,7 @@ def create_census_graph():
 
         logger.info("SQLite checkpointer initialized for agent architecture")
         compiled_graph = workflow.compile(checkpointer=checkpointer)
+        create_viz_graph(compiled_graph)
         return compiled_graph
 
     except Exception as e:
@@ -101,17 +113,10 @@ def create_census_graph():
         try:
             checkpointer = MemorySaver()
             compiled_graph = workflow.compile(checkpointer=checkpointer)
+            create_viz_graph(compiled_graph)
             return compiled_graph
         except Exception as e2:
             logger.error(f"Memory checkpointer also failed: {e2}")
             compiled_graph = workflow.compile()
+            create_viz_graph(compiled_graph)
             return compiled_graph
-
-    # Keep graph visualization logic unchanged (lines 158-165)
-    try:
-        compiled_graph.get_graph().draw_mermaid_png(output_file_path="graph.png")
-        logger.info("Graph visualization saved to graph.png")
-    except Exception as e:
-        logger.warning(f"Could not generate graph visualization: {e}")
-
-    return compiled_graph
