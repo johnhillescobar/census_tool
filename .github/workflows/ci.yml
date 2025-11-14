@@ -62,7 +62,8 @@ jobs:
 
       - name: Test with pytest
         run: |
-          pytest app_test_scripts/ -v
+          # Exclude integration tests (require API keys and can be flaky in CI)
+          pytest app_test_scripts/ -v -m "not integration"
 
   build:
     runs-on: ubuntu-latest

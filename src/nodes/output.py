@@ -15,7 +15,11 @@ logger = logging.getLogger(__name__)
 
 
 def format_chart_title(
-    y_column: str, x_column: str, chart_type: str, variables: Dict[str, str] = None
+    y_column: str,
+    x_column: str,
+    chart_type: str,
+    variables: Dict[str, str] = None,
+    multi_series: bool = False,
 ) -> str:
     """
     Format chart title with human-readable variable name and code.
@@ -60,7 +64,12 @@ def format_chart_title(
     if chart_type == "bar":
         title = f"{y_display} by {x_column}"
     elif chart_type == "line":
-        title = f"{y_display} Trend"
+        if multi_series:
+            # Multi-series line chart: "Variable by Year" format
+            title = f"{y_display} by {x_column}"
+        else:
+            # Single-series line chart: "Variable Trend" format
+            title = f"{y_display} Trend"
     else:
         title = f"{y_display} - Census Data Visualization"
 
@@ -223,10 +232,14 @@ def get_chart_params(census_data: Dict[str, Any], chart_type: str) -> Dict[str, 
             # For single-series: include x_column in title as before
             if color_column:
                 # Multi-series: title should be "Variable by X" (geography in legend)
-                title = format_chart_title(y_column, x_column, chart_type, variables)
+                title = format_chart_title(
+                    y_column, x_column, chart_type, variables, multi_series=True
+                )
             else:
                 # Single-series: original behavior
-                title = format_chart_title(y_column, x_column, chart_type, variables)
+                title = format_chart_title(
+                    y_column, x_column, chart_type, variables, multi_series=False
+                )
         else:
             title = "Census Data Visualization"
 
