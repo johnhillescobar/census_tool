@@ -9,9 +9,9 @@
   "preferred_level": "place",
   "var_aliases": {},
   "usage_stats": {
-    "total_queries": 32,
-    "success_queries": 32,
-    "last_query_date": "2025-11-12T20:08:24.768749"
+    "total_queries": 35,
+    "success_queries": 35,
+    "last_query_date": "2025-11-13T07:28:09.717824"
   },
   "history": [
     {
@@ -333,7 +333,37 @@
       "plan_summary": "",
       "answer_type": "Unknown",
       "success": true
+    },
+    {
+      "timestamp": "2025-11-13T07:22:50.963416",
+      "user_id": "demo",
+      "question": "What's the population of New York City?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-13T07:24:28.762529",
+      "user_id": "demo",
+      "question": "Show me median income trends from 2015 to 2020",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-13T07:28:09.717824",
+      "user_id": "demo",
+      "question": "Show me high school enrollment since 2018 in Texas and New York",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
     }
   ],
-  "last_updated": "2025-11-12T20:08:24.768749"
+  "last_updated": "2025-11-13T07:28:09.717824"
 }

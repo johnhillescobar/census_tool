@@ -21,7 +21,9 @@ logger = logging.getLogger(__name__)
 def create_viz_graph(compiled_graph):
     # Keep graph visualization logic
     try:
-        compiled_graph.get_graph().draw_mermaid_png(output_file_path="graph.png")
+        compiled_graph.get_graph(xray=True).draw_mermaid_png(
+            output_file_path="graph.png"
+        )
         logger.info("Graph visualization saved to graph.png")
     except Exception as e:
         logger.warning(f"Could not generate graph visualization: {e}")
