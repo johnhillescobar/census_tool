@@ -9,9 +9,9 @@
   "preferred_level": "place",
   "var_aliases": {},
   "usage_stats": {
-    "total_queries": 32,
-    "success_queries": 32,
-    "last_query_date": "2025-11-12T20:08:24.768749"
+    "total_queries": 35,
+    "success_queries": 35,
+    "last_query_date": "2025-11-14T10:53:55.341926"
   },
   "history": [
     {
@@ -333,7 +333,37 @@
       "plan_summary": "",
       "answer_type": "Unknown",
       "success": true
+    },
+    {
+      "timestamp": "2025-11-14T09:29:58.596752",
+      "user_id": "demo",
+      "question": "What is the population of Tahoe, CA?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-14T09:34:45.987736",
+      "user_id": "demo",
+      "question": "What is the population of Los Angeles, CA?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2025-11-14T10:53:55.340914",
+      "user_id": "demo",
+      "question": "What's the population of New York City?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
     }
   ],
-  "last_updated": "2025-11-12T20:08:24.768749"
+  "last_updated": "2025-11-14T10:53:55.341926"
 }
