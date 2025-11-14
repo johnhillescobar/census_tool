@@ -37,6 +37,9 @@ Contains the actual Census data retrieved from the API.
   - Subsequent rows: Data values (e.g., `["California", "39538223", "06"]`)
 - `variables` (object, optional): Mapping of variable codes to labels
   - Example: `{"B01003_001E": "Total Population"}`
+  - **Note**: When provided, this enables human-readable chart titles.
+    Charts will display as "Total Population (B01003_001E) by NAME" instead of "B01003_001E by NAME".
+    If omitted, charts will use code-only titles as fallback.
 
 **Example**:
 ```json

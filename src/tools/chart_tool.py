@@ -12,6 +12,8 @@ from datetime import datetime
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+from src.utils.dataframe_utils import _create_dataframe_from_json
+
 logger = logging.getLogger(__name__)
 
 
@@ -36,117 +38,20 @@ class ChartTool(BaseTool):
     description: str = """
     Create data visualizations from census data
     
+    Supports both single-series and multi-series charts (auto-detected).
+    Multi-series charts automatically group by geography when multiple areas are present.
+    
     Input must be valid JSON with these fields:
     - chart_type: Chart type (bar, line)
     - x_column: Column name for x-axis
     - y_column: Column name for y-axis  
     - title: Chart title (optional, defaults to 'Census Data Visualization')
+    - color_column: Optional column name for multi-series grouping (auto-detected if not provided)
     - data: Census data dict from census_api_call tool
     """
 
     # args_schema = ChartToolInput  # Disabled for ReAct compatibility
     model_config = ConfigDict(arbitrary_types_allowed=True)
-
-    def _create_dataframe_from_json(self, json_obj: Dict) -> pd.DataFrame:
-        """
-        Creates a pandas DataFrame from Census API response format.
-
-        Handles nested structure from agent: {"data": {"success": True, "data": [...]}}
-        Converts numeric columns from strings to proper numeric types.
-        """
-        logger.info("=== ChartTool Data Extraction Debug ===")
-        logger.info(f"Input json_obj type: {type(json_obj)}")
-        logger.info(
-            f"Input json_obj keys: {list(json_obj.keys()) if isinstance(json_obj, dict) else 'N/A'}"
-        )
-
-        if not isinstance(json_obj, dict):
-            raise ValueError("Input must be a dictionary.")
-
-        # Handle nested data structure from agent
-        if (
-            "data" in json_obj
-            and isinstance(json_obj["data"], dict)
-            and "data" in json_obj["data"]
-        ):
-            # Format: {"data": {"success": True, "data": [["headers"], ["rows"]]}}
-            logger.info(
-                "Detected nested format: {'data': {'success': ..., 'data': [...]}}"
-            )
-            data = json_obj["data"]["data"]
-        elif "data" in json_obj:
-            # Format: {"data": [["headers"], ["rows"]]}
-            logger.info("Detected simple format: {'data': [...]}")
-            data = json_obj["data"]
-        else:
-            raise KeyError("JSON object must contain a 'data' key.")
-
-        logger.info(f"Extracted data type: {type(data)}")
-        logger.info(
-            f"Extracted data length: {len(data) if isinstance(data, list) else 'N/A'}"
-        )
-
-        if not isinstance(data, list) or len(data) < 2:
-            raise ValueError(
-                "The 'data' key must contain a list with at least a header row and one data row."
-            )
-
-        header = data[0]
-        rows = data[1:]
-
-        logger.info(f"Headers: {header}")
-        logger.info(f"First data row: {rows[0] if rows else 'No data'}")
-        logger.info(f"Number of data rows: {len(rows)}")
-
-        df = pd.DataFrame(rows, columns=header)
-
-        logger.info(
-            f"DataFrame created with shape: {df.shape}, columns: {list(df.columns)}"
-        )
-        logger.info(f"DataFrame dtypes BEFORE conversion: {df.dtypes.to_dict()}")
-
-        # Log first row values and their types
-        if len(df) > 0:
-            first_row_sample = {
-                col: (df[col].iloc[0], type(df[col].iloc[0]).__name__)
-                for col in df.columns
-            }
-            logger.info(f"First row values with types: {first_row_sample}")
-
-        # Convert numeric columns from strings to proper numeric types
-        for col in df.columns:
-            # Skip only truly non-numeric text columns
-            if col.lower() in ["name", "geo_id"]:
-                logger.info(f"Skipping column '{col}' (text column)")
-                continue
-
-            logger.info(f"Processing column '{col}' for numeric conversion...")
-            logger.info(f"  Sample values: {df[col].head(3).tolist()}")
-
-            try:
-                # Remove commas from strings before conversion (Census API returns "1,234,567")
-                original_dtype = df[col].dtype
-                df[col] = df[col].astype(str).str.replace(",", "", regex=False)
-                df[col] = pd.to_numeric(df[col], errors="coerce")
-                logger.info(f"  Converted '{col}': {original_dtype} -> {df[col].dtype}")
-                logger.info(f"  Post-conversion values: {df[col].head(3).tolist()}")
-                logger.info(f"  NaN count: {df[col].isna().sum()}")
-            except (ValueError, TypeError) as e:
-                # If conversion fails, leave as string
-                logger.warning(f"  FAILED to convert column '{col}': {e}")
-                continue
-
-        logger.info(f"Final DataFrame dtypes: {df.dtypes.to_dict()}")
-        logger.info(f"Sample data (first 3 rows):\n{df.head(3)}")
-
-        # Reset index to prevent Plotly from using index as values
-        df = df.reset_index(drop=True)
-        logger.info(
-            f"DataFrame index reset. Index range: {df.index.min()} to {df.index.max()}"
-        )
-        logger.info("=== End Data Extraction Debug ===\n")
-
-        return df
 
     def _run(self, tool_input: str) -> str:
         """Create a chart from the input data and save to data/charts/"""
@@ -162,6 +67,7 @@ class ChartTool(BaseTool):
             x_column = params.get("x_column")
             y_column = params.get("y_column")
             title = params.get("title", "Census Data Visualization")
+            color_column = params.get("color_column")  # Optional: for multi-series
             data = params.get("data")
 
             # Validate required parameters
@@ -169,7 +75,9 @@ class ChartTool(BaseTool):
                 return "Error: Missing required parameters (chart_type, x_column, y_column, data)"
 
             # Create DataFrame from census data
-            df = self._create_dataframe_from_json(data)
+            df = _create_dataframe_from_json(data)
+            # Reset index to prevent Plotly from using index as values
+            df = df.reset_index(drop=True)
 
             # Validate columns exist
             if x_column not in df.columns:
@@ -181,10 +89,25 @@ class ChartTool(BaseTool):
                 logger.error(error_msg)
                 return error_msg
 
+            # Validate color_column if provided
+            if color_column:
+                if color_column not in df.columns:
+                    logger.warning(
+                        f"color_column '{color_column}' not found in data. Available columns: {list(df.columns)}. Proceeding without color grouping."
+                    )
+                    color_column = None
+                else:
+                    unique_values = df[color_column].nunique()
+                    logger.info(
+                        f"Multi-series chart: {unique_values} unique values in color_column '{color_column}'"
+                    )
+
             # Log actual data being plotted
             logger.info("=== Pre-Plot Validation ===")
             logger.info(f"Chart type: {chart_type}")
             logger.info(f"X column: '{x_column}' | Y column: '{y_column}'")
+            if color_column:
+                logger.info(f"Color column: '{color_column}' (multi-series)")
             logger.info(f"X data type: {df[x_column].dtype}")
             logger.info(f"Y data type: {df[y_column].dtype}")
             logger.info(f"X data sample (first 5): {df[x_column].head(5).tolist()}")
@@ -217,11 +140,31 @@ class ChartTool(BaseTool):
 
             # Create chart based on type
             if chart_type == "bar":
-                fig = px.bar(df, x=x_column, y=y_column, title=title)
+                if color_column:
+                    # Multi-series bar chart: use color parameter for grouping
+                    fig = px.bar(
+                        df, x=x_column, y=y_column, color=color_column, title=title
+                    )
+                else:
+                    # Single-series bar chart: use default color
+                    fig = px.bar(df, x=x_column, y=y_column, title=title)
+                    fig.update_traces(marker_color="#111184")
             elif chart_type == "line":
-                fig = px.line(df, x=x_column, y=y_column, title=title)
+                if color_column:
+                    # Multi-series line chart: use color parameter for grouping
+                    fig = px.line(
+                        df, x=x_column, y=y_column, color=color_column, title=title
+                    )
+                else:
+                    # Single-series line chart: use default color
+                    fig = px.line(df, x=x_column, y=y_column, title=title)
+                    fig.update_traces(line_color="#111184")
             else:
                 return f"Error: Unsupported chart type: {chart_type}. Supported types: bar, line"
+
+            # Rotate x-axis labels for better readability
+            # -45 degrees makes labels diagonal and readable
+            fig.update_xaxes(tickangle=-45)
 
             # Ensure output directory exists
             charts_dir = Path("data/charts")
