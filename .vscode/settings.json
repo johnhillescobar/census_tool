@@ -10,7 +10,7 @@
     "python.analysis.indexing": true,
     "python.analysis.typeCheckingMode": "basic",
     "python.analysis.userFileIndexingLimit": -1,
-    "python.languageServer": "None",
+    "python.languageServer": "Pylance",
     "python.testing.pytestArgs": [
         "."
     ],
