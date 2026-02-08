@@ -7,13 +7,173 @@ import os
 import sys
 import json
 import logging
-from typing import Dict, Any, Optional
+import traceback
+from typing import Dict, Any, Optional, List
+from pydantic import BaseModel, Field, ValidationError
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from src.llm.config import LLM_CONFIG, CATEGORY_DETECTION_PROMPT_TEMPLATE
-from src.llm.factory import create_llm
+
+from dotenv import load_dotenv
+
+# Load .env from project root (parent of src/)
+project_root = os.path.dirname(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+)
+env_path = os.path.join(project_root, ".env")
+load_dotenv(dotenv_path=env_path)
+
+from src.llm.config import LLM_CONFIG, CATEGORY_DETECTION_PROMPT_TEMPLATE  # noqa: E402
+from src.llm.factory import create_llm  # noqa: E402
 
 logger = logging.getLogger(__name__)
+
+
+# Pydantic models for Responses API format
+class TextResponse(BaseModel):
+    """Text content in Responses API format"""
+
+    type: str = Field(default="text")
+    text: str
+    annotations: List[Any] = Field(default_factory=list)
+    id: Optional[str] = None
+
+
+class CategoryDetectionResult(BaseModel):
+    """Structured output for category detection"""
+
+    preferred_category: Optional[str] = Field(
+        None, description="One of: detail, subject, profile, cprofile, spp, or null"
+    )
+    confidence: Optional[float] = Field(
+        None, ge=0.0, le=1.0, description="Confidence score between 0.0 and 1.0"
+    )
+    reasoning: str = Field(..., description="Explanation for the category choice")
+
+
+# Verify API key is loaded
+api_key = os.getenv("OPENAI_API_KEY")
+if not api_key:
+    logger.warning(f".env file not found at {env_path} or OPENAI_API_KEY not set")
+    logger.warning(f"Project root: {project_root}")
+    logger.warning(f"Current working directory: {os.getcwd()}")
+    logger.warning(f"Looking for .env at: {env_path}")
+    logger.warning(f".env file exists: {os.path.exists(env_path)}")
+else:
+    # Check for common issues
+    api_key_clean = api_key.strip()
+    if api_key != api_key_clean:
+        logger.warning(
+            f"API key has whitespace! Original length: {len(api_key)}, Cleaned length: {len(api_key_clean)}"
+        )
+        # Update environment variable with cleaned version
+        os.environ["OPENAI_API_KEY"] = api_key_clean
+    logger.info("OPENAI_API_KEY loaded")
+
+
+def _extract_text_from_responses_api(response_list: List[Dict[str, Any]]) -> str:
+    """
+    Extract text content from Responses API format using Pydantic models.
+
+    Args:
+        response_list: List of response dictionaries from Responses API
+
+    Returns:
+        Text content from the 'text' type response item
+
+    Raises:
+        ValueError: If no text content can be extracted
+    """
+    for item in response_list:
+        try:
+            # Try to parse as TextResponse
+            text_response = TextResponse(**item)
+            if text_response.text:
+                return text_response.text
+        except Exception:
+            # Not a TextResponse, continue
+            continue
+
+    # Fallback: try to find any dict with 'text' field
+    for item in response_list:
+        if isinstance(item, dict) and "text" in item:
+            text = item.get("text", "")
+            if text:
+                return text
+
+    raise ValueError(
+        f"Could not extract text from Responses API format. "
+        f"Response items: {[item.get('type', 'unknown') for item in response_list]}"
+    )
+
+
+def _extract_json_from_response(content: str) -> str:
+    """
+    Extract JSON from LLM response, handling markdown code blocks and extra text.
+
+    Handles:
+    - Raw JSON: {"key": "value"}
+    - Markdown code blocks: ```json\n{"key": "value"}\n```
+    - Text before/after JSON
+
+    Properly matches braces to find the correct closing brace, even if there
+    are additional closing braces in text after the JSON object.
+    """
+    # Ensure content is a string
+    if content is None:
+        raise ValueError("Response content is None")
+    if not isinstance(content, str):
+        content = str(content)
+
+    content = content.strip()
+
+    # Try to find JSON object boundaries
+    # Look for opening brace
+    start_idx = content.find("{")
+    if start_idx == -1:
+        # No JSON found, return as-is (will fail parsing but gives better error)
+        return content
+
+    # Use JSONDecoder.raw_decode to robustly find the end of the JSON object,
+    # correctly handling braces that may appear inside strings.
+    decoder = json.JSONDecoder()
+    try:
+        _, end_idx = decoder.raw_decode(content, idx=start_idx)
+    except json.JSONDecodeError:
+        # If we can't decode a JSON object starting at the first '{',
+        # return the original content for clearer downstream errors.
+        return content
+
+    # Extract JSON portion
+    json_text = content[start_idx:end_idx]
+
+    # If wrapped in markdown code blocks, strip them
+    if json_text.startswith("```"):
+        lines = json_text.split("\n")
+        # Remove first line if it's ```json or ```
+        if lines[0].strip().startswith("```"):
+            lines = lines[1:]
+        # Remove last line if it's ```
+        if lines and lines[-1].strip() == "```":
+            lines = lines[:-1]
+        json_text = "\n".join(lines)
+
+    return json_text.strip()
+
+
+def _log_response_debug(frame_locals: Dict[str, Any], label: str) -> None:
+    """Log response/json_text/json_dict only if present in frame (avoids NameError in handlers)."""
+    if "response" in frame_locals:
+        r = frame_locals["response"]
+        if hasattr(r, "content"):
+            logger.error(f"[{label}] Response content: {getattr(r, 'content', 'N/A')}")
+        else:
+            logger.error(f"[{label}] Response (no content): {r}")
+    else:
+        logger.error(f"[{label}] No response (exception before assignment)")
+    if "json_text" in frame_locals:
+        logger.error(f"[{label}] Extracted JSON text was: {frame_locals['json_text']}")
+    if "json_dict" in frame_locals:
+        logger.error(f"[{label}] Parsed JSON dict was: {frame_locals['json_dict']}")
 
 
 def detect_category_with_llm(user_question: str) -> Dict[str, Any]:
@@ -51,23 +211,66 @@ def detect_category_with_llm(user_question: str) -> Dict[str, Any]:
         llm = create_llm(temperature=LLM_CONFIG["temperature"])
         response = llm.invoke(prompt)
 
-        # Parse JSON response
-        result = json.loads(response.content)
+        # Ensure response has content attribute
+        if not hasattr(response, "content"):
+            raise ValueError(
+                f"Response object missing 'content' attribute. Response type: {type(response)}, Response: {response}"
+            )
+
+        response_content = response.content
+        logger.info(f"response.content type: {type(response_content)}")
+        logger.debug(
+            "response.content (truncated to 500 chars): %s",
+            str(response_content)[:500],
+        )
+
+        # Handle Responses API format (list of dicts) vs standard format (string)
+        if isinstance(response_content, list):
+            # Parse Responses API format using Pydantic models
+            text_content = _extract_text_from_responses_api(response_content)
+            logger.debug(
+                "Extracted text from Responses API format (truncated to 200 chars): %s...",
+                text_content[:200],
+            )
+            response_content = text_content
+
+        # Extract and parse JSON response (handles markdown code blocks)
+        json_text = _extract_json_from_response(response_content)
+        logger.debug(
+            "json_text (truncated to 500 chars): %s",
+            json_text[:500],
+        )
+
+        # Parse and validate with Pydantic
+        json_dict = json.loads(json_text)
+        result_model = CategoryDetectionResult(**json_dict)
+        result = result_model.model_dump()
 
         logger.info(f"Category detection result: {result}")
         return result
 
     except json.JSONDecodeError as e:
         logger.error(f"Failed to parse LLM response as JSON: {e}")
-        logger.error(f"Response was: {response.content}")
+        _log_response_debug(locals(), "JSONDecodeError")
         return {
             "preferred_category": None,
             "confidence": 0.0,
             "reasoning": f"Error parsing JSON response: {str(e)}",
         }
 
+    except ValidationError as e:
+        logger.error(f"Failed to validate category detection result: {e}")
+        _log_response_debug(locals(), "ValidationError")
+        return {
+            "preferred_category": None,
+            "confidence": 0.0,
+            "reasoning": f"Error validating response structure: {str(e)}",
+        }
+
     except Exception as e:
-        logger.error(f"Error detecting category: {e}")
+        logger.error(f"Error detecting category: {type(e).__name__}: {e}")
+        _log_response_debug(locals(), "Exception")
+        logger.error(f"Traceback: {traceback.format_exc()}")
         return {
             "preferred_category": None,
             "confidence": 0.0,

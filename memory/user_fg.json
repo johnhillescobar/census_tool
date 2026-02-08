@@ -1,0 +1,29 @@
+{
+  "user_id": "fg",
+  "default_geo": {},
+  "preferred_dataset": "acs/acs5",
+  "default_year_range": [
+    2012,
+    2023
+  ],
+  "preferred_level": "place",
+  "var_aliases": {},
+  "usage_stats": {
+    "total_queries": 1,
+    "success_queries": 1,
+    "last_query_date": "2026-02-04T19:31:28.510047"
+  },
+  "history": [
+    {
+      "timestamp": "2026-02-04T19:31:28.510047",
+      "user_id": "fg",
+      "question": "Compare population by county in California",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    }
+  ],
+  "last_updated": "2026-02-04T19:31:28.510047"
+}
