@@ -166,7 +166,7 @@ You are a Census data expert. Your goal is to analyze the user's question and de
 - If the user's question does not indicate a preference or is missing/empty, set all output fields to null and explain in the reasoning.
 
 # Output Format
-Return ONLY valid JSON in the following structure:
+**IMPORTANT: Return ONLY valid JSON** in the following structure:
 
 ```json
 {{
