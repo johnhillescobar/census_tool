@@ -29,14 +29,6 @@ logger = logging.getLogger(__name__)
 
 
 # Pydantic models for Responses API format
-class ReasoningResponse(BaseModel):
-    """Reasoning step in Responses API format"""
-
-    id: str
-    summary: List[Any] = Field(default_factory=list)
-    type: str = Field(default="reasoning")
-
-
 class TextResponse(BaseModel):
     """Text content in Responses API format"""
 
