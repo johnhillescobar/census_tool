@@ -168,6 +168,8 @@ You are a Census data expert. Your goal is to analyze the user's question and de
 # Output Format
 **IMPORTANT: Return ONLY valid JSON** in the following structure:
 
+Example response (preferred_category can be "detail", "subject", "profile", "cprofile", "spp", or null):
+
 ```json
 {{
 "preferred_category": "detail",
