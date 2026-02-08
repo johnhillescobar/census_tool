@@ -227,20 +227,27 @@ def detect_category_with_llm(user_question: str) -> Dict[str, Any]:
 
         response_content = response.content
         logger.info(f"response.content type: {type(response_content)}")
-        logger.info(f"response.content: {response_content}")
+        logger.debug(
+            "response.content (truncated to 500 chars): %s",
+            str(response_content)[:500],
+        )
 
         # Handle Responses API format (list of dicts) vs standard format (string)
         if isinstance(response_content, list):
             # Parse Responses API format using Pydantic models
             text_content = _extract_text_from_responses_api(response_content)
-            logger.info(
-                f"Extracted text from Responses API format: {text_content[:200]}..."
+            logger.debug(
+                "Extracted text from Responses API format (truncated to 200 chars): %s...",
+                text_content[:200],
             )
             response_content = text_content
 
         # Extract and parse JSON response (handles markdown code blocks)
         json_text = _extract_json_from_response(response_content)
-        logger.info(f"json_text: {json_text}")
+        logger.debug(
+            "json_text (truncated to 500 chars): %s",
+            json_text[:500],
+        )
 
         # Parse and validate with Pydantic
         json_dict = json.loads(json_text)
