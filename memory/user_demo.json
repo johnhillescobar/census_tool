@@ -9,10 +9,9 @@
   "preferred_level": "place",
   "var_aliases": {},
   "usage_stats": {
-    "total_queries": 35,
-    "success_queries": 35,
-
-    "last_query_date": "2025-11-13T07:28:09.717824"
+    "total_queries": 38,
+    "success_queries": 38,
+    "last_query_date": "2026-02-03T20:29:01.188168"
   },
   "history": [
     {
@@ -364,7 +363,37 @@
       "plan_summary": "",
       "answer_type": "Unknown",
       "success": true
+    },
+    {
+      "timestamp": "2025-11-15T08:59:48.514447",
+      "user_id": "demo",
+      "question": "Show me median income trends from 2015 to 2020",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2026-02-03T20:26:49.476951",
+      "user_id": "demo",
+      "question": "What's the population of New York City?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2026-02-03T20:29:01.188168",
+      "user_id": "demo",
+      "question": "Show me median income trends from 2015 to 2020",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
     }
   ],
-  "last_updated": "2025-11-13T07:28:09.717824"
+  "last_updated": "2026-02-03T20:29:01.188168"
 }

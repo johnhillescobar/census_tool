@@ -2,6 +2,7 @@ import os
 import sys
 import logging
 import json
+import re
 from typing import Dict, List, Any, Optional
 from dotenv import load_dotenv
 from pydantic import BaseModel, ValidationError
@@ -197,15 +198,11 @@ class CensusQueryAgent:
                         json_start = idx + len(marker)
                         json_str = output[json_start:].strip()
                         # Remove ANSI escape codes if present
-                        import re
-
                         json_str = re.sub(r"\x1b\[[0-9;]*m", "", json_str)
                         # Try to find JSON object start
                         json_start_idx = json_str.find("{")
                         if json_start_idx != -1:
                             json_str = json_str[json_start_idx:]
-                            # Try parsing
-                            import json
 
                             parsed = json.loads(json_str)
                             if isinstance(parsed, dict) and "census_data" in parsed:

@@ -362,7 +362,6 @@ def test_build_census_url_from_metadata():
 
 def test_real_census_api():
     """Test with actual Census API calls"""
-    import requests
 
     # Test 1: Subject table S0101 for California
     print("Calling real Census API for S0101 (Age and Sex)...")

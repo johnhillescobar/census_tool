@@ -79,7 +79,18 @@ def _create_openai_llm(model: str, temperature: float, **kwargs) -> Any:
             f"Using Responses API for {model} with output_version={kwargs['output_version']}"
         )
 
+    # Explicitly get API key from environment (ChatOpenAI reads it automatically, but we verify)
+    api_key = os.getenv("OPENAI_API_KEY")
+    if api_key:
+        api_key = api_key.strip()  # Remove any whitespace
+        # Update env var with cleaned version
+        os.environ["OPENAI_API_KEY"] = api_key
+        logger.debug("OPENAI_API_KEY set from environment")
+    else:
+        logger.warning("OPENAI_API_KEY not found in environment variables")
+
     # Create base LLM instance
+    # ChatOpenAI automatically reads OPENAI_API_KEY from environment
     llm = ChatOpenAI(
         model=model,
         temperature=temperature,
