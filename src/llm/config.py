@@ -166,11 +166,13 @@ You are a Census data expert. Your goal is to analyze the user's question and de
 - If the user's question does not indicate a preference or is missing/empty, set all output fields to null and explain in the reasoning.
 
 # Output Format
+Return ONLY valid JSON in the following structure:
+
 ```json
 {{
-"preferred_category": "detail" | "subject" | "profile" | "cprofile" | "spp" | null,
-"confidence": float (0.0 - 1.0) | null,
-"reasoning": string
+"preferred_category": "detail",
+"confidence": 0.85,
+"reasoning": "The question asks for detailed demographic breakdowns by age and income, which aligns with the Detailed Tables category."
 }}
 ```
 
