@@ -141,27 +141,18 @@ def _extract_json_from_response(content: str) -> str:
         # No JSON found, return as-is (will fail parsing but gives better error)
         return content
 
-    # Properly match braces by counting them
-    # This handles cases where there are additional closing braces after the JSON
-    brace_count = 0
-    end_idx = -1
-
-    for i in range(start_idx, len(content)):
-        if content[i] == "{":
-            brace_count += 1
-        elif content[i] == "}":
-            brace_count -= 1
-            if brace_count == 0:
-                # Found the matching closing brace
-                end_idx = i
-                break
-
-    if end_idx == -1 or end_idx < start_idx:
-        # No matching closing brace found, return as-is
+    # Use JSONDecoder.raw_decode to robustly find the end of the JSON object,
+    # correctly handling braces that may appear inside strings.
+    decoder = json.JSONDecoder()
+    try:
+        _, end_idx = decoder.raw_decode(content, idx=start_idx)
+    except json.JSONDecodeError:
+        # If we can't decode a JSON object starting at the first '{',
+        # return the original content for clearer downstream errors.
         return content
 
     # Extract JSON portion
-    json_text = content[start_idx : end_idx + 1]
+    json_text = content[start_idx:end_idx]
 
     # If wrapped in markdown code blocks, strip them
     if json_text.startswith("```"):
