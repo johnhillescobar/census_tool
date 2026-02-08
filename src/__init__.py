@@ -1,2 +1,2 @@
-# Census Tool Source Package
+"""Census Tool source package."""
 
