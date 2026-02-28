@@ -1,4 +1,3 @@
-from src.llm.category_detector import detect_category_with_llm
 import logging
 from datetime import datetime
 from pathlib import Path
@@ -7,6 +6,8 @@ import sys
 # Add project root to path
 project_root = Path(__file__).parent
 sys.path.append(str(project_root))
+
+from src.llm.category_detector import detect_category_with_llm
 
 # Set up logging
 LOG_FORMAT = "%(asctime)s - %(levelname)s - %(name)s - %(message)s"
@@ -34,9 +35,9 @@ root_logger.addHandler(file_handler)
 
 logger = logging.getLogger(__name__)
 
-# user_question = "According to the 2023 ACS 1-year data, what is the estimated total population of the United States?"
-user_question = "Social characteristics comparison profile for the U.S. (2023)."
-logger.info(f"User question: {user_question}")
-result = detect_category_with_llm(user_question)
-logger.info(f"Result: {result}")
-logger.info(f"Category detection result: {result}")
+if __name__ == "__main__":
+    # user_question = "According to the 2023 ACS 1-year data, what is the estimated total population of the United States?"
+    user_question = "Social characteristics comparison profile for the U.S. (2023)."
+    logger.info(f"User question: {user_question}")
+    result = detect_category_with_llm(user_question)
+    logger.info(f"Category detection result: {result}")
