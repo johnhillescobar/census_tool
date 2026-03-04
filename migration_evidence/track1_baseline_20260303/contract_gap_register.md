@@ -27,6 +27,7 @@ No behavior changes are made in this track; this register identifies where to en
 - This indicates contract enforcement is not fail-closed at all boundaries.
 
 ## Track 1 Decision
+- Track 1 Step 1 Gate: 🟡 Partial
 - Decision: **Approve with conditions**
 - Condition 1: Keep this register updated for every moved module/boundary.
 - Condition 2: Do not introduce runtime behavior changes in Track 1.

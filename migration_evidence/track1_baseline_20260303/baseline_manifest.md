@@ -19,18 +19,19 @@
 ## Commands Executed
 - `uv run pytest app_test_scripts/ -v`
 - `uv run python main.py`
-- `uv run streamlit run streamlit_app.py>`
+- `uv run streamlit run streamlit_app.py`
 
 ## Artifacts
-- Tests log: `migration_evidence\track1_baseline_20260303\cli_log_20260303_064618.txt`
+- Tests log: `migration_evidence\track1_baseline_20260303\tests\pytest_full_20260303.txt`
 - CLI transcript/log: `migration_evidence\track1_baseline_20260303\cli_log_20260303_070250.txt`
 - Streamlit logs/screenshots: `migration_evidence\track1_baseline_20260303\streamlit_demo_20260303_070734.txt`
 
 ## Parity Result
 - Tests: 1 failed, 135 passed, 2 skipped, 1 warning in 462.03s (0:07:42)
 - CLI flow: PASS — baseline scenario output matched expected behavior; see CLI transcript/log
-- Streamlit flow: Streamlit (streamlit_app.py): PASS — baseline flow rendered and returned expected result; see treamlit logs/screenshots
+- Streamlit flow: Streamlit (streamlit_app.py): PASS — baseline flow rendered and returned expected result; see streamlit logs/screenshots
 - Notes: Known nondeterminism as this is an LLM graph application.
+- Step 1 Status: 🟡 Partial (baseline captured; one flaky integration failure documented)
 
 ## Known contract risks
 - Contract consistency is currently partial (mixed typed and raw boundaries).
