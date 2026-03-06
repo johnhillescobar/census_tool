@@ -22,7 +22,7 @@ from config import (
     CHROMA_EMBEDDING_MODEL,
 )
 
-from src.utils.census_groups import CensusGroupsAPI
+from src.domain.census_groups import CensusGroupsAPI
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"

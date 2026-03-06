@@ -4,7 +4,7 @@ Tests for expanded geography support (tribal areas, statistical areas, validatio
 
 import pytest
 import json
-from src.utils.geography_registry import GeographyRegistry
+from src.domain.geography_registry import GeographyRegistry
 from src.utils.chroma_utils import (
     validate_geography_hierarchy,
     validate_and_fix_geo_params,
@@ -60,13 +60,13 @@ def test_enumerate_tribal_areas_with_suffix(monkeypatch, tmp_path):
         )
 
     monkeypatch.setattr(
-        "src.utils.geography_registry.validate_and_fix_geo_params", fake_validate
+        "src.domain.geography_registry.validate_and_fix_geo_params", fake_validate
     )
     monkeypatch.setattr(
-        "src.utils.geography_registry.build_geo_filters",
+        "src.domain.geography_registry.build_geo_filters",
         lambda **kwargs: {"for": "test"},
     )
-    monkeypatch.setattr("src.utils.geography_registry.record_event", lambda *args: None)
+    monkeypatch.setattr("src.domain.geography_registry.record_event", lambda *args: None)
 
     # Enumerate tribal areas
     areas = registry.enumerate_tribal_areas(
@@ -99,7 +99,7 @@ def test_resolve_tribal_area_fuzzy_match(monkeypatch, tmp_path):
         }
 
     registry.enumerate_tribal_areas = fake_enumerate
-    monkeypatch.setattr("src.utils.geography_registry.record_event", lambda *args: None)
+    monkeypatch.setattr("src.domain.geography_registry.record_event", lambda *args: None)
 
     # Test fuzzy match
     result = registry.resolve_tribal_area("Navajo", "acs/acs5", 2023)
@@ -163,13 +163,13 @@ def test_enumerate_statistical_areas(monkeypatch, tmp_path):
         return ("metropolitan statistical area/micropolitan statistical area", "*", [])
 
     monkeypatch.setattr(
-        "src.utils.geography_registry.validate_and_fix_geo_params", fake_validate
+        "src.domain.geography_registry.validate_and_fix_geo_params", fake_validate
     )
     monkeypatch.setattr(
-        "src.utils.geography_registry.build_geo_filters",
+        "src.domain.geography_registry.build_geo_filters",
         lambda **kwargs: {"for": "test"},
     )
-    monkeypatch.setattr("src.utils.geography_registry.record_event", lambda *args: None)
+    monkeypatch.setattr("src.domain.geography_registry.record_event", lambda *args: None)
 
     areas = registry.enumerate_statistical_areas(
         "metropolitan statistical area/micropolitan statistical area", "acs/acs5", 2023
@@ -194,7 +194,7 @@ def test_resolve_statistical_area_fuzzy(monkeypatch, tmp_path):
         }
 
     registry.enumerate_statistical_areas = fake_enumerate
-    monkeypatch.setattr("src.utils.geography_registry.record_event", lambda *args: None)
+    monkeypatch.setattr("src.domain.geography_registry.record_event", lambda *args: None)
 
     result = registry.resolve_statistical_area(
         "New York metro",
@@ -223,7 +223,7 @@ def test_resolve_part_geography(monkeypatch, tmp_path):
 
     monkeypatch.setattr("requests.get", fake_get)
     monkeypatch.setattr(
-        "src.utils.geography_registry.build_geo_filters",
+        "src.domain.geography_registry.build_geo_filters",
         lambda **kwargs: {"for": "test", "in": "test"},
     )
 

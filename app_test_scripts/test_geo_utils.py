@@ -1,4 +1,4 @@
-from src.utils.geo_utils import resolve_geography_hint, DEFAULT_GEO
+from src.domain.geo_utils import resolve_geography_hint, DEFAULT_GEO
 
 
 def test_resolve_geography_hint_returns_geo_dict():

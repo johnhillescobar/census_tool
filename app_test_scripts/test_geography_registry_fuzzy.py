@@ -1,4 +1,4 @@
-from src.utils.geography_registry import GeographyRegistry
+from src.domain.geography_registry import GeographyRegistry
 
 
 def test_find_area_code_uses_fuzzy_matching(monkeypatch):
