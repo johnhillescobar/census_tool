@@ -1,11 +1,8 @@
-import os
-import sys
 import logging
 from langchain_core.tools import BaseTool
 import json
 from pydantic import ConfigDict
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from src.tools.json_parse import parse_first_json
 from src.clients.census_api_utils import build_geo_filters
 

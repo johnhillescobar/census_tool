@@ -1,5 +1,3 @@
-import os
-import sys
 import logging
 import json
 import pandas as pd
@@ -8,8 +6,6 @@ from typing import Dict, Optional, Any, Literal
 from langchain_core.tools import BaseTool
 from pydantic import BaseModel, Field, ConfigDict
 from datetime import datetime
-
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from src.services.dataframe_utils import _create_dataframe_from_json
 from src.tools.json_parse import parse_first_json

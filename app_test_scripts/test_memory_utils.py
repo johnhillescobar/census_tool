@@ -2,14 +2,9 @@
 Test script for memory_utils.py - testing the fixes you made
 """
 
-import sys
-import os
 from unittest.mock import patch
 from datetime import datetime, timedelta
 from pathlib import Path
-
-# Add project root to path
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from src.services.memory_utils import (
     build_history_record,
@@ -211,7 +206,9 @@ def test_enforce_retention_policies():
         mock_prune_cache.return_value = {"cache2": test_cache_index["cache2"]}
 
         # Mock prune_history_by_age to return a different length (to trigger save)
-        with patch("src.services.memory_utils.prune_history_by_age") as mock_prune_history:
+        with patch(
+            "src.services.memory_utils.prune_history_by_age"
+        ) as mock_prune_history:
             mock_prune_history.return_value = [test_profile["history"][1]]
 
         # Call the function

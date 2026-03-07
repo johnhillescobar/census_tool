@@ -3,6 +3,7 @@ Parse the first JSON value from a string. Used by tools when the LLM/framework
 may pass concatenated content (e.g. previous observation + next action input),
 which would cause json.loads to raise "Extra data".
 """
+
 import json
 from typing import Any
 

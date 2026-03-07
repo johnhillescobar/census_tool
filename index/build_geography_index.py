@@ -254,9 +254,7 @@ def _create_embedding_function():
     return OpenAIEmbeddingFunction(model_name=CHROMA_EMBEDDING_MODEL)
 
 
-def upsert_documents(
-    client: ClientAPI, docs: Dict[Tuple[str, int, str], Dict]
-) -> None:
+def upsert_documents(client: ClientAPI, docs: Dict[Tuple[str, int, str], Dict]) -> None:
     embedding_function = _create_embedding_function()
     collection = client.get_or_create_collection(
         CHROMA_GEOGRAPHY_HIERARCHY_COLLECTION_NAME,

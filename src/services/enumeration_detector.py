@@ -114,7 +114,9 @@ class EnumerationDetector:
             if match:
                 # Extract the geography level mentioned
                 geography_level = (
-                    match.group(1) if (match.lastindex is not None and match.lastindex >= 1) else None
+                    match.group(1)
+                    if (match.lastindex is not None and match.lastindex >= 1)
+                    else None
                 )
 
                 if geography_level:

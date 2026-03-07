@@ -2,11 +2,6 @@
 Test script for main.py - testing the fixes you made
 """
 
-import os
-import sys
-
-# Add project root to path
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Mock imports removed - using direct logic testing instead
 
@@ -138,7 +133,9 @@ def test_error_handling():
     # Test that CensusState handles invalid data gracefully
     try:
         CensusState(
-            messages=cast(Any, "invalid"),  # Intentional wrong type for error-handling test
+            messages=cast(
+                Any, "invalid"
+            ),  # Intentional wrong type for error-handling test
             original_query=None,
             intent=None,
             geo={},

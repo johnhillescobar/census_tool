@@ -29,6 +29,7 @@ def create_viz_graph(compiled_graph):
 
     return compiled_graph
 
+
 def create_census_graph():
     # Newer LangGraph versions no longer accept a top-level `reducers` parameter.
     workflow = StateGraph(CensusState)

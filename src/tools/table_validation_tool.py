@@ -44,7 +44,9 @@ class TableValidationTool(BaseTool):
 
         try:
             params = (
-                parse_first_json(tool_input) if isinstance(tool_input, str) else tool_input
+                parse_first_json(tool_input)
+                if isinstance(tool_input, str)
+                else tool_input
             )
         except json.JSONDecodeError as e:
             return f"Error: Invalid JSON input - {e}"

@@ -185,7 +185,10 @@ def build_census_url(
 
 
 def build_census_url_from_metadata(
-    table_metadata: Dict, year: int, geo: Dict[str, Any], variables: Optional[List[str]] = None
+    table_metadata: Dict,
+    year: int,
+    geo: Dict[str, Any],
+    variables: Optional[List[str]] = None,
 ) -> str:
     """
     Build Census API URL from table metadata

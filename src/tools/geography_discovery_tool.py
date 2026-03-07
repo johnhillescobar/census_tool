@@ -1,12 +1,9 @@
-import os
-import sys
 import logging
 import json
 from langchain_core.tools import BaseTool
 from typing import Optional, Dict, Literal
 from pydantic import ConfigDict, BaseModel, Field
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from src.domain.geography_registry import GeographyRegistry
 from src.tools.geography_schemas import (
     GeographyLevel,

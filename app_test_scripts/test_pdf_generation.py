@@ -2,7 +2,6 @@
 Test PDF generation functionality
 """
 
-import sys
 from pathlib import Path
 from datetime import datetime
 import pandas as pd
@@ -10,9 +9,7 @@ import pytest
 
 from src.clients import generate_session_pdf
 
-# Add project root to path
 project_root = Path(__file__).parent
-sys.path.append(str(project_root))
 
 
 def test_pdf_generation():

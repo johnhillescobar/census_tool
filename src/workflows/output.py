@@ -1,12 +1,9 @@
-import os
-import sys
 import logging
 import json
 import pandas as pd
 from typing import Dict, Any, Optional
 from langchain_core.runnables import RunnableConfig
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from src.state.types import CensusState
 from src.tools.chart_tool import ChartTool
 from src.tools.table_tool import TableTool

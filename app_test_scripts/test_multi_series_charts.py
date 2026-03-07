@@ -5,12 +5,6 @@ Tests verify that get_chart_params() correctly detects multi-series scenarios
 and that ChartTool creates multi-series charts with proper color grouping.
 """
 
-import os
-import sys
-
-# Add project root to path
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
 import pytest
 import pandas as pd
 from src.workflows.output import get_chart_params, _detect_geography_column

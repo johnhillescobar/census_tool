@@ -5,12 +5,6 @@ Tests verify that format_chart_title() and get_chart_params() correctly
 generate human-readable titles with variable codes when variables dict is provided.
 """
 
-import os
-import sys
-
-# Add project root to path
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
 import pytest
 from src.workflows.output import format_chart_title, get_chart_params
 

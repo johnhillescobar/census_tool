@@ -9,7 +9,6 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 from pathlib import Path
-import sys
 import logging
 from typing import Dict, Any
 from datetime import datetime
@@ -19,9 +18,7 @@ from app import create_census_graph
 from src.state.types import CensusState
 from langchain_core.runnables import RunnableConfig
 
-# Add project root to path
 project_root = Path(__file__).parent
-sys.path.append(str(project_root))
 streamlit_logs_dir = project_root / "logs" / "streamlit_logs"
 streamlit_logs_dir.mkdir(parents=True, exist_ok=True)
 

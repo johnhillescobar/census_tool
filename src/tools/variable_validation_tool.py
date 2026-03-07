@@ -59,7 +59,9 @@ class VariableValidationTool(BaseTool):
     def _run(self, tool_input: str) -> str:
         try:
             params = (
-                parse_first_json(tool_input) if isinstance(tool_input, str) else tool_input
+                parse_first_json(tool_input)
+                if isinstance(tool_input, str)
+                else tool_input
             )
         except json.JSONDecodeError as exc:
             return f"Error: Invalid JSON input - {exc}"

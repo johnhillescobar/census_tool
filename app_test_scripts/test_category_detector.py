@@ -8,11 +8,12 @@ def test_extract_json_raw_object():
 
 
 def test_extract_json_with_prefix_and_suffix_text():
-    content = (
-        'Model output: {"preferred_category":"subject","confidence":0.7,"reasoning":"matched"} done.'
-    )
+    content = 'Model output: {"preferred_category":"subject","confidence":0.7,"reasoning":"matched"} done.'
     result = _extract_json_from_response(content)
-    assert result == '{"preferred_category":"subject","confidence":0.7,"reasoning":"matched"}'
+    assert (
+        result
+        == '{"preferred_category":"subject","confidence":0.7,"reasoning":"matched"}'
+    )
 
 
 def test_extract_json_with_braces_inside_string():

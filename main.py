@@ -1,4 +1,3 @@
-import sys
 from pathlib import Path
 from datetime import datetime
 import logging
@@ -10,9 +9,7 @@ from langchain_core.runnables import RunnableConfig
 from src.api.displays import display_results
 from src.clients import SessionLogger
 
-# Add project root to path
 project_root = Path(__file__).parent
-sys.path.append(str(project_root))
 
 # Set up logging
 LOG_FORMAT = "%(asctime)s - %(levelname)s - %(name)s - %(message)s"
@@ -139,7 +136,6 @@ def main():
     except Exception as e:
         logger.error(f"Error initializing app: {str(e)}")
         print(f"Error initializing app: {str(e)}")
-        sys.exit(1)
 
 
 if __name__ == "__main__":

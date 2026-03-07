@@ -1,11 +1,11 @@
-import os
-import sys
 import logging
 from langchain_core.tools import BaseTool
 from pydantic import ConfigDict
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from src.clients.chroma_utils import initialize_chroma_client, get_chroma_collection_tables
+from src.clients.chroma_utils import (
+    initialize_chroma_client,
+    get_chroma_collection_tables,
+)
 
 
 logger = logging.getLogger(__name__)

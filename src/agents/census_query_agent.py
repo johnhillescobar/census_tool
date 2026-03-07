@@ -1,8 +1,6 @@
 import os
-import sys
 import logging
 import json
-import re
 from typing import Dict, List, Any, Optional, cast
 from dotenv import load_dotenv
 from pydantic import BaseModel, ValidationError
@@ -20,7 +18,6 @@ except ImportError:
         create_react_agent = None
 from langchain.prompts import PromptTemplate
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from src.llm.config import LLM_CONFIG, AGENT_PROMPT_TEMPLATE
 from src.llm.factory import create_llm
 from src.tools.geography_discovery_tool import GeographyDiscoveryTool
@@ -527,7 +524,9 @@ class CensusQueryAgent:
             )
         return None
 
-    def _normalize_parsed_output_contract(self, parsed: Dict[str, Any]) -> Dict[str, Any]:
+    def _normalize_parsed_output_contract(
+        self, parsed: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """
         Normalize common LLM contract drift before strict Pydantic validation.
 

@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import logging
 from functools import lru_cache
-from typing import Any, Dict, Iterable, List, Optional, Tuple, TypedDict, cast
+from typing import Dict, Iterable, List, Optional, Tuple, TypedDict, cast
 
 import requests
 from chromadb.types import Where

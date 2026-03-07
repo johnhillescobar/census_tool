@@ -4,12 +4,10 @@ Handles provider-specific initialization and API compatibility
 """
 
 import os
-import sys
 import logging
 from typing import Any, Optional
 from langchain_openai import ChatOpenAI
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from src.llm.config import LLM_CONFIG
 
 logger = logging.getLogger(__name__)

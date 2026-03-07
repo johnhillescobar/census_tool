@@ -1,8 +1,3 @@
-import os
-import sys
-
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
 LLM_CONFIG = {
     "provider": "openai",  # openai | anthropic | google
     "model": "gpt-5.2",  # gpt-4o | gpt-4o-mini | gpt-4.1 | claude-sonnet-4-5-20250929 | gemini-2.5-flash
