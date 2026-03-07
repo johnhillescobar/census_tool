@@ -20,6 +20,9 @@ from src.clients import record_event
 
 logger = logging.getLogger(__name__)
 
+# Canonical Census geography label variable that is valid across datasets.
+_BUILTIN_VARIABLES = {"NAME"}
+
 
 class VariableValidationError(RuntimeError):
     """Raised when validation cannot be performed."""
@@ -163,6 +166,10 @@ def _normalize_variable_payload(metadata: Dict) -> Dict[str, str]:
     }
 
 
+def _is_builtin_variable(variable: str) -> bool:
+    return variable.upper() in _BUILTIN_VARIABLES
+
+
 def validate_variables(
     dataset: str, year: int, variables: Iterable[str]
 ) -> VariableValidationResult:
@@ -272,6 +279,20 @@ def validate_variables(
                     metadata_map[var_name] = enriched
 
     for var in pending_live_lookup:
+        if _is_builtin_variable(var):
+            result["valid"].append(var)
+            result["source"][var] = "builtin"
+            result["years_available"][var] = sorted(
+                set(result["years_available"].get(var, []) + [year_str])
+            )
+            result["details"][var] = {
+                "concept": "Geography Name",
+                "label": "Geography Name",
+                "universe": "",
+                "dataset": dataset,
+            }
+            continue
+
         if var in live_catalog:
             metadata = metadata_map.get(var, live_catalog[var])
             result["valid"].append(var)

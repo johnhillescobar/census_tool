@@ -31,7 +31,7 @@ def create_viz_graph(compiled_graph):
 
 
 def create_census_graph():
-    # Newer LangGraph versions no longer accept a top-level `reducers` parameter.
+    # Reducers are defined on CensusState via Annotated types (see src/state/types.py).
     workflow = StateGraph(CensusState)
 
     # Only 4 nodes
