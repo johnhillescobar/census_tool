@@ -10,6 +10,8 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Mock imports removed - using direct logic testing instead
 
+from typing import Any, cast
+
 import main
 from app import create_census_graph
 from src.state.types import CensusState
@@ -65,6 +67,7 @@ def test_census_state_creation():
         messages=[
             {"role": "user", "content": "What's the population of New York City?"}
         ],
+        original_query="What's the population of New York City?",
         intent=None,
         geo={},
         candidates={},
@@ -135,7 +138,8 @@ def test_error_handling():
     # Test that CensusState handles invalid data gracefully
     try:
         CensusState(
-            messages="invalid",  # Should be a list
+            messages=cast(Any, "invalid"),  # Intentional wrong type for error-handling test
+            original_query=None,
             intent=None,
             geo={},
             candidates={},
@@ -197,6 +201,7 @@ def test_census_state_field_types():
 
     state = CensusState(
         messages=[{"role": "user", "content": "test"}],
+        original_query="test",
         intent=None,
         geo={},
         candidates={},

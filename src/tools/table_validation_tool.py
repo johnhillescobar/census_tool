@@ -5,7 +5,7 @@ from langchain_core.tools import BaseTool
 from pydantic import BaseModel, ConfigDict, Field
 
 from src.utils.dataset_geography_validator import geography_supported
-from src.utils.telemetry import record_event
+from src.clients import record_event
 
 logger = logging.getLogger(__name__)
 

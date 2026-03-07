@@ -13,8 +13,8 @@ import sys
 import logging
 from typing import Dict, Any
 from datetime import datetime
-from src.utils.pdf_generator import generate_session_pdf
-from src.utils.session_logger import SessionLogger
+from src.clients import generate_session_pdf
+from src.clients import SessionLogger
 from app import create_census_graph
 from src.state.types import CensusState
 from langchain_core.runnables import RunnableConfig
@@ -308,6 +308,7 @@ def process_question(user_input: str) -> Dict[str, Any]:
         # Create initial state
         initial_state = CensusState(
             messages=[{"role": "user", "content": user_input}],
+            original_query=user_input,
             intent=None,
             geo={},
             candidates={},
@@ -402,7 +403,7 @@ def main():
                 try:
                     pdf_bytes = generate_session_pdf(
                         conversation_history=st.session_state.conversation_history,
-                        user_id=st.session_state.user_id,
+                        user_id=st.session_state.user_id or "demo",
                         session_metadata={
                             "thread_id": st.session_state.thread_id,
                             "generated_at": datetime.now(),

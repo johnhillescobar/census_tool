@@ -6,7 +6,7 @@ import json
 from pydantic import ConfigDict
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from src.utils.census_api_utils import build_geo_filters
+from src.clients.census_api_utils import build_geo_filters
 
 logger = logging.getLogger(__name__)
 

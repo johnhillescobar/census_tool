@@ -7,15 +7,16 @@ from __future__ import annotations
 
 import logging
 from functools import lru_cache
-from typing import Dict, Iterable, List, Optional, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Tuple, cast
 
 import requests
+from chromadb.types import Where
 
-from src.utils.chroma_utils import (
+from src.clients.chroma_utils import (
     get_chroma_collection_variables,
     initialize_chroma_client,
 )
-from src.utils.telemetry import record_event
+from src.clients import record_event
 
 logger = logging.getLogger(__name__)
 
@@ -127,11 +128,14 @@ def _suggest_alternatives(
 
 
 def _normalize_variable_payload(metadata: Dict) -> Dict[str, str]:
+    def _str(v: object) -> str:
+        return str(v) if v is not None else ""
+
     return {
-        "concept": metadata.get("concept"),
-        "label": metadata.get("label"),
-        "universe": metadata.get("universe"),
-        "dataset": metadata.get("dataset"),
+        "concept": _str(metadata.get("concept")),
+        "label": _str(metadata.get("label")),
+        "universe": _str(metadata.get("universe")),
+        "dataset": _str(metadata.get("dataset")),
     }
 
 
@@ -188,18 +192,21 @@ def validate_variables(
     if collection is not None:
         try:
             response = collection.get(
-                where={
-                    "$and": [
-                        {"dataset": {"$eq": dataset}},
-                        {"var": {"$in": variables}},
-                    ]
-                },
+                where=cast(
+                    Where,
+                    {
+                        "$and": [
+                            {"dataset": {"$eq": dataset}},
+                            {"var": {"$in": variables}},
+                        ]
+                    },
+                ),
                 include=["metadatas"],
             )
             for meta in response.get("metadatas") or []:
                 var_name = meta.get("var")
-                if var_name:
-                    metadata_map[var_name] = meta
+                if var_name is not None:
+                    metadata_map[str(var_name)] = dict(meta)
         except Exception as exc:
             warning = f"Chroma lookup failed: {exc}"
             logger.error(warning)

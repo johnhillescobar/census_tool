@@ -14,9 +14,9 @@ import requests
 import us
 from rapidfuzz import fuzz, process
 
-from src.utils.census_api_utils import build_geo_filters
-from src.utils.chroma_utils import validate_and_fix_geo_params
-from src.utils.telemetry import record_event
+from src.clients.census_api_utils import build_geo_filters
+from src.clients.chroma_utils import validate_and_fix_geo_params
+from src.clients import record_event
 
 logger = logging.getLogger(__name__)
 

@@ -67,7 +67,7 @@ def test_tribal_area_query_integration(monkeypatch):
         "src.tools.census_api_tool.build_geo_filters", fake_build_filters
     )
     monkeypatch.setattr(
-        "src.utils.census_api_utils.validate_and_fix_geo_params", fake_validate
+        "src.clients.census_api_utils.validate_and_fix_geo_params", fake_validate
     )
     monkeypatch.setattr("src.tools.census_api_tool.record_event", lambda *args: None)
 
@@ -133,7 +133,7 @@ def test_metro_area_query_integration(monkeypatch):
         "src.tools.census_api_tool.build_geo_filters", fake_build_filters
     )
     monkeypatch.setattr(
-        "src.utils.census_api_utils.validate_and_fix_geo_params", fake_validate
+        "src.clients.census_api_utils.validate_and_fix_geo_params", fake_validate
     )
     monkeypatch.setattr("src.tools.census_api_tool.record_event", lambda *args: None)
 
@@ -190,7 +190,7 @@ def test_auto_repair_bad_ordering_integration(monkeypatch):
         "src.tools.census_api_tool.build_geo_filters", fake_build_filters
     )
     monkeypatch.setattr(
-        "src.utils.census_api_utils.validate_and_fix_geo_params", fake_validate
+        "src.clients.census_api_utils.validate_and_fix_geo_params", fake_validate
     )
     monkeypatch.setattr("src.tools.census_api_tool.record_event", lambda *args: None)
 
@@ -301,7 +301,7 @@ def test_part_geography_query_integration(monkeypatch):
         "src.tools.census_api_tool.build_geo_filters", fake_build_filters
     )
     monkeypatch.setattr(
-        "src.utils.census_api_utils.validate_and_fix_geo_params", fake_validate
+        "src.clients.census_api_utils.validate_and_fix_geo_params", fake_validate
     )
     monkeypatch.setattr("src.tools.census_api_tool.record_event", lambda *args: None)
 
@@ -386,7 +386,7 @@ def test_validation_before_api_call_workflow(monkeypatch):
         "src.tools.census_api_tool.build_geo_filters", fake_build_filters
     )
     monkeypatch.setattr(
-        "src.utils.census_api_utils.validate_and_fix_geo_params", fake_validate
+        "src.clients.census_api_utils.validate_and_fix_geo_params", fake_validate
     )
     monkeypatch.setattr("src.tools.census_api_tool.record_event", lambda *args: None)
 

@@ -5,7 +5,7 @@ Tests for expanded geography support (tribal areas, statistical areas, validatio
 import pytest
 import json
 from src.domain.geography_registry import GeographyRegistry
-from src.utils.chroma_utils import (
+from src.clients.chroma_utils import (
     validate_geography_hierarchy,
     validate_and_fix_geo_params,
 )
@@ -252,7 +252,7 @@ def test_validate_geography_hierarchy_valid(monkeypatch):
         return ["state"]
 
     monkeypatch.setattr(
-        "src.utils.chroma_utils.get_hierarchy_ordering", fake_get_hierarchy
+        "src.clients.chroma_utils.get_hierarchy_ordering", fake_get_hierarchy
     )
 
     is_valid, missing, error_msg = validate_geography_hierarchy(
@@ -274,10 +274,10 @@ def test_validate_geography_hierarchy_missing_parent(monkeypatch):
         return {"error": "test"}
 
     monkeypatch.setattr(
-        "src.utils.chroma_utils.get_hierarchy_ordering", fake_get_hierarchy
+        "src.clients.chroma_utils.get_hierarchy_ordering", fake_get_hierarchy
     )
     monkeypatch.setattr(
-        "src.utils.chroma_utils.initialize_chroma_client", fake_initialize
+        "src.clients.chroma_utils.initialize_chroma_client", fake_initialize
     )
 
     is_valid, missing, error_msg = validate_geography_hierarchy(
@@ -299,10 +299,10 @@ def test_validate_and_fix_geo_params_with_validation(monkeypatch):
         return {"error": "test"}
 
     monkeypatch.setattr(
-        "src.utils.chroma_utils.get_hierarchy_ordering", fake_get_hierarchy
+        "src.clients.chroma_utils.get_hierarchy_ordering", fake_get_hierarchy
     )
     monkeypatch.setattr(
-        "src.utils.chroma_utils.initialize_chroma_client", fake_initialize
+        "src.clients.chroma_utils.initialize_chroma_client", fake_initialize
     )
 
     # Should pass with state provided
@@ -399,7 +399,7 @@ def test_validate_and_fix_geo_params_reorders(monkeypatch):
         return ["state", "county"]
 
     monkeypatch.setattr(
-        "src.utils.chroma_utils.get_hierarchy_ordering", fake_get_hierarchy
+        "src.clients.chroma_utils.get_hierarchy_ordering", fake_get_hierarchy
     )
 
     # Provide in wrong order
@@ -423,7 +423,7 @@ def test_token_normalization(monkeypatch):
         return []
 
     monkeypatch.setattr(
-        "src.utils.chroma_utils.get_hierarchy_ordering", fake_get_hierarchy
+        "src.clients.chroma_utils.get_hierarchy_ordering", fake_get_hierarchy
     )
 
     # Test CBSA normalization

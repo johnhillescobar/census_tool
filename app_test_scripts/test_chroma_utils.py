@@ -1,7 +1,7 @@
 import json
 
 
-from src.utils import chroma_utils
+from src.clients import chroma_utils
 
 
 class DummyCollection:

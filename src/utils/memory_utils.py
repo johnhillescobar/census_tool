@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any, Dict, List
 import pandas as pd
 
-from src.utils.file_utils import load_json_file, save_json_file
+from src.clients import load_json_file, save_json_file
 from src.domain.time_utils import is_older_than
 from config import RETENTION_DAYS
 

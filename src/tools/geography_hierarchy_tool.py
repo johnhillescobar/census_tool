@@ -8,7 +8,7 @@ from langchain_core.tools import BaseTool
 from pydantic import BaseModel, Field, ConfigDict
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from src.utils.chroma_utils import get_hierarchy_ordering, initialize_chroma_client
+from src.clients.chroma_utils import get_hierarchy_ordering, initialize_chroma_client
 from config import CHROMA_GEOGRAPHY_HIERARCHY_COLLECTION_NAME
 
 logger = logging.getLogger(__name__)

@@ -8,7 +8,7 @@ from app import create_census_graph
 from src.state.types import CensusState
 from langchain_core.runnables import RunnableConfig
 from src.utils.displays import display_results
-from src.utils.session_logger import SessionLogger
+from src.clients import SessionLogger
 
 # Add project root to path
 project_root = Path(__file__).parent

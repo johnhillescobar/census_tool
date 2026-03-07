@@ -9,13 +9,13 @@
   "preferred_level": "place",
   "var_aliases": {},
   "usage_stats": {
-    "total_queries": 2,
-    "success_queries": 2,
-    "last_query_date": "2025-10-31T20:35:27.980646"
+    "total_queries": 7,
+    "success_queries": 7,
+    "last_query_date": "2026-03-06T06:22:36.695067"
   },
   "history": [
     {
-      "timestamp": "2025-10-31T20:34:26.436546",
+      "timestamp": "2026-03-06T06:18:06.627620",
       "user_id": "tucu",
       "question": "What's the population of New York City?",
       "intent": {},
@@ -25,7 +25,7 @@
       "success": true
     },
     {
-      "timestamp": "2025-10-31T20:35:27.980646",
+      "timestamp": "2026-03-06T06:19:04.088213",
       "user_id": "tucu",
       "question": "Show me median income trends from 2015 to 2020",
       "intent": {},
@@ -33,7 +33,37 @@
       "plan_summary": "",
       "answer_type": "Unknown",
       "success": true
+    },
+    {
+      "timestamp": "2026-03-06T06:21:03.061826",
+      "user_id": "tucu",
+      "question": "Compare population by county in California",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2026-03-06T06:21:58.297634",
+      "user_id": "tucu",
+      "question": "What's the population of DuPage and Kane County in Illinois?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2026-03-06T06:22:36.695067",
+      "user_id": "tucu",
+      "question": "How many people have smartphones in Chicago?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
     }
   ],
-  "last_updated": "2025-10-31T20:35:27.980646"
+  "last_updated": "2026-03-06T06:22:36.695067"
 }
