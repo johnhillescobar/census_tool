@@ -47,11 +47,11 @@ memory_load → agent → output → memory_write
 
 ```
 app.py (LangGraph workflow)
-  └── src/nodes/
+  └── src/workflows/
       ├── memory.py (memory_load_node, memory_write_node)
       ├── agent.py (agent_reasoning_node)
       └── output.py (output_node)
-          └── src/utils/agents/census_query_agent.py (CensusQueryAgent)
+          └── src/agents/census_query_agent.py (CensusQueryAgent)
               └── src/tools/ (10 specialized tools)
                   ├── GeographyDiscoveryTool
                   ├── AreaResolutionTool
@@ -68,7 +68,7 @@ app.py (LangGraph workflow)
 
 ### 1. Agent Pattern (ReAct)
 
-**Location**: `src/utils/agents/census_query_agent.py`
+**Location**: `src/agents/census_query_agent.py`
 
 The CensusQueryAgent uses the **ReAct pattern** (Reasoning + Acting):
 - Agent reasons about what to do next
@@ -153,7 +153,7 @@ class CensusState(BaseModel):
 
 ### 4. Node Pattern (LangGraph Nodes)
 
-**Location**: `src/nodes/*.py`
+**Location**: `src/workflows/*.py`
 
 Nodes are functions that take `CensusState` and `RunnableConfig`, return partial state:
 
@@ -198,7 +198,7 @@ llm = create_llm(temperature=0.1)  # Uses config from src/llm/config.py
 
 ### 6. Caching Pattern
 
-**Location**: `src/utils/cache_utils.py`, `config.py`
+**Location**: `src/clients/file_utils.py`, `src/services/memory_utils.py`, `config.py`
 
 **Retention Policy**:
 - 90-day retention (`RETENTION_DAYS = 90`)
@@ -250,10 +250,13 @@ logger.error(f"API call failed: {e}", exc_info=True)
 
 ```
 src/
-├── nodes/          # LangGraph workflow nodes
+├── workflows/      # LangGraph workflow nodes
+├── domain/         # Deterministic domain logic
+├── clients/        # External I/O integrations
+├── services/       # Business orchestration helpers
+├── agents/         # CensusQueryAgent implementation
 ├── tools/          # Agent tools (BaseTool subclasses)
-├── utils/          # Utility libraries
-│   └── agents/     # CensusQueryAgent
+├── api/            # Presentation adapters (CLI/Streamlit-facing)
 ├── state/          # State type definitions
 ├── llm/            # LLM factory and config
 └── locations/       # Reference data (CSV files)
@@ -262,16 +265,13 @@ src/
 ### Import Patterns
 
 **Standard Import Order**:
-1. Standard library (`os`, `sys`, `logging`)
+1. Standard library (`os`, `logging`)
 2. Third-party (`langchain_core`, `pandas`)
-3. Local imports (`from src.utils...`)
+3. Local imports (`from src...`)
 
-**Path Setup** (required in most files):
-```python
-import os
-import sys
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-```
+**Path Setup**:
+- Do not use `sys.path.append()` hacks.
+- Use package imports from project root (e.g., `from src.tools...`) and run via `uv run ...`.
 
 ### Naming Conventions
 
@@ -446,18 +446,18 @@ uv run pytest app_test_scripts/test_*.py -v
 
 **Before Making Changes**:
 1. `app.py` - Graph structure
-2. `src/utils/agents/census_query_agent.py` - Agent implementation
+2. `src/agents/census_query_agent.py` - Agent implementation
 3. `src/state/types.py` - State schema
-4. `src/nodes/agent.py` - Agent node (calls CensusQueryAgent)
-5. `src/nodes/output.py` - Output generation
+4. `src/workflows/agent.py` - Agent node (calls CensusQueryAgent)
+5. `src/workflows/output.py` - Output generation
 
 **When Adding Tools**:
 1. `src/tools/` - See existing tool examples
-2. `src/utils/agents/census_query_agent.py` - Register tool here
+2. `src/agents/census_query_agent.py` - Register tool here
 
 **When Modifying State**:
 1. `src/state/types.py` - Update CensusState
-2. `app.py` - Update reducers if needed
+2. `app.py` - Validate graph state flow and integration points
 
 ### 4. Testing Requirements
 
@@ -481,15 +481,15 @@ uv run pytest app_test_scripts/test_*.py -v
 5. Add tests in `app_test_scripts/test_my_tool.py`
 
 **Modifying Agent Behavior**:
-1. Edit `src/utils/agents/census_query_agent.py`
+1. Edit `src/agents/census_query_agent.py`
 2. Update prompt template in `src/llm/config.py` (if needed)
 3. Test with `test_census_query_agent.py`
 4. Run integration tests
 
 **Changing Graph Structure**:
 1. Edit `app.py` (add/remove nodes, edges)
-2. Update node implementations in `src/nodes/`
-3. Update state reducers if state structure changes
+2. Update node implementations in `src/workflows/`
+3. Update state contracts if state structure changes
 4. Test graph compilation: `create_census_graph()` should succeed
 5. Run full test suite
 
@@ -533,8 +533,8 @@ Before submitting code:
 
 ### 1. Breaking State Schema
 
-**Problem**: Modifying `CensusState` without updating reducers
-**Solution**: Always update reducers in `app.py` when changing state fields
+**Problem**: Modifying `CensusState` without updating workflow/state consumers
+**Solution**: Update `src/workflows/*`, `app.py`, and tests when changing state fields
 
 ### 2. Tool Registration
 
@@ -569,7 +569,7 @@ Before submitting code:
 ### 8. Import Paths
 
 **Problem**: Relative imports failing
-**Solution**: Use `sys.path.append()` pattern seen in existing files
+**Solution**: Keep absolute package imports (`from src...`) and run commands from project root using `uv run`.
 
 ### 9. LLM Provider Assumptions
 
@@ -595,7 +595,9 @@ Before submitting code:
 
 - **`app_test_scripts/`**: All test files
 - **`src/tools/`**: Agent tools (study these for patterns)
-- **`src/utils/`**: Utility libraries
+- **`src/domain/`, `src/clients/`, `src/services/`**: Core layered modules
+- **`src/workflows/`**: LangGraph workflow nodes
+- **`src/agents/`**: Agent implementation
 - **`index/`**: Index building scripts
 
 ### Learning Path

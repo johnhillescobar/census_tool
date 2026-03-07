@@ -9,9 +9,9 @@
   "preferred_level": "place",
   "var_aliases": {},
   "usage_stats": {
-    "total_queries": 51,
-    "success_queries": 51,
-    "last_query_date": "2026-03-06T20:44:31.365129"
+    "total_queries": 55,
+    "success_queries": 55,
+    "last_query_date": "2026-03-07T08:12:41.155988"
   },
   "history": [
     {
@@ -163,7 +163,47 @@
       "plan_summary": "",
       "answer_type": "Unknown",
       "success": true
+    },
+    {
+      "timestamp": "2026-03-07T08:05:48.863051",
+      "user_id": "demo",
+      "question": "What's the population of New York City?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2026-03-07T08:07:18.042194",
+      "user_id": "demo",
+      "question": "Compare population by county in California",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2026-03-07T08:10:26.583649",
+      "user_id": "demo",
+      "question": "What's the population of DuPage and Kane County in Illinois?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2026-03-07T08:12:41.155988",
+      "user_id": "demo",
+      "question": "What's the population of DuPage and Kane County in Illinois?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
     }
   ],
-  "last_updated": "2026-03-06T20:44:31.365129"
+  "last_updated": "2026-03-07T08:12:41.155988"
 }
