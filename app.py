@@ -1,4 +1,3 @@
-from typing import List, Dict, Any
 from langgraph.graph import StateGraph
 from langgraph.checkpoint.sqlite import SqliteSaver
 import sqlite3
@@ -8,10 +7,10 @@ from langgraph.checkpoint.memory import MemorySaver
 # Import state and routing
 from src.state.types import CensusState
 
-# Import all nodes
-from src.nodes.memory import memory_load_node, memory_write_node
-from src.nodes.agent import agent_reasoning_node
-from src.nodes.output import output_node
+# Import all workflows
+from src.workflows import memory_load_node, memory_write_node
+from src.workflows import agent_reasoning_node
+from src.workflows import output_node
 
 import logging
 
@@ -29,43 +28,6 @@ def create_viz_graph(compiled_graph):
         logger.warning(f"Could not generate graph visualization: {e}")
 
     return compiled_graph
-
-
-def create_reducers():
-    def append_reducer(existing: List[str], new: List[str]) -> List[str]:
-        """Append new items to existing list"""
-        if existing is None:
-            return new
-        return existing + new
-
-    def overwrite_reducer(existing: Any, new: Any) -> Any:
-        """Overwrite existing item with new value"""
-        return new
-
-    def merge_reducer(existing: Dict, new: Dict) -> Dict:
-        """Merge new dictionary into existing one"""
-        if existing is None:
-            return new
-        result = existing.copy()
-        result.update(new)
-        return result
-
-    return {
-        "messages": append_reducer,
-        "intent": overwrite_reducer,
-        "geo": overwrite_reducer,
-        "candidates": overwrite_reducer,
-        "plan": overwrite_reducer,
-        "artifacts": merge_reducer,
-        "final": overwrite_reducer,
-        "logs": append_reducer,
-        "error": overwrite_reducer,
-        "summary": overwrite_reducer,
-        "profile": merge_reducer,
-        "history": append_reducer,
-        "cache_index": merge_reducer,
-    }
-
 
 def create_census_graph():
     # Newer LangGraph versions no longer accept a top-level `reducers` parameter.

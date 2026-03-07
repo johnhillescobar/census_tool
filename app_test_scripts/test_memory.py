@@ -4,7 +4,7 @@ Test script for memory_load_node
 
 import logging
 from langchain_core.runnables import RunnableConfig
-from src.nodes.memory import memory_load_node
+from src.workflows.memory import memory_load_node
 from src.state.types import CensusState
 
 # Set up logging

@@ -13,7 +13,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import pytest
 import pandas as pd
-from src.nodes.output import get_chart_params, _detect_geography_column
+from src.workflows.output import get_chart_params, _detect_geography_column
 
 
 class TestGeographyColumnDetection:

@@ -18,7 +18,7 @@ def format_chart_title(
     y_column: str,
     x_column: str,
     chart_type: str,
-    variables: Dict[str, str] = None,
+    variables: Optional[Dict[str, str]] = None,
     multi_series: bool = False,
 ) -> str:
     """

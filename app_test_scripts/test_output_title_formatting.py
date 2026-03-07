@@ -12,7 +12,7 @@ import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import pytest
-from src.nodes.output import format_chart_title, get_chart_params
+from src.workflows.output import format_chart_title, get_chart_params
 
 
 class TestFormatChartTitle:
