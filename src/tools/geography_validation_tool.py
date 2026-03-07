@@ -8,6 +8,7 @@ from langchain_core.tools import BaseTool
 from pydantic import BaseModel, Field, ConfigDict
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from src.tools.json_parse import parse_first_json
 from src.clients.chroma_utils import (
     validate_and_fix_geo_params,
     validate_geography_hierarchy,
@@ -63,7 +64,7 @@ class GeographyValidationTool(BaseTool):
         """Validate geography parameters"""
         try:
             if isinstance(tool_input, str):
-                params = json.loads(tool_input)
+                params = parse_first_json(tool_input)
             else:
                 params = tool_input
         except json.JSONDecodeError as e:

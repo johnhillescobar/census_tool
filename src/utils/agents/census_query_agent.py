@@ -3,7 +3,7 @@ import sys
 import logging
 import json
 import re
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any, Optional, cast
 from dotenv import load_dotenv
 from pydantic import BaseModel, ValidationError
 
@@ -35,8 +35,8 @@ from src.tools.area_resolution_tool import AreaResolutionTool
 from src.tools.variable_validation_tool import VariableValidationTool
 
 # Import conversation summarizer
-from src.utils.conversation_summarizer import ConversationSummarizer
-from src.utils.conversation_summarizer import summarize_intermediate_steps
+from src.services.conversation_summarizer import ConversationSummarizer
+from src.services.conversation_summarizer import summarize_intermediate_steps
 
 load_dotenv()
 
@@ -105,7 +105,7 @@ class CensusQueryAgent:
             )
 
         self.agent = create_react_agent(
-            llm=self.llm, tools=self.tools, prompt=self._build_prompt()
+            llm=self.llm, tools=self.tools, prompt=cast(Any, self._build_prompt())
         )
 
         # Create summarization callback
@@ -148,6 +148,11 @@ class CensusQueryAgent:
                 ],
             }
 
+        if self.agent_executor is None:
+            raise RuntimeError(
+                "Agent executor is not initialized. Set OPENAI_API_KEY or enable offline mode."
+            )
+
         result = self.agent_executor.invoke(
             {
                 "input": f"""User query: {user_query}
@@ -166,86 +171,6 @@ class CensusQueryAgent:
             )
 
         return self._parse_solution(result)
-
-    def _did_reach_iteration_limit(self, result: Dict, output: str) -> bool:
-        """Check if agent exhausted iterations or time without completing."""
-        intermediate_steps = result.get("intermediate_steps", [])
-
-        # First check if output contains a valid final answer - if so, agent completed successfully
-        # Use simple string checks to avoid parsing issues with ANSI codes
-        if output:
-            # Check if output contains indicators of successful completion
-            has_final_answer = "Final Answer:" in output
-            has_census_data = '"census_data"' in output
-            # Check for success indicators (either "success":true or success:true)
-            has_success = '"success":true' in output or '"success": true' in output
-
-            # If all indicators present, agent completed successfully
-            if has_final_answer and has_census_data and has_success:
-                logger.info(
-                    "Agent completed successfully despite many steps - not treating as iteration limit"
-                )
-                return False
-
-            # Also check if we can parse it using the same methods as _parse_solution
-            # This handles cases where JSON is valid but string checks fail
-            try:
-                # Try the same extraction logic as _extract_after_final_answer
-                if "Final Answer:" in output:
-                    marker = "Final Answer:"
-                    idx = output.find(marker)
-                    if idx != -1:
-                        json_start = idx + len(marker)
-                        json_str = output[json_start:].strip()
-                        # Remove ANSI escape codes if present
-                        json_str = re.sub(r"\x1b\[[0-9;]*m", "", json_str)
-                        # Try to find JSON object start
-                        json_start_idx = json_str.find("{")
-                        if json_start_idx != -1:
-                            json_str = json_str[json_start_idx:]
-
-                            parsed = json.loads(json_str)
-                            if isinstance(parsed, dict) and "census_data" in parsed:
-                                logger.info(
-                                    "Successfully parsed output - agent completed"
-                                )
-                                return False
-            except (json.JSONDecodeError, ValueError, AttributeError, ImportError):
-                pass  # Continue with other checks
-
-        # Hit max_iterations (30) - only if no valid output
-        if len(intermediate_steps) >= 28:  # Close to limit
-            return True
-
-        # Check for repetitive tool calls (stuck in loop)
-        if len(intermediate_steps) >= 10:
-            recent_tools = [step[0].tool for step in intermediate_steps[-10:]]
-            # If same tool called 5+ times in last 10 steps, likely stuck
-            if any(recent_tools.count(tool) >= 5 for tool in set(recent_tools)):
-                return True
-
-        return False
-
-    def _build_iteration_limit_response(self, result: Dict, output: str) -> Dict:
-        """Build error response when agent gets stuck."""
-        intermediate_steps = result.get("intermediate_steps", [])
-        recent_actions = [
-            f"{step[0].tool}({step[0].tool_input[:50]}...)"
-            for step in intermediate_steps[-5:]
-        ]
-
-        return {
-            "census_data": {"success": False, "data": []},
-            "data_summary": "Agent exceeded iteration limit",
-            "reasoning_trace": f"Agent made {len(intermediate_steps)} attempts. Recent: {recent_actions}",
-            "answer_text": "I was unable to complete this query due to repeated validation failures. The Census API may not support this specific combination of table, geography, and year. Please try rephrasing your question or requesting a different geography level (e.g., state instead of county).",
-            "charts_needed": [],
-            "tables_needed": [],
-            "footnotes": [
-                "This query exceeded the maximum number of processing attempts.",
-                "Try simplifying your request or using a more common geography level.",
-            ],
-        }
 
     def _has_invalid_geography(self, result: Dict, parsed: Dict) -> bool:
         """Check if agent tried to query invalid geography"""

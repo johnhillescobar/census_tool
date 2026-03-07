@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import logging
 from functools import lru_cache
-from typing import Any, Dict, Iterable, List, Optional, Tuple, cast
+from typing import Any, Dict, Iterable, List, Optional, Tuple, TypedDict, cast
 
 import requests
 from chromadb.types import Where
@@ -23,6 +23,30 @@ logger = logging.getLogger(__name__)
 
 class VariableValidationError(RuntimeError):
     """Raised when validation cannot be performed."""
+
+
+class VariableValidationResult(TypedDict):
+    valid: List[str]
+    invalid: List[str]
+    years_available: Dict[str, List[str]]
+    details: Dict[str, Dict[str, str]]
+    alternatives: Dict[str, List[str]]
+    source: Dict[str, str]
+    warnings: List[str]
+
+
+class VariableListItem(TypedDict):
+    var: str
+    label: str
+    concept: str
+    universe: str
+
+
+class VariableListResponse(TypedDict):
+    dataset: str
+    year: int
+    count: int
+    variables: List[VariableListItem]
 
 
 def _split_years(years_value: Optional[str]) -> List[str]:
@@ -141,7 +165,7 @@ def _normalize_variable_payload(metadata: Dict) -> Dict[str, str]:
 
 def validate_variables(
     dataset: str, year: int, variables: Iterable[str]
-) -> Dict[str, object]:
+) -> VariableValidationResult:
     """
     Validate Census API variables against stored metadata with live fallback.
     Returns:
@@ -159,7 +183,7 @@ def validate_variables(
     year_str = str(year)
     variables = [var.strip() for var in variables if var and var.strip()]
 
-    result = {
+    result: VariableValidationResult = {
         "valid": [],
         "invalid": [],
         "years_available": {},
@@ -285,7 +309,7 @@ def list_variables(
     table_code: Optional[str] = None,
     concept: Optional[str] = None,
     limit: int = 20,
-) -> Dict[str, object]:
+) -> VariableListResponse:
     """
     Return a filtered list of variables for dataset/year.
     """
@@ -306,16 +330,16 @@ def list_variables(
     matches.sort(key=lambda item: item[0])
     trimmed = matches[:limit] if limit else matches
 
-    response = {
+    response: VariableListResponse = {
         "dataset": dataset,
         "year": year,
         "count": len(trimmed),
         "variables": [
             {
                 "var": name,
-                "label": meta.get("label"),
-                "concept": meta.get("concept"),
-                "universe": meta.get("universe"),
+                "label": str(meta.get("label") or ""),
+                "concept": str(meta.get("concept") or ""),
+                "universe": str(meta.get("universe") or ""),
             }
             for name, meta in trimmed
         ],

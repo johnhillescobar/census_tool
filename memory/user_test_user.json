@@ -16,9 +16,9 @@
   "preferred_dataset": "Unknown",
   "var_aliases": {},
   "usage_stats": {
-    "total_queries": 358,
-    "success_queries": 358,
-    "last_query_date": "2025-11-11T22:05:59.202530"
+    "total_queries": 0,
+    "success_queries": 0,
+    "last_query_date": null
   },
   "history": [],
   "user_id": "test_user",

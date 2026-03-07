@@ -176,6 +176,9 @@ def main():
     builder = CensusTableIndexBuilder()
 
     try:
+        # Initialize Chroma and build index so builder.collection is set
+        builder.build_index(year=2023)
+
         # Test 1: Population query
         logger.info("\n" + "=" * 60)
         logger.info("TEST 1: Population query (should find Detail table)")

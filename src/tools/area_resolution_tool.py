@@ -9,6 +9,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from src.domain.geography_registry import GeographyRegistry
 from src.tools.geography_schemas import GeographyLevel
+from src.tools.json_parse import parse_first_json
 
 
 logger = logging.getLogger(__name__)
@@ -46,7 +47,7 @@ class AreaResolutionTool(BaseTool):
         # Parse JSON input
         try:
             if isinstance(tool_input, str):
-                params = json.loads(tool_input)
+                params = parse_first_json(tool_input)
             else:
                 params = tool_input
         except json.JSONDecodeError as e:

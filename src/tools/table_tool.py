@@ -11,7 +11,8 @@ from datetime import datetime
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from src.utils.dataframe_utils import _create_dataframe_from_json
+from src.services.dataframe_utils import _create_dataframe_from_json
+from src.tools.json_parse import parse_first_json
 
 logger = logging.getLogger(__name__)
 
@@ -56,7 +57,7 @@ class TableTool(BaseTool):
         try:
             # Parse input
             if isinstance(tool_input, str):
-                params = json.loads(tool_input)
+                params = parse_first_json(tool_input)
             else:
                 params = tool_input
 

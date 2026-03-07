@@ -14,7 +14,7 @@ from src.llm.config import LLM_CONFIG
 
 
 # Skip these tests if no Census API key is available OR if running in CI
-skip_in_ci = os.getenv("CI") or os.getenv("GITHUB_ACTIONS")
+skip_in_ci = bool(os.getenv("CI") or os.getenv("GITHUB_ACTIONS"))
 requires_api_key = pytest.mark.skipif(
     not os.getenv("CENSUS_API_KEY") or skip_in_ci,
     reason="Census API key not configured or running in CI (skipped for reliability)",

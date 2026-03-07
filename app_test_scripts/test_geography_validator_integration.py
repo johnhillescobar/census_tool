@@ -4,7 +4,7 @@ These are slower but catch real-world failures.
 """
 
 import pytest
-from src.utils.dataset_geography_validator import (
+from src.services.dataset_geography_validator import (
     fetch_dataset_geography_levels,
     geography_supported,
 )

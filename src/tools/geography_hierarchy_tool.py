@@ -8,6 +8,7 @@ from langchain_core.tools import BaseTool
 from pydantic import BaseModel, Field, ConfigDict
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from src.tools.json_parse import parse_first_json
 from src.clients.chroma_utils import get_hierarchy_ordering, initialize_chroma_client
 from config import CHROMA_GEOGRAPHY_HIERARCHY_COLLECTION_NAME
 
@@ -56,7 +57,7 @@ class GeographyHierarchyTool(BaseTool):
     def _run(self, tool_input: str) -> str:
         try:
             params = (
-                json.loads(tool_input) if isinstance(tool_input, str) else tool_input
+                parse_first_json(tool_input) if isinstance(tool_input, str) else tool_input
             )
         except json.JSONDecodeError as exc:
             return f"Error: Invalid JSON input - {exc}"

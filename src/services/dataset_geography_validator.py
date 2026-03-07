@@ -7,7 +7,7 @@ from __future__ import annotations
 import logging
 import pickle
 from pathlib import Path
-from typing import Dict, Optional, Set, cast
+from typing import Dict, List, Optional, Set, TypedDict, cast
 
 import requests
 from bs4 import BeautifulSoup, Tag
@@ -19,6 +19,15 @@ logger = logging.getLogger(__name__)
 _CACHE: Dict[str, Set[str]] = {}
 _DISK_CACHE_DIR = Path("data/geography_levels_cache")
 _DISK_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+
+
+class GeographySupportResult(TypedDict):
+    dataset: str
+    year: int
+    geography_level: str
+    normalized_level: str
+    supported: bool
+    available_levels: List[str]
 
 
 def _cache_key(dataset: str, year: int) -> str:
@@ -134,7 +143,7 @@ def fetch_dataset_geography_levels(
 
 def geography_supported(
     dataset: str, year: int, geography_level: str
-) -> Dict[str, object]:
+) -> GeographySupportResult:
     """
     Check if a geography level is supported for a dataset/year.
     """

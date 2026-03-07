@@ -1,4 +1,4 @@
-from src.utils import variable_validator
+import src.services.variable_validator as variable_validator
 
 
 class FakeCollection:

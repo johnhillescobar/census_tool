@@ -6,6 +6,7 @@ import json
 from pydantic import ConfigDict
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from src.tools.json_parse import parse_first_json
 from src.clients.census_api_utils import build_geo_filters
 
 logger = logging.getLogger(__name__)
@@ -49,7 +50,7 @@ class PatternBuilderTool(BaseTool):
         # Parse JSON input
         try:
             if isinstance(tool_input, str):
-                params = json.loads(tool_input)
+                params = parse_first_json(tool_input)
             else:
                 params = tool_input
         except json.JSONDecodeError as e:

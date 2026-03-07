@@ -51,7 +51,7 @@ def agent_reasoning_node(state: CensusState, config: RunnableConfig) -> Dict[str
     # Generate footnotes if not provided by agent
     footnotes = result.get("footnotes", [])
     if not footnotes:
-        from src.utils.footnote_generator import generate_footnotes
+        from src.services.footnote_generator import generate_footnotes
 
         logger.info("Generating footnotes (not provided by agent)")
         try:
