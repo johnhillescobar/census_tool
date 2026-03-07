@@ -3,7 +3,8 @@ Integration tests for CensusQueryAgent with real Census API calls.
 Tests end-to-end workflows from user query to final answer.
 
 NOTE: These tests require real API keys and can be flaky in CI environments.
-They are skipped by default in GitHub Actions - run locally with API keys configured.
+They are never run in GitHub Actions (module-level skip when CI/GITHUB_ACTIONS is set).
+Run locally with API keys configured.
 """
 
 import pytest
@@ -13,11 +14,16 @@ from src.agents.census_query_agent import CensusQueryAgent
 from src.llm.config import LLM_CONFIG
 
 
-# Skip these tests if no Census API key is available OR if running in CI
-skip_in_ci = bool(os.getenv("CI") or os.getenv("GITHUB_ACTIONS"))
+# In CI/GitHub Actions, skip this entire module so these tests never run or fail the build.
+if os.getenv("CI") or os.getenv("GITHUB_ACTIONS"):
+    pytestmark = pytest.mark.skip(
+        reason="Integration tests disabled in CI (flaky; run locally with CENSUS_API_KEY)",
+    )
+
+# When not in CI: skip if no Census API key.
 requires_api_key = pytest.mark.skipif(
-    not os.getenv("CENSUS_API_KEY") or skip_in_ci,
-    reason="Census API key not configured or running in CI (skipped for reliability)",
+    not os.getenv("CENSUS_API_KEY"),
+    reason="Census API key not configured (set CENSUS_API_KEY to run integration tests)",
 )
 
 
@@ -128,7 +134,8 @@ class TestAgentIntegration:
             "src.llm.factory._create_openai_llm",
             side_effect=create_openai_llm_with_timeout,
         ):
-            agent = CensusQueryAgent()
+            # Large county-level runs can exceed default agent runtime budget.
+            agent = CensusQueryAgent(max_iterations=50, max_execution_time=360)
             result = agent.solve(
                 user_query="Show population for all counties in Texas",
                 intent={

@@ -65,7 +65,12 @@ class CensusQueryAgent:
     Uses ReAct pattern with Census tools
     """
 
-    def __init__(self, allow_offline: bool = True):
+    def __init__(
+        self,
+        allow_offline: bool = True,
+        max_iterations: int = 30,
+        max_execution_time: int = 180,
+    ):
         self.offline_mode = False
 
         missing_api_key = not os.getenv("OPENAI_API_KEY")
@@ -118,8 +123,8 @@ class CensusQueryAgent:
             agent=self.agent,
             tools=self.tools,
             verbose=True,
-            max_iterations=30,
-            max_execution_time=180,
+            max_iterations=max_iterations,
+            max_execution_time=max_execution_time,
             handle_parsing_errors="Check your output format. You must output: 'Thought: I now know the final answer' followed by 'Final Answer: {valid JSON on single line}'",
             callbacks=[self.summarizer],
         )
@@ -305,13 +310,13 @@ class CensusQueryAgent:
                 parsed = self._normalize_error_response(parsed, result)
                 return parsed
 
-        # Fallback: Return empty structure with diagnostics
+        # Fallback: Return canonical failure shape so census_data always has success key
         logger.warning("All parsing methods failed")
         logger.debug(f"Raw output sample: {output[:500]}")
 
         intermediate_steps = result.get("intermediate_steps", [])
         return {
-            "census_data": {},
+            "census_data": {"success": False, "data": []},
             "data_summary": "Parsing failed - see logs",
             "reasoning_trace": f"Steps: {len(intermediate_steps)}",
             "answer_text": "Agent execution completed but output parsing failed",

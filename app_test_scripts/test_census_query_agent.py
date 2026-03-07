@@ -118,8 +118,8 @@ class TestAgentParsing:
         agent = CensusQueryAgent()
         parsed = agent._parse_solution(result)
 
-        # Should fall back to empty structure
-        assert parsed["census_data"] == {}
+        # Should fall back to canonical failure shape (success: False, data: [])
+        assert parsed["census_data"] == {"success": False, "data": []}
         assert (
             parsed["answer_text"]
             == "Agent execution completed but output parsing failed"
