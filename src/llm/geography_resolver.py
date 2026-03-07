@@ -1,5 +1,3 @@
-import os
-import sys
 import logging
 from typing import Optional
 from dotenv import load_dotenv
@@ -9,7 +7,6 @@ from langchain_core.output_parsers import PydanticOutputParser
 from langchain_core.prompts import PromptTemplate
 
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from src.llm.config import LLM_CONFIG
 from src.llm.factory import create_llm
 

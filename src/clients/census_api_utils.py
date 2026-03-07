@@ -17,7 +17,7 @@ from config import (
     CENSUS_API_MAX_RETRIES,
     CENSUS_API_BACKOFF_FACTOR,
 )
-from src.utils.chroma_utils import validate_and_fix_geo_params
+from src.clients.chroma_utils import validate_and_fix_geo_params
 
 # Load environment variables
 load_dotenv()
@@ -185,7 +185,10 @@ def build_census_url(
 
 
 def build_census_url_from_metadata(
-    table_metadata: Dict, year: int, geo: Dict[str, Any], variables: List[str] = None
+    table_metadata: Dict,
+    year: int,
+    geo: Dict[str, Any],
+    variables: Optional[List[str]] = None,
 ) -> str:
     """
     Build Census API URL from table metadata
@@ -247,6 +250,8 @@ def build_census_url_from_metadata(
     if uses_groups:
         get_param = f"group({table_code})"
     else:
+        if not variables:
+            raise ValueError("variables required when uses_groups=False")
         get_param = ",".join(variables)
 
     # Build the geography filters
@@ -275,12 +280,12 @@ def build_census_url_from_metadata(
 
 def parse_census_response(response: Dict) -> Dict:
     """Parse the Census API response"""
-    pass
+    return {}
 
 
 def handle_api_errors(response: Dict) -> Dict:
     """Handle Census API errors"""
-    pass
+    return {}
 
 
 def test_build_census_url_from_metadata():

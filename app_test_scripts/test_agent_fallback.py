@@ -4,14 +4,14 @@ Test that agent doesn't loop forever when validation fails.
 
 from unittest.mock import MagicMock, patch
 import os
-from src.utils.agents.census_query_agent import CensusQueryAgent
+from src.agents.census_query_agent import CensusQueryAgent
 
 
 def test_agent_returns_error_on_iteration_limit():
     """Agent should return clear error instead of looping forever"""
     # Mock OPENAI_API_KEY and LLM creation so agent initializes properly without real credentials
     with patch.dict(os.environ, {"OPENAI_API_KEY": "test-key"}):
-        with patch("src.utils.agents.census_query_agent.create_llm") as mock_create_llm:
+        with patch("src.agents.census_query_agent.create_llm") as mock_create_llm:
             mock_create_llm.return_value = MagicMock()
             agent = CensusQueryAgent(allow_offline=False)
 

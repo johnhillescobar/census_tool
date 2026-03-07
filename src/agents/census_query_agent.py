@@ -1,9 +1,7 @@
 import os
-import sys
 import logging
 import json
-import re
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any, Optional, cast
 from dotenv import load_dotenv
 from pydantic import BaseModel, ValidationError
 
@@ -20,7 +18,6 @@ except ImportError:
         create_react_agent = None
 from langchain.prompts import PromptTemplate
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from src.llm.config import LLM_CONFIG, AGENT_PROMPT_TEMPLATE
 from src.llm.factory import create_llm
 from src.tools.geography_discovery_tool import GeographyDiscoveryTool
@@ -35,8 +32,8 @@ from src.tools.area_resolution_tool import AreaResolutionTool
 from src.tools.variable_validation_tool import VariableValidationTool
 
 # Import conversation summarizer
-from src.utils.conversation_summarizer import ConversationSummarizer
-from src.utils.conversation_summarizer import summarize_intermediate_steps
+from src.services.conversation_summarizer import ConversationSummarizer
+from src.services.conversation_summarizer import summarize_intermediate_steps
 
 load_dotenv()
 
@@ -65,7 +62,12 @@ class CensusQueryAgent:
     Uses ReAct pattern with Census tools
     """
 
-    def __init__(self, allow_offline: bool = True):
+    def __init__(
+        self,
+        allow_offline: bool = True,
+        max_iterations: int = 30,
+        max_execution_time: int = 180,
+    ):
         self.offline_mode = False
 
         missing_api_key = not os.getenv("OPENAI_API_KEY")
@@ -105,7 +107,7 @@ class CensusQueryAgent:
             )
 
         self.agent = create_react_agent(
-            llm=self.llm, tools=self.tools, prompt=self._build_prompt()
+            llm=self.llm, tools=self.tools, prompt=cast(Any, self._build_prompt())
         )
 
         # Create summarization callback
@@ -118,8 +120,8 @@ class CensusQueryAgent:
             agent=self.agent,
             tools=self.tools,
             verbose=True,
-            max_iterations=30,
-            max_execution_time=180,
+            max_iterations=max_iterations,
+            max_execution_time=max_execution_time,
             handle_parsing_errors="Check your output format. You must output: 'Thought: I now know the final answer' followed by 'Final Answer: {valid JSON on single line}'",
             callbacks=[self.summarizer],
         )
@@ -148,6 +150,11 @@ class CensusQueryAgent:
                 ],
             }
 
+        if self.agent_executor is None:
+            raise RuntimeError(
+                "Agent executor is not initialized. Set OPENAI_API_KEY or enable offline mode."
+            )
+
         result = self.agent_executor.invoke(
             {
                 "input": f"""User query: {user_query}
@@ -166,86 +173,6 @@ class CensusQueryAgent:
             )
 
         return self._parse_solution(result)
-
-    def _did_reach_iteration_limit(self, result: Dict, output: str) -> bool:
-        """Check if agent exhausted iterations or time without completing."""
-        intermediate_steps = result.get("intermediate_steps", [])
-
-        # First check if output contains a valid final answer - if so, agent completed successfully
-        # Use simple string checks to avoid parsing issues with ANSI codes
-        if output:
-            # Check if output contains indicators of successful completion
-            has_final_answer = "Final Answer:" in output
-            has_census_data = '"census_data"' in output
-            # Check for success indicators (either "success":true or success:true)
-            has_success = '"success":true' in output or '"success": true' in output
-
-            # If all indicators present, agent completed successfully
-            if has_final_answer and has_census_data and has_success:
-                logger.info(
-                    "Agent completed successfully despite many steps - not treating as iteration limit"
-                )
-                return False
-
-            # Also check if we can parse it using the same methods as _parse_solution
-            # This handles cases where JSON is valid but string checks fail
-            try:
-                # Try the same extraction logic as _extract_after_final_answer
-                if "Final Answer:" in output:
-                    marker = "Final Answer:"
-                    idx = output.find(marker)
-                    if idx != -1:
-                        json_start = idx + len(marker)
-                        json_str = output[json_start:].strip()
-                        # Remove ANSI escape codes if present
-                        json_str = re.sub(r"\x1b\[[0-9;]*m", "", json_str)
-                        # Try to find JSON object start
-                        json_start_idx = json_str.find("{")
-                        if json_start_idx != -1:
-                            json_str = json_str[json_start_idx:]
-
-                            parsed = json.loads(json_str)
-                            if isinstance(parsed, dict) and "census_data" in parsed:
-                                logger.info(
-                                    "Successfully parsed output - agent completed"
-                                )
-                                return False
-            except (json.JSONDecodeError, ValueError, AttributeError, ImportError):
-                pass  # Continue with other checks
-
-        # Hit max_iterations (30) - only if no valid output
-        if len(intermediate_steps) >= 28:  # Close to limit
-            return True
-
-        # Check for repetitive tool calls (stuck in loop)
-        if len(intermediate_steps) >= 10:
-            recent_tools = [step[0].tool for step in intermediate_steps[-10:]]
-            # If same tool called 5+ times in last 10 steps, likely stuck
-            if any(recent_tools.count(tool) >= 5 for tool in set(recent_tools)):
-                return True
-
-        return False
-
-    def _build_iteration_limit_response(self, result: Dict, output: str) -> Dict:
-        """Build error response when agent gets stuck."""
-        intermediate_steps = result.get("intermediate_steps", [])
-        recent_actions = [
-            f"{step[0].tool}({step[0].tool_input[:50]}...)"
-            for step in intermediate_steps[-5:]
-        ]
-
-        return {
-            "census_data": {"success": False, "data": []},
-            "data_summary": "Agent exceeded iteration limit",
-            "reasoning_trace": f"Agent made {len(intermediate_steps)} attempts. Recent: {recent_actions}",
-            "answer_text": "I was unable to complete this query due to repeated validation failures. The Census API may not support this specific combination of table, geography, and year. Please try rephrasing your question or requesting a different geography level (e.g., state instead of county).",
-            "charts_needed": [],
-            "tables_needed": [],
-            "footnotes": [
-                "This query exceeded the maximum number of processing attempts.",
-                "Try simplifying your request or using a more common geography level.",
-            ],
-        }
 
     def _has_invalid_geography(self, result: Dict, parsed: Dict) -> bool:
         """Check if agent tried to query invalid geography"""
@@ -380,13 +307,13 @@ class CensusQueryAgent:
                 parsed = self._normalize_error_response(parsed, result)
                 return parsed
 
-        # Fallback: Return empty structure with diagnostics
+        # Fallback: Return canonical failure shape so census_data always has success key
         logger.warning("All parsing methods failed")
         logger.debug(f"Raw output sample: {output[:500]}")
 
         intermediate_steps = result.get("intermediate_steps", [])
         return {
-            "census_data": {},
+            "census_data": {"success": False, "data": []},
             "data_summary": "Parsing failed - see logs",
             "reasoning_trace": f"Steps: {len(intermediate_steps)}",
             "answer_text": "Agent execution completed but output parsing failed",
@@ -406,6 +333,7 @@ class CensusQueryAgent:
                 f"[PARSE DEBUG] json.loads() succeeded. Type: {type(parsed)}, has census_data: {'census_data' in parsed if isinstance(parsed, dict) else 'N/A'}"
             )
             if isinstance(parsed, dict) and "census_data" in parsed:
+                parsed = self._normalize_parsed_output_contract(parsed)
                 logger.error("[PARSE DEBUG] Attempting Pydantic validation...")
                 validated = AgentOutput(**parsed)  # Pydantic validation
                 logger.info("Successfully parsed as direct JSON")
@@ -582,6 +510,7 @@ class CensusQueryAgent:
         try:
             parsed = json.loads(extracted)
             if isinstance(parsed, dict) and "census_data" in parsed:
+                parsed = self._normalize_parsed_output_contract(parsed)
                 validated = AgentOutput(**parsed)  # Pydantic validation
                 logger.info("Successfully extracted JSON after 'Final Answer:'")
                 return validated.model_dump()
@@ -594,6 +523,35 @@ class CensusQueryAgent:
                 f"[PARSE DEBUG] JSON parse or Pydantic validation failed: {type(e).__name__}: {str(e)[:300]}"
             )
         return None
+
+    def _normalize_parsed_output_contract(
+        self, parsed: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """
+        Normalize common LLM contract drift before strict Pydantic validation.
+
+        Current fix:
+        - census_data.variables may arrive as a list (["NAME", "B01003_001E"]).
+          Convert it to dict shape expected by CensusData:
+          {"NAME": "NAME", "B01003_001E": "B01003_001E"}.
+        """
+        census_data = parsed.get("census_data")
+        if not isinstance(census_data, dict):
+            return parsed
+
+        variables = census_data.get("variables")
+        if isinstance(variables, list):
+            normalized_variables: Dict[str, str] = {}
+            for item in variables:
+                if isinstance(item, str) and item.strip():
+                    normalized_variables[item] = item
+            census_data["variables"] = normalized_variables
+
+            logger.warning(
+                "Normalized census_data.variables from list to dict for contract compatibility"
+            )
+
+        return parsed
 
     def _extract_json_with_state_machine(self, text: str) -> Optional[str]:
         """

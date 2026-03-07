@@ -3,7 +3,9 @@ Test script for memory_load_node
 """
 
 import logging
-from src.nodes.memory import memory_load_node
+from langchain_core.runnables import RunnableConfig
+from src.workflows.memory import memory_load_node
+from src.state.types import CensusState
 
 # Set up logging
 logging.basicConfig(
@@ -15,16 +17,27 @@ logging.basicConfig(
 def test_memory_load_node():
     """Test the memory_load_node function"""
     # Mock state (empty for first run)
-    state = {
-        "messages": [],
-        "profile": {},
-        "history": [],
-        "cache_index": {},
-        "logs": [],
-    }
+    state = CensusState(
+        messages=[],
+        original_query=None,
+        intent=None,
+        geo={},
+        candidates={},
+        plan=None,
+        artifacts={},
+        final=None,
+        logs=[],
+        error=None,
+        summary=None,
+        profile={},
+        history=[],
+        cache_index={},
+    )
 
     # Test config - FIXED: user_id should be nested under "configurable"
-    config = {"configurable": {"user_id": "test_user", "thread_id": "test_thread"}}
+    config: RunnableConfig = {
+        "configurable": {"user_id": "test_user", "thread_id": "test_thread"}
+    }
 
     # Test the function
     result = memory_load_node(state, config)

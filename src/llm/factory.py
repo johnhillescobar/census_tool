@@ -4,12 +4,10 @@ Handles provider-specific initialization and API compatibility
 """
 
 import os
-import sys
 import logging
 from typing import Any, Optional
 from langchain_openai import ChatOpenAI
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from src.llm.config import LLM_CONFIG
 
 logger = logging.getLogger(__name__)
@@ -91,13 +89,14 @@ def _create_openai_llm(model: str, temperature: float, **kwargs) -> Any:
 
     # Create base LLM instance
     # ChatOpenAI automatically reads OPENAI_API_KEY from environment
-    llm = ChatOpenAI(
-        model=model,
-        temperature=temperature,
-        max_tokens=LLM_CONFIG.get("max_tokens", 500),
-        timeout=LLM_CONFIG.get("timeout", 30),
-        **kwargs,
-    )
+    openai_params: dict[str, Any] = {
+        "model": model,
+        "temperature": temperature,
+        "max_tokens": LLM_CONFIG.get("max_tokens", 500),
+        "timeout": LLM_CONFIG.get("timeout", 30),
+    }
+    openai_params.update(kwargs)
+    llm = ChatOpenAI(**openai_params)
 
     # GPT-5+ compatibility: Wrap LLM to filter 'stop' parameter for Responses API
     if _is_gpt5_or_higher(model):
@@ -205,13 +204,14 @@ def _create_anthropic_llm(model: str, temperature: float, **kwargs) -> Any:
         )
         raise
 
-    return ChatAnthropic(
-        model=model,
-        temperature=temperature,
-        max_tokens=LLM_CONFIG.get("max_tokens", 500),
-        timeout=LLM_CONFIG.get("timeout", 30),
-        **kwargs,
-    )
+    anthropic_params: dict[str, Any] = {
+        "model_name": model,
+        "temperature": temperature,
+        "max_tokens": LLM_CONFIG.get("max_tokens", 500),
+        "timeout": LLM_CONFIG.get("timeout", 30),
+    }
+    anthropic_params.update(kwargs)
+    return ChatAnthropic(**anthropic_params)
 
 
 def _create_gemini_llm(model: str, temperature: float, **kwargs) -> Any:

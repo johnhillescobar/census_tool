@@ -2,16 +2,11 @@
 Test script for memory_utils.py - testing the fixes you made
 """
 
-import sys
-import os
 from unittest.mock import patch
 from datetime import datetime, timedelta
 from pathlib import Path
 
-# Add project root to path
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-from src.utils.memory_utils import (
+from src.services.memory_utils import (
     build_history_record,
     update_profile,
     prune_history_by_age,
@@ -202,16 +197,18 @@ def test_enforce_retention_policies():
 
     # Mock file operations
     with (
-        patch("src.utils.memory_utils.load_json_file") as mock_load,
-        patch("src.utils.memory_utils.save_json_file") as mock_save,
-        patch("src.utils.memory_utils.prune_cache_by_age") as mock_prune_cache,
+        patch("src.services.memory_utils.load_json_file") as mock_load,
+        patch("src.services.memory_utils.save_json_file") as mock_save,
+        patch("src.services.memory_utils.prune_cache_by_age") as mock_prune_cache,
     ):
         # Set up mocks
         mock_load.side_effect = [test_profile, test_cache_index]
         mock_prune_cache.return_value = {"cache2": test_cache_index["cache2"]}
 
         # Mock prune_history_by_age to return a different length (to trigger save)
-        with patch("src.utils.memory_utils.prune_history_by_age") as mock_prune_history:
+        with patch(
+            "src.services.memory_utils.prune_history_by_age"
+        ) as mock_prune_history:
             mock_prune_history.return_value = [test_profile["history"][1]]
 
         # Call the function
@@ -229,7 +226,7 @@ def test_enforce_retention_policies():
         print("✅ Basic retention enforcement test passed!")
 
     # Test case 2: Error handling
-    with patch("src.utils.memory_utils.load_json_file") as mock_load:
+    with patch("src.services.memory_utils.load_json_file") as mock_load:
         mock_load.side_effect = Exception("File not found")
 
         # Should not raise exception

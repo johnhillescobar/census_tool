@@ -1,12 +1,9 @@
-import os
-import sys
 import logging
 import json
 import pandas as pd
 from typing import Dict, Any, Optional
 from langchain_core.runnables import RunnableConfig
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from src.state.types import CensusState
 from src.tools.chart_tool import ChartTool
 from src.tools.table_tool import TableTool
@@ -18,7 +15,7 @@ def format_chart_title(
     y_column: str,
     x_column: str,
     chart_type: str,
-    variables: Dict[str, str] = None,
+    variables: Optional[Dict[str, str]] = None,
     multi_series: bool = False,
 ) -> str:
     """

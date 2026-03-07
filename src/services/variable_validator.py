@@ -7,21 +7,49 @@ from __future__ import annotations
 
 import logging
 from functools import lru_cache
-from typing import Dict, Iterable, List, Optional, Tuple
+from typing import Dict, Iterable, List, Optional, Tuple, TypedDict, cast
 
 import requests
+from chromadb.types import Where
 
-from src.utils.chroma_utils import (
+from src.clients.chroma_utils import (
     get_chroma_collection_variables,
     initialize_chroma_client,
 )
-from src.utils.telemetry import record_event
+from src.clients import record_event
 
 logger = logging.getLogger(__name__)
+
+# Canonical Census geography label variable that is valid across datasets.
+_BUILTIN_VARIABLES = {"NAME"}
 
 
 class VariableValidationError(RuntimeError):
     """Raised when validation cannot be performed."""
+
+
+class VariableValidationResult(TypedDict):
+    valid: List[str]
+    invalid: List[str]
+    years_available: Dict[str, List[str]]
+    details: Dict[str, Dict[str, str]]
+    alternatives: Dict[str, List[str]]
+    source: Dict[str, str]
+    warnings: List[str]
+
+
+class VariableListItem(TypedDict):
+    var: str
+    label: str
+    concept: str
+    universe: str
+
+
+class VariableListResponse(TypedDict):
+    dataset: str
+    year: int
+    count: int
+    variables: List[VariableListItem]
 
 
 def _split_years(years_value: Optional[str]) -> List[str]:
@@ -127,17 +155,24 @@ def _suggest_alternatives(
 
 
 def _normalize_variable_payload(metadata: Dict) -> Dict[str, str]:
+    def _str(v: object) -> str:
+        return str(v) if v is not None else ""
+
     return {
-        "concept": metadata.get("concept"),
-        "label": metadata.get("label"),
-        "universe": metadata.get("universe"),
-        "dataset": metadata.get("dataset"),
+        "concept": _str(metadata.get("concept")),
+        "label": _str(metadata.get("label")),
+        "universe": _str(metadata.get("universe")),
+        "dataset": _str(metadata.get("dataset")),
     }
+
+
+def _is_builtin_variable(variable: str) -> bool:
+    return variable.upper() in _BUILTIN_VARIABLES
 
 
 def validate_variables(
     dataset: str, year: int, variables: Iterable[str]
-) -> Dict[str, object]:
+) -> VariableValidationResult:
     """
     Validate Census API variables against stored metadata with live fallback.
     Returns:
@@ -155,7 +190,7 @@ def validate_variables(
     year_str = str(year)
     variables = [var.strip() for var in variables if var and var.strip()]
 
-    result = {
+    result: VariableValidationResult = {
         "valid": [],
         "invalid": [],
         "years_available": {},
@@ -188,18 +223,21 @@ def validate_variables(
     if collection is not None:
         try:
             response = collection.get(
-                where={
-                    "$and": [
-                        {"dataset": {"$eq": dataset}},
-                        {"var": {"$in": variables}},
-                    ]
-                },
+                where=cast(
+                    Where,
+                    {
+                        "$and": [
+                            {"dataset": {"$eq": dataset}},
+                            {"var": {"$in": variables}},
+                        ]
+                    },
+                ),
                 include=["metadatas"],
             )
             for meta in response.get("metadatas") or []:
                 var_name = meta.get("var")
-                if var_name:
-                    metadata_map[var_name] = meta
+                if var_name is not None:
+                    metadata_map[str(var_name)] = dict(meta)
         except Exception as exc:
             warning = f"Chroma lookup failed: {exc}"
             logger.error(warning)
@@ -241,6 +279,20 @@ def validate_variables(
                     metadata_map[var_name] = enriched
 
     for var in pending_live_lookup:
+        if _is_builtin_variable(var):
+            result["valid"].append(var)
+            result["source"][var] = "builtin"
+            result["years_available"][var] = sorted(
+                set(result["years_available"].get(var, []) + [year_str])
+            )
+            result["details"][var] = {
+                "concept": "Geography Name",
+                "label": "Geography Name",
+                "universe": "",
+                "dataset": dataset,
+            }
+            continue
+
         if var in live_catalog:
             metadata = metadata_map.get(var, live_catalog[var])
             result["valid"].append(var)
@@ -278,7 +330,7 @@ def list_variables(
     table_code: Optional[str] = None,
     concept: Optional[str] = None,
     limit: int = 20,
-) -> Dict[str, object]:
+) -> VariableListResponse:
     """
     Return a filtered list of variables for dataset/year.
     """
@@ -299,16 +351,16 @@ def list_variables(
     matches.sort(key=lambda item: item[0])
     trimmed = matches[:limit] if limit else matches
 
-    response = {
+    response: VariableListResponse = {
         "dataset": dataset,
         "year": year,
         "count": len(trimmed),
         "variables": [
             {
                 "var": name,
-                "label": meta.get("label"),
-                "concept": meta.get("concept"),
-                "universe": meta.get("universe"),
+                "label": str(meta.get("label") or ""),
+                "concept": str(meta.get("concept") or ""),
+                "universe": str(meta.get("universe") or ""),
             }
             for name, meta in trimmed
         ],

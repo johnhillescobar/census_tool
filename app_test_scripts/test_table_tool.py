@@ -8,7 +8,7 @@ pytest.importorskip("langchain_core.tools")
 import pandas as pd
 
 from src.tools.table_tool import TableTool
-from src.utils.dataframe_utils import _create_dataframe_from_json
+from src.services.dataframe_utils import _create_dataframe_from_json
 
 
 @pytest.fixture

@@ -97,7 +97,7 @@ graph LR
 
 ### 4.1 Agent Design (CensusQueryAgent)
 
-**Location**: `src/utils/agents/census_query_agent.py`
+**Location**: `src/agents/census_query_agent.py`
 
 #### Current Issues to Fix
 - Tool bugs: `GeographyRegistry.resolve()` method missing
@@ -267,7 +267,7 @@ class PDFTool(BaseTool):
 ### 4.3 Graph Nodes
 
 #### Node: agent_reasoning_node (NEW)
-**Location**: `src/nodes/agent.py`
+**Location**: `src/workflows/agent.py`
 
 **Purpose**: Replace intent/geo/retrieve/plan/data nodes with single agent call
 
@@ -276,7 +276,7 @@ def agent_reasoning_node(state: CensusState, config: RunnableConfig) -> Dict[str
     """
     Agent reasons through entire Census query workflow
     """
-    from src.utils.agents.census_query_agent import CensusQueryAgent
+    from src.agents.census_query_agent import CensusQueryAgent
     
     user_question = state.messages[-1]["content"]
     profile = state.profile
@@ -303,7 +303,7 @@ def agent_reasoning_node(state: CensusState, config: RunnableConfig) -> Dict[str
 ```
 
 #### Node: output_node (NEW)
-**Location**: `src/nodes/output.py`
+**Location**: `src/workflows/output.py`
 
 **Purpose**: Execute output tools (charts, tables, PDFs) based on agent specifications
 
@@ -391,7 +391,7 @@ No changes needed to Pydantic model, but usage changes:
 ### Phase 1: Fix Existing Agent (2-3 hours)
 
 #### Step 1.1: Fix GeographyRegistry
-**File**: `src/utils/geography_registry.py`
+**File**: `src/domain/geography_registry.py`
 
 **Problem**: AreaResolutionTool calls `registry.resolve()` which doesn't exist
 
@@ -426,7 +426,7 @@ def _run(self, action: str, dataset: str = None, level: str = None, parent: str 
 Wrap existing `fetch_census_data()` function as specified in section 4.2
 
 #### Step 1.4: Update CensusQueryAgent
-**File**: `src/utils/agents/census_query_agent.py`
+**File**: `src/agents/census_query_agent.py`
 
 Add CensusAPITool to tools list:
 ```python
@@ -444,7 +444,7 @@ self.tools = [
 
 #### Step 1.5: Test Agent Standalone
 ```bash
-uv run python src/utils/agents/test_query_agent.py
+uv run python src/agents/test_query_agent.py
 ```
 
 **Acceptance**: Completes without AttributeError, returns structured data
@@ -452,7 +452,7 @@ uv run python src/utils/agents/test_query_agent.py
 ### Phase 2: Integrate Agent into Graph (3-4 hours)
 
 #### Step 2.1: Create agent_reasoning_node
-**Create**: `src/nodes/agent.py`
+**Create**: `src/workflows/agent.py`
 
 Implement as specified in section 4.3
 
@@ -492,7 +492,7 @@ uv run python test_system.py
 **Dependencies**: reportlab
 
 #### Step 3.4: Create output_node
-**Create**: `src/nodes/output.py`
+**Create**: `src/workflows/output.py`
 
 Implement as specified in section 4.3
 
@@ -631,7 +631,7 @@ Reference ARCHITECTURE.md as main technical doc
 
 ```bash
 # Step 1: Test agent standalone
-uv run python src/utils/agents/test_query_agent.py
+uv run python src/agents/test_query_agent.py
 # Acceptance: No errors, returns structured output
 
 # Step 2: Test system integration
@@ -678,31 +678,29 @@ uv sync
 ```
 census_tool/
 ├── src/
-│   ├── nodes/
-│   │   ├── agent.py          # NEW
-│   │   ├── output.py         # NEW
-│   │   ├── memory.py         # KEEP
-│   │   ├── intent.py         # DEPRECATE
-│   │   ├── geo.py            # DEPRECATE
-│   │   ├── retrieve.py       # DEPRECATE
+│   ├── workflows/
+│   │   ├── agent.py          # ACTIVE
+│   │   ├── output.py         # ACTIVE
+│   │   ├── memory.py         # ACTIVE
+│   ├── agents/
+│   │   ├── census_query_agent.py  # ACTIVE
+│   ├── domain/
+│   │   ├── geography_registry.py, geo_utils.py, text_utils.py
+│   ├── clients/
+│   │   ├── census_api_utils.py, chroma_utils.py, file_utils.py
+│   ├── services/
+│   │   ├── memory_utils.py, variable_validator.py, footnote_generator.py
 │   ├── tools/
-│   │   ├── census_api_tool.py       # NEW
-│   │   ├── chart_tool.py            # NEW
-│   │   ├── table_tool.py            # NEW
-│   │   ├── pdf_tool.py              # NEW
-│   │   ├── geography_discovery_tool.py  # FIX
-│   │   ├── area_resolution_tool.py      # FIX
-│   ├── utils/
-│   │   ├── agents/
-│   │   │   ├── census_query_agent.py  # UPDATE
+│   │   ├── census_api_tool.py, chart_tool.py, table_tool.py
+│   │   ├── geography_discovery_tool.py, area_resolution_tool.py
 │   ├── state/
-│   │   ├── routing.py        # DELETE (optional)
+│   │   ├── types.py
 ├── outputs/
 │   ├── charts/               # NEW
 │   ├── tables/               # NEW
 │   ├── reports/              # NEW
-├── app.py                    # UPDATE
-├── main.py                   # NO CHANGES
+├── app.py                    # ACTIVE graph wiring
+├── main.py                   # ACTIVE CLI entry
 ```
 
 ---
@@ -726,7 +724,7 @@ census_tool/
 
 After full implementation:
 
-1. ✅ Agent test passes: `uv run python src/utils/agents/test_query_agent.py` completes successfully
+1. ✅ Agent test passes: `uv run python src/agents/test_query_agent.py` completes successfully
 2. ✅ System tests pass: `test_system.py` shows 5/5 queries successful
 3. ✅ No wrong data: NYC query returns NYC data (not Chicago)
 4. ✅ Reasoning visible: Logs show agent thought process with tool usage

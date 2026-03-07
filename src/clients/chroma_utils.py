@@ -5,9 +5,10 @@ Chroma database utilities for Census variable retrieval
 import json
 import logging
 from functools import lru_cache
-from typing import Dict, Iterable, List, Optional, Tuple
+from typing import Dict, Iterable, List, Optional, Tuple, Union
 
 import chromadb
+from chromadb.api import ClientAPI
 from chromadb.config import Settings
 
 from config import (
@@ -28,7 +29,7 @@ _GEO_TOKEN_CANONICAL = {
 }
 
 
-def initialize_chroma_client() -> chromadb.PersistentClient:
+def initialize_chroma_client() -> Union[ClientAPI, Dict[str, Union[str, List[str]]]]:
     """Initialize and return Chroma client"""
     try:
         client = chromadb.PersistentClient(
@@ -46,8 +47,8 @@ def initialize_chroma_client() -> chromadb.PersistentClient:
 
 
 def get_chroma_collection_variables(
-    client: chromadb.PersistentClient,
-) -> chromadb.Collection:
+    client: ClientAPI,
+) -> Union[chromadb.Collection, Dict[str, Union[str, List[str]]]]:
     """Get the census variables collection"""
     # Implementation here
     try:
@@ -62,8 +63,8 @@ def get_chroma_collection_variables(
 
 
 def get_chroma_collection_tables(
-    client: chromadb.PersistentClient,
-) -> chromadb.Collection:
+    client: ClientAPI,
+) -> Union[chromadb.Collection, Dict[str, Union[str, List[str]]]]:
     """Get the census tables collection"""
     try:
         collection = client.get_collection(CHROMA_TABLE_COLLECTION_NAME)
@@ -117,7 +118,7 @@ def get_hierarchy_ordering(dataset: str, year: int, for_level: str) -> List[str]
 
     # Use the first match; ordering_list is stored as JSON string.
     ordering_json = metadatas[0].get("ordering_list")
-    if not ordering_json:
+    if not ordering_json or not isinstance(ordering_json, (str, bytes, bytearray)):
         return []
 
     try:

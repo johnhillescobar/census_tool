@@ -1,4 +1,4 @@
-from src.utils.geography_registry import GeographyRegistry
+from src.domain.geography_registry import GeographyRegistry
 
 
 class FakeResponse:
@@ -20,7 +20,7 @@ def test_enumerate_areas_orders_parents(monkeypatch, tmp_path):
         if event_type == "enumerate_areas":
             captured["payload"] = payload
 
-    monkeypatch.setattr("src.utils.geography_registry.record_event", fake_record_event)
+    monkeypatch.setattr("src.domain.geography_registry.record_event", fake_record_event)
 
     def fake_validate(dataset, year, geo_for, geo_in, *args, **kwargs):
         return (
@@ -37,7 +37,7 @@ def test_enumerate_areas_orders_parents(monkeypatch, tmp_path):
         )
 
     monkeypatch.setattr(
-        "src.utils.geography_registry.validate_and_fix_geo_params", fake_validate
+        "src.domain.geography_registry.validate_and_fix_geo_params", fake_validate
     )
 
     captured["url"] = None

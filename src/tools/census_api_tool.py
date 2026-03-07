@@ -1,13 +1,11 @@
-import os
-import sys
 import logging
 import json
 from langchain_core.tools import BaseTool
 from pydantic import ConfigDict
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from src.utils.census_api_utils import fetch_census_data, build_geo_filters
-from src.utils.telemetry import record_event
+from src.clients.census_api_utils import fetch_census_data, build_geo_filters
+from src.tools.json_parse import parse_first_json
+from src.clients.telemetry import record_event
 
 
 logger = logging.getLogger(__name__)
@@ -47,7 +45,7 @@ class CensusAPITool(BaseTool):
         # Parse JSON input
         try:
             if isinstance(tool_input, str):
-                params = json.loads(tool_input)
+                params = parse_first_json(tool_input)
             else:
                 params = tool_input
         except json.JSONDecodeError as e:

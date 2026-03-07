@@ -93,7 +93,9 @@ class EnumerationDetector:
             re.compile(pattern, re.IGNORECASE) for pattern in self.ENUMERATION_KEYWORDS
         ]
 
-    def detect(self, query: str, intent: Dict[str, Any] = None) -> EnumerationRequest:
+    def detect(
+        self, query: str, intent: Optional[Dict[str, Any]] = None
+    ) -> EnumerationRequest:
         """
         Detect if query needs enumeration
 
@@ -111,7 +113,11 @@ class EnumerationDetector:
             match = pattern.search(query_lower)
             if match:
                 # Extract the geography level mentioned
-                geography_level = match.group(1) if match.lastindex >= 1 else None
+                geography_level = (
+                    match.group(1)
+                    if (match.lastindex is not None and match.lastindex >= 1)
+                    else None
+                )
 
                 if geography_level:
                     # Normalize the geography level
@@ -205,7 +211,7 @@ class EnumerationDetector:
 
 
 def detect_and_build_enumeration(
-    query: str, intent: Dict[str, Any] = None
+    query: str, intent: Optional[Dict[str, Any]] = None
 ) -> Optional[Dict[str, Any]]:
     """
     Convenience function: Detect enumeration and build filters

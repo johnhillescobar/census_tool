@@ -45,9 +45,9 @@ A sophisticated local Census QA application that answers questions about US Cens
 
 ### Architecture Evidence
 - **Graph compiles**: `app.py` creates valid LangGraph workflow
-- **Agent integration**: `src/nodes/agent.py` calls CensusQueryAgent.solve()
-- **Tool registration**: All 8 tools registered in `src/utils/agents/census_query_agent.py:51-60`
-- **Output processing**: `src/nodes/output.py` generates charts/tables from agent results
+- **Agent integration**: `src/workflows/agent.py` calls `CensusQueryAgent.solve()`
+- **Tool registration**: Tools are registered in `src/agents/census_query_agent.py`
+- **Output processing**: `src/workflows/output.py` generates charts/tables from agent results
 
 > **Technical Details**: See [ARCHITECTURE.md](app_description/ARCHITECTURE.md) for complete specifications. Note: ARCHITECTURE.md describes the design; this README reflects actual working implementation.
 
@@ -69,11 +69,11 @@ This replaces the old complex branching graph with a simple linear flow where th
 
 ### Key Components
 
-#### Agent Architecture (`src/utils/agents/`)
+#### Agent Architecture (`src/agents/`)
 - **`census_query_agent.py`** - Main reasoning agent that handles intent parsing, geography resolution, and data retrieval
 - **Agent Tools Suite** - Specialized tools for Census API interaction, geography discovery, and table search
 
-#### Processing Nodes (`src/nodes/`)
+#### Processing Nodes (`src/workflows/`)
 **Active Nodes** (used in current workflow):
 - **`memory.py`** - `memory_load_node` and `memory_write_node` for user profiles and conversation history
 - **`agent.py`** - `agent_reasoning_node` that calls CensusQueryAgent for multi-step reasoning
@@ -533,18 +533,26 @@ LANGCHAIN_PROJECT=census-tool
 ```
 census_tool/
 ├── src/
-│   ├── nodes/           # LangGraph processing nodes
+│   ├── domain/          # Domain logic and deterministic helpers
+│   │   ├── geography_registry.py, geo_utils.py
+│   │   ├── text_utils.py, time_utils.py, census_groups.py
+│   ├── clients/         # External I/O adapters and integrations
+│   │   ├── census_api_utils.py, chroma_utils.py
+│   │   ├── file_utils.py, session_logger.py, telemetry.py, pdf_generator.py
+│   ├── services/        # Business orchestration helpers
+│   │   ├── dataset_geography_validator.py, variable_validator.py
+│   │   ├── enumeration_detector.py, memory_utils.py
+│   │   ├── dataframe_utils.py, conversation_summarizer.py, footnote_generator.py
+│   ├── agents/          # Agent implementation
+│   │   └── census_query_agent.py
+│   ├── workflows/       # LangGraph processing nodes
 │   │   ├── agent.py     # ✅ ACTIVE: agent_reasoning_node (calls CensusQueryAgent)
 │   │   ├── output.py    # ✅ ACTIVE: output_node (generates charts/tables)
 │   │   ├── memory.py    # ✅ ACTIVE: memory_load/write nodes
+│   ├── api/             # Presentation adapters
+│   │   ├── displays.py
 │   ├── state/           # State management
-│   │   └── types.py     # CensusState TypedDict definition
-│   ├── utils/           # Utility libraries
-│   │   ├── agents/      # ✅ CensusQueryAgent (ReAct agent with 8 tools)
-│   │   ├── cache_utils.py, census_api_utils.py, chroma_utils.py
-│   │   ├── displays.py, file_utils.py, footnote_generator.py
-│   │   ├── geography_registry.py, geo_utils.py, memory_utils.py
-│   │   └── pdf_generator.py, text_utils.py, time_utils.py
+│   │   └── types.py
 │   ├── tools/           # ✅ Agent tools (all 8 actively used)
 │   │   ├── geography_discovery_tool.py  # GeographyDiscoveryTool
 │   │   ├── area_resolution_tool.py      # AreaResolutionTool
@@ -678,7 +686,7 @@ The agent-based architecture supports dynamic geography discovery and pattern bu
 - **API Endpoint** - RESTful API for programmatic access to agent capabilities
 
 ### Already Implemented
-- ✅ **PDF Report Generation** - Working in Streamlit interface (`src/utils/pdf_generator.py`)
+- ✅ **PDF Report Generation** - Working in Streamlit interface (`src/clients/pdf_generator.py`)
 - ✅ **Chart Generation** - Plotly charts via ChartTool
 - ✅ **Table Export** - CSV, Excel, HTML via TableTool
 - ✅ **Data Caching** - 90-day retention with automatic cleanup

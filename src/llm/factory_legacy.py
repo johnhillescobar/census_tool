@@ -3,11 +3,8 @@ Legacy LLM creation - fallback if factory fails
 Preserves original ChatOpenAI behavior for rollback safety
 """
 
-import os
-import sys
 from typing import Optional
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from langchain_openai import ChatOpenAI
 from src.llm.config import LLM_CONFIG
 

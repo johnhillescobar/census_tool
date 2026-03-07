@@ -7,18 +7,27 @@ from __future__ import annotations
 import logging
 import pickle
 from pathlib import Path
-from typing import Dict, Optional, Set
+from typing import Dict, List, Optional, Set, TypedDict, cast
 
 import requests
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Tag
 
-from src.utils.telemetry import record_event
+from src.clients import record_event
 
 logger = logging.getLogger(__name__)
 
 _CACHE: Dict[str, Set[str]] = {}
 _DISK_CACHE_DIR = Path("data/geography_levels_cache")
 _DISK_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+
+
+class GeographySupportResult(TypedDict):
+    dataset: str
+    year: int
+    geography_level: str
+    normalized_level: str
+    supported: bool
+    available_levels: List[str]
 
 
 def _cache_key(dataset: str, year: int) -> str:
@@ -57,11 +66,13 @@ def _parse_geography_levels(html_text: str) -> Set[str]:
     levels: Set[str] = set()
 
     # geography.html contains tables with Summary Level and Geography entries
-    for table in soup.find_all("table"):
+    for table_el in soup.find_all("table"):
+        table = cast(Tag, table_el)
         headers = [
             header.get_text(" ", strip=True).lower() for header in table.find_all("th")
         ]
-        for row in table.find_all("tr"):
+        for row_el in table.find_all("tr"):
+            row = cast(Tag, row_el)
             cells = [cell.get_text(" ", strip=True) for cell in row.find_all("td")]
             if not cells:
                 continue
@@ -132,7 +143,7 @@ def fetch_dataset_geography_levels(
 
 def geography_supported(
     dataset: str, year: int, geography_level: str
-) -> Dict[str, object]:
+) -> GeographySupportResult:
     """
     Check if a geography level is supported for a dataset/year.
     """

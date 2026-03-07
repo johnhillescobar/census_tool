@@ -1,4 +1,4 @@
-from src.utils.dataset_geography_validator import (
+from src.services.dataset_geography_validator import (
     fetch_dataset_geography_levels,
     geography_supported,
 )
@@ -8,10 +8,10 @@ def test_geography_supported_uses_cache(monkeypatch):
     sample_levels = {"state", "county", "place"}
 
     monkeypatch.setattr(
-        "src.utils.dataset_geography_validator._load_disk_cache",
+        "src.services.dataset_geography_validator._load_disk_cache",
         lambda dataset, year: sample_levels,
     )
-    monkeypatch.setattr("src.utils.dataset_geography_validator._CACHE", {})
+    monkeypatch.setattr("src.services.dataset_geography_validator._CACHE", {})
 
     result = geography_supported("acs/acs5", 2023, "county")
     assert result["supported"] is True
@@ -23,7 +23,7 @@ def test_fetch_levels_handles_network_error(monkeypatch):
         "requests.get", lambda url, timeout: (_ for _ in ()).throw(ValueError("boom"))
     )
     monkeypatch.setattr(
-        "src.utils.dataset_geography_validator._load_disk_cache",
+        "src.services.dataset_geography_validator._load_disk_cache",
         lambda dataset, year: {"state"},
     )
 

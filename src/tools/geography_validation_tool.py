@@ -1,14 +1,12 @@
 import json
 import logging
-import os
-import sys
 from typing import Dict, List
 
 from langchain_core.tools import BaseTool
 from pydantic import BaseModel, Field, ConfigDict
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from src.utils.chroma_utils import (
+from src.tools.json_parse import parse_first_json
+from src.clients.chroma_utils import (
     validate_and_fix_geo_params,
     validate_geography_hierarchy,
 )
@@ -63,7 +61,7 @@ class GeographyValidationTool(BaseTool):
         """Validate geography parameters"""
         try:
             if isinstance(tool_input, str):
-                params = json.loads(tool_input)
+                params = parse_first_json(tool_input)
             else:
                 params = tool_input
         except json.JSONDecodeError as e:
@@ -74,6 +72,13 @@ class GeographyValidationTool(BaseTool):
                     "warnings": [],
                 }
             )
+
+        # Option B: normalize null geo_in before schema validation.
+        # Some agent/tool traces emit "geo_in": null for optional input.
+        # Treat that as omitted so default_factory can supply {}.
+        if isinstance(params, dict) and params.get("geo_in") is None:
+            params = dict(params)
+            params.pop("geo_in", None)
 
         try:
             validation_input = GeographyValidationInput(**params)

@@ -4,8 +4,8 @@ Tests for expanded geography support (tribal areas, statistical areas, validatio
 
 import pytest
 import json
-from src.utils.geography_registry import GeographyRegistry
-from src.utils.chroma_utils import (
+from src.domain.geography_registry import GeographyRegistry
+from src.clients.chroma_utils import (
     validate_geography_hierarchy,
     validate_and_fix_geo_params,
 )
@@ -60,13 +60,15 @@ def test_enumerate_tribal_areas_with_suffix(monkeypatch, tmp_path):
         )
 
     monkeypatch.setattr(
-        "src.utils.geography_registry.validate_and_fix_geo_params", fake_validate
+        "src.domain.geography_registry.validate_and_fix_geo_params", fake_validate
     )
     monkeypatch.setattr(
-        "src.utils.geography_registry.build_geo_filters",
+        "src.domain.geography_registry.build_geo_filters",
         lambda **kwargs: {"for": "test"},
     )
-    monkeypatch.setattr("src.utils.geography_registry.record_event", lambda *args: None)
+    monkeypatch.setattr(
+        "src.domain.geography_registry.record_event", lambda *args: None
+    )
 
     # Enumerate tribal areas
     areas = registry.enumerate_tribal_areas(
@@ -99,7 +101,9 @@ def test_resolve_tribal_area_fuzzy_match(monkeypatch, tmp_path):
         }
 
     registry.enumerate_tribal_areas = fake_enumerate
-    monkeypatch.setattr("src.utils.geography_registry.record_event", lambda *args: None)
+    monkeypatch.setattr(
+        "src.domain.geography_registry.record_event", lambda *args: None
+    )
 
     # Test fuzzy match
     result = registry.resolve_tribal_area("Navajo", "acs/acs5", 2023)
@@ -163,13 +167,15 @@ def test_enumerate_statistical_areas(monkeypatch, tmp_path):
         return ("metropolitan statistical area/micropolitan statistical area", "*", [])
 
     monkeypatch.setattr(
-        "src.utils.geography_registry.validate_and_fix_geo_params", fake_validate
+        "src.domain.geography_registry.validate_and_fix_geo_params", fake_validate
     )
     monkeypatch.setattr(
-        "src.utils.geography_registry.build_geo_filters",
+        "src.domain.geography_registry.build_geo_filters",
         lambda **kwargs: {"for": "test"},
     )
-    monkeypatch.setattr("src.utils.geography_registry.record_event", lambda *args: None)
+    monkeypatch.setattr(
+        "src.domain.geography_registry.record_event", lambda *args: None
+    )
 
     areas = registry.enumerate_statistical_areas(
         "metropolitan statistical area/micropolitan statistical area", "acs/acs5", 2023
@@ -194,7 +200,9 @@ def test_resolve_statistical_area_fuzzy(monkeypatch, tmp_path):
         }
 
     registry.enumerate_statistical_areas = fake_enumerate
-    monkeypatch.setattr("src.utils.geography_registry.record_event", lambda *args: None)
+    monkeypatch.setattr(
+        "src.domain.geography_registry.record_event", lambda *args: None
+    )
 
     result = registry.resolve_statistical_area(
         "New York metro",
@@ -223,7 +231,7 @@ def test_resolve_part_geography(monkeypatch, tmp_path):
 
     monkeypatch.setattr("requests.get", fake_get)
     monkeypatch.setattr(
-        "src.utils.geography_registry.build_geo_filters",
+        "src.domain.geography_registry.build_geo_filters",
         lambda **kwargs: {"for": "test", "in": "test"},
     )
 
@@ -252,7 +260,7 @@ def test_validate_geography_hierarchy_valid(monkeypatch):
         return ["state"]
 
     monkeypatch.setattr(
-        "src.utils.chroma_utils.get_hierarchy_ordering", fake_get_hierarchy
+        "src.clients.chroma_utils.get_hierarchy_ordering", fake_get_hierarchy
     )
 
     is_valid, missing, error_msg = validate_geography_hierarchy(
@@ -274,10 +282,10 @@ def test_validate_geography_hierarchy_missing_parent(monkeypatch):
         return {"error": "test"}
 
     monkeypatch.setattr(
-        "src.utils.chroma_utils.get_hierarchy_ordering", fake_get_hierarchy
+        "src.clients.chroma_utils.get_hierarchy_ordering", fake_get_hierarchy
     )
     monkeypatch.setattr(
-        "src.utils.chroma_utils.initialize_chroma_client", fake_initialize
+        "src.clients.chroma_utils.initialize_chroma_client", fake_initialize
     )
 
     is_valid, missing, error_msg = validate_geography_hierarchy(
@@ -299,10 +307,10 @@ def test_validate_and_fix_geo_params_with_validation(monkeypatch):
         return {"error": "test"}
 
     monkeypatch.setattr(
-        "src.utils.chroma_utils.get_hierarchy_ordering", fake_get_hierarchy
+        "src.clients.chroma_utils.get_hierarchy_ordering", fake_get_hierarchy
     )
     monkeypatch.setattr(
-        "src.utils.chroma_utils.initialize_chroma_client", fake_initialize
+        "src.clients.chroma_utils.initialize_chroma_client", fake_initialize
     )
 
     # Should pass with state provided
@@ -399,7 +407,7 @@ def test_validate_and_fix_geo_params_reorders(monkeypatch):
         return ["state", "county"]
 
     monkeypatch.setattr(
-        "src.utils.chroma_utils.get_hierarchy_ordering", fake_get_hierarchy
+        "src.clients.chroma_utils.get_hierarchy_ordering", fake_get_hierarchy
     )
 
     # Provide in wrong order
@@ -423,7 +431,7 @@ def test_token_normalization(monkeypatch):
         return []
 
     monkeypatch.setattr(
-        "src.utils.chroma_utils.get_hierarchy_ordering", fake_get_hierarchy
+        "src.clients.chroma_utils.get_hierarchy_ordering", fake_get_hierarchy
     )
 
     # Test CBSA normalization

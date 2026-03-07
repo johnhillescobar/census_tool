@@ -3,14 +3,10 @@ Test script for display functions - testing the fixes you made
 """
 
 import sys
-import os
 from io import StringIO
 from unittest.mock import patch
 
-# Add project root to path
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-from src.utils.displays import (
+from src.api.displays import (
     display_results,
     display_single_value,
     display_series,

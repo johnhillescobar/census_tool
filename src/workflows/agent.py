@@ -1,13 +1,10 @@
-import os
-import sys
 import logging
 
 from typing import Dict, Any
 from langchain_core.runnables import RunnableConfig
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from src.state.types import CensusState
-from src.utils.agents.census_query_agent import CensusQueryAgent
+from src.agents.census_query_agent import CensusQueryAgent
 from src.llm.intent_enhancer import generate_llm_answer
 
 logger = logging.getLogger(__name__)
@@ -51,7 +48,7 @@ def agent_reasoning_node(state: CensusState, config: RunnableConfig) -> Dict[str
     # Generate footnotes if not provided by agent
     footnotes = result.get("footnotes", [])
     if not footnotes:
-        from src.utils.footnote_generator import generate_footnotes
+        from src.services.footnote_generator import generate_footnotes
 
         logger.info("Generating footnotes (not provided by agent)")
         try:

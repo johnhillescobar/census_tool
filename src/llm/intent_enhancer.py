@@ -1,11 +1,8 @@
-import os
-import sys
 import json
 import logging
 from typing import Dict, Any, List
 from dotenv import load_dotenv
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from .config import (
     LLM_CONFIG,
     INTENT_PROMPT_TEMPLATE,

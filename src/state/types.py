@@ -1,11 +1,23 @@
 from pydantic import BaseModel, Field
-from typing import List, Dict, Optional, Any
+from typing import Annotated, List, Dict, Optional, Any
+import operator
 
 
-# Define the state schema
+def _merge_dict(existing: Dict[str, Any], new: Dict[str, Any]) -> Dict[str, Any]:
+    """Reducer for dict state channels: merge new into existing (last writer wins per key)."""
+    if existing is None:
+        return new if new is not None else {}
+    if new is None:
+        return existing
+    out = dict(existing)
+    out.update(new)
+    return out
+
+
+# Define the state schema (Annotated reducers are used by LangGraph for append/merge semantics)
 class CensusState(BaseModel):
     # Core conversation data
-    messages: List[Dict[str, Any]] = Field(
+    messages: Annotated[List[Dict[str, Any]], operator.add] = Field(
         default_factory=list, description="Chat turns; reducer: append"
     )
     original_query: Optional[str] = Field(
@@ -24,7 +36,7 @@ class CensusState(BaseModel):
     plan: Optional[Dict[str, Any]] = Field(
         None, description="Query plan; reducer: overwrite"
     )
-    artifacts: Dict[str, Any] = Field(
+    artifacts: Annotated[Dict[str, Any], _merge_dict] = Field(
         default_factory=dict,
         description="Dataset and preview handles; reducer: merge dictionaries",
     )
@@ -33,7 +45,7 @@ class CensusState(BaseModel):
     )
 
     # System data
-    logs: List[str] = Field(
+    logs: Annotated[List[str], operator.add] = Field(
         default_factory=list, description="System logs; reducer: append"
     )
     error: Optional[str] = Field(None, description="Error message; reducer: overwrite")
@@ -42,13 +54,13 @@ class CensusState(BaseModel):
     )
 
     # Memory and persistence
-    profile: Dict[str, Any] = Field(
+    profile: Annotated[Dict[str, Any], _merge_dict] = Field(
         default_factory=dict, description="User profile; reducer: merge dictionaries"
     )
-    history: List[Dict[str, Any]] = Field(
+    history: Annotated[List[Dict[str, Any]], operator.add] = Field(
         default_factory=list, description="Conversation history; reducer: append"
     )
-    cache_index: Dict[str, Any] = Field(
+    cache_index: Annotated[Dict[str, Any], _merge_dict] = Field(
         default_factory=dict, description="Cache index; reducer: merge dictionaries"
     )
 

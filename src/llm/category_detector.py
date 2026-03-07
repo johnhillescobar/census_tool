@@ -4,14 +4,11 @@ Uses LLM reasoning instead of keyword matching
 """
 
 import os
-import sys
 import json
 import logging
 import traceback
 from typing import Dict, Any, Optional, List
 from pydantic import BaseModel, Field, ValidationError
-
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from dotenv import load_dotenv
 

@@ -1,13 +1,10 @@
 import logging
 from datetime import datetime
 from pathlib import Path
-import sys
-
-# Add project root to path
-project_root = Path(__file__).parent
-sys.path.append(str(project_root))
-
 from src.llm.category_detector import detect_category_with_llm
+
+project_root = Path(__file__).parent
+
 
 # Set up logging
 LOG_FORMAT = "%(asctime)s - %(levelname)s - %(name)s - %(message)s"

@@ -1,2 +1,1 @@
 """Census Tool source package."""
-

@@ -9,7 +9,7 @@ from pathlib import Path
 import chromadb
 from chromadb.utils.embedding_functions import OpenAIEmbeddingFunction
 from chromadb.config import Settings
-from typing import Dict
+from typing import Any, Dict, cast
 from dotenv import load_dotenv
 
 
@@ -22,7 +22,7 @@ from config import (
     CHROMA_EMBEDDING_MODEL,
 )
 
-from src.utils.census_groups import CensusGroupsAPI
+from src.domain.census_groups import CensusGroupsAPI
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
@@ -64,7 +64,7 @@ class CensusTableIndexBuilder:
             self.collection = self.client.create_collection(
                 name=CHROMA_TABLE_COLLECTION_NAME,
                 metadata={"hnsw:space": "cosine"},
-                embedding_function=self.embedding_function,
+                embedding_function=cast(Any, self.embedding_function),
             )
             logger.info(f"Created new collection: {CHROMA_TABLE_COLLECTION_NAME}")
 
@@ -176,6 +176,9 @@ def main():
     builder = CensusTableIndexBuilder()
 
     try:
+        # Initialize Chroma and build index so builder.collection is set
+        builder.build_index(year=2023)
+
         # Test 1: Population query
         logger.info("\n" + "=" * 60)
         logger.info("TEST 1: Population query (should find Detail table)")
@@ -183,10 +186,12 @@ def main():
         test_results = builder.collection.query(
             query_texts=["population total"], n_results=3
         )
-        for i, metadata in enumerate(test_results["metadatas"][0]):
-            logger.info(
-                f"  {i + 1}. {metadata['table_code']} ({metadata['category']}): {metadata['table_name']}"
-            )
+        metadatas = test_results.get("metadatas")
+        if metadatas and len(metadatas) > 0:
+            for i, metadata in enumerate(metadatas[0]):
+                logger.info(
+                    f"  {i + 1}. {metadata['table_code']} ({metadata['category']}): {metadata['table_name']}"
+                )
 
         # Test 2: Overview query
         logger.info("\n" + "=" * 60)
@@ -195,10 +200,12 @@ def main():
         test_results = builder.collection.query(
             query_texts=["demographic overview age sex"], n_results=3
         )
-        for i, metadata in enumerate(test_results["metadatas"][0]):
-            logger.info(
-                f"  {i + 1}. {metadata['table_code']} ({metadata['category']}): {metadata['table_name']}"
-            )
+        metadatas = test_results.get("metadatas")
+        if metadatas and len(metadatas) > 0:
+            for i, metadata in enumerate(metadatas[0]):
+                logger.info(
+                    f"  {i + 1}. {metadata['table_code']} ({metadata['category']}): {metadata['table_name']}"
+                )
 
         # Test 3: Profile query
         logger.info("\n" + "=" * 60)
@@ -207,10 +214,12 @@ def main():
         test_results = builder.collection.query(
             query_texts=["demographic profile housing"], n_results=3
         )
-        for i, metadata in enumerate(test_results["metadatas"][0]):
-            logger.info(
-                f"  {i + 1}. {metadata['table_code']} ({metadata['category']}): {metadata['table_name']}"
-            )
+        metadatas = test_results.get("metadatas")
+        if metadatas and len(metadatas) > 0:
+            for i, metadata in enumerate(metadatas[0]):
+                logger.info(
+                    f"  {i + 1}. {metadata['table_code']} ({metadata['category']}): {metadata['table_name']}"
+                )
 
     except Exception as e:
         logger.error(f"Index build failed: {e}")

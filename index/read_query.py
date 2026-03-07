@@ -1,4 +1,3 @@
-from pathlib import Path
 from typing import Dict, List
 import chromadb
 import logging
@@ -7,15 +6,12 @@ import pprint
 from dotenv import load_dotenv
 
 # Import configuration
-import sys
 from config import (
     CHROMA_PERSIST_DIRECTORY,
     CHROMA_TABLE_COLLECTION_NAME,
 )
 
 load_dotenv()
-
-sys.path.append(str(Path(__file__).parent.parent))
 
 # Set up logging
 logging.basicConfig(

@@ -1,4 +1,4 @@
-from src.utils.enumeration_detector import EnumerationDetector
+from src.services.enumeration_detector import EnumerationDetector
 
 
 def test_build_enumeration_filters_returns_geo_dicts():
