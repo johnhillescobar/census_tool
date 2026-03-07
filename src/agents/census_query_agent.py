@@ -331,6 +331,7 @@ class CensusQueryAgent:
                 f"[PARSE DEBUG] json.loads() succeeded. Type: {type(parsed)}, has census_data: {'census_data' in parsed if isinstance(parsed, dict) else 'N/A'}"
             )
             if isinstance(parsed, dict) and "census_data" in parsed:
+                parsed = self._normalize_parsed_output_contract(parsed)
                 logger.error("[PARSE DEBUG] Attempting Pydantic validation...")
                 validated = AgentOutput(**parsed)  # Pydantic validation
                 logger.info("Successfully parsed as direct JSON")
@@ -507,6 +508,7 @@ class CensusQueryAgent:
         try:
             parsed = json.loads(extracted)
             if isinstance(parsed, dict) and "census_data" in parsed:
+                parsed = self._normalize_parsed_output_contract(parsed)
                 validated = AgentOutput(**parsed)  # Pydantic validation
                 logger.info("Successfully extracted JSON after 'Final Answer:'")
                 return validated.model_dump()
@@ -519,6 +521,33 @@ class CensusQueryAgent:
                 f"[PARSE DEBUG] JSON parse or Pydantic validation failed: {type(e).__name__}: {str(e)[:300]}"
             )
         return None
+
+    def _normalize_parsed_output_contract(self, parsed: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Normalize common LLM contract drift before strict Pydantic validation.
+
+        Current fix:
+        - census_data.variables may arrive as a list (["NAME", "B01003_001E"]).
+          Convert it to dict shape expected by CensusData:
+          {"NAME": "NAME", "B01003_001E": "B01003_001E"}.
+        """
+        census_data = parsed.get("census_data")
+        if not isinstance(census_data, dict):
+            return parsed
+
+        variables = census_data.get("variables")
+        if isinstance(variables, list):
+            normalized_variables: Dict[str, str] = {}
+            for item in variables:
+                if isinstance(item, str) and item.strip():
+                    normalized_variables[item] = item
+            census_data["variables"] = normalized_variables
+
+            logger.warning(
+                "Normalized census_data.variables from list to dict for contract compatibility"
+            )
+
+        return parsed
 
     def _extract_json_with_state_machine(self, text: str) -> Optional[str]:
         """

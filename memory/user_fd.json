@@ -1,0 +1,59 @@
+{
+  "user_id": "fd",
+  "default_geo": {},
+  "preferred_dataset": "acs/acs5",
+  "default_year_range": [
+    2012,
+    2023
+  ],
+  "preferred_level": "place",
+  "var_aliases": {},
+  "usage_stats": {
+    "total_queries": 4,
+    "success_queries": 4,
+    "last_query_date": "2026-03-06T21:07:42.150625"
+  },
+  "history": [
+    {
+      "timestamp": "2026-03-06T21:01:03.076908",
+      "user_id": "fd",
+      "question": "What's the population of New York City?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2026-03-06T21:02:31.740043",
+      "user_id": "fd",
+      "question": "Show me median income trends from 2015 to 2020",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2026-03-06T21:04:05.674021",
+      "user_id": "fd",
+      "question": "Compare population by county in California",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2026-03-06T21:07:42.150625",
+      "user_id": "fd",
+      "question": "What's the population of DuPage and Kane County in Illinois?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    }
+  ],
+  "last_updated": "2026-03-06T21:07:42.150625"
+}

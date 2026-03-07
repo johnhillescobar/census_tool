@@ -68,7 +68,8 @@ def create_reducers():
 
 
 def create_census_graph():
-    workflow = StateGraph(CensusState, reducers=create_reducers())
+    # Newer LangGraph versions no longer accept a top-level `reducers` parameter.
+    workflow = StateGraph(CensusState)
 
     # Only 4 nodes
     workflow.add_node("memory_load", memory_load_node)

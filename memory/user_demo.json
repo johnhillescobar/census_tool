@@ -9,9 +9,9 @@
   "preferred_level": "place",
   "var_aliases": {},
   "usage_stats": {
-    "total_queries": 45,
-    "success_queries": 45,
-    "last_query_date": "2026-03-06T20:03:55.063806"
+    "total_queries": 51,
+    "success_queries": 51,
+    "last_query_date": "2026-03-06T20:44:31.365129"
   },
   "history": [
     {
@@ -103,7 +103,67 @@
       "plan_summary": "",
       "answer_type": "Unknown",
       "success": true
+    },
+    {
+      "timestamp": "2026-03-06T20:38:34.435316",
+      "user_id": "demo",
+      "question": "Compare population by county in California",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2026-03-06T20:39:32.316113",
+      "user_id": "demo",
+      "question": "What's the median income in Los Angeles County?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2026-03-06T20:40:57.633154",
+      "user_id": "demo",
+      "question": "What's the population of DuPage and Kane County in Illinois?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2026-03-06T20:42:31.261634",
+      "user_id": "demo",
+      "question": "What's the population of DuPage and Kane County in Illinois?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2026-03-06T20:43:36.285795",
+      "user_id": "demo",
+      "question": "How many people have smartphones in Chicago?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2026-03-06T20:44:31.364127",
+      "user_id": "demo",
+      "question": "How many people have smartphones in Chicago?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
     }
   ],
-  "last_updated": "2026-03-06T20:03:55.063806"
+  "last_updated": "2026-03-06T20:44:31.365129"
 }

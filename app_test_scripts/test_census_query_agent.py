@@ -5,7 +5,7 @@ Tests the robust JSON parsing methods that handle various agent output formats.
 
 import pytest
 import json
-from src.utils.agents.census_query_agent import CensusQueryAgent
+from src.agents.census_query_agent import CensusQueryAgent
 
 
 class TestAgentParsing:

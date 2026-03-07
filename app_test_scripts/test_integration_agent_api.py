@@ -9,7 +9,7 @@ They are skipped by default in GitHub Actions - run locally with API keys config
 import pytest
 import os
 from unittest.mock import patch
-from src.utils.agents.census_query_agent import CensusQueryAgent
+from src.agents.census_query_agent import CensusQueryAgent
 from src.llm.config import LLM_CONFIG
 
 

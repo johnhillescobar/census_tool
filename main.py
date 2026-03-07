@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 from app import create_census_graph
 from src.state.types import CensusState
 from langchain_core.runnables import RunnableConfig
-from src.utils.displays import display_results
+from src.api.displays import display_results
 from src.clients import SessionLogger
 
 # Add project root to path
