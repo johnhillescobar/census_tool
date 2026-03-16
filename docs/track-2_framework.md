@@ -65,3 +65,18 @@ Output: test case table with expected TemporalIntent/BenchmarkIntent/ComparisonP
 
     - Decide one explicit check for “no dependency upgrades during Track 2”.
     - Output: a gate item you run before merge.
+
+# Track 2 policy decisions (locked)
+
+1. Default when no temporal phrase is present:
+   - `latest_available`
+
+2. Temporal conflict handling:
+   - Use a global ambiguity policy.
+   - If temporal signals conflict in ways that can produce different valid plans, do not auto-resolve.
+   - Fail to clarification with a deterministic clarification question.
+
+3. Scope implication for Track 2:
+   - Agent clarification behavior may require refactoring so deterministic planning can return structured clarification-required outcomes.
+   - This refactor is in-scope for Track 2 only where needed to support deterministic fail-to-clarification behavior.
+   - Provenance gate behavior remains out of scope for Track 2 (Track 3).

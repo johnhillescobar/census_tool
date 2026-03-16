@@ -16,6 +16,7 @@ from .memory_utils import (
 from .conversation_summarizer import (
     summarize_intermediate_steps as summarize_conversation,
 )
+from .temporal_policy import resolve_temporal_intent
 
 
 __all__ = [
@@ -31,4 +32,5 @@ __all__ = [
     "update_profile",
     "enforce_retention_policies",
     "summarize_conversation",
+    "resolve_temporal_intent",
 ]

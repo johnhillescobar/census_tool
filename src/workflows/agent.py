@@ -7,6 +7,7 @@ from src.state.types import CensusState
 from src.agents.census_query_agent import CensusQueryAgent
 from src.llm.intent_enhancer import generate_llm_answer
 
+
 logger = logging.getLogger(__name__)
 
 
@@ -15,6 +16,10 @@ def agent_reasoning_node(state: CensusState, config: RunnableConfig) -> Dict[str
 
     # Agent expects intent dict - create basic one if not exists
     intent = state.intent or {"is_census": True, "topic": "general"}
+
+    plan = state.plan or {}
+    if plan.get("requires_clarification"):
+        return {"logs": ["agent: skipped (clarification required)"]}
 
     agent = CensusQueryAgent()
     result = agent.solve(user_query=user_question, intent=intent)

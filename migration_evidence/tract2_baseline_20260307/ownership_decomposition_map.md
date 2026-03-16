@@ -22,6 +22,7 @@
 | Benchmark planning logic | `services` | Deterministic benchmark set resolution | domain contracts + geography/data rules | workflows | T2-P1 | Must fail to clarification on unresolved benchmark |
 | Query expansion logic (year x geo matrix) | `services` | Deterministic expansion from plan to API specs | domain contracts + client request DTOs | workflows | T2-P1 | Stable ordering required for repeatability |
 | Derived comparison metric compute | `services` | Deterministic numeric computation boundary | API result frames + plan contract | workflows, output synthesis | T2-P1 | Never delegated to LLM text reasoning |
+| Tool input contract enforcement (planning-critical tools) | `services` + `tools` boundary | Ensure tool entry points reject raw/malformed payloads and accept only typed validated input | domain contract models + tool input schemas | agents, workflows | T2-P1 | Enforce strict typed tool input for planning path before Track 2 exit |
 | Planning orchestration nodes | `workflows` | Sequence and typed handoff enforcement | services + state typing | app/workflow entry | T2-P2 | Workflows pass typed objects only |
 | Workflow state typing updates | `workflows` / `state` | Preserve contract consistency across nodes | domain contracts | workflows | T2-P2 | Remove raw dict handoff for planning path |
 | Canonical temporal/benchmark suite | `services` + `workflows` tests | Release gate for deterministic correctness | test fixtures + contracts | CI / gate review | T2-P2 | Includes failure/clarification cases |
@@ -33,6 +34,7 @@
 2. `services` own deterministic planning and metric computation logic.
 3. `domain` owns typed contract definitions and validation constraints.
 4. `agents` can orchestrate but do not own deterministic comparison math.
+5. Planning-path tools must enforce typed input validation at entry (no raw string-only acceptance).
 
 ## Blocked Until Later Tracks
 - `EvidenceBundle` and provenance gate enforcement are Track 3.
@@ -43,3 +45,4 @@
 - No planning artifact remains in mixed ownership.
 - Deterministic planning path is service-owned and test-backed.
 - Workflow integration preserves typed boundaries end-to-end.
+- Planning-path tools enforce typed input contracts and fail closed on validation errors.

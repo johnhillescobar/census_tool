@@ -11,6 +11,7 @@ from src.state.types import CensusState
 from src.workflows import memory_load_node, memory_write_node
 from src.workflows import agent_reasoning_node
 from src.workflows import output_node
+from src.workflows import temporal_node
 
 import logging
 
@@ -30,19 +31,32 @@ def create_viz_graph(compiled_graph):
     return compiled_graph
 
 
+def _route_after_temporal(state: CensusState) -> str:
+    plan = state.plan or {}
+    if plan.get("requires_clarification"):
+        return "output"
+    return "agent"
+
+
 def create_census_graph():
     # Reducers are defined on CensusState via Annotated types (see src/state/types.py).
     workflow = StateGraph(CensusState)
 
     # Only 4 nodes
     workflow.add_node("memory_load", memory_load_node)
+    workflow.add_node("temporal", temporal_node)
     workflow.add_node("agent", agent_reasoning_node)
     workflow.add_node("output", output_node)
     workflow.add_node("memory_write", memory_write_node)
 
     # Linear flow - no conditional routing
     workflow.set_entry_point("memory_load")
-    workflow.add_edge("memory_load", "agent")
+    workflow.add_edge("memory_load", "temporal")
+    workflow.add_conditional_edges(
+        "temporal",
+        _route_after_temporal,
+        {"agent": "agent", "output": "output"},
+    )
     workflow.add_edge("agent", "output")
     workflow.add_edge("output", "memory_write")
     workflow.add_edge("memory_write", "__end__")

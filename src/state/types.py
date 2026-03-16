@@ -105,7 +105,7 @@ class ResolvedGeography(BaseModel):
     )
     display_name: str = Field(..., description="Human-readable location name")
     fips_codes: Dict[str, str] = Field(
-        ..., default_factory=dict, description="FIPS codes for the location"
+        default_factory=dict, description="FIPS codes for the location"
     )
     confidence: float = Field(
         ..., ge=0.0, le=1.0, description="Confidence score between 0 and 1"
