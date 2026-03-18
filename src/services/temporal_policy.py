@@ -2,7 +2,7 @@ import re
 
 from src.domain.clarification_templates import (
     TemporalExplicitVsRollingSlots,
-    render_clarification,
+    render_temporal_clarification,
 )
 from src.domain.temporal_contract import (
     TemporalIntent,
@@ -61,7 +61,7 @@ def resolve_temporal_intent(user_text: str) -> TemporalResolution:
     # Global ambiguity policy: conflicting valid temporal interpretations => clarification
     if rolling_phrase and len(years) >= 2:
         y1, y2 = sorted(years[:2])
-        clarification = render_clarification(
+        clarification = render_temporal_clarification(
             TemporalExplicitVsRollingSlots(
                 reason_code="TEMPORAL_CONFLICT_EXPLICIT_VS_ROLLING",
                 year_a=y1,

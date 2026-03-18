@@ -57,8 +57,8 @@ class CensusState(BaseModel):
     profile: Annotated[Dict[str, Any], _merge_dict] = Field(
         default_factory=dict, description="User profile; reducer: merge dictionaries"
     )
-    history: Annotated[List[Dict[str, Any]], operator.add] = Field(
-        default_factory=list, description="Conversation history; reducer: append"
+    history: List[Dict[str, Any]] = Field(
+        default_factory=list, description="Conversation history; reducer: overwrite"
     )
     cache_index: Annotated[Dict[str, Any], _merge_dict] = Field(
         default_factory=dict, description="Cache index; reducer: merge dictionaries"

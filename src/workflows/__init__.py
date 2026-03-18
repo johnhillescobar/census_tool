@@ -2,6 +2,7 @@ from .agent import agent_reasoning_node
 from .output import output_node
 from .memory import memory_load_node, memory_write_node
 from .temporal import temporal_node
+from .benchmark import benchmark_node
 
 __all__ = [
     "agent_reasoning_node",
@@ -9,4 +10,5 @@ __all__ = [
     "memory_load_node",
     "memory_write_node",
     "temporal_node",
+    "benchmark_node",
 ]

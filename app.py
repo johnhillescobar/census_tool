@@ -12,6 +12,7 @@ from src.workflows import memory_load_node, memory_write_node
 from src.workflows import agent_reasoning_node
 from src.workflows import output_node
 from src.workflows import temporal_node
+from src.workflows import benchmark_node
 
 import logging
 
@@ -35,6 +36,13 @@ def _route_after_temporal(state: CensusState) -> str:
     plan = state.plan or {}
     if plan.get("requires_clarification"):
         return "output"
+    return "benchmark"
+
+
+def _route_after_benchmark(state: CensusState) -> str:
+    plan = state.plan or {}
+    if plan.get("requires_clarification"):
+        return "output"
     return "agent"
 
 
@@ -42,9 +50,10 @@ def create_census_graph():
     # Reducers are defined on CensusState via Annotated types (see src/state/types.py).
     workflow = StateGraph(CensusState)
 
-    # Only 4 nodes
+    # Workflow nodes
     workflow.add_node("memory_load", memory_load_node)
     workflow.add_node("temporal", temporal_node)
+    workflow.add_node("benchmark", benchmark_node)
     workflow.add_node("agent", agent_reasoning_node)
     workflow.add_node("output", output_node)
     workflow.add_node("memory_write", memory_write_node)
@@ -55,6 +64,11 @@ def create_census_graph():
     workflow.add_conditional_edges(
         "temporal",
         _route_after_temporal,
+        {"benchmark": "benchmark", "output": "output"},
+    )
+    workflow.add_conditional_edges(
+        "benchmark",
+        _route_after_benchmark,
         {"agent": "agent", "output": "output"},
     )
     workflow.add_edge("agent", "output")

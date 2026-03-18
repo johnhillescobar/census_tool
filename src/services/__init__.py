@@ -17,7 +17,7 @@ from .conversation_summarizer import (
     summarize_intermediate_steps as summarize_conversation,
 )
 from .temporal_policy import resolve_temporal_intent
-
+from .benchmark_policy import resolve_benchmark_intent
 
 __all__ = [
     "_create_dataframe_from_json",
@@ -33,4 +33,5 @@ __all__ = [
     "enforce_retention_policies",
     "summarize_conversation",
     "resolve_temporal_intent",
+    "resolve_benchmark_intent",
 ]

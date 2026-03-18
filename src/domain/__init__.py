@@ -19,10 +19,23 @@ from .temporal_contract import (
     ClarificationPrompt,
     ClarificationOption,
 )
+from .benchmark_contract import (
+    BenchmarkIntent,
+    BenchmarkResolution,
+    BenchmarkResolved,
+    BenchmarkClarificationRequired,
+    BenchmarkClarificationPrompt,
+    BenchmarkClarificationOption,
+)
 from .clarification_templates import (
-    render_clarification,
     TemporalExplicitVsRollingSlots,
     TemporalAmbiguousGenericSlots,
+    render_temporal_clarification,
+    render_benchmark_clarification,
+    BenchmarkAmbiguousTargetSlots,
+    BenchmarkMissingMetricSlots,
+    BenchmarkMissingGeoLevelSlots,
+    BenchmarkConflictBaselineVsPeerGroupSlots,
 )
 
 __all__ = [
@@ -42,7 +55,18 @@ __all__ = [
     "TemporalClarificationRequired",
     "ClarificationPrompt",
     "ClarificationOption",
-    "render_clarification",
+    "BenchmarkIntent",
+    "BenchmarkResolution",
+    "BenchmarkResolved",
+    "BenchmarkClarificationRequired",
+    "BenchmarkClarificationPrompt",
+    "BenchmarkClarificationOption",
+    "render_benchmark_clarification",
+    "BenchmarkAmbiguousTargetSlots",
+    "BenchmarkMissingMetricSlots",
+    "BenchmarkMissingGeoLevelSlots",
+    "BenchmarkConflictBaselineVsPeerGroupSlots",
+    "render_temporal_clarification",
     "TemporalExplicitVsRollingSlots",
     "TemporalAmbiguousGenericSlots",
 ]
