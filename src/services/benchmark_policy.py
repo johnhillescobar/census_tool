@@ -23,8 +23,12 @@ COUNTY_PATTERN = re.compile(r"\b(county|counties)\b", re.IGNORECASE)
 PLACE_PATTERN = re.compile(r"\b(city|cities|place|places)\b", re.IGNORECASE)
 CBSA_PATTERN = re.compile(r"\b(cbsa|metro|metropolitan)\b", re.IGNORECASE)
 
-PEER_GROUP_PATTERN = re.compile(r"\b(peer group|peer|similar counties|similar states)\b", re.IGNORECASE)
-BASELINE_PATTERN = re.compile(r"\b(baseline|vs\s+\d{4}|compared to \d{4}|historical)\b", re.IGNORECASE)
+PEER_GROUP_PATTERN = re.compile(
+    r"\b(peer group|peer|similar counties|similar states)\b", re.IGNORECASE
+)
+BASELINE_PATTERN = re.compile(
+    r"\b(baseline|vs\s+\d{4}|compared to \d{4}|historical)\b", re.IGNORECASE
+)
 
 
 # Metric hints; expand later
@@ -36,6 +40,7 @@ METRIC_HINTS = {
     "hispanic": ["hispanic", "latino", "latina", "hispanic or latino"],
     "race": ["race", "racial", "white", "black", "asian", "native"],
 }
+
 
 def _detect_metric(text: str) -> str | None:
     """Detect the metric from the text."""
@@ -70,7 +75,7 @@ def resolve_benchmark_intent(user_text: str) -> BenchmarkResolution:
 
     text = user_text or ""
     text_1 = text.lower()
-    
+
     has_compare = bool(COMPARE_PATTERN.search(text_1))
     has_peer_language = bool(PEER_GROUP_PATTERN.search(text_1))
     metric = _detect_metric(text_1)

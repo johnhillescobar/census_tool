@@ -16,12 +16,12 @@
 | Artifact / Module | Target owner layer | Why this owner | Depends on | Used by | Priority | Notes |
 |---|---|---|---|---|---|---|
 | `TemporalIntent` model | `domain` | Canonical typed temporal normalization contract | Pydantic only | services, workflows | T2-P1 | Must enforce explicit mode/year/policy enums |
-| `BenchmarkIntent` model | `domain` | Canonical benchmark semantics contract | Pydantic only | services, workflows | T2-P1 | Must encode comparison op + normalization mode |
+| `BenchmarkIntent` model | `domain` | Canonical benchmark semantics contract | Pydantic only | services, workflows | T2-P1 | Must encode comparison op + normalization mode; `historical_baseline` is currently fail-closed (temporary) until explicit baseline fields/validators are added |
 | `ComparisonPlan` model | `domain` | Canonical plan object for deterministic query matrix | Pydantic only | services, workflows, agents | T2-P1 | Must carry join keys + derived metric plan |
 | Temporal normalization logic | `services` | Deterministic transformation from user request to intent | domain contracts + dataset availability | workflows | T2-P1 | No model-driven math decisions |
 | Benchmark planning logic | `services` | Deterministic benchmark set resolution | domain contracts + geography/data rules | workflows | T2-P1 | Must fail to clarification on unresolved benchmark |
-| Query expansion logic (year x geo matrix) | `services` | Deterministic expansion from plan to API specs | domain contracts + client request DTOs | workflows | T2-P1 | Stable ordering required for repeatability |
-| Derived comparison metric compute | `services` | Deterministic numeric computation boundary | API result frames + plan contract | workflows, output synthesis | T2-P1 | Never delegated to LLM text reasoning |
+| Query expansion logic (year x geo matrix) | `services` | Deterministic expansion from plan to API specs | domain contracts + client request DTOs | workflows | T2-P1 | Stable ordering required for repeatability. **Status: implemented** (`src/services/comparison_plan_policy.py`) |
+| Derived comparison metric compute | `services` | Deterministic numeric computation boundary | API result frames + plan contract | workflows, output synthesis | T2-P1 | Never delegated to LLM text reasoning. **Status: pending** (`src/services/comparison_metric_compute.py`) |
 | Tool input contract enforcement (planning-critical tools) | `services` + `tools` boundary | Ensure tool entry points reject raw/malformed payloads and accept only typed validated input | domain contract models + tool input schemas | agents, workflows | T2-P1 | Enforce strict typed tool input for planning path before Track 2 exit |
 | Planning orchestration nodes | `workflows` | Sequence and typed handoff enforcement | services + state typing | app/workflow entry | T2-P2 | Workflows pass typed objects only |
 | Workflow state typing updates | `workflows` / `state` | Preserve contract consistency across nodes | domain contracts | workflows | T2-P2 | Remove raw dict handoff for planning path |
@@ -46,3 +46,4 @@
 - Deterministic planning path is service-owned and test-backed.
 - Workflow integration preserves typed boundaries end-to-end.
 - Planning-path tools enforce typed input contracts and fail closed on validation errors.
+- Temporary fail-closed paths in typed contracts (including `historical_baseline`) are either fully implemented with explicit fields/validators or explicitly deferred to a later tracked milestone.

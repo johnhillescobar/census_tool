@@ -1,5 +1,6 @@
 from typing import Annotated, Literal, Union
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
+
 
 
 TemporalMode = Literal[
@@ -14,6 +15,8 @@ MissingYearPolicy = Literal["skip_with_note", "fail_closed"]
 
 
 class TemporalIntent(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     mode: TemporalMode
     start_year: int | None = Field(
         None, description="The start year of the temporal intent."

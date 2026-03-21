@@ -37,6 +37,11 @@ from .clarification_templates import (
     BenchmarkMissingGeoLevelSlots,
     BenchmarkConflictBaselineVsPeerGroupSlots,
 )
+from .comparison_plan import (
+    ComparisonPlan,
+    CensusDataset,
+    DerivedMetric,
+)
 
 __all__ = [
     "extract_years",
@@ -69,4 +74,7 @@ __all__ = [
     "render_temporal_clarification",
     "TemporalExplicitVsRollingSlots",
     "TemporalAmbiguousGenericSlots",
+    "ComparisonPlan",
+    "CensusDataset",
+    "DerivedMetric",
 ]

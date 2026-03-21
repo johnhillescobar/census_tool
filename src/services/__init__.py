@@ -18,6 +18,7 @@ from .conversation_summarizer import (
 )
 from .temporal_policy import resolve_temporal_intent
 from .benchmark_policy import resolve_benchmark_intent
+from .comparison_plan_policy import resolve_comparison_plan
 
 __all__ = [
     "_create_dataframe_from_json",
@@ -34,4 +35,5 @@ __all__ = [
     "summarize_conversation",
     "resolve_temporal_intent",
     "resolve_benchmark_intent",
+    "resolve_comparison_plan",
 ]

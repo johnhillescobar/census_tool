@@ -1,7 +1,11 @@
 from typing import Annotated, Literal, Union
 from pydantic import BaseModel, Field
 from src.domain.temporal_contract import ClarificationPrompt, ClarificationOption
-from src.domain.benchmark_contract import BenchmarkClarificationPrompt, BenchmarkClarificationOption
+from src.domain.benchmark_contract import (
+    BenchmarkClarificationPrompt,
+    BenchmarkClarificationOption,
+)
+
 
 # Define the slots for the temporal clarification template
 class TemporalExplicitVsRollingSlots(BaseModel):
@@ -19,6 +23,7 @@ class TemporalAmbiguousGenericSlots(BaseModel):
     """Slots for the temporal ambiguous generic clarification template."""
 
     reason_code: Literal["TEMPORAL_AMBIGUOUS_GENERIC"] = "TEMPORAL_AMBIGUOUS_GENERIC"
+
 
 # Define the slots for the benchmark clarification template
 class BenchmarkAmbiguousTargetSlots(BaseModel):
@@ -39,11 +44,14 @@ class BenchmarkMissingGeoLevelSlots(BaseModel):
 
 
 class BenchmarkConflictBaselineVsPeerGroupSlots(BaseModel):
-    reason_code: Literal["BENCHMARK_CONFLICT_BASELINE_VS_PEER_GROUP"] = "BENCHMARK_CONFLICT_BASELINE_VS_PEER_GROUP"
+    reason_code: Literal["BENCHMARK_CONFLICT_BASELINE_VS_PEER_GROUP"] = (
+        "BENCHMARK_CONFLICT_BASELINE_VS_PEER_GROUP"
+    )
     subject_text: str
-    
+
 
 # Create OptionTemplate for the clarification prompt
+
 
 class OptionTemplate(BaseModel):
     """Template for an option in a clarification prompt."""
@@ -104,14 +112,14 @@ TEMPLATES: dict[str, ClarificationTemplate] = {
         template_id="benchmark.ambiguous_target.v1",
         reason_code="BENCHMARK_AMBIGUOUS_TARGET",
         question_template=(
-        "I found multiple valid target interpretations in your request."
-        " Please choose one so I can run the query deterministically."
-        )
-        ,
+            "I found multiple valid target interpretations in your request."
+            " Please choose one so I can run the query deterministically."
+        ),
         option_templates=[
             OptionTemplate(
-                option_id="subject_geo", label_template="Use {subject_text} as the target"
-                ),
+                option_id="subject_geo",
+                label_template="Use {subject_text} as the target",
+            ),
         ],
     ),
     "BENCHMARK_MISSING_METRIC": ClarificationTemplate(
@@ -122,21 +130,32 @@ TEMPLATES: dict[str, ClarificationTemplate] = {
             " I can run the query deterministically."
         ),
         option_templates=[
-        OptionTemplate(option_id="population", label_template="Population {metric}"),
-        OptionTemplate(option_id="median_income", label_template="Median household income {metric}"),
-        OptionTemplate(option_id="poverty_rate", label_template="Poverty rate {metric}"),
-        OptionTemplate(option_id="unemployment", label_template="Unemployment {metric}"),
-        OptionTemplate(option_id="education", label_template="Education {metric}"),
-        OptionTemplate(option_id="hispanic", label_template="Hispanic {metric}"),
-        OptionTemplate(option_id="race", label_template="Race {metric}"),
-        OptionTemplate(option_id="ethnicity", label_template="Ethnicity {metric}"),
-        OptionTemplate(option_id="housing", label_template="Housing {metric}"),
-        OptionTemplate(option_id="rent", label_template="Rent {metric}"),
-        OptionTemplate(option_id="mortgage", label_template="Mortgage {metric}"),
-        OptionTemplate(option_id="labor_force", label_template="Labor force {metric}"),
-        OptionTemplate(option_id="household", label_template="Household {metric}"),
-        OptionTemplate(option_id="other", label_template="Other {metric}"),
-        OptionTemplate(option_id="cancel", label_template="Cancel"),
+            OptionTemplate(
+                option_id="population", label_template="Population {metric}"
+            ),
+            OptionTemplate(
+                option_id="median_income",
+                label_template="Median household income {metric}",
+            ),
+            OptionTemplate(
+                option_id="poverty_rate", label_template="Poverty rate {metric}"
+            ),
+            OptionTemplate(
+                option_id="unemployment", label_template="Unemployment {metric}"
+            ),
+            OptionTemplate(option_id="education", label_template="Education {metric}"),
+            OptionTemplate(option_id="hispanic", label_template="Hispanic {metric}"),
+            OptionTemplate(option_id="race", label_template="Race {metric}"),
+            OptionTemplate(option_id="ethnicity", label_template="Ethnicity {metric}"),
+            OptionTemplate(option_id="housing", label_template="Housing {metric}"),
+            OptionTemplate(option_id="rent", label_template="Rent {metric}"),
+            OptionTemplate(option_id="mortgage", label_template="Mortgage {metric}"),
+            OptionTemplate(
+                option_id="labor_force", label_template="Labor force {metric}"
+            ),
+            OptionTemplate(option_id="household", label_template="Household {metric}"),
+            OptionTemplate(option_id="other", label_template="Other {metric}"),
+            OptionTemplate(option_id="cancel", label_template="Cancel"),
         ],
     ),
     "BENCHMARK_MISSING_GEO_LEVEL": ClarificationTemplate(
@@ -144,11 +163,12 @@ TEMPLATES: dict[str, ClarificationTemplate] = {
         reason_code="BENCHMARK_MISSING_GEO_LEVEL",
         question_template=(
             "I found a missing geography level in your request. Please choose one so I can run the query deterministically."
-            ),
+        ),
         option_templates=[
             OptionTemplate(
-                option_id="geo_level", label_template="Use {geo_level} as the geography level"
-                ),
+                option_id="geo_level",
+                label_template="Use {geo_level} as the geography level",
+            ),
         ],
     ),
     "BENCHMARK_CONFLICT_BASELINE_VS_PEER_GROUP": ClarificationTemplate(
@@ -159,12 +179,8 @@ TEMPLATES: dict[str, ClarificationTemplate] = {
             " Please choose one so I can run the query deterministically."
         ),
         option_templates=[
-            OptionTemplate(
-                option_id="baseline", label_template="Use the baseline"
-                ),
-            OptionTemplate(
-                option_id="peer_group", label_template="Use the peer group"
-                ),
+            OptionTemplate(option_id="baseline", label_template="Use the baseline"),
+            OptionTemplate(option_id="peer_group", label_template="Use the peer group"),
         ],
     ),
 }
@@ -222,7 +238,9 @@ def render_temporal_clarification(slots: ClarificationSlots) -> ClarificationPro
     )
 
 
-def render_benchmark_clarification(slots: BenchmarkClarificationSlots) -> BenchmarkClarificationPrompt:
+def render_benchmark_clarification(
+    slots: BenchmarkClarificationSlots,
+) -> BenchmarkClarificationPrompt:
     """Render a benchmark clarification prompt based on the reason code and slots.
 
     Args:

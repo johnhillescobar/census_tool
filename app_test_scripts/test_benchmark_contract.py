@@ -1,5 +1,6 @@
 from src.services import resolve_benchmark_intent
-
+from src.domain.benchmark_contract import BenchmarkIntent
+import pytest
 
 def test_conflict_requires_clarification():
     result = resolve_benchmark_intent(
@@ -25,7 +26,13 @@ def test_missing_metric_requires_clarification():
 
     option_ids = [o.option_id for o in result.clarification_prompt.options]
     # Stable checks: verify key options are present.
-    for required in ["population", "median_income", "unemployment", "education", "cancel"]:
+    for required in [
+        "population",
+        "median_income",
+        "unemployment",
+        "education",
+        "cancel",
+    ]:
         assert required in option_ids
 
 
@@ -79,7 +86,9 @@ def test_resolved_peer_group_benchmark():
 
 
 def test_peer_language_with_explicit_geo_resolves():
-    result = resolve_benchmark_intent("compare unemployment for counties with peer group")
+    result = resolve_benchmark_intent(
+        "compare unemployment for counties with peer group"
+    )
     assert result.status == "resolved"
     assert result.benchmark.benchmark_type == "peer_group"
     assert result.benchmark.benchmark_geo_level == "county"
@@ -90,3 +99,19 @@ def test_fallback_ambiguous_target_for_unmapped_input():
     assert result.status == "clarification_required"
     assert result.reason_code == "BENCHMARK_AMBIGUOUS_TARGET"
     assert result.clarification_prompt.template_id == "benchmark.ambiguous_target.v1"
+
+
+# historical_baseline rejected path in BenchmarkIntent (if not already tested)
+def test_historical_baseline_rejected_path():
+    with pytest.raises(ValueError, match="historical_baseline not yet implemented in Track 2"):
+        BenchmarkIntent(
+            benchmark_type="historical_baseline",
+            subject_geo_level="county",
+            subject_geo=["10001", "10002", "10003"],
+            benchmark_geo_level="county",
+            benchmark_geos=["10001", "10002", "10003"],
+            metric="population",
+            comparison_op="difference",
+            normalization="none",
+            requested_text="compare population counties",
+        )

@@ -1,5 +1,5 @@
 from typing import Annotated, Literal, Union
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 # Create enums for the benchmark type, comparison operator, and normalization mode.
 BenchmarkType = Literal[
@@ -31,6 +31,12 @@ GeographyLevel = Literal[
     "place",
     "cbsa",
     "metro_division",
+    "tract",
+    "block_group",
+    "congressional_district",
+    "zcta",
+    "puma",
+    "county_subdivision",
 ]
 
 BenchmarkClarificationReason = Literal[
@@ -43,6 +49,8 @@ BenchmarkClarificationReason = Literal[
 
 # Create the BenchmarkIntent model and add validation for the fields.
 class BenchmarkIntent(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    
     benchmark_type: BenchmarkType
     subject_geo_level: GeographyLevel = Field(
         ..., description="The level of the subject geography."
@@ -127,7 +135,9 @@ class BenchmarkIntent(BaseModel):
 
         elif self.benchmark_type == "historical_baseline":
             # baseline comparison against prior period/anchor; geography may be present
-            pass
+            raise ValueError(
+                "historical_baseline not yet implemented in Track 2"
+                )
 
         return self
 
