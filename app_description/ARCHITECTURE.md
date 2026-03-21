@@ -54,6 +54,10 @@ uv run python test_system.py
 User Question → Agent Reasons (multi-step) → Tools Execute → Agent Validates → Output Tools → Result
 ```
 
+### 3.1.1 Reasoning-Node-First Deterministic Support Principle
+
+Canonical principle: deterministic contracts and workflow/service steps are reliability scaffolding that empower AI reasoning nodes/components and must not replace AI reasoning nodes/components. Temporal/benchmark/comparison nodes clarify and gate ambiguous input early; the reasoning node remains the execution owner, performs repeated strict typed Census tool calls as needed, and drives answer/table/chart directives.
+
 **NOT**: `User Question → Node1 → Node2 → Node3 → Done` (current broken approach)
 
 ### 3.2 Simplified Graph

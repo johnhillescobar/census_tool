@@ -37,6 +37,7 @@ This document outlines the migration plan from LangChain v0.3.27 to LangChain v1
 - **LangChain**: v0.3.27 → v1.0 (breaking changes)
 - **LangGraph**: v0.6.7 → v1.0 (mostly compatible, but deprecations)
 - **Agent API**: `create_react_agent` + `AgentExecutor` → `create_agent` (new unified API)
+- **Reasoning-node-first intent**: deterministic contracts and workflow/service steps must empower AI reasoning nodes/components and must not replace AI reasoning nodes/components, while preserving explicit reasoning-node execution ownership.
 
 **Risk Level**: Medium-High  
 **Estimated Time**: 4-6 hours  

@@ -2,6 +2,14 @@
 
 A sophisticated local Census QA application that answers questions about US Census data using LangGraph, ChromaDB, and the Census API. This tool uses an **agent-first architecture** with multi-step reasoning to handle complex Census API queries, providing intelligent query processing, semantic variable retrieval, and comprehensive data caching with conversation memory.
 
+## Reasoning-Node-First Principle
+
+Canonical principle: deterministic contracts and workflow/service steps are reliability scaffolding that empower AI reasoning nodes/components and must not replace AI reasoning nodes/components.
+
+- Temporal/benchmark/comparison planning nodes clarify and gate ambiguous input early.
+- The reasoning node remains the execution owner, performs repeated strict typed Census tool calls as needed, and drives answer/table/chart directives.
+- Architecture changes must preserve reasoning-node ownership while improving reliability, traceability, and fail-closed behavior.
+
 > **📋 Technical Documentation**: For detailed architecture information, see **[ARCHITECTURE.md](app_description/ARCHITECTURE.md)** - the single source of truth for the agent-first implementation.
 
 ## 🚀 Features

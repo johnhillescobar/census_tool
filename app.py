@@ -14,6 +14,7 @@ from src.workflows import output_node
 from src.workflows import temporal_node
 from src.workflows import benchmark_node
 from src.workflows import comparison_node
+from src.workflows import comparison_metrics_node
 
 import logging
 
@@ -56,6 +57,13 @@ def _route_after_comparison(state: CensusState) -> str:
         return "output"
     return "agent"
 
+
+def _route_after_agent(state: CensusState) -> str:
+    plan = state.plan or {}
+    if plan.get("requires_clarification"):
+        return "output"
+    return "comparison_metrics"
+
 def create_census_graph():
     # Reducers are defined on CensusState via Annotated types (see src/state/types.py).
     workflow = StateGraph(CensusState)
@@ -66,6 +74,7 @@ def create_census_graph():
     workflow.add_node("benchmark", benchmark_node)
     workflow.add_node("comparison", comparison_node)
     workflow.add_node("agent", agent_reasoning_node)
+    workflow.add_node("comparison_metrics", comparison_metrics_node)
     workflow.add_node("output", output_node)
     workflow.add_node("memory_write", memory_write_node)
 
@@ -87,7 +96,12 @@ def create_census_graph():
         _route_after_comparison,
         {"agent": "agent", "output": "output"},
     )
-    workflow.add_edge("agent", "output")
+    workflow.add_conditional_edges(
+        "agent",
+        _route_after_agent,
+        {"comparison_metrics": "comparison_metrics", "output": "output"},
+    )
+    workflow.add_edge("comparison_metrics", "output")
     workflow.add_edge("output", "memory_write")
     workflow.add_edge("memory_write", "__end__")
 

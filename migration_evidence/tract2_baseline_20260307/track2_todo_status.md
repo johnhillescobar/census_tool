@@ -13,8 +13,9 @@ Source plan: `.cursor/plans/v2-track2-deterministic-planning.plan.md`
   - Ownership and sequencing are documented in `ownership_decomposition_map.md`.
   - Deterministic services exist for temporal/benchmark resolution and comparison plan construction (`src/services/temporal_policy.py`, `src/services/benchmark_policy.py`, `src/services/comparison_plan_policy.py`).
   - Query expansion logic (`year x geo` matrix planning into `ComparisonPlan`) is implemented in `src/services/comparison_plan_policy.py`.
-  - Derived comparison metric compute service is still pending (`src/services/comparison_metric_compute.py`).
+  - Derived comparison metric compute service is implemented in `src/services/comparison_metric_compute.py` and wired in `src/workflows/comparison_metrics.py`.
   - Workflow wiring is partial: comparison node is wired, but typed handoff-only boundaries and workflow-level acceptance coverage are not complete.
+  - Locked execution model: temporal/benchmark/comparison nodes are early clarification gates; reasoning node remains responsible for multi-step typed tool execution and synthesis directives.
 
 - `t2-canonical-suite`: in_progress
   - Service/contract tests covering clarification and resolved paths are present and passing.
@@ -31,12 +32,15 @@ Source plan: `.cursor/plans/v2-track2-deterministic-planning.plan.md`
 ## Remaining Track 2 Work
 
 1. Complete workflow integration for comparison planning with typed handoff-only boundaries (remove remaining dict-based planning artifacts in workflow path).
-2. Implement deterministic derived comparison metric compute in `src/services/comparison_metric_compute.py` (no LLM math path).
-3. Expand canonical suite to include workflow-level deterministic acceptance coverage.
-4. Upgrade `BenchmarkIntent.historical_baseline` from temporary fail-closed behavior to fully typed baseline contract fields and validators.
+2. Expand canonical suite to include workflow-level deterministic acceptance coverage.
+3. Upgrade `BenchmarkIntent.historical_baseline` from temporary fail-closed behavior to fully typed baseline contract fields and validators.
 
 ## Locked Policy Decisions (Track 2)
 
+- Reasoning-node-first migration principle:
+  - Canonical principle: deterministic contracts and workflow/service steps are reliability scaffolding that empower AI reasoning nodes/components and must not replace AI reasoning nodes/components.
+  - Planning nodes (`temporal`, `benchmark`, `comparison`) clarify and gate ambiguous input early.
+  - The reasoning node remains the execution owner, performs repeated strict typed Census tool calls as needed, and drives answer/table/chart directives.
 - Default when no temporal phrase is present: `latest_available`.
 - Temporal ambiguity policy: global.
   - If temporal signals conflict and could produce different valid plans, fail to clarification.
@@ -45,8 +49,11 @@ Source plan: `.cursor/plans/v2-track2-deterministic-planning.plan.md`
   - Agent/workflow clarification behavior may require Track 2 refactor to support deterministic fail-to-clarification outcomes.
   - Provenance gate behavior remains out of scope for Track 2 (Track 3).
 - Historical baseline contract policy:
-  - Current state (Option 1): `historical_baseline` is fail-closed and intentionally rejected until baseline semantics are fully modeled.
-  - Planned upgrade (Option 2): add explicit baseline contract fields (for example `baseline_anchor_year`, `baseline_window`) and strict validation before enabling `historical_baseline` resolution paths.
+  - Current state: `historical_baseline` is fail-closed and intentionally rejected until baseline semantics are fully modeled.
+  - Planned upgrade path: add explicit baseline contract fields (for example `baseline_anchor_year`, `baseline_window`) and strict validation before enabling `historical_baseline` resolution paths.
+- Rank grouping policy:
+  - Rank is valid only within homogeneous peer groups: same `year`, `metric`, `dataset`, and `geo level`.
+  - If any required rank grouping input is missing, fail closed with `MISSING_RANK_GROUP_KEY`.
 
 ## Verification Snapshot (2026-03-20)
 
@@ -54,3 +61,7 @@ Source plan: `.cursor/plans/v2-track2-deterministic-planning.plan.md`
   - `uv run pytest app_test_scripts/test_temporal_policy_contract.py app_test_scripts/test_benchmark_contract.py app_test_scripts/test_comparison_plan.py app_test_scripts/test_comparison_plan_policy.py -q`
 - Result:
   - `23 passed in 2.28s`
+- Additional command run:
+  - `uv run pytest app_test_scripts/test_comparison_metric_compute.py -q`
+- Additional result:
+  - `7 passed in 2.20s`

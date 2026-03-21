@@ -1,6 +1,14 @@
 # What I checked first
 I searched your Track 2 plan, the full migration plan sections for deterministic planning/canonical suite, and your current src/domain, src/services, and src/workflows layout.
 
+# Non-negotiable migration intent
+Typed contracts and workflow nodes are built to empower the reasoning node with deterministic, validated artifacts. They are reliability scaffolding for the reasoning node, not a replacement for reasoning-node task execution.
+
+# Locked execution decision
+- Canonical principle: deterministic contracts and workflow/service steps are reliability scaffolding that empower AI reasoning nodes/components and must not replace AI reasoning nodes/components.
+- Temporal/benchmark/comparison nodes clarify and gate ambiguous input early.
+- The reasoning node remains the execution owner, performs repeated strict typed Census tool calls as needed, and drives answer/table/chart directives.
+
 What exists already
 
 - Track 2 plan is clear on what to add (TemporalIntent, BenchmarkIntent, ComparisonPlan) but light on execution order details.
@@ -41,6 +49,8 @@ Use **Option A**. Here is the step-by-step sequence to follow now (no code chang
 
     - Map: raw request -> temporal normalization -> benchmark planning -> query expansion -> deterministic compute.
     - Mark where each transformation lives (domain validation vs services logic vs workflows orchestration).
+    - Explicitly verify each new node/service strengthens reasoning-node reliability and does not displace reasoning-node ownership.
+    - Explicitly verify locked execution behavior: early nodes clarify/gate; reasoning node executes typed tool loops.
     - Output: node/service responsibility matrix.
 
 5. Define deterministic math rules explicitly
