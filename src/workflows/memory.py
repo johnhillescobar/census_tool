@@ -155,7 +155,6 @@ def memory_write_node(state: CensusState, config: RunnableConfig) -> Dict[str, A
 
         return {
             "profile": updated_profile,
-            "history": history,
             "cache_index": cache_index,
             "logs": [log_entry],
         }

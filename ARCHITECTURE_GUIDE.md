@@ -22,6 +22,7 @@
 ### Core Design Philosophy
 
 **Agent-First Architecture**: This project uses an **agent-first architecture** where a reasoning agent (CensusQueryAgent) handles complex multi-step queries internally, rather than a deterministic pipeline of nodes.
+**Reasoning-Node-First Deterministic Principle**: Deterministic contracts and workflow/service steps are reliability scaffolding that empower AI reasoning nodes/components and must not replace AI reasoning nodes/components. Temporal/benchmark/comparison nodes clarify and gate ambiguous input early, while the reasoning node remains the execution owner, performs repeated strict typed Census tool calls as needed, and drives answer/table/chart directives.
 
 **Key Principle**: 
 ```

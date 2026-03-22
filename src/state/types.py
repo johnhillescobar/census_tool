@@ -57,8 +57,8 @@ class CensusState(BaseModel):
     profile: Annotated[Dict[str, Any], _merge_dict] = Field(
         default_factory=dict, description="User profile; reducer: merge dictionaries"
     )
-    history: Annotated[List[Dict[str, Any]], operator.add] = Field(
-        default_factory=list, description="Conversation history; reducer: append"
+    history: List[Dict[str, Any]] = Field(
+        default_factory=list, description="Conversation history; reducer: overwrite"
     )
     cache_index: Annotated[Dict[str, Any], _merge_dict] = Field(
         default_factory=dict, description="Cache index; reducer: merge dictionaries"
@@ -105,7 +105,7 @@ class ResolvedGeography(BaseModel):
     )
     display_name: str = Field(..., description="Human-readable location name")
     fips_codes: Dict[str, str] = Field(
-        ..., default_factory=dict, description="FIPS codes for the location"
+        default_factory=dict, description="FIPS codes for the location"
     )
     confidence: float = Field(
         ..., ge=0.0, le=1.0, description="Confidence score between 0 and 1"

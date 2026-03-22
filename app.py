@@ -11,6 +11,10 @@ from src.state.types import CensusState
 from src.workflows import memory_load_node, memory_write_node
 from src.workflows import agent_reasoning_node
 from src.workflows import output_node
+from src.workflows import temporal_node
+from src.workflows import benchmark_node
+from src.workflows import comparison_node
+from src.workflows import comparison_metrics_node
 
 import logging
 
@@ -30,20 +34,74 @@ def create_viz_graph(compiled_graph):
     return compiled_graph
 
 
+def _route_after_temporal(state: CensusState) -> str:
+    plan = state.plan or {}
+    if plan.get("requires_clarification"):
+        return "output"
+    return "benchmark"
+
+
+def _route_after_benchmark(state: CensusState) -> str:
+    plan = state.plan or {}
+    if plan.get("requires_clarification"):
+        return "output"
+    benchmark_plan = plan.get("benchmark") or {}
+    if benchmark_plan.get("status") == "not_applicable":
+        return "agent"
+    return "comparison"
+
+
+def _route_after_comparison(state: CensusState) -> str:
+    plan = state.plan or {}
+    if plan.get("requires_clarification"):
+        return "output"
+    return "agent"
+
+
+def _route_after_agent(state: CensusState) -> str:
+    plan = state.plan or {}
+    if plan.get("requires_clarification"):
+        return "output"
+    return "comparison_metrics"
+
 def create_census_graph():
     # Reducers are defined on CensusState via Annotated types (see src/state/types.py).
     workflow = StateGraph(CensusState)
 
-    # Only 4 nodes
+    # Workflow nodes
     workflow.add_node("memory_load", memory_load_node)
+    workflow.add_node("temporal", temporal_node)
+    workflow.add_node("benchmark", benchmark_node)
+    workflow.add_node("comparison", comparison_node)
     workflow.add_node("agent", agent_reasoning_node)
+    workflow.add_node("comparison_metrics", comparison_metrics_node)
     workflow.add_node("output", output_node)
     workflow.add_node("memory_write", memory_write_node)
 
     # Linear flow - no conditional routing
     workflow.set_entry_point("memory_load")
-    workflow.add_edge("memory_load", "agent")
-    workflow.add_edge("agent", "output")
+    workflow.add_edge("memory_load", "temporal")
+    workflow.add_conditional_edges(
+        "temporal",
+        _route_after_temporal,
+        {"benchmark": "benchmark", "output": "output"},
+    )
+    workflow.add_conditional_edges(
+        "benchmark",
+        _route_after_benchmark,
+        {"comparison": "comparison", "agent": "agent", "output": "output"},
+    )
+    workflow.add_conditional_edges(
+        "comparison",
+        _route_after_comparison,
+        {"agent": "agent", "output": "output"},
+    )
+    workflow.add_conditional_edges(
+        "agent",
+        _route_after_agent,
+        {"comparison_metrics": "comparison_metrics", "output": "output"},
+    )
+    workflow.add_edge("comparison_metrics", "output")
     workflow.add_edge("output", "memory_write")
     workflow.add_edge("memory_write", "__end__")
 

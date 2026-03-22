@@ -11,6 +11,37 @@ from .geo_utils import (
     get_unsupported_level_message,
 )
 from .time_utils import parse_timestamp, is_older_than
+from .temporal_contract import (
+    TemporalIntent,
+    TemporalResolution,
+    TemporalResolved,
+    TemporalClarificationRequired,
+    ClarificationPrompt,
+    ClarificationOption,
+)
+from .benchmark_contract import (
+    BenchmarkIntent,
+    BenchmarkResolution,
+    BenchmarkResolved,
+    BenchmarkClarificationRequired,
+    BenchmarkClarificationPrompt,
+    BenchmarkClarificationOption,
+)
+from .clarification_templates import (
+    TemporalExplicitVsRollingSlots,
+    TemporalAmbiguousGenericSlots,
+    render_temporal_clarification,
+    render_benchmark_clarification,
+    BenchmarkAmbiguousTargetSlots,
+    BenchmarkMissingMetricSlots,
+    BenchmarkMissingGeoLevelSlots,
+    BenchmarkConflictBaselineVsPeerGroupSlots,
+)
+from .comparison_plan import (
+    ComparisonPlan,
+    CensusDataset,
+    DerivedMetric,
+)
 
 __all__ = [
     "extract_years",
@@ -23,4 +54,27 @@ __all__ = [
     "get_unsupported_level_message",
     "parse_timestamp",
     "is_older_than",
+    "TemporalIntent",
+    "TemporalResolution",
+    "TemporalResolved",
+    "TemporalClarificationRequired",
+    "ClarificationPrompt",
+    "ClarificationOption",
+    "BenchmarkIntent",
+    "BenchmarkResolution",
+    "BenchmarkResolved",
+    "BenchmarkClarificationRequired",
+    "BenchmarkClarificationPrompt",
+    "BenchmarkClarificationOption",
+    "render_benchmark_clarification",
+    "BenchmarkAmbiguousTargetSlots",
+    "BenchmarkMissingMetricSlots",
+    "BenchmarkMissingGeoLevelSlots",
+    "BenchmarkConflictBaselineVsPeerGroupSlots",
+    "render_temporal_clarification",
+    "TemporalExplicitVsRollingSlots",
+    "TemporalAmbiguousGenericSlots",
+    "ComparisonPlan",
+    "CensusDataset",
+    "DerivedMetric",
 ]

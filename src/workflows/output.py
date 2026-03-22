@@ -1,7 +1,7 @@
 import logging
 import json
 import pandas as pd
-from typing import Dict, Any, Optional
+from typing import Dict, Any
 from langchain_core.runnables import RunnableConfig
 
 from src.state.types import CensusState
@@ -15,7 +15,7 @@ def format_chart_title(
     y_column: str,
     x_column: str,
     chart_type: str,
-    variables: Optional[Dict[str, str]] = None,
+    variables: dict[str, str] | None = None,
     multi_series: bool = False,
 ) -> str:
     """
@@ -74,8 +74,8 @@ def format_chart_title(
 
 
 def _detect_geography_column(
-    df: pd.DataFrame, headers: list, x_column: str = None
-) -> Optional[str]:
+    df: pd.DataFrame, headers: list, x_column: str | None = None
+) -> str | None:
     """
     Detect geography column with priority order (less granular first).
 

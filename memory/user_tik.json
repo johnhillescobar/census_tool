@@ -1,0 +1,359 @@
+{
+  "user_id": "tik",
+  "default_geo": {},
+  "preferred_dataset": "acs/acs5",
+  "default_year_range": [
+    2012,
+    2023
+  ],
+  "preferred_level": "place",
+  "var_aliases": {},
+  "usage_stats": {
+    "total_queries": 11,
+    "success_queries": 11,
+    "last_query_date": "2026-03-20T21:44:16.953442"
+  },
+  "history": [
+    {
+      "timestamp": "2026-03-15T19:15:08.394078",
+      "user_id": "tik",
+      "question": "compare 2019 vs 2023 over the last 5 years",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2026-03-15T19:15:08.394078",
+      "user_id": "tik",
+      "question": "compare 2019 vs 2023 over the last 5 years",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2026-03-15T19:15:08.394078",
+      "user_id": "tik",
+      "question": "compare 2019 vs 2023 over the last 5 years",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2026-03-15T19:15:08.394078",
+      "user_id": "tik",
+      "question": "compare 2019 vs 2023 over the last 5 years",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2026-03-15T19:16:21.631430",
+      "user_id": "tik",
+      "question": "population of california",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2026-03-15T19:15:08.394078",
+      "user_id": "tik",
+      "question": "compare 2019 vs 2023 over the last 5 years",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2026-03-15T19:15:08.394078",
+      "user_id": "tik",
+      "question": "compare 2019 vs 2023 over the last 5 years",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2026-03-15T19:16:21.631430",
+      "user_id": "tik",
+      "question": "population of california",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2026-03-15T19:15:08.394078",
+      "user_id": "tik",
+      "question": "compare 2019 vs 2023 over the last 5 years",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2026-03-15T19:15:08.394078",
+      "user_id": "tik",
+      "question": "compare 2019 vs 2023 over the last 5 years",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2026-03-15T19:15:08.394078",
+      "user_id": "tik",
+      "question": "compare 2019 vs 2023 over the last 5 years",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2026-03-15T19:15:08.394078",
+      "user_id": "tik",
+      "question": "compare 2019 vs 2023 over the last 5 years",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2026-03-15T19:16:21.631430",
+      "user_id": "tik",
+      "question": "population of california",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2026-03-15T19:15:08.394078",
+      "user_id": "tik",
+      "question": "compare 2019 vs 2023 over the last 5 years",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2026-03-15T19:15:08.394078",
+      "user_id": "tik",
+      "question": "compare 2019 vs 2023 over the last 5 years",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2026-03-15T19:16:21.631430",
+      "user_id": "tik",
+      "question": "population of california",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2026-03-15T19:16:57.109803",
+      "user_id": "tik",
+      "question": "population of texas in 2021",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2026-03-15T19:15:08.394078",
+      "user_id": "tik",
+      "question": "compare 2019 vs 2023 over the last 5 years",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2026-03-15T19:15:08.394078",
+      "user_id": "tik",
+      "question": "compare 2019 vs 2023 over the last 5 years",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2026-03-15T19:15:08.394078",
+      "user_id": "tik",
+      "question": "compare 2019 vs 2023 over the last 5 years",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2026-03-15T19:15:08.394078",
+      "user_id": "tik",
+      "question": "compare 2019 vs 2023 over the last 5 years",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2026-03-15T19:16:21.631430",
+      "user_id": "tik",
+      "question": "population of california",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2026-03-15T19:15:08.394078",
+      "user_id": "tik",
+      "question": "compare 2019 vs 2023 over the last 5 years",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2026-03-15T19:15:08.394078",
+      "user_id": "tik",
+      "question": "compare 2019 vs 2023 over the last 5 years",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2026-03-15T19:16:21.631430",
+      "user_id": "tik",
+      "question": "population of california",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2026-03-15T19:16:57.109803",
+      "user_id": "tik",
+      "question": "population of texas in 2021",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2026-03-15T19:18:18.492978",
+      "user_id": "tik",
+      "question": "income trend for florida in the last 5 years",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2026-03-20T21:32:45.821002",
+      "user_id": "tik",
+      "question": "compare 2019 vs 2023 over the last 5 years",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2026-03-20T21:33:15.743063",
+      "user_id": "tik",
+      "question": "population of california",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2026-03-20T21:33:35.276668",
+      "user_id": "tik",
+      "question": "population from 2023 to 2019",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2026-03-20T21:34:12.626668",
+      "user_id": "tik",
+      "question": "population of texas in 2021",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2026-03-20T21:34:48.854021",
+      "user_id": "tik",
+      "question": "income trend for florida in the last 5 years",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2026-03-20T21:43:29.449523",
+      "user_id": "tik",
+      "question": "population of texas in 2021",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2026-03-20T21:44:16.953442",
+      "user_id": "tik",
+      "question": "population of california",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    }
+  ],
+  "last_updated": "2026-03-20T21:44:16.953442"
+}

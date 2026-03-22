@@ -3,6 +3,8 @@ Configuration constants for Census Graph App
 Centralized settings for retention, API limits, and dataset configurations
 """
 
+LATEST_AVAILABLE_YEAR = 2023
+
 # Retention Settings
 RETENTION_DAYS = 90
 CACHE_MAX_FILES = 2000  # Optional: maximum number of cached files
