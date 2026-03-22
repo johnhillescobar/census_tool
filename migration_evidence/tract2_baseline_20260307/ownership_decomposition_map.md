@@ -4,6 +4,8 @@
 - Goal: Define ownership for Track 2 planning artifacts and deterministic computation path.
 - Rule: Track 2 introduces planning contracts/services/workflow nodes only.
 - Canonical principle: deterministic contracts and workflow/service steps are reliability scaffolding that empower AI reasoning nodes/components and must not replace AI reasoning nodes/components.
+- Architecture invariant: Pydantic typed contracts prevent malformed objects at the earliest boundary (from the start), deterministic gates produce typed artifacts, and reasoning consumes those artifacts to execute tool loops and synthesize outputs.
+- Architecture invariant: reasoning is not the primary contract-validation owner; deterministic typed boundaries own malformed-object prevention and fail-closed validation.
 - Temporal/benchmark/comparison nodes clarify and gate ambiguous input early.
 - The reasoning node remains the execution owner, performs repeated strict typed Census tool calls as needed, and drives answer/table/chart directives.
 - Out of scope: provenance enforcement (Track 3), dependency/runtime modernization (Track 4).

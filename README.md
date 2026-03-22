@@ -6,6 +6,13 @@ A sophisticated local Census QA application that answers questions about US Cens
 
 Canonical principle: deterministic contracts and workflow/service steps are reliability scaffolding that empower AI reasoning nodes/components and must not replace AI reasoning nodes/components.
 
+### Architecture Invariant (Non-Negotiable)
+
+- Pydantic typed contracts must prevent malformed objects at the earliest boundary (from the start), before reasoning execution.
+- Deterministic gates (temporal/benchmark/comparison and related services) must normalize, clarify, and hand off typed artifacts.
+- The reasoning node is not the primary contract-validation owner; it translates gated user intent into Census tool parameters, executes tool loops, analyzes generated artifacts, and produces human answer/table/chart outputs.
+- Deterministic scaffolding exists to improve reasoning-node reliability and traceability, not to bypass or replace reasoning-node ownership.
+
 - Temporal/benchmark/comparison planning nodes clarify and gate ambiguous input early.
 - The reasoning node remains the execution owner, performs repeated strict typed Census tool calls as needed, and drives answer/table/chart directives.
 - Architecture changes must preserve reasoning-node ownership while improving reliability, traceability, and fail-closed behavior.

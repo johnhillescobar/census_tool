@@ -42,6 +42,14 @@ from .comparison_plan import (
     CensusDataset,
     DerivedMetric,
 )
+from .census_client_contract import (
+    CensusApiQueryParams,
+    CensusDatasetUrl,
+    CensusApiRawTable,
+    CensusApiCallSuccess,
+    CensusApiCallFailure,
+    CensusApiCallResult,
+)
 
 __all__ = [
     "extract_years",
@@ -77,4 +85,10 @@ __all__ = [
     "ComparisonPlan",
     "CensusDataset",
     "DerivedMetric",
+    "CensusApiQueryParams",
+    "CensusDatasetUrl",
+    "CensusApiRawTable",
+    "CensusApiCallSuccess",
+    "CensusApiCallFailure",
+    "CensusApiCallResult",
 ]

@@ -30,6 +30,7 @@ from src.tools.table_tool import TableTool
 from src.tools.pattern_builder_tool import PatternBuilderTool
 from src.tools.area_resolution_tool import AreaResolutionTool
 from src.tools.variable_validation_tool import VariableValidationTool
+from src.tools.strict_census_api_tool import StrictCensusApiTool
 
 # Import conversation summarizer
 from src.services.conversation_summarizer import ConversationSummarizer
@@ -91,13 +92,14 @@ class CensusQueryAgent:
             GeographyDiscoveryTool(),
             GeographyValidationTool(),
             TableSearchTool(),
-            CensusAPITool(),
+            # CensusAPITool(),
             TableTool(),
             PatternBuilderTool(),
             AreaResolutionTool(),
             ChartTool(),
             GeographyHierarchyTool(),
             VariableValidationTool(),
+            StrictCensusApiTool(),
         ]
 
         # Create agent with compatibility for different LangChain versions
@@ -196,8 +198,11 @@ class CensusQueryAgent:
                         )
                         return True
 
-            # Check if census_api_call returned success: False
-            if hasattr(action, "tool") and action.tool == "census_api_call":
+            # Check if Census API tool returned success: False (legacy or strict)
+            if hasattr(action, "tool") and action.tool in (
+                "census_api_call",
+                "strict_census_api_call",
+            ):
                 try:
                     obs_dict = (
                         json.loads(observation)

@@ -9,9 +9,9 @@
   "preferred_level": "place",
   "var_aliases": {},
   "usage_stats": {
-    "total_queries": 11,
-    "success_queries": 11,
-    "last_query_date": "2026-03-20T21:44:16.953442"
+    "total_queries": 15,
+    "success_queries": 15,
+    "last_query_date": "2026-03-21T20:11:27.275788"
   },
   "history": [
     {
@@ -353,7 +353,47 @@
       "plan_summary": "",
       "answer_type": "Unknown",
       "success": true
+    },
+    {
+      "timestamp": "2026-03-21T20:07:54.528103",
+      "user_id": "tik",
+      "question": "What is the population of Texas?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2026-03-21T20:08:46.761492",
+      "user_id": "tik",
+      "question": "Compare median income",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2026-03-21T20:09:41.622305",
+      "user_id": "tik",
+      "question": "What is the population of California in 2023?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2026-03-21T20:11:27.274263",
+      "user_id": "tik",
+      "question": "Compare county population in California",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
     }
   ],
-  "last_updated": "2026-03-20T21:44:16.953442"
+  "last_updated": "2026-03-21T20:11:27.275788"
 }

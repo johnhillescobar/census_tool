@@ -359,3 +359,77 @@ TIGERweb REST services expose current CBSA, MDIV, CSA, and NECTA layers with cod
 ---
 
 If you want, tell me which levels you need and I can return a ready-to-use JSON registry of codes and names for those levels.
+
+---
+
+## Strict Tool Contract Addendum (Developer-Facing)
+
+This addendum does not replace the functional guide above. It makes execution constraints explicit for strict typed tool contracts.
+
+### 1) Supported call structures in strict tool mode
+
+- Base shape:
+  - `GET /data/{year}/{dataset}?get=<vars>&for=<geo_token>:<geo_value>[&in=<geo_chain>]`
+- Group shape:
+  - `get=group(TABLE_CODE)` is supported when dataset/category supports group queries.
+- Hierarchical geography:
+  - `for` + `in` chains are supported (including complex tokens such as CBSA/MDIV/NECTA labels).
+- Deterministic list/enumeration:
+  - `get=NAME,GEO_ID&for=<token>:*` is the canonical listing pattern for registry seeding.
+
+### 2) Unsupported in single-call mode (must fan out)
+
+The strict tool must split into multiple API calls when user intent implies OR over same-level geographies or mixed incompatible scopes.
+
+- Multiple peer targets at same level in one request (for example: two specific states in a single `for` token path).
+- Mixed hierarchy paths that cannot be represented by one valid `for` + `in` chain.
+- Year ranges requiring one call per year by policy.
+
+### 3) Deterministic fan-out and merge rule
+
+When fan-out is required:
+
+1. Expand to a deterministic query list sorted by:
+   - `year`, then
+   - normalized `for` clause, then
+   - normalized `in` clause.
+2. Execute each call independently with typed request validation.
+3. Merge results in the same deterministic order.
+4. Preserve per-call metadata (`url`, status, row_count, error) for traceability.
+
+### 4) Fail-closed request contract requirements
+
+Strict request validation must enforce:
+
+- `year`: valid and supported for selected dataset.
+- `dataset`: explicit supported dataset enum/path.
+- `variables`: non-empty, unique, no blank values.
+- `geo_for`: non-empty dict.
+- `geo_in` / `geo_in_chained`: valid dict/list-of-dicts only.
+- Reject unknown extra fields.
+
+### 5) Fail-closed response contract requirements
+
+Census API payload parsing must enforce:
+
+- Payload is list-of-lists.
+- First row is headers.
+- Every data row length equals header length.
+- `row_count == len(records)` after normalization.
+
+Return explicit reason codes for failures (examples):
+
+- `INVALID_INPUT_SCHEMA`
+- `INVALID_GEO_PARAMS`
+- `UNSUPPORTED_DATASET`
+- `UNSUPPORTED_YEAR`
+- `API_HTTP_ERROR`
+- `API_PAYLOAD_SHAPE_INVALID`
+- `EMPTY_RESULT`
+
+### 6) Reasoning-node-first boundary reminder
+
+Deterministic contracts and workflow/service steps are reliability scaffolding that empower AI reasoning nodes/components and must not replace AI reasoning nodes/components.
+
+- Early planning nodes (`temporal`, `benchmark`, `comparison`) clarify/gate ambiguity.
+- Reasoning node remains execution owner and performs repeated strict typed Census tool calls as needed.

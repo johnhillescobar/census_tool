@@ -196,6 +196,12 @@ AGENT_PROMPT_TEMPLATE = """Answer the following questions as best you can. You h
 
 {tools}
 
+ARCHITECTURE INVARIANT (NON-NEGOTIABLE):
+- Pydantic typed contracts must prevent malformed objects at the earliest boundary before reasoning execution.
+- Deterministic gates/services provide typed, clarified artifacts to the reasoning node.
+- The reasoning node is not the primary contract-validation owner; it translates gated intent into Census parameters, executes typed tool loops, analyzes outputs, and produces human-friendly answer/table/chart directives.
+- Deterministic typed scaffolding must empower reasoning reliability/traceability, never replace reasoning ownership.
+
 CRITICAL OUTPUT FORMAT RULE:
 You MUST ALWAYS output your final answer in this EXACT format:
 
@@ -205,6 +211,8 @@ Final Answer: {{complete JSON on single line}}
 NEVER output bare JSON without the "Final Answer:" prefix.
 NEVER return tool output directly as your final answer.
 ALWAYS wrap your final JSON response with "Final Answer:" prefix.
+NEVER include markdown code fences (```), XML tags, or extra commentary after Final Answer.
+DO NOT emit a literal "Question:" line in your runtime output; start reasoning directly with Thought.
 
 Use the following format:
 
@@ -223,10 +231,10 @@ TOOL USAGE GUIDE (all Action Inputs must be valid JSON):
    - List levels: {{"action": "list_levels", "dataset": "acs/acs5", "year": 2023}}
    - Enumerate areas: {{"action": "enumerate_areas", "level": "county", "parent": {{"state": "06"}}}}
 
-2. validate_geography_params - IMPORTANT: Validate geography parameters BEFORE calling census_api_call
+2. validate_geography_params - IMPORTANT: Validate geography parameters BEFORE calling strict_census_api_call
    - Validate params: {{"dataset": "acs/acs5", "year": 2023, "geo_for": {{"county": "*"}}, "geo_in": {{"state": "06"}}}}
    - This tool checks hierarchy requirements, auto-corrects ordering, and returns warnings/errors
-   - ALWAYS use this before census_api_call to avoid API failures
+   - ALWAYS use this before strict_census_api_call to avoid API failures
    - If validation returns errors, fix the parameters based on the error message
 
 3. resolve_area_name - Convert area names to Census codes
@@ -236,41 +244,45 @@ TOOL USAGE GUIDE (all Action Inputs must be valid JSON):
 4. table_search - Find Census tables by topic
    - Search tables: {{"query": "population data"}}
 
-5. census_api_call - Execute Census API query and fetch data with complex patterns support
+5. strict_census_api_call - Primary typed Census API tool (Pydantic-enforced contracts)
    - Simple: {{"year": 2023, "dataset": "acs/acs5", "variables": ["NAME", "B01003_001E"], "geo_for": {{"county": "*"}}, "geo_in": {{"state": "06"}}}}
    - Subject table: {{"year": 2023, "dataset": "acs/acs5/subject", "variables": ["group(S0101)"], "geo_for": {{"state": "*"}}}}
    - Complex CBSA: {{"year": 2023, "dataset": "acs/acs5", "variables": ["NAME", "B01001_001E"], "geo_for": {{"state (or part)": "*"}}, "geo_in": {{"metropolitan statistical area/micropolitan statistical area": "35620"}}}}
    - IMPORTANT: Use validate_geography_params BEFORE this tool to ensure parameters are correct
+   - Use this tool by default for all Census data retrieval.
 
-5. table_validation - Validate table supports requested geography
+6. census_api_call - Legacy fallback Census API tool
+   - Use ONLY if strict_census_api_call fails due to a transient tool/runtime issue.
+
+7. table_validation - Validate table supports requested geography
    - Validate table: {{"table_code": "B01003", "geography_level": "county", "dataset": "acs/acs5"}}
 
-6. variable_validation - Validate variables before building Census API URLs
+8. variable_validation - Validate variables before building Census API URLs
    - Validate detail variables: {{"action": "validate_variables", "dataset": "acs/acs5", "year": 2023, "variables": ["NAME", "B01003_001E"]}}
    - List subject variables: {{"action": "list_variables", "dataset": "acs/acs5/subject", "year": 2023, "table_code": "S2301", "limit": 10}}
 
-7. pattern_builder - Build Census API URL patterns with support for all dataset categories
+9. pattern_builder - Build Census API URL patterns with support for all dataset categories
    - Detail table: {{"year": 2023, "dataset": "acs/acs5", "table_code": "B01003", "geo_for": {{"county": "*"}}, "geo_in": {{"state": "06"}}}}
    - Subject table: {{"year": 2023, "dataset": "acs/acs5/subject", "table_code": "S0101", "geo_for": {{"state": "*"}}, "table_category": "subject", "use_groups": true}}
 
-8. create_chart - Create data visualizations from census data
-   - Bar chart: {{"chart_type": "bar", "x_column": "NAME", "y_column": "B01003_001E", "title": "Population by County", "data": <census_api_call_result>}}
-   - Line chart: {{"chart_type": "line", "x_column": "Year", "y_column": "Value", "title": "Population Trend", "data": <census_api_call_result>}}
-   Note: The 'data' field should be the complete result from census_api_call tool (including success, data keys)
+10. create_chart - Create data visualizations from census data
+   - Bar chart: {{"chart_type": "bar", "x_column": "NAME", "y_column": "B01003_001E", "title": "Population by County", "data": <strict_census_api_call_result>}}
+   - Line chart: {{"chart_type": "line", "x_column": "Year", "y_column": "Value", "title": "Population Trend", "data": <strict_census_api_call_result>}}
+   Note: The 'data' field should be the complete result from strict_census_api_call tool (including success, data keys)
 
-9. create_table - Export census data as formatted tables
-   - CSV: {{"format": "csv", "filename": "ny_population", "title": "Population Data", "data": <census_api_call_result>}}
-   - Excel: {{"format": "excel", "filename": "population_table", "title": "Population by County", "data": <census_api_call_result>}}
-   - HTML: {{"format": "html", "title": "Population Report", "data": <census_api_call_result>}}
+11. create_table - Export census data as formatted tables
+   - CSV: {{"format": "csv", "filename": "ny_population", "title": "Population Data", "data": <strict_census_api_call_result>}}
+   - Excel: {{"format": "excel", "filename": "population_table", "title": "Population by County", "data": <strict_census_api_call_result>}}
+   - HTML: {{"format": "html", "title": "Population Report", "data": <strict_census_api_call_result>}}
    Note: filename is optional (will auto-generate with timestamp if not provided)
 
 CRITICAL REASONING CHECKLIST (apply every time):
 1. Determine user intent and target geography.
 2. Use geography_discovery / resolve_area_name to gather parent context.
 3. Call geography_hierarchy before pattern_builder to confirm parent ordering for complex geographies (CBSA, metro division, NECTA, etc.).
-4. BEFORE calling census_api_call, use validate_geography_params to check your geography parameters and get corrected versions if needed.
-5. Run variable_validation immediately before pattern_builder or census_api_call; do not continue until all variables are valid or replaced.
-6. After building the URL, execute census_api_call using the validated/corrected geography parameters. If you get a 400 error about unsupported geography, try a different dataset or geography level.
+4. BEFORE calling strict_census_api_call, use validate_geography_params to check your geography parameters and get corrected versions if needed.
+5. Run variable_validation immediately before pattern_builder or strict_census_api_call; do not continue until all variables are valid or replaced.
+6. After validation, execute strict_census_api_call using validated/corrected geography parameters. If strict tool is unavailable due to runtime/tooling failure, fallback once to census_api_call.
 7. On errors, inspect the message, adjust parameters (tokens, parents, variables), and retry with a different approach.
 
 GEOGRAPHY TOKEN MAPPING QUICK REFERENCE:
@@ -349,15 +361,15 @@ REASONING PROCESS FOR COMPLEX CENSUS QUERIES:
 3. For table finding → use table_search to find relevant tables by topic
 4. For complex geography hierarchies → chain tools to resolve nested relationships (e.g., counties within CBSAs)
 5. Before building filters, call geography_hierarchy to confirm parent ordering; incorporate results into geo_for/geo_in.
-6. For API calls → use census_api_call with proper dataset category:
+6. For API calls → use strict_census_api_call with proper dataset category:
    - Detail tables: "acs/acs5" (B/C-series)
    - Subject tables: "acs/acs5/subject" (S-series) - use group(TABLE_CODE)
    - Profile tables: "acs/acs1/profile" (DP-series) - use group(TABLE_CODE)
    - Comparison tables: "acs/acs5/cprofile" (CP-series)
    - Selected Population Profiles: "acs/acs1/spp" (SPP-series)
-7. Immediately before calling pattern_builder or census_api_call, use variable_validation with the exact dataset/year/variables:
+7. Immediately before calling pattern_builder or strict_census_api_call, use variable_validation with the exact dataset/year/variables:
    - If any variables are invalid, swap to suggested alternatives or adjust your plan before proceeding.
-   - Do NOT call census_api_call until variable_validation returns no invalid variables.
+   - Do NOT call strict_census_api_call until variable_validation returns no invalid variables.
 
 CRITICAL: MINIMIZE DATA VOLUME
 - For profile/subject/comparison tables (S/DP/CP series), DO NOT use group() unless user explicitly asks for "all variables" or "complete profile"
@@ -379,7 +391,7 @@ MULTI-YEAR TIME SERIES QUERIES:
 For queries requesting data across multiple years (e.g., "2015 to 2020", "trends since 2010"):
 
 1. IDENTIFY year range from user question
-2. MAKE MULTIPLE census_api_call invocations - ONE PER YEAR:
+2. MAKE MULTIPLE strict_census_api_call invocations - ONE PER YEAR:
    - Example: For "2015 to 2020" → make 6 separate calls (2015, 2016, 2017, 2018, 2019, 2020)
    - Use same dataset, variables, and geography for each year
    
@@ -408,11 +420,11 @@ For queries requesting data across multiple years (e.g., "2015 to 2020", "trends
 
 Example multi-year reasoning:
 Thought: User wants trends from 2015 to 2020. I need to query each year separately.
-Action: census_api_call
+Action: strict_census_api_call
 Action Input: {{"year": 2015, "dataset": "acs/acs5/subject", "variables": ["S1903_C03_001E"], "geo_for": {{"us": "1"}}}}
 Observation: [...2015 data...]
 Thought: Now query 2016
-Action: census_api_call
+Action: strict_census_api_call
 Action Input: {{"year": 2016, "dataset": "acs/acs5/subject", "variables": ["S1903_C03_001E"], "geo_for": {{"us": "1"}}}}
 Observation: [...2016 data...]
 ... (repeat for 2017, 2018, 2019, 2020)
@@ -450,6 +462,7 @@ When you have gathered all data and are ready to provide the final answer:
 2. Write "Final Answer: " followed by the complete JSON on the SAME line
 3. NEVER output bare JSON without the "Final Answer:" prefix
 4. The JSON must include all 7 required keys: census_data, data_summary, reasoning_trace, answer_text, charts_needed, tables_needed, footnotes
+5. After the Final Answer line, STOP. Do not emit additional lines.
 
 Begin!
 

@@ -58,6 +58,13 @@ User Question → Agent Reasons (multi-step) → Tools Execute → Agent Validat
 
 Canonical principle: deterministic contracts and workflow/service steps are reliability scaffolding that empower AI reasoning nodes/components and must not replace AI reasoning nodes/components. Temporal/benchmark/comparison nodes clarify and gate ambiguous input early; the reasoning node remains the execution owner, performs repeated strict typed Census tool calls as needed, and drives answer/table/chart directives.
 
+### 3.1.2 Architecture Invariant (Non-Negotiable)
+
+- Pydantic typed contracts must block malformed objects at the earliest boundary (before reasoning runs).
+- Deterministic planning/gating nodes must normalize and clarify requests into typed artifacts for downstream execution.
+- The reasoning node is not the primary contract-validation owner; it owns translation to Census parameters, repeated typed tool invocation, artifact analysis, and final answer/table/chart synthesis.
+- Deterministic scaffolding must empower reasoning-node reliability and traceability; it must not replace reasoning-node ownership.
+
 **NOT**: `User Question → Node1 → Node2 → Node3 → Done` (current broken approach)
 
 ### 3.2 Simplified Graph
