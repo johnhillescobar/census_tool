@@ -7,7 +7,7 @@ from __future__ import annotations
 import logging
 import pickle
 from pathlib import Path
-from typing import Dict, List, Optional, Set, TypedDict, cast
+from typing import Dict, List, Set, TypedDict, cast
 
 import requests
 from bs4 import BeautifulSoup, Tag
@@ -34,7 +34,7 @@ def _cache_key(dataset: str, year: int) -> str:
     return f"{dataset}:{year}"
 
 
-def _load_disk_cache(dataset: str, year: int) -> Optional[Set[str]]:
+def _load_disk_cache(dataset: str, year: int) -> Set[str] | None:
     key = _cache_key(dataset, year)
     path = _DISK_CACHE_DIR / f"{key.replace('/', '_')}.pkl"
     if not path.exists():

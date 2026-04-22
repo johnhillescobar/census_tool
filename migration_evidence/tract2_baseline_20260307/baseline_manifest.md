@@ -35,17 +35,56 @@
 - Notes: Known nondeterminism as this is an LLM graph application.
 - Track 2 Entry Status: 🟢 Allowed (Track 1 parity evidence copied forward as starting point)
 
+## Review Refresh
+- Refresh Date: 2026-04-07
+- Decision Update: Track 2 scope is now interpreted as a strict Pydantic state migration, not only typed planning artifacts.
+- Scope Expansion:
+  - most of `CensusState` is targeted for strict Pydantic modeling
+  - workflow handoffs must stay typed end-to-end
+  - `model_dump()` is allowed only at true serialization boundaries
+  - persisted memory JSON schema migration is allowed for this effort
+  - output/UI consumers are in scope because they currently assume dict-shaped `final` and `artifacts`
+- Static Typing Update:
+  - `mypy` is still not installed
+  - any `mypy` adoption remains subject to the Track 2 dependency-freeze decision
+
+## Review Refresh
+- Refresh Date: 2026-04-21
+- Decision Update: Track 2 remains `partial`; the repository has advanced beyond the 2026-04-07 snapshot, but the strict-state migration is still not exit-ready.
+- Progress Since 2026-04-07:
+  - `CensusState.plan`, `artifacts`, and `final` now use typed Pydantic envelopes in `src/state/types.py`
+  - planning workflow nodes preserve typed `WorkflowPlanState` / `ComparisonPlan` objects instead of flattening those artifacts immediately on the core planning path
+  - routing in `app.py` now uses typed state attribute access rather than `state.plan or {}` plus `.get(...)`
+  - planning-critical geography and variable validation tools now expose strict `args_schema` models and typed response contracts
+  - Track 2 regression coverage now includes typed workflow/tool assertions in `app_test_scripts/test_track2_contract_first.py`
+- Still Pending:
+  - most non-planning `CensusState` channels remain loose (`messages`, `intent`, `geo`, `candidates`, `profile`, `history`, `cache_index`)
+  - `WorkflowArtifactsState` still carries loose payload blobs such as `census_data`, `comparison_input_rows`, and `comparison_metrics`
+  - `comparison_metrics_node` still downgrades typed metric rows back to `dict` payloads
+  - memory persistence is still legacy/untyped and still serializes `plan` / `final` at the JSON boundary without the versioned schema migration required for Track 2 exit
+  - agent and output/UI boundaries still rely on dict-style payload access in key places (`src/workflows/agent.py`, `src/workflows/output.py`, CLI/Streamlit/PDF consumers)
+  - workflow-level canonical acceptance and repeatability coverage are still incomplete outside the current planning-focused tests
+- Static Typing Update:
+  - `mypy` configuration is now present in `pyproject.toml`
+  - `mypy` is now recorded in the repo's dev dependency group and lockfile
+  - Track 2 evidence still needs an explicit decision record for whether that dev-only tooling change is accepted under the dependency-freeze rule
+  - the current `mypy` scope is narrower than the full Track 2 surface and does not remove the need to eliminate remaining dict-heavy boundaries
+
 ## Track 2 Gate Focus
-- Contract consistency is currently partial (mixed typed and raw boundaries).
-- Deterministic planning artifacts are not implemented yet (`TemporalIntent`, `BenchmarkIntent`, `ComparisonPlan`).
-- Derived comparison math is not yet isolated into deterministic service-only paths.
-- Canonical temporal/benchmark suite and repeated-input determinism checks are not yet enforced.
+- Contract consistency remains partial because validated objects are still flattened into generic dict channels in workflow state.
+- Deterministic planning artifacts exist, but end-to-end typed state preservation does not.
+- Most `CensusState` channels (`messages`, `intent`, `geo`, `plan`, `artifacts`, `final`, `profile`, `history`, `cache_index`) still need explicit strict Pydantic ownership decisions.
+- Output/UI helpers and memory persistence still assume dict/list payloads and therefore remain part of the Track 2 hardening surface.
+- Derived comparison math is isolated into deterministic service-only paths for supported metrics, but workflow/state integration is not yet fully typed.
+- Canonical temporal/benchmark suite and repeated-input determinism checks are still incomplete at full workflow/state level.
 
 ## Track 2 Evidence Index
 - Contract gaps (Track 2): `contract_gap_register.md`
 - Ownership map (Track 2): `ownership_decomposition_map.md`
+- Todo and policy sync: `track2_todo_status.md`
 
 ## Track 2 Constraints
 - No dependency upgrades in this track.
 - No provenance gate enforcement changes in this track (belongs to Track 3).
 - No runtime/API modernization in this track (belongs to Track 4).
+- If strict state migration requires a dev-only tooling exception (for example `mypy`), that exception must be recorded explicitly rather than treated as an implicit Track 2 dependency change.

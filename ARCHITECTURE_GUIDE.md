@@ -33,16 +33,20 @@ User Question → Agent Reasons (multi-step) → Tools Execute → Agent Validat
 
 ### System Flow
 
-The application follows a **simplified linear workflow** with 4 nodes:
+The application uses a **branching workflow** defined in `app.py` (deterministic gating plus agent):
 
 ```
-memory_load → agent → output → memory_write
+memory_load → temporal → benchmark → comparison → agent → comparison_metrics → output → memory_write
 ```
+
+(with conditional edges to `output` when `plan.requires_clarification` is set)
 
 1. **memory_load**: Loads user profile and conversation history from SQLite checkpoints
-2. **agent**: Calls CensusQueryAgent which reasons through the query using specialized tools
-3. **output**: Generates charts/tables from agent results using output tools
-4. **memory_write**: Saves conversation state back to SQLite
+2. **temporal / benchmark / comparison**: Normalize and gate time-series, benchmark, and comparison intent into `plan`
+3. **agent**: Calls CensusQueryAgent which reasons through the query using registered tools
+4. **comparison_metrics**: Computes comparison metrics when that path is taken
+5. **output**: Generates charts/tables from agent results using output tools
+6. **memory_write**: Saves conversation state back to SQLite
 
 ### Component Hierarchy
 
@@ -50,17 +54,11 @@ memory_load → agent → output → memory_write
 app.py (LangGraph workflow)
   └── src/workflows/
       ├── memory.py (memory_load_node, memory_write_node)
+      ├── temporal.py, benchmark.py, comparison.py, comparison_metrics.py
       ├── agent.py (agent_reasoning_node)
       └── output.py (output_node)
           └── src/agents/census_query_agent.py (CensusQueryAgent)
-              └── src/tools/ (10 specialized tools)
-                  ├── GeographyDiscoveryTool
-                  ├── AreaResolutionTool
-                  ├── TableSearchTool
-                  ├── CensusAPITool
-                  ├── ChartTool
-                  ├── TableTool
-                  └── ... (4 more tools)
+              └── src/tools/ (see self.tools in census_query_agent.py)
 ```
 
 ---
@@ -79,7 +77,7 @@ The CensusQueryAgent uses the **ReAct pattern** (Reasoning + Acting):
 
 **Key Characteristics**:
 - Multi-step reasoning (up to 30 iterations)
-- Tool-based execution (10 specialized Census tools)
+- Tool-based execution (tools listed in `CensusQueryAgent.__init__`)
 - Structured output format (census_data, answer_text, charts_needed, tables_needed)
 - Error recovery and fallback handling
 
@@ -251,17 +249,19 @@ logger.error(f"API call failed: {e}", exc_info=True)
 
 ```
 src/
-├── workflows/      # LangGraph workflow nodes
-├── domain/         # Deterministic domain logic
-├── clients/        # External I/O integrations
-├── services/       # Business orchestration helpers
-├── agents/         # CensusQueryAgent implementation
-├── tools/          # Agent tools (BaseTool subclasses)
-├── api/            # Presentation adapters (CLI/Streamlit-facing)
-├── state/          # State type definitions
-├── llm/            # LLM factory and config
-└── locations/       # Reference data (CSV files)
+├── workflows/      # LangGraph nodes: memory, temporal, benchmark, comparison, agent, comparison_metrics, output
+├── domain/         # Geography registry, Pydantic contracts, time/text/geo helpers
+├── clients/        # Census API, Chroma, files, PDF, telemetry, session logging
+├── services/       # Validators, policies, memory, footnotes, dataframes, summarizer
+├── agents/         # CensusQueryAgent
+├── tools/          # BaseTool implementations (registered in census_query_agent)
+├── api/            # Presentation helpers (e.g. displays)
+├── state/          # CensusState and typing
+├── llm/            # Factory, config, intent/category/geo helpers
+└── locations/      # Reference CSVs (states, counties)
 ```
+
+Top-level folders commonly touched: `app_test_scripts/` (tests), `index/` (builders), `app_description/` + `docs/` (specs), `data/` / `chroma/` / `memory/` / `logs/` (runtime).
 
 ### Import Patterns
 
@@ -597,9 +597,11 @@ Before submitting code:
 - **`app_test_scripts/`**: All test files
 - **`src/tools/`**: Agent tools (study these for patterns)
 - **`src/domain/`, `src/clients/`, `src/services/`**: Core layered modules
-- **`src/workflows/`**: LangGraph workflow nodes
+- **`src/workflows/`**: LangGraph nodes (`memory`, `temporal`, `benchmark`, `comparison`, `agent`, `comparison_metrics`, `output` — see `app.py`)
 - **`src/agents/`**: Agent implementation
-- **`index/`**: Index building scripts
+- **`index/`**: Index building scripts (`build_index.py`, `build_geography_index.py`, etc.)
+- **`docs/`**, **`app_description/`**: Architecture and contract documentation
+- **`data/`**, **`chroma/`**, **`memory/`**, **`logs/`**: Runtime outputs and local persistence
 
 ### Learning Path
 
@@ -613,7 +615,7 @@ Before submitting code:
 
 ## Summary
 
-**Core Architecture**: Agent-first with 4-node linear workflow
+**Core Architecture**: Agent-first with gating nodes plus agent/output/memory (see `app.py`)
 **Key Pattern**: Tools → Agent → Output
 **State Management**: TypedDict with reducers
 **Testing**: pytest with integration tests

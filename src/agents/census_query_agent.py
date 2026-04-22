@@ -1,11 +1,12 @@
 import os
 import logging
 import json
-from typing import Dict, List, Any, Optional, cast
+from typing import Dict, List, Any, cast
 from dotenv import load_dotenv
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from langchain.agents import AgentExecutor
+from langchain_core.tools import BaseTool
 
 # Try to import the agent creation function for different LangChain versions
 try:
@@ -20,11 +21,11 @@ from langchain.prompts import PromptTemplate
 
 from src.llm.config import LLM_CONFIG, AGENT_PROMPT_TEMPLATE
 from src.llm.factory import create_llm
+from src.domain.final_output_contract import FinalChartSpec, FinalTableSpec
 from src.tools.geography_discovery_tool import GeographyDiscoveryTool
 from src.tools.geography_hierarchy_tool import GeographyHierarchyTool
 from src.tools.geography_validation_tool import GeographyValidationTool
 from src.tools.table_search_tool import TableSearchTool
-from src.tools.census_api_tool import CensusAPITool
 from src.tools.chart_tool import ChartTool
 from src.tools.table_tool import TableTool
 from src.tools.pattern_builder_tool import PatternBuilderTool
@@ -42,19 +43,23 @@ logger = logging.getLogger(__name__)
 
 
 class CensusData(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     success: bool
     data: List[List[Any]]
-    variables: Optional[Dict[str, str]] = None
+    variables: Dict[str, str] | None = None
 
 
 class AgentOutput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     census_data: CensusData
     data_summary: str
     reasoning_trace: str
     answer_text: str
-    charts_needed: List[Dict[str, str]] = []
-    tables_needed: List[Dict[str, str]] = []
-    footnotes: List[str] = []
+    charts_needed: list[FinalChartSpec] = Field(default_factory=list)
+    tables_needed: list[FinalTableSpec] = Field(default_factory=list)
+    footnotes: list[str] = Field(default_factory=list)
 
 
 class CensusQueryAgent:
@@ -87,20 +92,7 @@ class CensusQueryAgent:
 
         self.llm = create_llm(temperature=LLM_CONFIG["temperature"])
 
-        # Initialize tools
-        self.tools = [
-            GeographyDiscoveryTool(),
-            GeographyValidationTool(),
-            TableSearchTool(),
-            # CensusAPITool(),
-            TableTool(),
-            PatternBuilderTool(),
-            AreaResolutionTool(),
-            ChartTool(),
-            GeographyHierarchyTool(),
-            VariableValidationTool(),
-            StrictCensusApiTool(),
-        ]
+        self.tools = self._build_tools()
 
         # Create agent with compatibility for different LangChain versions
         if create_react_agent is None:
@@ -127,6 +119,46 @@ class CensusQueryAgent:
             handle_parsing_errors="Check your output format. You must output: 'Thought: I now know the final answer' followed by 'Final Answer: {valid JSON on single line}'",
             callbacks=[self.summarizer],
         )
+
+    def _build_tools(self) -> list[BaseTool]:
+        """
+        Keep Track 2 tool ownership explicit:
+        - planning_critical_tools participate in routing, validation, or retrieval contracts
+        - adapter_backed_tools can remain loose temporarily while the planning path hardens
+        """
+
+        planning_critical_tools: list[BaseTool] = [
+            GeographyValidationTool(),
+            TableSearchTool(),
+            PatternBuilderTool(),
+            AreaResolutionTool(),
+            GeographyHierarchyTool(),
+            VariableValidationTool(),
+            StrictCensusApiTool(),
+        ]
+        adapter_backed_tools: list[BaseTool] = [
+            GeographyDiscoveryTool(),
+            TableTool(),
+            ChartTool(),
+        ]
+
+        self.tool_groups = {
+            "planning_critical": [tool.name for tool in planning_critical_tools],
+            "adapter_backed": [tool.name for tool in adapter_backed_tools],
+        }
+
+        return [
+            adapter_backed_tools[0],
+            planning_critical_tools[0],
+            planning_critical_tools[1],
+            adapter_backed_tools[1],
+            planning_critical_tools[2],
+            planning_critical_tools[3],
+            adapter_backed_tools[2],
+            planning_critical_tools[4],
+            planning_critical_tools[5],
+            planning_critical_tools[6],
+        ]
 
     def _build_prompt(self):
         return PromptTemplate.from_template(AGENT_PROMPT_TEMPLATE)
@@ -327,7 +359,7 @@ class CensusQueryAgent:
             "footnotes": [],
         }
 
-    def _try_direct_json_parse(self, output: str) -> Optional[Dict]:
+    def _try_direct_json_parse(self, output: str) -> Dict | None:
         """Attempt direct JSON parsing of entire output."""
         try:
             logger.error(
@@ -468,7 +500,7 @@ class CensusQueryAgent:
             "footnotes": [],
         }
 
-    def _coerce_observation_to_dict(self, observation: Any) -> Optional[Dict[str, Any]]:
+    def _coerce_observation_to_dict(self, observation: Any) -> Dict[str, Any] | None:
         if isinstance(observation, dict):
             return observation
         if isinstance(observation, str):
@@ -482,7 +514,7 @@ class CensusQueryAgent:
                     return None
         return None
 
-    def _extract_after_final_answer(self, output: str) -> Optional[Dict]:
+    def _extract_after_final_answer(self, output: str) -> Dict | None:
         """Extract JSON after 'Final Answer:' prefix using state machine."""
         # Find "Final Answer:" marker
         marker = "Final Answer:"
@@ -558,7 +590,7 @@ class CensusQueryAgent:
 
         return parsed
 
-    def _extract_json_with_state_machine(self, text: str) -> Optional[str]:
+    def _extract_json_with_state_machine(self, text: str) -> str | None:
         """
         Extract JSON object using state machine that handles:
         - Nested objects/arrays

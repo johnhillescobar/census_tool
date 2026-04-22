@@ -7,7 +7,7 @@ import os
 import json
 import logging
 import traceback
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, List
 from pydantic import BaseModel, Field, ValidationError
 
 from dotenv import load_dotenv
@@ -32,16 +32,16 @@ class TextResponse(BaseModel):
     type: str = Field(default="text")
     text: str
     annotations: List[Any] = Field(default_factory=list)
-    id: Optional[str] = None
+    id: str | None = None
 
 
 class CategoryDetectionResult(BaseModel):
     """Structured output for category detection"""
 
-    preferred_category: Optional[str] = Field(
+    preferred_category: str | None = Field(
         None, description="One of: detail, subject, profile, cprofile, spp, or null"
     )
-    confidence: Optional[float] = Field(
+    confidence: float | None = Field(
         None, ge=0.0, le=1.0, description="Confidence score between 0.0 and 1.0"
     )
     reasoning: str = Field(..., description="Explanation for the category choice")
@@ -277,7 +277,7 @@ def detect_category_with_llm(user_question: str) -> Dict[str, Any]:
 
 def boost_category_results(
     results: Dict[str, Any],
-    preferred_category: Optional[str],
+    preferred_category: str | None,
     confidence: float,
     boosts_amount: float = 0.05,
 ) -> Dict[str, Any]:

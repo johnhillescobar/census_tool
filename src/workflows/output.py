@@ -4,7 +4,7 @@ import pandas as pd
 from typing import Dict, Any
 from langchain_core.runnables import RunnableConfig
 
-from src.state.types import CensusState
+from src.state.types import CensusState, FinalResponseState
 from src.tools.chart_tool import ChartTool
 from src.tools.table_tool import TableTool
 
@@ -265,10 +265,10 @@ def output_node(state: CensusState, config: RunnableConfig) -> Dict[str, Any]:
     Generate charts and tables from census data
     """
 
-    final_result = state.final or {}
-    charts_needed = final_result.get("charts_needed", [])
-    tables_needed = final_result.get("tables_needed", [])
-    census_data = state.artifacts.get("census_data", {})
+    final_result = state.final or FinalResponseState()
+    charts_needed = final_result.charts_needed
+    tables_needed = final_result.tables_needed
+    census_data = state.artifacts.census_data if state.artifacts else {}
 
     generated_files = []
 
@@ -278,12 +278,11 @@ def output_node(state: CensusState, config: RunnableConfig) -> Dict[str, Any]:
         for chart_spec in charts_needed:
             try:
                 # Determine parameters
-                chart_params = get_chart_params(
-                    census_data, chart_spec.get("type", "bar")
-                )
+                chart_params = get_chart_params(census_data, chart_spec.type)
+                chart_title = chart_spec.title or chart_params["title"]
 
                 logger.info("=== output_node Chart Generation ===")
-                logger.info(f"Chart type: {chart_spec.get('type', 'bar')}")
+                logger.info(f"Chart type: {chart_spec.type}")
                 logger.info(
                     f"Chart params: x={chart_params['x_column']}, y={chart_params['y_column']}"
                 )
@@ -323,10 +322,10 @@ def output_node(state: CensusState, config: RunnableConfig) -> Dict[str, Any]:
 
                 # Call the tool with proper JSON format
                 chart_input = {
-                    "chart_type": chart_spec.get("type", "bar"),
+                    "chart_type": chart_spec.type,
                     "x_column": chart_params["x_column"],
                     "y_column": chart_params["y_column"],
-                    "title": chart_params["title"],
+                    "title": chart_title,
                     "data": census_data,
                 }
                 # Add color_column if multi-series was detected
@@ -347,9 +346,9 @@ def output_node(state: CensusState, config: RunnableConfig) -> Dict[str, Any]:
                 result = table_tool._run(
                     json.dumps(
                         {
-                            "format": table_spec.get("format", "csv"),
-                            "filename": table_spec.get("filename"),
-                            "title": table_spec.get("title", "Census Data"),
+                            "format": table_spec.format,
+                            "filename": table_spec.filename,
+                            "title": table_spec.title or "Census Data",
                             "data": census_data,
                         }
                     )
@@ -360,15 +359,7 @@ def output_node(state: CensusState, config: RunnableConfig) -> Dict[str, Any]:
                 logger.error(f"Failed to create table: {e}")
 
     # Get existing final from state (preserve answer_text, charts_needed, etc.)
-    existing_final = state.final or {}
-
-    # Merge generated_files into existing final
-    merged_final = {
-        **existing_final,
-        "generated_files": generated_files,
-    }
-
     return {
-        "final": merged_final,
+        "final": final_result.model_copy(update={"generated_files": generated_files}),
         "logs": [f"output: generated {len(generated_files)} files"],
     }

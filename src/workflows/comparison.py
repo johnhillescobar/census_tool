@@ -1,97 +1,72 @@
 from typing import Any
 
 from langchain_core.runnables import RunnableConfig
-from pydantic import BaseModel, Field
 
-from src.domain.benchmark_contract import BenchmarkIntent
-from src.domain.temporal_contract import TemporalIntent
+from src.domain.benchmark_contract import BenchmarkResolved
+from src.domain.temporal_contract import TemporalResolved
 from src.services.comparison_plan_policy import resolve_comparison_plan
-from src.state.types import CensusState
-
-class ComparisonWorkflowPlan(BaseModel):
-    temporal: dict[str, Any] | None = None
-    benchmark: dict[str, Any] | None = None
-    comparison: dict[str, Any] | None = None
-    requires_clarification: bool
-
-
-class FinalPayload(BaseModel):
-    answer_text: str
-    charts_needed: list[dict[str, Any]] = Field(default_factory=list)
-    tables_needed: list[dict[str, Any]] = Field(default_factory=list)
-    footnotes: list[str] = Field(default_factory=list)
-
-
-class ComparisonNodeOutput(BaseModel):
-    plan: ComparisonWorkflowPlan
-    final: FinalPayload | None = None
-    logs: list[str] = Field(default_factory=list)
+from src.state.types import CensusState, WorkflowPlanState
 
 
 def comparison_node(state: CensusState, config: RunnableConfig) -> dict[str, Any]:
-    existing_plan = state.plan or {}
-    temporal_plan = existing_plan.get("temporal")
-    benchmark_plan = existing_plan.get("benchmark")
+    existing_plan = state.plan
+    temporal_plan = existing_plan.temporal if existing_plan else None
+    benchmark_plan = existing_plan.benchmark if existing_plan else None
 
-    if existing_plan.get("requires_clarification"):
-        output = ComparisonNodeOutput(
-            plan=ComparisonWorkflowPlan(
+    if existing_plan and existing_plan.requires_clarification:
+        return {
+            "plan": WorkflowPlanState(
                 temporal=temporal_plan,
                 benchmark=benchmark_plan,
                 comparison=None,
                 requires_clarification=True,
             ),
-            logs=["comparison: skipped (clarification required)"],
-        )
-        return output.model_dump(exclude_none=True)
+            "logs": ["comparison: skipped (clarification required)"],
+        }
 
     if not temporal_plan or not benchmark_plan:
-        output = ComparisonNodeOutput(
-            plan=ComparisonWorkflowPlan(
+        return {
+            "plan": WorkflowPlanState(
                 temporal=temporal_plan,
                 benchmark=benchmark_plan,
                 comparison=None,
                 requires_clarification=True,
             ),
-            logs=["comparison: missing temporal/benchmark plan"],
-        )
-        return output.model_dump(exclude_none=True)
+            "logs": ["comparison: missing temporal/benchmark plan"],
+        }
 
-    if benchmark_plan.get("status") == "not_applicable":
-        output = ComparisonNodeOutput(
-            plan=ComparisonWorkflowPlan(
+    if benchmark_plan.status == "not_applicable":
+        return {
+            "plan": WorkflowPlanState(
                 temporal=temporal_plan,
                 benchmark=benchmark_plan,
                 comparison=None,
                 requires_clarification=False,
             ),
-            logs=["comparison: skipped (benchmark not applicable)"],
-        )
-        return output.model_dump(exclude_none=True)
+            "logs": ["comparison: skipped (benchmark not applicable)"],
+        }
 
-    if temporal_plan.get("status") != "resolved" or benchmark_plan.get("status") != "resolved":
-        output = ComparisonNodeOutput(
-            plan=ComparisonWorkflowPlan(
+    if not isinstance(temporal_plan, TemporalResolved) or not isinstance(
+        benchmark_plan, BenchmarkResolved
+    ):
+        return {
+            "plan": WorkflowPlanState(
                 temporal=temporal_plan,
                 benchmark=benchmark_plan,
                 comparison=None,
                 requires_clarification=True,
             ),
-            logs=["comparison: upstream plan unresolved"],
-        )
-        return output.model_dump(exclude_none=True)
+            "logs": ["comparison: upstream plan unresolved"],
+        }
 
-    temporal_intent = TemporalIntent.model_validate(temporal_plan.get("time", {}))
-    benchmark_intent = BenchmarkIntent.model_validate(benchmark_plan.get("benchmark", {}))
-    comparison = resolve_comparison_plan(benchmark_intent, temporal_intent)
+    comparison = resolve_comparison_plan(benchmark_plan.benchmark, temporal_plan.time)
 
-    output = ComparisonNodeOutput(
-        plan=ComparisonWorkflowPlan(
+    return {
+        "plan": WorkflowPlanState(
             temporal=temporal_plan,
             benchmark=benchmark_plan,
-            comparison=comparison.model_dump(),
+            comparison=comparison,
             requires_clarification=False,
         ),
-        logs=["comparison: resolved"],
-    )
-    return output.model_dump(exclude_none=True)
+        "logs": ["comparison: resolved"],
+    }

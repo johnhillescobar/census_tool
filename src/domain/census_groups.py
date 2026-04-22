@@ -7,7 +7,7 @@ import requests
 import logging
 import sys
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List
 
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
@@ -55,7 +55,7 @@ class CensusGroupsAPI:
 
     def fetch_group_details(
         self, dataset: str, year: int, group_code: str
-    ) -> Optional[Dict]:
+    ) -> Dict | None:
         """
         Fetch detailed metadata for a specific group/table
 

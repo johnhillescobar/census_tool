@@ -35,34 +35,35 @@ def create_viz_graph(compiled_graph):
 
 
 def _route_after_temporal(state: CensusState) -> str:
-    plan = state.plan or {}
-    if plan.get("requires_clarification"):
+    plan = state.plan
+    if plan and plan.requires_clarification:
         return "output"
     return "benchmark"
 
 
 def _route_after_benchmark(state: CensusState) -> str:
-    plan = state.plan or {}
-    if plan.get("requires_clarification"):
+    plan = state.plan
+    if plan and plan.requires_clarification:
         return "output"
-    benchmark_plan = plan.get("benchmark") or {}
-    if benchmark_plan.get("status") == "not_applicable":
+    benchmark_plan = plan.benchmark if plan else None
+    if benchmark_plan and benchmark_plan.status == "not_applicable":
         return "agent"
     return "comparison"
 
 
 def _route_after_comparison(state: CensusState) -> str:
-    plan = state.plan or {}
-    if plan.get("requires_clarification"):
+    plan = state.plan
+    if plan and plan.requires_clarification:
         return "output"
     return "agent"
 
 
 def _route_after_agent(state: CensusState) -> str:
-    plan = state.plan or {}
-    if plan.get("requires_clarification"):
+    plan = state.plan
+    if plan and plan.requires_clarification:
         return "output"
     return "comparison_metrics"
+
 
 def create_census_graph():
     # Reducers are defined on CensusState via Annotated types (see src/state/types.py).

@@ -3,7 +3,11 @@ import logging
 from typing import Dict, Any
 from langchain_core.runnables import RunnableConfig
 
-from src.state.types import CensusState
+from src.state.types import (
+    CensusState,
+    FinalResponseState,
+    WorkflowArtifactsState,
+)
 from src.agents.census_query_agent import CensusQueryAgent
 from src.llm.intent_enhancer import generate_llm_answer
 
@@ -17,8 +21,8 @@ def agent_reasoning_node(state: CensusState, config: RunnableConfig) -> Dict[str
     # Agent expects intent dict - create basic one if not exists
     intent = state.intent or {"is_census": True, "topic": "general"}
 
-    plan = state.plan or {}
-    if plan.get("requires_clarification"):
+    plan = state.plan
+    if plan and plan.requires_clarification:
         return {"logs": ["agent: skipped (clarification required)"]}
 
     agent = CensusQueryAgent()
@@ -71,17 +75,20 @@ def agent_reasoning_node(state: CensusState, config: RunnableConfig) -> Dict[str
                 "This tool is for informational purposes only. Verify critical data at census.gov.",
             ]
 
+    existing_final = state.final or FinalResponseState()
+
     return {
-        "artifacts": {
-            "census_data": result.get("census_data", {}),
-            "data_summary": result.get("data_summary", ""),
-            "reasoning_trace": result.get("reasoning_trace", ""),
-        },
-        "final": {
-            "answer_text": answer_text,
-            "charts_needed": result.get("charts_needed", []),
-            "tables_needed": result.get("tables_needed", []),
-            "footnotes": footnotes,
-        },
+        "artifacts": WorkflowArtifactsState(
+            census_data=result.get("census_data", {}),
+            data_summary=result.get("data_summary", ""),
+            reasoning_trace=result.get("reasoning_trace", ""),
+        ),
+        "final": FinalResponseState(
+            answer_text=answer_text,
+            charts_needed=result.get("charts_needed", []),
+            tables_needed=result.get("tables_needed", []),
+            footnotes=footnotes,
+            generated_files=existing_final.generated_files,
+        ),
         "logs": ["agent: completed reasoning with data"],
     }

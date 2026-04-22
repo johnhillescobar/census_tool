@@ -8,7 +8,7 @@ import pickle
 import urllib.parse
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 import requests
 import us
@@ -152,7 +152,7 @@ class GeographyRegistry:
         dataset: str,
         year: int,
         geo_token: str,
-        parent_geo: Optional[Dict[str, Any]] = None,
+        parent_geo: Dict[str, Any] | None = None,
         force_refresh: bool = False,
     ) -> Dict[str, Dict[str, Any]]:
         """
@@ -363,7 +363,7 @@ class GeographyRegistry:
         dataset: str,
         year: int,
         geo_token: str = "american indian area/alaska native area/hawaiian home land",
-        state_code: Optional[str] = None,
+        state_code: str | None = None,
         force_refresh: bool = False,
     ) -> Dict[str, Dict[str, Any]]:
         """
@@ -508,8 +508,8 @@ class GeographyRegistry:
         dataset: str,
         year: int,
         geo_token: str = "american indian area/alaska native area/hawaiian home land",
-        state_code: Optional[str] = None,
-    ) -> Optional[Dict[str, Any]]:
+        state_code: str | None = None,
+    ) -> Dict[str, Any] | None:
         """
         Resolve tribal area name to Census code with fuzzy matching
 
@@ -589,7 +589,7 @@ class GeographyRegistry:
         dataset: str,
         year: int,
         geo_token: str,
-        state_code: Optional[str] = None,
+        state_code: str | None = None,
     ) -> None:
         """
         Pre-cache tribal areas for faster lookups
@@ -735,7 +735,7 @@ class GeographyRegistry:
         area_type: str,
         dataset: str,
         year: int,
-    ) -> Optional[Dict[str, Any]]:
+    ) -> Dict[str, Any] | None:
         """
         Resolve statistical area name to Census code with fuzzy matching
 
@@ -983,8 +983,8 @@ class GeographyRegistry:
         geo_token: str,
         dataset: str,
         year: int,
-        parent_geo: Optional[Dict[str, Any]] = None,
-    ) -> Optional[Dict[str, Any]]:
+        parent_geo: Dict[str, Any] | None = None,
+    ) -> Dict[str, Any] | None:
         """
         Find Census code for a friendly geography name
 

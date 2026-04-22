@@ -234,5 +234,3 @@ def test_row_geo_must_be_within_plan_subject_geos():
 
     with pytest.raises(ValueError, match="row geo_id is outside plan.subject_geos"):
         compute_comparison_metrics(request)
-
-

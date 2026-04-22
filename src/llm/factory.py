@@ -5,7 +5,7 @@ Handles provider-specific initialization and API compatibility
 
 import os
 import logging
-from typing import Any, Optional
+from typing import Any
 from langchain_openai import ChatOpenAI
 
 from src.llm.config import LLM_CONFIG
@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 ENABLE_FACTORY = True
 
 
-def create_llm(temperature: Optional[float] = None, **kwargs) -> Any:
+def create_llm(temperature: float | None = None, **kwargs) -> Any:
     """
     Central LLM factory supporting OpenAI, Anthropic, and Google Gemini
 
@@ -244,7 +244,7 @@ def _create_gemini_llm(model: str, temperature: float, **kwargs) -> Any:
     )
 
 
-def create_llm_with_fallback(temperature: Optional[float] = None, **kwargs) -> Any:
+def create_llm_with_fallback(temperature: float | None = None, **kwargs) -> Any:
     """
     Create LLM with automatic fallback on failure
 

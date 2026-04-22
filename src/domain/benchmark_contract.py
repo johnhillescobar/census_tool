@@ -50,7 +50,7 @@ BenchmarkClarificationReason = Literal[
 # Create the BenchmarkIntent model and add validation for the fields.
 class BenchmarkIntent(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    
+
     benchmark_type: BenchmarkType
     subject_geo_level: GeographyLevel = Field(
         ..., description="The level of the subject geography."
@@ -135,9 +135,7 @@ class BenchmarkIntent(BaseModel):
 
         elif self.benchmark_type == "historical_baseline":
             # baseline comparison against prior period/anchor; geography may be present
-            raise ValueError(
-                "historical_baseline not yet implemented in Track 2"
-                )
+            raise ValueError("historical_baseline not yet implemented in Track 2")
 
         return self
 

@@ -1,7 +1,7 @@
 import logging
 import json
 from langchain_core.tools import BaseTool
-from typing import Optional, Dict, Literal
+from typing import Dict, Literal
 from pydantic import ConfigDict, BaseModel, Field
 
 from src.domain.geography_registry import GeographyRegistry
@@ -19,7 +19,7 @@ class GeographyDiscoveryInput(BaseModel):
     action: Literal["enumerate_areas", "list_levels"] = Field(
         ..., description="Action to perform"
     )
-    level: Optional[GeographyLevel] = Field(
+    level: GeographyLevel | None = Field(
         default=None, description="Geography level (required for enumerate)"
     )
     dataset: str = Field(
@@ -30,7 +30,7 @@ class GeographyDiscoveryInput(BaseModel):
         default=2023,
         description="Census year which is the year of the data you want to analyze",
     )
-    parent: Optional[Dict[str, str]] = Field(
+    parent: Dict[str, str] | None = Field(
         default=None, description="Parent geography constraint"
     )
 

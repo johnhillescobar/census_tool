@@ -78,9 +78,7 @@ class StrictCensusApiRequest(BaseModel):
         return normalized
 
     @field_validator("geo_in_chained")
-    def validate_geo_in_chained(
-        cls, v: list[dict[str, str]]
-    ) -> list[dict[str, str]]:
+    def validate_geo_in_chained(cls, v: list[dict[str, str]]) -> list[dict[str, str]]:
         normalized_chain: list[dict[str, str]] = []
         for in_dict in v:
             if not in_dict:
@@ -107,6 +105,7 @@ class StrictCensusApiRequest(BaseModel):
             raise ValueError(f"dataset {v} is not supported")
         return v
 
+
 class StrictCensusApiRawTable(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -118,7 +117,7 @@ class StrictCensusApiRawTable(BaseModel):
         if len(v) == 0:
             raise ValueError("headers must be non-empty")
         return v
-    
+
     @field_validator("rows")
     def validate_rows(cls, v: list[list[str]]) -> list[list[str]]:
         if len(v) == 0:
@@ -158,15 +157,20 @@ class StrictCensusApiResponse(BaseModel):
 
     success: bool = Field(..., description="Whether the request was successful.")
     request: StrictCensusApiRequest | None = Field(
-        ..., description="The validated request that was made (None when schema parsing fails)."
+        ...,
+        description="The validated request that was made (None when schema parsing fails).",
     )
     headers: list[str] = Field(..., description="The headers of the table.")
-    records: list[StrictCensusApiRecord] = Field(..., description="The records of the table.")
+    records: list[StrictCensusApiRecord] = Field(
+        ..., description="The records of the table."
+    )
     row_count: int = Field(..., description="The number of rows in the table.")
     error: StrictCensusApiErrorCode | None = Field(
         default=None, description="The error code that occurred."
     )
-    error_message: str | None = Field(default=None, description="The error message that occurred.")
+    error_message: str | None = Field(
+        default=None, description="The error message that occurred."
+    )
 
     @model_validator(mode="after")
     def validate_success(self) -> "StrictCensusApiResponse":
@@ -178,7 +182,9 @@ class StrictCensusApiResponse(BaseModel):
             if self.error_message is not None:
                 raise ValueError("error_message must be None when success is True")
             if self.row_count != len(self.records):
-                raise ValueError("row_count must equal len(records) when success is True")
+                raise ValueError(
+                    "row_count must equal len(records) when success is True"
+                )
             if len(self.headers) == 0:
                 raise ValueError("headers must be non-empty when success is True")
             return self

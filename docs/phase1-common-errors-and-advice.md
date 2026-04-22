@@ -19,7 +19,7 @@ Return type was written to describe the “happy path” only; error or stub pat
 
 ### Fix
 - Stub / error path: `return {}` or `return []` so every path returns the declared type.
-- If some paths really return “no result”, change the return type to `Optional[Dict]` (or `Dict | None`) and document when `None` is returned.
+- If some paths really return “no result”, change the return type to `Dict | None` and document when `None` is returned.
 
 ---
 
@@ -27,17 +27,17 @@ Return type was written to describe the “happy path” only; error or stub pat
 
 ### What happened
 - Parameters like `variables: List[str] = None` caused *"Expression of type None is not assignable to parameter of type List[str]"*.
-- Same idea for `intent: Dict[str, Any] = None` when the annotation was `Dict`, not `Optional[Dict]`.
+- Same idea for `intent: Dict[str, Any] = None` when the annotation was `Dict`, not `Dict | None`.
 
 ### Why it happened
 The default was added for convenience without updating the type to allow `None`.
 
 ### How to spot it early
-- For any parameter that has `= None`, the type must include `None`: use `Optional[T]` or `T | None`.
+- For any parameter that has `= None`, the type must include `None`: use `T | None`.
 - If the type stays non-optional, use a sentinel default (e.g. empty list) or require the argument.
 
 ### Fix
-- Annotate as `Optional[List[str]] = None` (or `List[str] | None = None`).
+- Annotate as `List[str] | None = None`.
 - Before using the value in a way that assumes “non-None” (e.g. `",".join(variables)`), add a guard: `if not variables: raise ValueError(...)` so the type checker can narrow the type.
 
 ---
@@ -84,7 +84,7 @@ Functions were annotated to return `Dict[str, object]` (or the checker inferred 
 
 ### What happened
 - `st.session_state.user_id` passed to a function that expects `str` → *"str | None is not assignable to str"*.
-- `match.lastindex >= 1` → *"Operator '>=' not supported for None"* (because `lastindex` is `Optional[int]`).
+- `match.lastindex >= 1` → *"Operator '>=' not supported for None"* (because `lastindex` is `int | None`).
 - `test_results["metadatas"][0]` → *"Object of type None is not subscriptable"* when `metadatas` can be missing or None.
 - `self.agent_executor.invoke(...)` → *"invoke is not a known attribute of None"* when `agent_executor` can be None.
 
@@ -234,7 +234,7 @@ Libraries use strict or recursive types (`Where`, `Metadata`) or base types (`Pa
 ## Quick checklist while coding
 
 1. **Return types**: Every code path returns a value of the declared type (or change the declaration).
-2. **Optional params**: Any `= None` parameter is typed as `Optional[T]` or `T | None`; guard before using as `T`.
+2. **Optional params**: Any `= None` parameter is typed as `T | None`; guard before using as `T`.
 3. **Third-party types**: Use the library’s interface/protocol types in annotations; use `cast` or `Any` only where the API accepts it but the stub doesn’t.
 4. **Structured returns**: Use TypedDict (or similar) for dict returns that are indexed later; avoid `Dict[str, object]` for “known shape” returns.
 5. **None safety**: Guard or default any value that can be None before using it (subscript, attribute, operator).

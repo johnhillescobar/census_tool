@@ -1,38 +1,20 @@
-import json
 import logging
-from typing import Optional
+from typing import Any, Type
 
+from langchain.callbacks.manager import (
+    AsyncCallbackManagerForToolRun,
+    CallbackManagerForToolRun,
+)
 from langchain_core.tools import BaseTool
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ValidationError
 
+from src.domain.planning_tool_contracts import (
+    VariableValidationRequest,
+    VariableValidationResponse,
+)
 from src.services.variable_validator import list_variables, validate_variables
-from src.tools.json_parse import parse_first_json
 
 logger = logging.getLogger(__name__)
-
-
-class VariableValidationInput(BaseModel):
-    action: str = Field(
-        default="validate_variables",
-        description="Operation to perform: validate_variables or list_variables",
-    )
-    dataset: str = Field(..., description="Dataset path such as acs/acs5")
-    year: int = Field(..., description="Census year")
-    variables: Optional[list[str]] = Field(
-        default=None,
-        description="Variables to validate (required for validate_variables)",
-    )
-    table_code: Optional[str] = Field(
-        default=None,
-        description="Optional table code prefix (e.g., B01003) when listing variables",
-    )
-    concept: Optional[str] = Field(
-        default=None,
-        description="Optional concept filter when listing variables",
-    )
-    limit: Optional[int] = Field(
-        default=20, description="Maximum number of variables to return for list action"
-    )
 
 
 class VariableValidationTool(BaseTool):
@@ -54,23 +36,46 @@ class VariableValidationTool(BaseTool):
     - limit: Optional max count for list_variables (default 20)
     """
 
-    model_config = ConfigDict(arbitrary_types_allowed=True)
+    args_schema: Type[BaseModel] = VariableValidationRequest
 
-    def _run(self, tool_input: str) -> str:
+    def _error_response(
+        self,
+        request: VariableValidationRequest | None,
+        error_code: str,
+        error_message: str,
+    ) -> VariableValidationResponse:
+        action = request.action if request else "validate_variables"
+        return VariableValidationResponse(
+            success=False,
+            request=request,
+            action=action,
+            warnings=[],
+            error=error_code,
+            error_message=error_message,
+        )
+
+    def _coerce_request(
+        self, tool_input: VariableValidationRequest | str | dict[str, Any]
+    ) -> VariableValidationRequest:
+        if isinstance(tool_input, VariableValidationRequest):
+            return tool_input
+        if isinstance(tool_input, str):
+            return VariableValidationRequest.model_validate_json(tool_input)
+        return VariableValidationRequest.model_validate(tool_input)
+
+    def _run(
+        self,
+        tool_input: VariableValidationRequest | str | dict[str, Any],
+        run_manager: CallbackManagerForToolRun | None = None,
+    ) -> VariableValidationResponse:
         try:
-            params = (
-                parse_first_json(tool_input)
-                if isinstance(tool_input, str)
-                else tool_input
+            payload = self._coerce_request(tool_input)
+        except ValidationError as exc:
+            return self._error_response(
+                request=None,
+                error_code="INVALID_INPUT_SCHEMA",
+                error_message=str(exc),
             )
-        except json.JSONDecodeError as exc:
-            return f"Error: Invalid JSON input - {exc}"
-
-        try:
-            payload = VariableValidationInput(**params)
-        except Exception as exc:
-            logger.error("Variable validation input error: %s", exc)
-            return f"Error: {exc}"
 
         if payload.action == "list_variables":
             try:
@@ -79,15 +84,22 @@ class VariableValidationTool(BaseTool):
                     year=payload.year,
                     table_code=payload.table_code,
                     concept=payload.concept,
-                    limit=payload.limit or 20,
+                    limit=payload.limit,
                 )
             except Exception as exc:
                 logger.error("list_variables failed: %s", exc)
-                return f"Error: list_variables failed - {exc}"
-            return json.dumps(result)
-
-        if payload.variables is None:
-            return "Error: 'variables' field is required for validate_variables action."
+                return self._error_response(
+                    request=payload,
+                    error_code="VARIABLE_LOOKUP_FAILED",
+                    error_message=f"list_variables failed - {exc}",
+                )
+            return VariableValidationResponse(
+                success=True,
+                request=payload,
+                action=payload.action,
+                count=result["count"],
+                variables=result["variables"],
+            )
 
         try:
             result = validate_variables(
@@ -97,9 +109,31 @@ class VariableValidationTool(BaseTool):
             )
         except Exception as exc:
             logger.error("validate_variables failed: %s", exc)
-            return f"Error: validate_variables failed - {exc}"
+            return self._error_response(
+                request=payload,
+                error_code="VARIABLE_LOOKUP_FAILED",
+                error_message=f"validate_variables failed - {exc}",
+            )
 
-        return json.dumps(result)
+        return VariableValidationResponse(
+            success=True,
+            request=payload,
+            action=payload.action,
+            valid=result["valid"],
+            invalid=result["invalid"],
+            years_available=result["years_available"],
+            details=result["details"],
+            alternatives=result["alternatives"],
+            source=result["source"],
+            warnings=result["warnings"],
+        )
+
+    async def _arun(
+        self,
+        tool_input: VariableValidationRequest | str | dict[str, Any],
+        run_manager: AsyncCallbackManagerForToolRun | None = None,
+    ) -> VariableValidationResponse:
+        return self._run(tool_input)
 
 
 __all__ = ["VariableValidationTool"]

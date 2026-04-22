@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import logging
 from functools import lru_cache
-from typing import Dict, Iterable, List, Optional, Tuple, TypedDict, cast
+from typing import Dict, Iterable, List, Tuple, TypedDict, cast
 
 import requests
 from chromadb.types import Where
@@ -52,7 +52,7 @@ class VariableListResponse(TypedDict):
     variables: List[VariableListItem]
 
 
-def _split_years(years_value: Optional[str]) -> List[str]:
+def _split_years(years_value: str | None) -> List[str]:
     if not years_value:
         return []
     if isinstance(years_value, (list, tuple)):
@@ -113,7 +113,7 @@ def _score_candidate(
 
 def _suggest_alternatives(
     variable: str,
-    target_meta: Optional[Dict],
+    target_meta: Dict | None,
     catalog: Dict[str, Dict],
     max_results: int = 5,
 ) -> List[str]:
@@ -327,8 +327,8 @@ def validate_variables(
 def list_variables(
     dataset: str,
     year: int,
-    table_code: Optional[str] = None,
-    concept: Optional[str] = None,
+    table_code: str | None = None,
+    concept: str | None = None,
     limit: int = 20,
 ) -> VariableListResponse:
     """

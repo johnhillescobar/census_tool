@@ -1,6 +1,15 @@
-from pydantic import BaseModel, Field
-from typing import Annotated, List, Dict, Optional, Any
 import operator
+from typing import Annotated, Any, Dict, List, Literal
+
+from pydantic import BaseModel, ConfigDict, Field
+
+from src.domain.benchmark_contract import (
+    BenchmarkClarificationRequired,
+    BenchmarkResolved,
+)
+from src.domain.comparison_plan import ComparisonPlan
+from src.domain.final_output_contract import FinalChartSpec, FinalTableSpec
+from src.domain.temporal_contract import TemporalResolution
 
 
 def _merge_dict(existing: Dict[str, Any], new: Dict[str, Any]) -> Dict[str, Any]:
@@ -14,17 +23,81 @@ def _merge_dict(existing: Dict[str, Any], new: Dict[str, Any]) -> Dict[str, Any]
     return out
 
 
+class BenchmarkNotApplicable(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    status: Literal["not_applicable"] = Field(default="not_applicable")
+    reason: str = Field(..., description="Why benchmark logic was skipped.")
+
+
+BenchmarkWorkflowState = Annotated[
+    BenchmarkResolved | BenchmarkClarificationRequired | BenchmarkNotApplicable,
+    Field(discriminator="status"),
+]
+
+
+class WorkflowPlanState(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    temporal: TemporalResolution | None = None
+    benchmark: BenchmarkWorkflowState | None = None
+    comparison: ComparisonPlan | None = None
+    requires_clarification: bool = False
+
+
+class FinalResponseState(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    answer_text: str = ""
+    charts_needed: list[FinalChartSpec] = Field(default_factory=list)
+    tables_needed: list[FinalTableSpec] = Field(default_factory=list)
+    footnotes: list[str] = Field(default_factory=list)
+    generated_files: list[str] = Field(default_factory=list)
+
+
+class WorkflowArtifactsState(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    census_data: dict[str, Any] = Field(default_factory=dict)
+    data_summary: str = ""
+    reasoning_trace: str = ""
+    comparison_input_rows: list[dict[str, Any]] = Field(default_factory=list)
+    comparison_metrics: list[dict[str, Any]] = Field(default_factory=list)
+
+
+def _coerce_artifacts(
+    value: WorkflowArtifactsState | Dict[str, Any] | None,
+) -> WorkflowArtifactsState:
+    if value is None:
+        return WorkflowArtifactsState()
+    if isinstance(value, WorkflowArtifactsState):
+        return value
+    return WorkflowArtifactsState.model_validate(value)
+
+
+def _merge_artifacts(
+    existing: WorkflowArtifactsState | Dict[str, Any] | None,
+    new: WorkflowArtifactsState | Dict[str, Any] | None,
+) -> WorkflowArtifactsState:
+    existing_model = _coerce_artifacts(existing)
+    new_model = _coerce_artifacts(new)
+
+    merged = existing_model.model_dump()
+    merged.update(new_model.model_dump(exclude_defaults=True))
+    return WorkflowArtifactsState.model_validate(merged)
+
+
 # Define the state schema (Annotated reducers are used by LangGraph for append/merge semantics)
 class CensusState(BaseModel):
     # Core conversation data
     messages: Annotated[List[Dict[str, Any]], operator.add] = Field(
         default_factory=list, description="Chat turns; reducer: append"
     )
-    original_query: Optional[str] = Field(
+    original_query: str | None = Field(
         None,
         description="Original user query (preserved for pattern matching); reducer: overwrite",
     )
-    intent: Optional[Dict[str, Any]] = Field(
+    intent: Dict[str, Any] | None = Field(
         None, description="Intent analysis; reducer: overwrite"
     )
     geo: Dict[str, Any] = Field(
@@ -33,14 +106,14 @@ class CensusState(BaseModel):
     candidates: Dict[str, Any] = Field(
         default_factory=dict, description="Candidate variables; reducer: overwrite"
     )
-    plan: Optional[Dict[str, Any]] = Field(
+    plan: WorkflowPlanState | None = Field(
         None, description="Query plan; reducer: overwrite"
     )
-    artifacts: Annotated[Dict[str, Any], _merge_dict] = Field(
-        default_factory=dict,
+    artifacts: Annotated[WorkflowArtifactsState, _merge_artifacts] = Field(
+        default_factory=WorkflowArtifactsState,
         description="Dataset and preview handles; reducer: merge dictionaries",
     )
-    final: Optional[Dict[str, Any]] = Field(
+    final: FinalResponseState | None = Field(
         None, description="Final answer; reducer: overwrite"
     )
 
@@ -48,10 +121,8 @@ class CensusState(BaseModel):
     logs: Annotated[List[str], operator.add] = Field(
         default_factory=list, description="System logs; reducer: append"
     )
-    error: Optional[str] = Field(None, description="Error message; reducer: overwrite")
-    summary: Optional[str] = Field(
-        None, description="Message summary; reducer: overwrite"
-    )
+    error: str | None = Field(None, description="Error message; reducer: overwrite")
+    summary: str | None = Field(None, description="Message summary; reducer: overwrite")
 
     # Memory and persistence
     profile: Annotated[Dict[str, Any], _merge_dict] = Field(
@@ -91,11 +162,9 @@ class GeographyRequest(BaseModel):
     entities: List[GeographyEntity] = Field(
         default_factory=list, description="Extracted geography entities"
     )
-    requested_level: Optional[str] = Field(
-        None, description="Requested geography level"
-    )
-    state_context: Optional[str] = Field(None, description="State context if provided")
-    user_id: Optional[str] = Field(None, description="User ID for caching")
+    requested_level: str | None = Field(None, description="Requested geography level")
+    state_context: str | None = Field(None, description="State context if provided")
+    user_id: str | None = Field(None, description="User ID for caching")
 
 
 class ResolvedGeography(BaseModel):

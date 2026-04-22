@@ -686,33 +686,76 @@ uv sync
 ```
 
 ### 7.3 Directory Structure
+
+Reference layout for the current tree (aligned with the repo as of 2026; omit local caches and `__pycache__`):
+
 ```
 census_tool/
+├── app_description/          # Specs: ARCHITECTURE.md, geography_summaries/, langchain_migration/, output_format_docs/
+├── app_test_scripts/         # pytest suite
+├── articles/
+├── chroma/                   # ChromaDB persistence (local / runtime)
+├── data/                     # Downloads and generated outputs (runtime)
+│   ├── charts/               # Plotly/static charts from ChartTool
+│   ├── geography_cache/
+│   ├── geography_levels_cache/
+│   └── tables/
+├── docs/                     # typed_contracts.md, track notes, notebooks
+├── index/
+│   ├── build_index.py
+│   ├── build_index_table.py
+│   ├── build_geography_index.py
+│   └── read_query.py
+├── logs/                     # cli, streamlit, chroma, test logs
+├── memory/                   # User/session artifacts
+├── migration_evidence/       # Baselines and migration evidence packs
 ├── src/
-│   ├── workflows/
-│   │   ├── agent.py          # ACTIVE
-│   │   ├── output.py         # ACTIVE
-│   │   ├── memory.py         # ACTIVE
 │   ├── agents/
-│   │   ├── census_query_agent.py  # ACTIVE
-│   ├── domain/
-│   │   ├── geography_registry.py, geo_utils.py, text_utils.py
+│   │   └── census_query_agent.py
+│   ├── api/
+│   │   └── displays.py
 │   ├── clients/
 │   │   ├── census_api_utils.py, chroma_utils.py, file_utils.py
+│   │   ├── pdf_generator.py, session_logger.py, telemetry.py
+│   ├── domain/
+│   │   ├── geography_registry.py, geo_utils.py, text_utils.py, time_utils.py, census_groups.py
+│   │   ├── census_tool_contract.py, census_client_contract.py
+│   │   ├── temporal_contract.py, benchmark_contract.py, comparison_plan.py
+│   │   └── clarification_templates.py
+│   ├── llm/
+│   │   ├── config.py, factory.py, factory_legacy.py
+│   │   ├── category_detector.py, geography_resolver.py, intent_enhancer.py
+│   ├── locations/            # e.g. states_abbrev.csv, counties_processed.csv
 │   ├── services/
-│   │   ├── memory_utils.py, variable_validator.py, footnote_generator.py
-│   ├── tools/
-│   │   ├── census_api_tool.py, chart_tool.py, table_tool.py
-│   │   ├── geography_discovery_tool.py, area_resolution_tool.py
+│   │   ├── dataset_geography_validator.py, variable_validator.py, enumeration_detector.py
+│   │   ├── memory_utils.py, temporal_policy.py, benchmark_policy.py
+│   │   ├── comparison_plan_policy.py, comparison_metric_compute.py
+│   │   ├── dataframe_utils.py, conversation_summarizer.py, footnote_generator.py
 │   ├── state/
-│   │   ├── types.py
-├── outputs/
-│   ├── charts/               # NEW
-│   ├── tables/               # NEW
-│   ├── reports/              # NEW
-├── app.py                    # ACTIVE graph wiring
-├── main.py                   # ACTIVE CLI entry
+│   │   └── types.py
+│   ├── tools/
+│   │   ├── geography_discovery_tool.py, geography_validation_tool.py, geography_hierarchy_tool.py
+│   │   ├── area_resolution_tool.py, pattern_builder_tool.py
+│   │   ├── table_search_tool.py, table_validation_tool.py, variable_validation_tool.py
+│   │   ├── strict_census_api_tool.py, census_api_tool.py, json_parse.py, geography_schemas.py
+│   │   ├── chart_tool.py, table_tool.py
+│   ├── workflows/
+│   │   ├── memory.py, agent.py, output.py
+│   │   ├── temporal.py, benchmark.py, comparison.py, comparison_metrics.py
+│   └── __init__.py
+├── test_questions/
+├── app.py                    # StateGraph: memory_load → temporal → … → memory_write
+├── config.py
+├── launcher.py
+├── main.py
+├── streamlit_app.py
+├── pyproject.toml
+├── README.md
+├── ARCHITECTURE_GUIDE.md
+└── USAGE_GUIDE.md
 ```
+
+**Note:** Chart/table files are written under `data/` (e.g. `data/charts/`), not a top-level `outputs/` tree. PDF export for Streamlit uses `src/clients/pdf_generator.py`, not a `PDFTool` under `src/tools/`.
 
 ---
 

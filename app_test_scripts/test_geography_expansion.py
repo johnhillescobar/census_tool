@@ -3,7 +3,6 @@ Tests for expanded geography support (tribal areas, statistical areas, validatio
 """
 
 import pytest
-import json
 from src.domain.geography_registry import GeographyRegistry
 from src.clients.chroma_utils import (
     validate_geography_hierarchy,
@@ -347,21 +346,19 @@ def test_geography_validation_tool_valid_params(monkeypatch):
         fake_validate_hierarchy,
     )
 
-    input_json = json.dumps(
-        {
-            "dataset": "acs/acs5",
-            "year": 2023,
-            "geo_for": {"county": "*"},
-            "geo_in": {"state": "06"},
-        }
-    )
+    payload = {
+        "dataset": "acs/acs5",
+        "year": 2023,
+        "geo_for": {"county": "*"},
+        "geo_in": {"state": "06"},
+    }
 
-    result = tool._run(input_json)
-    result_dict = json.loads(result)
+    response = tool._run(payload)
 
-    assert result_dict["is_valid"] is True
-    assert len(result_dict["errors"]) == 0
-    assert result_dict["repaired_for"] == {"county": "*"}
+    assert response.success is True
+    assert response.is_valid is True
+    assert len(response.errors) == 0
+    assert response.repaired_for == {"county": "*"}
 
 
 def test_geography_validation_tool_missing_parent(monkeypatch):
@@ -382,16 +379,19 @@ def test_geography_validation_tool_missing_parent(monkeypatch):
         fake_validate_hierarchy,
     )
 
-    input_json = json.dumps(
-        {"dataset": "acs/acs5", "year": 2023, "geo_for": {"county": "*"}, "geo_in": {}}
-    )
+    payload = {
+        "dataset": "acs/acs5",
+        "year": 2023,
+        "geo_for": {"county": "*"},
+        "geo_in": {},
+    }
 
-    result = tool._run(input_json)
-    result_dict = json.loads(result)
+    response = tool._run(payload)
 
-    assert result_dict["is_valid"] is False
-    assert len(result_dict["errors"]) > 0
-    assert "Missing required parent geography" in result_dict["errors"][0]
+    assert response.success is True
+    assert response.is_valid is False
+    assert len(response.errors) > 0
+    assert "Missing required parent geography" in response.errors[0]
 
 
 # ============================================================================

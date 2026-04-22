@@ -2,7 +2,6 @@ from typing import Annotated, Literal, Union
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
-
 TemporalMode = Literal[
     "point_in_time",
     "range",

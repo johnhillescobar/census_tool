@@ -48,7 +48,9 @@ def _combine_geo_in(
     return combined
 
 
-def _build_query_params(variables: list[str], geo: dict[str, Any]) -> CensusApiQueryParams:
+def _build_query_params(
+    variables: list[str], geo: dict[str, Any]
+) -> CensusApiQueryParams:
     filters = geo.get("filters", {})
     return CensusApiQueryParams.model_validate(
         {
@@ -243,7 +245,9 @@ def fetch_census_data_typed(
             )
 
         except requests.exceptions.RequestException as exc:
-            logger.error("Census API request exception on attempt %s: %s", attempt_number, exc)
+            logger.error(
+                "Census API request exception on attempt %s: %s", attempt_number, exc
+            )
             if attempt == CENSUS_API_MAX_RETRIES - 1:
                 return _build_failure(
                     url=request_url,
@@ -281,7 +285,10 @@ def fetch_census_data(
     if typed_result.success is not None:
         return {
             "success": True,
-            "data": [typed_result.success.table.headers, *typed_result.success.table.rows],
+            "data": [
+                typed_result.success.table.headers,
+                *typed_result.success.table.rows,
+            ],
             "url": typed_result.success.url,
             "attempt": typed_result.success.attempt,
         }

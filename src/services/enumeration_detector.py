@@ -11,7 +11,7 @@ Examples:
 
 import logging
 import re
-from typing import Dict, Any, Optional
+from typing import Dict, Any
 from dataclasses import dataclass
 
 logger = logging.getLogger(__name__)
@@ -23,7 +23,7 @@ class EnumerationRequest:
 
     needs_enumeration: bool
     summary_level: str  # "county", "place", "tract", etc.
-    parent_geography: Optional[Dict[str, str]] = None  # e.g., {"state": "06"}
+    parent_geography: Dict[str, str] | None = None  # e.g., {"state": "06"}
     confidence: float = 0.0
     reason: str = ""
 
@@ -94,7 +94,7 @@ class EnumerationDetector:
         ]
 
     def detect(
-        self, query: str, intent: Optional[Dict[str, Any]] = None
+        self, query: str, intent: Dict[str, Any] | None = None
     ) -> EnumerationRequest:
         """
         Detect if query needs enumeration
@@ -147,12 +147,12 @@ class EnumerationDetector:
             reason="No enumeration keywords found",
         )
 
-    def _normalize_geography_level(self, level: str) -> Optional[str]:
+    def _normalize_geography_level(self, level: str) -> str | None:
         """Normalize geography level name to Census API format"""
         level_lower = level.lower().strip()
         return self.GEOGRAPHY_LEVEL_MAP.get(level_lower)
 
-    def _extract_parent_geography(self, query: str) -> Optional[Dict[str, str]]:
+    def _extract_parent_geography(self, query: str) -> Dict[str, str] | None:
         """
         Extract parent geography from query
 
@@ -211,8 +211,8 @@ class EnumerationDetector:
 
 
 def detect_and_build_enumeration(
-    query: str, intent: Optional[Dict[str, Any]] = None
-) -> Optional[Dict[str, Any]]:
+    query: str, intent: Dict[str, Any] | None = None
+) -> Dict[str, Any] | None:
     """
     Convenience function: Detect enumeration and build filters
 

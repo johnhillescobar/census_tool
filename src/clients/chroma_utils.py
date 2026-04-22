@@ -5,7 +5,7 @@ Chroma database utilities for Census variable retrieval
 import json
 import logging
 from functools import lru_cache
-from typing import Dict, Iterable, List, Optional, Tuple, Union
+from typing import Dict, Iterable, List, Tuple, Union
 
 import chromadb
 from chromadb.api import ClientAPI
@@ -133,9 +133,9 @@ def validate_and_fix_geo_params(
     dataset: str,
     year: int,
     geo_for: Dict[str, str],
-    geo_in: Optional[Dict[str, str]] = None,
+    geo_in: Dict[str, str] | None = None,
     *,
-    extra_in: Optional[Iterable[Tuple[str, str]]] = None,
+    extra_in: Iterable[Tuple[str, str]] | None = None,
     validate_completeness: bool = False,
 ) -> Tuple[str, str, List[Tuple[str, str]]]:
     """

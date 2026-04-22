@@ -189,7 +189,7 @@ The output is validated using Pydantic models defined in `src/utils/agents/censu
 class CensusData(BaseModel):
     success: bool
     data: List[List[Any]]
-    variables: Optional[Dict[str, str]] = None
+    variables: Dict[str, str] | None = None
 
 class AgentOutput(BaseModel):
     census_data: CensusData

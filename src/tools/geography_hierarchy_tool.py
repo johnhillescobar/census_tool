@@ -1,6 +1,6 @@
 import json
 import logging
-from typing import Dict, List, Optional
+from typing import Dict, List
 
 from langchain_core.tools import BaseTool
 from pydantic import BaseModel, Field, ConfigDict
@@ -22,7 +22,7 @@ class GeographyHierarchyInput(BaseModel):
     dataset: str = Field(..., description="Dataset path, e.g. acs/acs5")
     year: int = Field(..., description="Census year")
     for_level: str = Field(..., description="Target geography level (e.g. county)")
-    parent_hint: Optional[List[str]] = Field(
+    parent_hint: List[str] | None = Field(
         default=None, description="Optional expected parent ordering list"
     )
     include_metadata: bool = Field(

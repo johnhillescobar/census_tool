@@ -1,5 +1,4 @@
 import logging
-from typing import Optional
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field
 
@@ -22,16 +21,14 @@ class GeographyResolution(BaseModel):
     "Structured output for geography resolution"
 
     place_name: str = Field(..., description="The standardized place name")
-    state: Optional[str] = Field(
+    state: str | None = Field(
         ..., description="State name or abbreviation if specified"
     )
-    state_fips: Optional[str] = Field(..., description="State FIPS code if resolvable")
-    place_fips: Optional[str] = Field(..., description="Place FIPS code if resolvable")
+    state_fips: str | None = Field(..., description="State FIPS code if resolvable")
+    place_fips: str | None = Field(..., description="Place FIPS code if resolvable")
     confidence: float = Field(..., description="Confidence score between 0-1")
     resolution_method: str = Field(..., description="Method used to resolve geography")
-    notes: Optional[str] = Field(
-        ..., description="Additional notes about the resolution"
-    )
+    notes: str | None = Field(..., description="Additional notes about the resolution")
 
 
 class LLMGeographyResolver:

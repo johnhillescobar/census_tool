@@ -1,6 +1,13 @@
 from typing import Any, Literal
 
-from pydantic import AnyUrl, BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import (
+    AnyUrl,
+    BaseModel,
+    ConfigDict,
+    Field,
+    field_validator,
+    model_validator,
+)
 
 from src.domain.comparison_plan import CensusDataset
 

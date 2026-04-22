@@ -2,13 +2,13 @@
 Geography resolution utility functions for the Census app
 """
 
-from typing import Dict, Any, Optional
+from typing import Dict, Any
 import logging
 
 logger = logging.getLogger(__name__)
 
 
-def _parse_filter_clause(clause: Optional[str]) -> Dict[str, str]:
+def _parse_filter_clause(clause: str | None) -> Dict[str, str]:
     """Convert a space-delimited geography clause into a dictionary."""
     if not clause:
         return {}
@@ -22,7 +22,7 @@ def _parse_filter_clause(clause: Optional[str]) -> Dict[str, str]:
 
 
 def _mapping_entry(
-    level: str, geo_for: str, *, geo_in: Optional[str] = None, note: str = ""
+    level: str, geo_for: str, *, geo_in: str | None = None, note: str = ""
 ) -> Dict[str, Any]:
     filters: Dict[str, str] = {"for": geo_for}
     if geo_in:
@@ -75,7 +75,7 @@ DEFAULT_GEO: Dict[str, Any] = _mapping_entry(
 
 
 def resolve_geography_hint(
-    geo_hint: str, profile_default_geo: Optional[Dict[str, Any]] = None
+    geo_hint: str, profile_default_geo: Dict[str, Any] | None = None
 ) -> Dict[str, Any]:
     """
     Resolve geography hint into Census API filters

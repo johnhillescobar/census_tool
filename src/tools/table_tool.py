@@ -2,7 +2,7 @@ import logging
 import json
 import pandas as pd
 from pathlib import Path
-from typing import Dict, Optional, Any, Literal
+from typing import Dict, Any, Literal
 from langchain_core.tools import BaseTool
 from pydantic import BaseModel, Field, ConfigDict
 from datetime import datetime
@@ -20,10 +20,10 @@ class TableToolInput(BaseModel):
         default="csv",
         description="Output format: 'csv' for simple export, 'excel' for Excel files, 'html' for web tables",
     )
-    filename: Optional[str] = Field(
+    filename: str | None = Field(
         default=None, description="Optional custom filename (without extension)"
     )
-    title: Optional[str] = Field(
+    title: str | None = Field(
         default="Census Data Table", description="Table title/description"
     )
     data: Dict[str, Any] = Field(

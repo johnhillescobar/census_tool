@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import Optional, Dict
+from typing import Dict
 from enum import Enum
 
 
@@ -41,7 +41,7 @@ class AreaResolutionInput(BaseModel):
         default=2023,
         description="Census year which is the year of the data you want to analyze",
     )
-    parent: Optional[Dict[str, str]] = Field(
+    parent: Dict[str, str] | None = Field(
         default=None,
         description="Parent geography or summary level like {'state': '06'} for example if you want to enumerate all counties in California, you would need to know the state code for California which is 06",
     )
@@ -59,7 +59,7 @@ class GeographyEnumerationInput(BaseModel):
         default=2023,
         description="Census year which is the year of the data you want to analyze",
     )
-    parent: Optional[Dict[str, str]] = Field(
+    parent: Dict[str, str] | None = Field(
         default=None,
         description="Parent geography constraint like {'state': '06'} for example if you want to enumerate all counties in California, you would need to know the state code for California which is 06",
     )

@@ -2,6 +2,7 @@ from src.services import resolve_benchmark_intent
 from src.domain.benchmark_contract import BenchmarkIntent
 import pytest
 
+
 def test_conflict_requires_clarification():
     result = resolve_benchmark_intent(
         "compare population baseline vs 2019 and peer group counties"
@@ -103,7 +104,9 @@ def test_fallback_ambiguous_target_for_unmapped_input():
 
 # historical_baseline rejected path in BenchmarkIntent (if not already tested)
 def test_historical_baseline_rejected_path():
-    with pytest.raises(ValueError, match="historical_baseline not yet implemented in Track 2"):
+    with pytest.raises(
+        ValueError, match="historical_baseline not yet implemented in Track 2"
+    ):
         BenchmarkIntent(
             benchmark_type="historical_baseline",
             subject_geo_level="county",

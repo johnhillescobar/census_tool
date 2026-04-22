@@ -239,21 +239,19 @@ def test_missing_parent_detection_integration(monkeypatch):
         fake_validate_hierarchy,
     )
 
-    input_json = json.dumps(
-        {
-            "dataset": "acs/acs5",
-            "year": 2023,
-            "geo_for": {"county": "*"},
-            "geo_in": {},  # Missing state
-        }
-    )
+    payload = {
+        "dataset": "acs/acs5",
+        "year": 2023,
+        "geo_for": {"county": "*"},
+        "geo_in": {},  # Missing state
+    }
 
-    result = validation_tool._run(input_json)
-    result_dict = json.loads(result)
+    response = validation_tool._run(payload)
 
-    assert result_dict["is_valid"] is False
-    assert len(result_dict["errors"]) > 0
-    assert "state" in result_dict["errors"][0]
+    assert response.success is True
+    assert response.is_valid is False
+    assert len(response.errors) > 0
+    assert "state" in response.errors[0]
 
 
 # ============================================================================
@@ -351,19 +349,17 @@ def test_validation_before_api_call_workflow(monkeypatch):
         fake_validate_hierarchy,
     )
 
-    validation_input = json.dumps(
-        {
-            "dataset": "acs/acs5",
-            "year": 2023,
-            "geo_for": {"county": "*"},
-            "geo_in": {"state": "06"},
-        }
-    )
+    validation_payload = {
+        "dataset": "acs/acs5",
+        "year": 2023,
+        "geo_for": {"county": "*"},
+        "geo_in": {"state": "06"},
+    }
 
-    validation_result = validation_tool._run(validation_input)
-    validation_dict = json.loads(validation_result)
+    validation_response = validation_tool._run(validation_payload)
 
-    assert validation_dict["is_valid"] is True
+    assert validation_response.success is True
+    assert validation_response.is_valid is True
 
     # Step 2: Use validated parameters in API call
     census_data = [
@@ -395,8 +391,8 @@ def test_validation_before_api_call_workflow(monkeypatch):
             "year": 2023,
             "dataset": "acs/acs5",
             "variables": ["NAME", "B01003_001E"],
-            "geo_for": validation_dict["repaired_for"],
-            "geo_in": validation_dict["repaired_in"],
+            "geo_for": validation_response.repaired_for,
+            "geo_in": validation_response.repaired_in,
         }
     )
 

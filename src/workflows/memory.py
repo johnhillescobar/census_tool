@@ -106,8 +106,8 @@ def memory_write_node(state: CensusState, config: RunnableConfig) -> Dict[str, A
     messages = state.messages or []
     intent = state.intent or {}
     geo = state.geo or {}
-    plan = state.plan or {}
-    final = state.final or {}
+    plan = state.plan.model_dump(exclude_none=True) if state.plan else {}
+    final = state.final.model_dump(exclude_none=True) if state.final else {}
 
     # Initialize memory directory
     memory_dir = Path("memory")

@@ -101,7 +101,9 @@ def test_success_response_rejects_error_code() -> None:
             success=True,
             request=_valid_request(),
             headers=["NAME", "state"],
-            records=[StrictCensusApiRecord(values={"NAME": "California", "state": "06"})],
+            records=[
+                StrictCensusApiRecord(values={"NAME": "California", "state": "06"})
+            ],
             row_count=1,
             error="API_HTTP_ERROR",
             error_message=None,
