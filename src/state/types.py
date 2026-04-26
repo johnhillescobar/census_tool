@@ -8,8 +8,15 @@ from src.domain.benchmark_contract import (
     BenchmarkResolved,
 )
 from src.domain.comparison_plan import ComparisonPlan
+from src.domain.census_tool_contract import StrictCensusApiResponse
 from src.domain.final_output_contract import FinalChartSpec, FinalTableSpec
 from src.domain.temporal_contract import TemporalResolution
+from src.domain.comparison_metric_contract import (
+    ComparisonMetricRow,
+    ComparisonInputRow,
+)
+from src.domain.variable_metada_contract import VariableLabels
+from src.domain.rendered_output_contract import RenderedArtifact
 
 
 def _merge_dict(existing: Dict[str, Any], new: Dict[str, Any]) -> Dict[str, Any]:
@@ -52,32 +59,38 @@ class FinalResponseState(BaseModel):
     charts_needed: list[FinalChartSpec] = Field(default_factory=list)
     tables_needed: list[FinalTableSpec] = Field(default_factory=list)
     footnotes: list[str] = Field(default_factory=list)
-    generated_files: list[str] = Field(default_factory=list)
+    generated_files: list[RenderedArtifact] = Field(default_factory=list)
 
 
 class WorkflowArtifactsState(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    census_data: dict[str, Any] = Field(default_factory=dict)
-    data_summary: str = ""
-    reasoning_trace: str = ""
-    comparison_input_rows: list[dict[str, Any]] = Field(default_factory=list)
-    comparison_metrics: list[dict[str, Any]] = Field(default_factory=list)
+    # TODO: remove the | None and make it required when we have a way to enforce it. See T2-CG-010. Should be optional during the migration
+    census_data: StrictCensusApiResponse | None = Field(
+        default=None, description="The Census API response."
+    )
+    variable_labels: VariableLabels = Field(default_factory=VariableLabels)
+    data_summary: str = Field(default="", description="The summary of the data.")
+    reasoning_trace: str = Field(default="", description="The reasoning trace.")
+    comparison_input_rows: list[ComparisonInputRow] = Field(
+        default_factory=list, description="The input rows for the comparison."
+    )
+    comparison_metrics: list[ComparisonMetricRow] = Field(
+        default_factory=list, description="The metrics for the comparison."
+    )
 
 
 def _coerce_artifacts(
-    value: WorkflowArtifactsState | Dict[str, Any] | None,
+    value: WorkflowArtifactsState | None,
 ) -> WorkflowArtifactsState:
     if value is None:
         return WorkflowArtifactsState()
-    if isinstance(value, WorkflowArtifactsState):
-        return value
-    return WorkflowArtifactsState.model_validate(value)
+    return value
 
 
 def _merge_artifacts(
-    existing: WorkflowArtifactsState | Dict[str, Any] | None,
-    new: WorkflowArtifactsState | Dict[str, Any] | None,
+    existing: WorkflowArtifactsState | None,
+    new: WorkflowArtifactsState | None,
 ) -> WorkflowArtifactsState:
     existing_model = _coerce_artifacts(existing)
     new_model = _coerce_artifacts(new)

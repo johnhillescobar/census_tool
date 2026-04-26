@@ -29,12 +29,12 @@ def agent_reasoning_node(state: CensusState, config: RunnableConfig) -> Dict[str
     result = agent.solve(user_query=user_question, intent=intent)
 
     # Get answer_text from agent result
-    answer_text = result.get("answer_text", "")
+    answer_text = result.answer_text
 
     # Fallback: If answer_text is missing, empty, or too short, generate it from the census data
     if not answer_text or len(answer_text.strip()) < 20:
-        census_data = result.get("census_data", {})
-        data_summary = result.get("data_summary", "")
+        census_data = result.census_data
+        data_summary = result.data_summary
         geo_context = state.geo or {}
 
         if census_data and data_summary:
@@ -55,16 +55,18 @@ def agent_reasoning_node(state: CensusState, config: RunnableConfig) -> Dict[str
                 logger.warning(f"Failed to generate rich answer_text: {e}")
 
     # Generate footnotes if not provided by agent
-    footnotes = result.get("footnotes", [])
+    footnotes = result.footnotes
     if not footnotes:
         from src.services.footnote_generator import generate_footnotes
 
         logger.info("Generating footnotes (not provided by agent)")
         try:
             footnotes = generate_footnotes(
-                census_data=result.get("census_data", {}),
-                data_summary=result.get("data_summary", ""),
-                reasoning_trace=result.get("reasoning_trace", ""),
+                census_data=result.census_data.model_dump()
+                if result.census_data
+                else {},
+                data_summary=result.data_summary,
+                reasoning_trace=result.reasoning_trace,
             )
             logger.info(f"Generated {len(footnotes)} footnotes")
         except Exception as e:
@@ -79,14 +81,15 @@ def agent_reasoning_node(state: CensusState, config: RunnableConfig) -> Dict[str
 
     return {
         "artifacts": WorkflowArtifactsState(
-            census_data=result.get("census_data", {}),
-            data_summary=result.get("data_summary", ""),
-            reasoning_trace=result.get("reasoning_trace", ""),
+            census_data=result.census_data,
+            variable_labels=result.variable_labels,
+            data_summary=result.data_summary,
+            reasoning_trace=result.reasoning_trace,
         ),
         "final": FinalResponseState(
             answer_text=answer_text,
-            charts_needed=result.get("charts_needed", []),
-            tables_needed=result.get("tables_needed", []),
+            charts_needed=result.charts_needed,
+            tables_needed=result.tables_needed,
             footnotes=footnotes,
             generated_files=existing_final.generated_files,
         ),

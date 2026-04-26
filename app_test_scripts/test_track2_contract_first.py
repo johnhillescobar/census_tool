@@ -3,6 +3,7 @@ from pydantic import ValidationError
 
 from app import _route_after_benchmark
 from src.agents.census_query_agent import AgentOutput
+from src.domain.agent_output_contract import AgentSolveResult
 from src.domain.benchmark_contract import BenchmarkIntent, BenchmarkResolved
 from src.domain.comparison_plan import ComparisonPlan
 from src.domain.temporal_contract import TemporalIntent, TemporalResolved
@@ -97,8 +98,8 @@ def test_comparison_metrics_node_reads_typed_state():
     result = comparison_metrics_node(state, {})
 
     assert isinstance(result["artifacts"], WorkflowArtifactsState)
-    assert result["artifacts"].comparison_metrics[0]["derived_metric"] == "difference"
-    assert result["artifacts"].comparison_metrics[0]["value"] == 2.0
+    assert result["artifacts"].comparison_metrics[0].derived_metric == "difference"
+    assert result["artifacts"].comparison_metrics[0].value == 2.0
 
 
 def test_route_after_benchmark_handles_typed_not_applicable_plan():
@@ -117,17 +118,17 @@ def test_route_after_benchmark_handles_typed_not_applicable_plan():
 def test_agent_reasoning_node_returns_typed_final_and_artifacts(monkeypatch):
     class FakeAgent:
         def solve(self, user_query, intent):
-            return {
-                "census_data": {"success": True, "data": [["NAME"], ["California"]]},
-                "data_summary": "summary",
-                "reasoning_trace": "trace",
-                "answer_text": "California has a population according to the ACS.",
-                "charts_needed": [{"type": "bar", "title": "Population by Location"}],
-                "tables_needed": [
+            return AgentSolveResult(
+                census_data=None,
+                data_summary="summary",
+                reasoning_trace="trace",
+                answer_text="California has a population according to the ACS.",
+                charts_needed=[{"type": "bar", "title": "Population by Location"}],
+                tables_needed=[
                     {"format": "csv", "filename": "population", "title": "Population"}
                 ],
-                "footnotes": ["Source note"],
-            }
+                footnotes=["Source note"],
+            )
 
     monkeypatch.setattr("src.workflows.agent.CensusQueryAgent", FakeAgent)
 

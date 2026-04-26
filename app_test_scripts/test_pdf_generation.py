@@ -1,46 +1,89 @@
 """
-Test PDF generation functionality
+Test PDF generation functionality.
 """
 
-from pathlib import Path
 from datetime import datetime
-import pandas as pd
+from pathlib import Path
+
 import pytest
 
 from src.clients import generate_session_pdf
 
-project_root = Path(__file__).parent
+
+def _sample_census_data() -> dict:
+    return {
+        "success": True,
+        "request": {
+            "year": 2023,
+            "dataset": "acs/acs5",
+            "variables": ["B01003_001E"],
+            "geo_for": {"place": "44000"},
+            "geo_in": {"state": "06"},
+            "geo_in_chained": [],
+        },
+        "headers": ["NAME", "B01003_001E"],
+        "records": [
+            {
+                "values": {
+                    "NAME": "Los Angeles",
+                    "B01003_001E": "9848406",
+                }
+            }
+        ],
+        "row_count": 1,
+        "error": None,
+        "error_message": None,
+    }
 
 
-def test_pdf_generation():
+def _sample_entry(*, generated_files: list[dict], census_data: dict) -> dict:
+    return {
+        "question": "What's the population of Los Angeles?",
+        "timestamp": datetime.now(),
+        "result": {
+            "final": {
+                "answer_text": (
+                    "Los Angeles has a population of 9.8 million people "
+                    "according to the 2020 Census."
+                ),
+                "generated_files": generated_files,
+                "footnotes": [],
+                "charts_needed": [],
+                "tables_needed": [],
+            },
+            "artifacts": {
+                "census_data": census_data,
+                "variable_labels": {"labels": {"B01003_001E": "Total Population"}},
+                "data_summary": "Population table for Los Angeles.",
+                "reasoning_trace": "Used typed census response fixture.",
+                "comparison_input_rows": [],
+                "comparison_metrics": [],
+            },
+            "logs": [],
+            "error": None,
+        },
+    }
+
+
+def test_pdf_generation(tmp_path: Path):
     """Test PDF generation with sample data"""
 
     # Sample conversation history
+    csv_path = tmp_path / "la_population.csv"
+    csv_path.write_text("NAME,B01003_001E\nLos Angeles,9848406\n", encoding="utf-8")
+
     conversation_history = [
-        {
-            "question": "What's the population of Los Angeles?",
-            "answer_text": "Los Angeles has a population of 9.8 million people according to the 2020 Census.",
-            "generated_files": [
-                "Chart created successfully: data/charts/chart_bar_20241201_143022.png",
-                "Table created successfully: data/tables/la_population_20241201_143022.csv",
+        _sample_entry(
+            generated_files=[
+                {
+                    "kind": "table",
+                    "path": str(csv_path),
+                    "mime_type": "text/csv",
+                    "title": "Los Angeles Population",
+                }
             ],
-            "timestamp": pd.Timestamp.now(),
-            "result": {
-                "final": {
-                    "answer_text": "Los Angeles has a population of 9.8 million people according to the 2020 Census.",
-                    "generated_files": [
-                        "Chart created successfully: data/charts/chart_bar_20241201_143022.png",
-                        "Table created successfully: data/tables/la_population_20241201_143022.csv",
-                    ],
-                },
-                "artifacts": {
-                    "census_data": {
-                        "data": [["NAME", "B01003_001E"], ["Los Angeles", "9848406"]],
-                        "variables": {"B01003_001E": "Total Population"},
-                    }
-                },
-            },
-        }
+            census_data=_sample_census_data(),
+        )
     ]
 
     # Test PDF generation
@@ -50,7 +93,6 @@ def test_pdf_generation():
             user_id="test_user",
             session_metadata={
                 "thread_id": "test_thread",
-                "generated_at": datetime.now(),
             },
         )
 
@@ -72,7 +114,7 @@ def test_pdf_generation():
         assert pdf_bytes.startswith(b"%PDF"), f"Invalid PDF header: {pdf_bytes[:10]}"
 
         # Save test PDF
-        test_pdf_path = Path("test_session_report.pdf")
+        test_pdf_path = tmp_path / "test_session_report.pdf"
         with open(test_pdf_path, "wb") as f:
             f.write(pdf_bytes)
 
@@ -98,7 +140,6 @@ def test_empty_conversation():
             user_id="test_user",
             session_metadata={
                 "thread_id": "test_thread",
-                "generated_at": datetime.now(),
             },
         )
 
@@ -118,23 +159,38 @@ def test_missing_files():
     conversation_history = [
         {
             "question": "Test question with missing files",
-            "answer_text": "This is a test answer.",
-            "generated_files": [
-                "Chart created successfully: data/charts/nonexistent_chart.png",
-                "Table created successfully: data/tables/nonexistent_table.csv",
-            ],
-            "timestamp": pd.Timestamp.now(),
+            "timestamp": datetime.now(),
             "result": {
                 "final": {
                     "answer_text": "This is a test answer.",
                     "generated_files": [
-                        "Chart created successfully: data/charts/nonexistent_chart.png",
-                        "Table created successfully: data/tables/nonexistent_table.csv",
+                        {
+                            "kind": "chart",
+                            "path": "data/charts/nonexistent_chart.png",
+                            "mime_type": "image/png",
+                            "title": "Missing Chart",
+                        },
+                        {
+                            "kind": "table",
+                            "path": "data/tables/nonexistent_table.csv",
+                            "mime_type": "text/csv",
+                            "title": "Missing Table",
+                        },
                     ],
+                    "footnotes": [],
+                    "charts_needed": [],
+                    "tables_needed": [],
                 },
                 "artifacts": {
-                    "census_data": {"data": [["NAME", "VALUE"], ["Test", "123"]]}
+                    "census_data": _sample_census_data(),
+                    "variable_labels": {"labels": {}},
+                    "data_summary": "",
+                    "reasoning_trace": "",
+                    "comparison_input_rows": [],
+                    "comparison_metrics": [],
                 },
+                "logs": [],
+                "error": None,
             },
         }
     ]
@@ -145,7 +201,6 @@ def test_missing_files():
             user_id="test_user",
             session_metadata={
                 "thread_id": "test_thread",
-                "generated_at": datetime.now(),
             },
         )
 

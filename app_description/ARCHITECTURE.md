@@ -129,12 +129,18 @@ class CensusQueryAgent:
     
     def solve(self, user_query: str, user_profile: Dict) -> Dict:
         # Returns structured output with:
-        # - census_data: Retrieved data
+        # - census_data: Agent-emitted Census payload at the reasoning boundary
         # - reasoning_trace: Agent's thought process
         # - charts_needed: Chart specifications
         # - tables_needed: Table specifications  
         # - answer_text: Natural language answer
 ```
+
+Important scope note:
+
+- The agent payload is a reasoning/output boundary contract.
+- It is not the final source-of-truth workflow artifact model.
+- The intended direction is for workflow state to normalize Census retrieval results into stricter typed contracts and let downstream output/export paths derive renderable tables, CSV, Parquet, charts, and PDFs from that canonical data.
 
 #### Agent Prompt Template
 ```python
@@ -177,6 +183,8 @@ Question: {input}
 {agent_scratchpad}
 """
 ```
+
+The `census_data` JSON shown above is the agent-emitted shape, not the long-term internal ownership model for workflow state.
 
 ### 4.2 Tool Catalog
 
@@ -298,53 +306,58 @@ def agent_reasoning_node(state: CensusState, config: RunnableConfig) -> Dict[str
         user_profile=profile
     )
     
+    # Conceptual flow:
+    # 1. receive agent-emitted payload
+    # 2. normalize Census result into canonical typed workflow artifact(s)
+    # 3. write user-facing answer/output directives separately
     return {
-        "artifacts": {
-            "census_data": result["census_data"],
-            "data_summary": result["data_summary"],
-            "reasoning_trace": result["reasoning_trace"]
-        },
-        "final": {
-            "charts_needed": result.get("charts_needed", []),
-            "tables_needed": result.get("tables_needed", []),
-            "answer_text": result.get("answer_text")
-        },
-        "logs": [f"agent: completed with {len(result.get('reasoning_trace', ''))} reasoning steps"]
+        "artifacts": WorkflowArtifactsState(
+            census_data=normalized_census_response,
+            data_summary=result["data_summary"],
+            reasoning_trace=result["reasoning_trace"],
+        ),
+        "final": FinalResponseState(
+            charts_needed=result.get("charts_needed", []),
+            tables_needed=result.get("tables_needed", []),
+            answer_text=result.get("answer_text"),
+        ),
+        "logs": ["agent: completed reasoning"]
     }
 ```
 
 #### Node: output_node (NEW)
 **Location**: `src/workflows/output.py`
 
-**Purpose**: Execute output tools (charts, tables, PDFs) based on agent specifications
+**Purpose**: Execute output tools (charts, tables, PDFs) by deriving presentation/export views from canonical workflow artifacts
 
 ```python
 def output_node(state: CensusState, config: RunnableConfig) -> Dict[str, Any]:
     """
     Generate outputs: charts, tables, PDFs
     """
-    final = state.final or {}
-    artifacts = state.artifacts or {}
-    census_data = artifacts.get("census_data", {})
+    final = state.final or FinalResponseState()
+    artifacts = state.artifacts or WorkflowArtifactsState()
+    census_response = artifacts.census_data
     
     outputs = {}
+    table_view = derive_table_view(census_response)
     
     # Create charts
-    if final.get("charts_needed"):
+    if final.charts_needed:
         from src.tools.chart_tool import ChartTool
         chart_tool = ChartTool()
         outputs["charts"] = [
-            chart_tool.create(spec, census_data) 
-            for spec in final["charts_needed"]
+            chart_tool.create(spec, table_view)
+            for spec in final.charts_needed
         ]
     
     # Create tables
-    if final.get("tables_needed"):
+    if final.tables_needed:
         from src.tools.table_tool import TableTool
         table_tool = TableTool()
         outputs["tables"] = [
-            table_tool.create(spec, census_data)
-            for spec in final["tables_needed"]
+            table_tool.create(spec, table_view)
+            for spec in final.tables_needed
         ]
     
     # Generate PDF if requested
@@ -353,16 +366,31 @@ def output_node(state: CensusState, config: RunnableConfig) -> Dict[str, Any]:
         pdf_tool = PDFTool()
         outputs["pdf"] = pdf_tool.generate(
             question=state.messages[-1]["content"],
-            answer=final.get("answer_text"),
+            answer=final.answer_text,
             charts=outputs.get("charts", []),
             tables=outputs.get("tables", []),
-            reasoning=artifacts.get("reasoning_trace")
+            reasoning=artifacts.reasoning_trace
         )
     
     return {
-        "final": {**final, "outputs": outputs},
+        "final": final.model_copy(update={"outputs": outputs}),
         "logs": [f"output: generated {len(outputs)} output types"]
     }
+```
+
+Key ownership rule:
+
+- Workflow state keeps canonical typed data.
+- Output/export paths derive renderable tables and files from that data.
+- CSV or Parquet persistence should happen only when a downstream output/export step actually needs a file.
+
+```mermaid
+flowchart LR
+    strictResponse["StrictCensusApiResponse in artifacts"] --> tableView["Derived table or DataFrame view"]
+    tableView --> chartOutput[Chart generation]
+    tableView --> csvOutput[CSV export]
+    tableView --> parquetOutput[Parquet export]
+    tableView --> pdfOutput[PDF or table rendering]
 ```
 
 #### Updated: app.py
@@ -389,11 +417,17 @@ def create_census_graph():
 ### 4.4 State Management
 
 **CensusState Updates**:
-No changes needed to Pydantic model, but usage changes:
+The intended architecture uses typed workflow envelopes and separates canonical data from derived outputs:
 
-- `intent`, `geo`, `candidates`, `plan` fields: Set by agent internally (not separate nodes)
-- `artifacts`: Stores agent's census_data and reasoning_trace
-- `final`: Stores agent's answer_text and output specifications
+- `plan`: stores normalized typed planning artifacts used to gate and guide execution
+- `artifacts`: stores canonical workflow artifacts such as the typed Census retrieval result, summaries, reasoning trace, and deterministic comparison rows/metrics
+- `final`: stores user-facing answer text and output directives
+
+Data ownership guidance:
+
+- Canonical retrieval/computation artifacts belong in `artifacts`
+- Render-ready tables, CSV files, Parquet files, chart images, and PDFs are derived downstream outputs
+- Downstream consumers should derive tabular views from the canonical typed Census artifact rather than treat workflow state as a mixed file/export container
 
 ---
 

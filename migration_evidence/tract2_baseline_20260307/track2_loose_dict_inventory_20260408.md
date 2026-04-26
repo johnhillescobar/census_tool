@@ -23,11 +23,12 @@ Date: 2026-04-08
 | File | Symbol / field | Current shape | Class | Notes |
 |---|---|---|---|---|
 | `src/state/types.py` | `_merge_dict()` | `Dict[str, Any]` | `blocking_any_dict` | Generic reducer for `profile` and `cache_index`. |
-| `src/state/types.py` | `_merge_artifacts()` | merges typed models via `model_dump()` dicts | `temporary_adapter` | Typed shell exists, merge logic still round-trips through dict. |
-| `src/state/types.py` | `_coerce_artifacts()` | accepts `WorkflowArtifactsState \| Dict[str, Any] \| None` | `temporary_adapter` | Explicit dict-or-model escape hatch. |
-| `src/state/types.py` | `WorkflowArtifactsState.census_data` | `dict[str, Any]` | `blocking_any_dict` | Central artifact payload is still a blob. |
-| `src/state/types.py` | `WorkflowArtifactsState.comparison_input_rows` | `list[dict[str, Any]]` | `blocking_any_dict` | Rows are not typed at state entry. |
-| `src/state/types.py` | `WorkflowArtifactsState.comparison_metrics` | `list[dict[str, Any]]` | `blocking_any_dict` | Typed metric rows are downgraded before storage. |
+| `src/state/types.py` | `_merge_artifacts()` | merges typed models via `model_dump()` dicts | `temporary_adapter` | Typed shell exists, but merge logic still round-trips through dict. |
+| `src/state/types.py` | `_coerce_artifacts()` | accepts `WorkflowArtifactsState \| Dict[str, Any] \| None` | `temporary_adapter` | Explicit dict-or-model escape hatch remains. |
+| `src/state/types.py` | `WorkflowArtifactsState.census_data` | `StrictCensusApiResponse \| None` | removed from blocker list | No longer a loose blob at state entry; remaining issue is the temporary optional migration shape. |
+| `src/state/types.py` | `WorkflowArtifactsState.comparison_input_rows` | `list[ComparisonInputRow]` | removed from blocker list | No longer loose at state entry. |
+| `src/state/types.py` | `WorkflowArtifactsState.comparison_metrics` | `list[ComparisonMetricRow]` | removed from blocker list | No longer loose at state entry. |
+| `src/state/types.py` | `WorkflowArtifactsState.variable_labels` | `VariableLabels` | removed from blocker list | Typed variable metadata contract now exists in workflow state. |
 | `src/state/types.py` | `CensusState.messages` | `List[Dict[str, Any]]` | `blocking_any_dict` | Chat messages have no declared schema. |
 | `src/state/types.py` | `CensusState.intent` | `Dict[str, Any] \| None` | `blocking_any_dict` | Intent remains a blob. |
 | `src/state/types.py` | `CensusState.geo` | `Dict[str, Any]` | `blocking_any_dict` | Geo state remains a blob. |
@@ -49,11 +50,11 @@ Date: 2026-04-08
 | `src/workflows/benchmark.py` | `benchmark_node()` | returns `dict[str, Any]` | `temporary_adapter` | Same issue. |
 | `src/workflows/comparison.py` | `comparison_node()` | returns `dict[str, Any]` | `temporary_adapter` | Same issue. |
 | `src/workflows/comparison_metrics.py` | `comparison_metrics_node()` | returns `dict[str, Any]` | `temporary_adapter` | Same issue. |
-| `src/workflows/comparison_metrics.py` | `comparison_metrics=[row.model_dump() for row in metric_rows]` | typed rows downgraded to dicts | `blocking_any_dict` | Deterministic compute loses type immediately. |
-| `src/workflows/agent.py` | `agent_reasoning_node()` | returns `Dict[str, Any]` | `temporary_adapter` | Envelope is dict-shaped. |
-| `src/workflows/agent.py` | `result.get(...)` handoff from agent solve result | dict access | `blocking_any_dict` | Agent output is still treated as a generic dict. |
-| `src/workflows/output.py` | `get_chart_params(census_data: Dict[str, Any], ...)` | dict input | `blocking_any_dict` | Output formatting still depends on loose census payload. |
+| `src/workflows/agent.py` | `agent_reasoning_node()` | returns `Dict[str, Any]` | `temporary_adapter` | Envelope is still dict-shaped, but typed `WorkflowArtifactsState` / `FinalResponseState` payloads are now used inside it. |
+| `src/workflows/agent.py` | footnote bridge (`result.census_data.model_dump()`) | typed response downgraded for downstream loose consumer | `temporary_adapter` | Footnote generation still requires a compatibility bridge. |
+| `src/workflows/output.py` | `get_chart_params(raw_data: StrictCensusApiRawTable \| Dict[str, Any], ...)` | typed input plus legacy dict fallback | `temporary_adapter` | Main path is typed now; dict fallback remains for compatibility and existing tests. |
 | `src/workflows/output.py` | `output_node()` | returns `Dict[str, Any]` | `temporary_adapter` | Envelope is dict-shaped. |
+| `src/workflows/output.py` | `_response_to_tabular_payload()` | typed raw table converted back to legacy dict payload | `temporary_adapter` | Output path still bridges typed render data back to old tool shape. |
 | `src/workflows/memory.py` | `memory_load_node()` | returns `Dict[str, Any]` | `blocking_any_dict` | Untyped persisted payloads re-enter state directly. |
 | `src/workflows/memory.py` | `memory_write_node()` | returns `Dict[str, Any]` | `blocking_any_dict` | Persists typed state after flattening to loose JSON. |
 
@@ -61,12 +62,12 @@ Date: 2026-04-08
 
 | File | Symbol / field | Current shape | Class | Notes |
 |---|---|---|---|---|
-| `src/api/displays.py` | `display_results()` and helpers | `Dict[str, Any]` | `blocking_any_dict` | CLI display reads `result` and `final` as dicts. |
+| `src/api/displays.py` | `display_results()` public wrapper | `Dict[str, Any]` outer result plus typed `FinalResponseState` coercion | `temporary_adapter` | CLI display now validates/coerces `final`, but the public wrapper is still dict-shaped and stale exports/tests still target removed legacy helpers. |
 | `streamlit_app.py` | `display_streamlit_results()` and helpers | `Dict[str, Any]` | `blocking_any_dict` | Streamlit display reads `result` and `final` as dicts. |
 | `streamlit_app.py` | `process_question()` | returns `Dict[str, Any]` | `blocking_any_dict` | Graph output stored and passed around as loose dict. |
 | `streamlit_app.py` | `initial_state = CensusState(... geo={}, artifacts={}, profile={} ...)` | raw dict initialization | `blocking_any_dict` | Entry point seeds loose state bags directly. |
 | `main.py` | `initial_state = CensusState(... geo={}, artifacts={}, profile={} ...)` | raw dict initialization | `blocking_any_dict` | CLI does the same. |
-| `src/clients/pdf_generator.py` | `conversation_history: List[Dict]`, `session_metadata: Dict` | untyped export records | `blocking_any_dict` | PDF path assumes implicit history/result schemas. |
+| `src/clients/pdf_generator.py` | `generate_session_pdf()` public input | loose entry payloads coerced into typed PDF DTOs | `temporary_adapter` | PDF path now defines `PdfConversationEntry`, `PdfConversationResult`, and `PdfSessionMetadata`, but the public entry still accepts dict payloads for compatibility. |
 
 ### Tools
 
@@ -74,8 +75,10 @@ Date: 2026-04-08
 |---|---|---|---|---|
 | `src/tools/strict_census_api_tool.py` | strict request -> legacy dict wrapper | `result.get(...)` on dict payload | `blocking_any_dict` | Supposedly strict path still depends on loose client wrapper. |
 | `src/tools/census_api_tool.py` | `_run(tool_input: str)` + JSON parse + `.get(...)` | loose legacy tool path | `blocking_any_dict` | Parallel untyped path still exists. |
-| `src/tools/chart_tool.py` | `ChartToolInput.data` | `Dict[str, Any]` | `temporary_adapter` | Presentation-layer blob. |
-| `src/tools/table_tool.py` | `TableToolInput.data` | `Dict[str, Any]` | `temporary_adapter` | Presentation-layer blob. |
+| `src/tools/chart_tool.py` | `ChartToolInput.data` | `StrictCensusApiRawTable` | removed from blocker list | Tool input is typed now; legacy compatibility lives in parse/coercion helpers instead. |
+| `src/tools/chart_tool.py` | `_parse_input()` / `_coerce_legacy_table_data()` | typed input plus `str | dict` compatibility | `temporary_adapter` | ReAct-era compatibility shim still present. |
+| `src/tools/table_tool.py` | `TableToolInput.data` | `StrictCensusApiRawTable` | removed from blocker list | Tool input is typed now; legacy compatibility lives in parse/coercion helpers instead. |
+| `src/tools/table_tool.py` | `_parse_input()` / `_coerce_legacy_table_data()` | typed input plus `str | dict` compatibility | `temporary_adapter` | ReAct-era compatibility shim still present. |
 | `src/tools/geography_validation_tool.py` | `GeographyValidationRequest \| str \| dict[str, Any]` | typed contract plus shim | `temporary_adapter` | Dict/string input still accepted for compatibility. |
 | `src/tools/variable_validation_tool.py` | `VariableValidationRequest \| str \| dict[str, Any]` | typed contract plus shim | `temporary_adapter` | Same issue. |
 | `src/tools/pattern_builder_tool.py` | JSON string parsing + `.get(...)` | loose tool input | `blocking_any_dict` | Still planning-adjacent and untyped. |
@@ -103,7 +106,7 @@ Date: 2026-04-08
 | `src/agents/census_query_agent.py` | `_build_iteration_limit_response()` | returns `Dict[str, Any]` | `blocking_any_dict` | Same issue. |
 | `src/agents/census_query_agent.py` | `_coerce_observation_to_dict()` | `Dict[str, Any] \| None` | `temporary_adapter` | Intermediate shim for tool observations. |
 | `src/agents/census_query_agent.py` | `_normalize_parsed_output_contract()` | `Dict[str, Any] -> Dict[str, Any]` | `temporary_adapter` | Contract drift shim before validation. |
-| `src/agents/census_query_agent.py` | `charts_needed`, `tables_needed` | `List[Dict[str, str]]` | `temporary_adapter` | Inner dict shape should become small typed models. |
+| `src/agents/census_query_agent.py` | `charts_needed`, `tables_needed` | typed `FinalChartSpec` / `FinalTableSpec` via `AgentSolveResult` | removed from blocker list | Output intent models are no longer raw inner dicts at the solved-result boundary. |
 
 ### Services
 
@@ -141,11 +144,11 @@ Date: 2026-04-08
 
 ## Track 2 blockers that matter most
 
-1. `src/state/types.py` still contains the main contract failures: `messages`, `intent`, `geo`, `candidates`, `profile`, `history`, `cache_index`, and artifact payload blobs.
+1. `src/state/types.py` still contains the main remaining contract failures: `messages`, `intent`, `geo`, `candidates`, `profile`, `history`, and `cache_index`.
 2. `src/workflows/memory.py` and `src/services/memory_utils.py` still flatten and persist typed state through loose dict contracts.
-3. `src/agents/census_query_agent.py` and `src/workflows/agent.py` still pass agent output around as generic dicts.
+3. The output path still has a compatibility bridge: `src/workflows/output.py` converts typed render data back to legacy dict payloads, and `src/tools/chart_tool.py` / `src/tools/table_tool.py` still accept `str | dict` shims and return string success messages.
 4. `src/clients/census_api_utils.py` still exposes loose `geo` and `table_metadata` contracts, and the legacy `fetch_census_data()` wrapper is still alive under strict tooling.
-5. `streamlit_app.py`, `src/api/displays.py`, and `src/clients/pdf_generator.py` still consume runtime results as untyped dict payloads.
+5. `streamlit_app.py` is still fully dict-style, while `src/api/displays.py` and `src/clients/pdf_generator.py` are only partially migrated because their public wrappers remain compatibility adapters and stale display exports/tests still assume the old helper surface.
 6. `src/domain/geography_registry.py`, `src/domain/geo_utils.py`, `src/domain/text_utils.py`, and `src/llm/intent_enhancer.py` still carry planning-relevant blobs.
 
 ## Track 2 closure rule

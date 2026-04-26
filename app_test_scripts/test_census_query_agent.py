@@ -5,6 +5,7 @@ Tests the robust JSON parsing methods that handle various agent output formats.
 
 import pytest
 import json
+from unittest.mock import MagicMock
 from src.agents.census_query_agent import CensusQueryAgent
 
 
@@ -34,6 +35,30 @@ class TestAgentParsing:
         assert parsed["census_data"]["data"][1][0] == "California"
         assert parsed["answer_text"] == "test answer"
         assert len(parsed["footnotes"]) == 1
+
+    def test_parse_direct_json_with_legacy_errors_field(self):
+        """Legacy final answers may include errors: null from tool output."""
+        output = json.dumps(
+            {
+                "census_data": {
+                    "success": True,
+                    "data": [["NAME"], ["California"]],
+                    "errors": None,
+                },
+                "data_summary": "test summary",
+                "reasoning_trace": "test trace",
+                "answer_text": "test answer",
+                "charts_needed": [],
+                "tables_needed": [],
+                "footnotes": ["Source: Census"],
+            }
+        )
+        result = {"output": output}
+        agent = CensusQueryAgent()
+        parsed = agent._parse_solution(result)
+
+        assert parsed["census_data"]["success"] is True
+        assert "errors" not in parsed["census_data"]
 
     def test_parse_with_final_answer_prefix(self):
         """Test extraction after 'Final Answer:' marker."""
@@ -213,6 +238,63 @@ Final Answer: {json.dumps(json_data)}"""
         assert "St. Mary's County" in parsed["census_data"]["data"][1][0]
         assert "O'Brien County" in parsed["census_data"]["data"][2][0]
         assert "Prince George's County" in parsed["census_data"]["data"][3][0]
+
+    def test_to_solve_result_recovers_request_from_strict_tool_step(self):
+        """Successful legacy census_data can be normalized using the strict tool input."""
+        parsed = {
+            "census_data": {
+                "success": True,
+                "data": [
+                    ["NAME", "B01003_001E", "state", "place"],
+                    ["New York city, New York", "8336817", "36", "51000"],
+                ],
+                "errors": None,
+            },
+            "data_summary": "NYC population",
+            "reasoning_trace": "Used strict_census_api_call",
+            "answer_text": "NYC population answer",
+            "charts_needed": [],
+            "tables_needed": [],
+            "footnotes": [],
+        }
+        result = {
+            "intermediate_steps": [
+                (
+                    MagicMock(
+                        tool="strict_census_api_call",
+                        tool_input=json.dumps(
+                            {
+                                "year": 2023,
+                                "dataset": "acs/acs5",
+                                "variables": ["NAME", "B01003_001E"],
+                                "geo_for": {"place": "51000"},
+                                "geo_in": {"state": "36"},
+                            }
+                        ),
+                    ),
+                    {
+                        "success": True,
+                        "data": [
+                            ["NAME", "B01003_001E", "state", "place"],
+                            ["New York city, New York", "8336817", "36", "51000"],
+                        ],
+                    },
+                )
+            ]
+        }
+        agent = CensusQueryAgent()
+        solve_result = agent._to_solve_result(parsed, result)
+
+        assert solve_result.census_data is not None
+        assert solve_result.census_data.success is True
+        assert solve_result.census_data.request is not None
+        assert solve_result.census_data.request.dataset == "acs/acs5"
+        assert solve_result.census_data.headers == [
+            "NAME",
+            "B01003_001E",
+            "state",
+            "place",
+        ]
 
 
 if __name__ == "__main__":

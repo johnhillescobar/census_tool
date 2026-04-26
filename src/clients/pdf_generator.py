@@ -1,10 +1,13 @@
 import pandas as pd
+from typing import Any
+from pydantic import BaseModel, ConfigDict, Field
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter
 from reportlab.lib import colors
 from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.platypus import (
+    Flowable,
     SimpleDocTemplate,
     Paragraph,
     Spacer,
@@ -12,29 +15,142 @@ from reportlab.platypus import (
     Table,
     TableStyle,
 )
-from typing import Dict, List
+from typing import List
 from datetime import datetime
 from pathlib import Path
 from io import BytesIO
 import logging
 
+from src.domain.census_tool_contract import (
+    StrictCensusApiResponse,
+)
+from src.domain.rendered_output_contract import RenderedArtifact, FootnoteItem
+from src.services.census_render_adapter import response_to_tabular_payload
+from src.state.types import FinalResponseState, WorkflowArtifactsState
+
+
 logger = logging.getLogger(__name__)
 
 
+class PdfSessionMetadata(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    thread_id: str | None = None
+
+
+class PdfConversationResult(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    final: FinalResponseState | None = None
+    artifacts: WorkflowArtifactsState | None = None
+    logs: list[str] = Field(default_factory=list)
+    error: str | None = None
+
+
+class PdfConversationEntry(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    question: str = "No question available"
+    timestamp: datetime | None = None
+    result: PdfConversationResult | None = None
+
+
+def _coerce_rendered_artifacts(value: Any) -> list[RenderedArtifact]:
+    if not isinstance(value, list):
+        return []
+
+    artifacts: list[RenderedArtifact] = []
+
+    for item in value:
+        try:
+            if isinstance(item, RenderedArtifact):
+                artifacts.append(item)
+
+            elif isinstance(item, dict):
+                artifacts.append(RenderedArtifact.model_validate(item))
+
+        except Exception as exc:
+            logger.warning(
+                "Skipping invalid rendered artifact in PDF generator: %s", exc
+            )
+            continue
+
+    return artifacts
+
+
+def _coerce_final_state(state: Any) -> FinalResponseState | None:
+    try:
+        if isinstance(state, FinalResponseState):
+            return state
+
+        elif isinstance(state, dict):
+            return FinalResponseState.model_validate(state)
+
+    except Exception as exc:
+        logger.warning("Skipping invalid final status in PDF generator: %s", exc)
+        return None
+
+
+def _coerce_artifacts_state(value: Any) -> WorkflowArtifactsState | None:
+    try:
+        if isinstance(value, WorkflowArtifactsState):
+            return value
+
+        elif isinstance(value, dict):
+            return WorkflowArtifactsState.model_validate(value)
+
+    except Exception as exc:
+        logger.warning("Skipping invalid artifacts state in PDF generator: %s", exc)
+        return None
+
+
+def _coerce_footnotes(value: Any) -> list[FootnoteItem]:
+    if not isinstance(value, list):
+        return []
+
+    items: list[FootnoteItem] = []
+    for item in value:
+        try:
+            if isinstance(item, FootnoteItem):
+                items.append(item)
+            elif isinstance(item, str):
+                items.append(FootnoteItem(text=item))
+            elif isinstance(item, dict):
+                items.append(FootnoteItem.model_validate(item))
+        except Exception as exc:
+            logger.warning("Skipping invalid footnote in PDF generator: %s", exc)
+
+    return items
+
+
 def generate_session_pdf(
-    conversation_history: List[Dict], user_id: str, session_metadata: Dict
+    conversation_history: list[PdfConversationEntry],
+    user_id: str,
+    session_metadata: PdfSessionMetadata,
 ) -> bytes:
     """
     Generate PDF from Streamlit session data
 
     Args:
-        conversation_history: List of {question, answer, charts, tables, timestamp}
+        conversation_history: List of PdfConversationEntry objects
         user_id: User identifier
-        session_metadata: {thread_id, start_time, etc.}
+        session_metadata: PdfSessionMetadata object
 
     Returns:
         PDF bytes for download
     """
+    entries = [
+        item
+        if isinstance(item, PdfConversationEntry)
+        else PdfConversationEntry.model_validate(item)
+        for item in conversation_history
+    ]
+    metadata = (
+        session_metadata
+        if isinstance(session_metadata, PdfSessionMetadata)
+        else PdfSessionMetadata.model_validate(session_metadata)
+    )
+
     # Import pandas for table data processing
     import pandas as pd
 
@@ -49,7 +165,8 @@ def generate_session_pdf(
 
         def showPage(self):
             self._saved_page_states.append(dict(self.__dict__))
-            self._startPage()
+            start_page = getattr(self, "_startPage")
+            start_page()
 
         def save(self):
             page_count = len(self._saved_page_states)
@@ -63,7 +180,8 @@ def generate_session_pdf(
             self.setFont("Helvetica", 9)
             self.setFillColor(colors.grey)
             # Footer with page numbers and timestamp
-            footer_text = f"Page {self._pageNumber} of {page_count} | Generated {datetime.now().strftime('%Y-%m-%d %H:%M')}"
+            page_number = getattr(self, "_pageNumber")
+            footer_text = f"Page {page_number} of {page_count} | Generated {datetime.now().strftime('%Y-%m-%d %H:%M')}"
             self.drawRightString(7.5 * inch, 0.75 * inch, footer_text)
 
             # Header line
@@ -148,10 +266,10 @@ def generate_session_pdf(
     session_info = f"""
     <b>User Session Details:</b><br/><br/>
     <b>User ID:</b> {user_id}<br/>
-    <b>Thread ID:</b> {session_metadata.get("thread_id", "N/A")}<br/>
+    <b>Thread ID:</b> {metadata.thread_id or "N/A"}<br/>
     <b>Report Generated:</b> {datetime.now().strftime("%A, %B %d, %Y at %I:%M %p")}<br/>
-    <b>Total Questions:</b> {len(conversation_history)}<br/>
-    <b>Session Duration:</b> {_calculate_session_duration(conversation_history)}
+    <b>Total Questions:</b> {len(entries)}<br/>
+    <b>Session Duration:</b> {_calculate_session_duration(entries)}
     """
     story.append(Paragraph(session_info, styles["Normal"]))
     story.append(Spacer(1, 60))
@@ -166,10 +284,10 @@ def generate_session_pdf(
     story.append(Spacer(1, 300))
 
     # Process each conversation with enhanced formatting
-    for i, entry in enumerate(conversation_history, 1):
+    for i, entry in enumerate(entries, 1):
         # Question section with enhanced styling
-        question = entry.get("question", "No question available")
-        timestamp = entry.get("timestamp", "")
+        question = entry.question
+        timestamp = entry.timestamp
 
         # Question header with timestamp
         if timestamp:
@@ -189,114 +307,102 @@ def generate_session_pdf(
         story.append(Spacer(1, 15))
 
         # Answer section
-        result = entry.get("result", {})
-        final = result.get("final", {})
-        artifacts = result.get("artifacts", {})
-        answer_text = final.get("answer_text", "No answer available")
+        result = entry.result
+        final_state = result.final if result else None
+        artifacts_state = result.artifacts if result else None
+        answer_text = final_state.answer_text if final_state else "No answer available"
 
         story.append(Paragraph("<b>💡 Answer:</b>", styles["Normal"]))
         story.append(Paragraph(answer_text, answer_style))
         story.append(Spacer(1, 15))
 
         # Enhanced file processing with table embedding
-        generated_files = final.get("generated_files", [])
-        census_data = artifacts.get("census_data", {})
+        generated_files = _coerce_rendered_artifacts(
+            final_state.generated_files if final_state else []
+        )
+        census_data = artifacts_state.census_data if artifacts_state else None
 
         # Process charts and tables
         charts_processed = 0
         tables_processed = 0
 
-        for file_info in generated_files:
-            if isinstance(file_info, str):
-                if "Chart created successfully:" in file_info:
-                    # Extract and embed chart
-                    filepath = file_info.split("Chart created successfully: ")[1]
-                    try:
-                        if Path(filepath).exists():
-                            story.append(
-                                Paragraph("<b>📊 Chart:</b>", styles["Normal"])
-                            )
-                            # Resize chart appropriately
-                            img = Image(filepath, width=6 * inch, height=4.5 * inch)
-                            story.append(img)
-                            story.append(Spacer(1, 10))  # Reduced spacing
+        for artifact in generated_files:
+            artifact_path = Path(artifact.path)
 
-                            # Add footnotes below chart
-                            footnotes = final.get("footnotes", [])
-                            if footnotes:
-                                for i, footnote in enumerate(footnotes, 1):
-                                    footnote_text = f"{i}. {footnote}"
-                                    story.append(
-                                        Paragraph(footnote_text, footnote_style)
-                                    )
-                                story.append(Spacer(1, 10))
+            if artifact.kind == "chart":
+                try:
+                    story.append(Paragraph("<b>📊 Chart:</b>", styles["Normal"]))
 
-                            story.append(Spacer(1, 5))  # Remaining spacing
-                            charts_processed += 1
-                        else:
-                            story.append(
-                                Paragraph(
-                                    f"⚠️ Chart file not found: {Path(filepath).name}",
-                                    meta_style,
-                                )
-                            )
-                    except Exception as e:
-                        story.append(
-                            Paragraph(f"❌ Error loading chart: {str(e)}", meta_style)
+                    if artifact_path.exists():
+                        img = Image(
+                            str(artifact_path), width=6 * inch, height=4.5 * inch
                         )
-
-                elif "Table created successfully:" in file_info:
-                    # Extract table path and embed data directly
-                    table_path = file_info.split("Table created successfully: ")[1]
-                    story.append(Paragraph("<b>📋 Data Table:</b>", styles["Normal"]))
-
-                    # Try to embed table data directly from census_data
-                    table_embedded = False
-
-                    # Method 1: Extract from census_data artifacts
-                    if census_data and "data" in census_data:
-                        try:
-                            table_data = _create_pdf_table_from_census_data(census_data)
-                            if table_data:
-                                story.append(table_data)
-                                table_embedded = True
-                                tables_processed += 1
-                        except Exception:
-                            pass  # Fall back to file reference
-
-                    # Method 2: Try to read the saved table file
-                    if not table_embedded:
-                        try:
-                            table_file_path = Path(table_path)
-                            if table_file_path.exists():
-                                if table_file_path.suffix == ".csv":
-                                    df = pd.read_csv(table_file_path)
-                                    table_data = _create_pdf_table_from_dataframe(
-                                        df, f"Table from {table_file_path.name}"
-                                    )
-                                    story.append(table_data)
-                                    table_embedded = True
-                                    tables_processed += 1
-                        except Exception:
-                            pass  # Fall back to file reference
-
-                    # Fallback: Just mention the file
-                    if not table_embedded:
+                        story.append(img)
+                        story.append(Spacer(1, 10))
+                        charts_processed += 1
+                    else:
                         story.append(
                             Paragraph(
-                                f"📁 Table saved to: {Path(table_path).name}",
+                                f"⚠️ Chart file not found: {artifact_path.name}",
                                 meta_style,
                             )
                         )
 
-                    # Add footnotes below table
-                    footnotes = final.get("footnotes", [])
-                    if footnotes:
-                        story.append(Spacer(1, 10))
-                        for i, footnote in enumerate(footnotes, 1):
-                            footnote_text = f"{i}. {footnote}"
-                            story.append(Paragraph(footnote_text, footnote_style))
-                        story.append(Spacer(1, 10))
+                except Exception as exc:
+                    logger.warning("Skipping invalid chart in PDF generator: %s", exc)
+
+            elif artifact.kind == "table":
+                story.append(Paragraph("<b>📋 Data Table:</b>", styles["Normal"]))
+                table_embedded = False
+
+                # Method 1: Embed directly from typed census data
+                if census_data is not None:
+                    try:
+                        table_data = _create_pdf_table_from_census_data(census_data)
+                        if table_data:
+                            story.append(table_data)
+                            table_embedded = True
+                            tables_processed += 1
+
+                    except Exception as exc:
+                        logger.warning(
+                            "Failed to embed table from census data: %s", exc
+                        )
+
+                # Method 2: Try to read the saved table file
+                if not table_embedded:
+                    try:
+                        if artifact_path.exists() and artifact_path.suffix == ".csv":
+                            df = pd.read_csv(artifact_path)
+                            table_data = _create_pdf_table_from_dataframe(
+                                df, artifact.title or f"Table from {artifact_path.name}"
+                            )
+                            if table_data:
+                                story.append(table_data)
+                                table_embedded = True
+                                tables_processed += 1
+                    except Exception:
+                        pass  # Fall back to file reference
+
+                # Method 3: Mention the file only
+                if not table_embedded:
+                    story.append(
+                        Paragraph(
+                            f"📁 Table saved to: {artifact_path.name}",
+                            meta_style,
+                        )
+                    )
+
+                # Add footnotes below table
+                footnotes = _coerce_footnotes(
+                    final_state.footnotes if final_state else []
+                )
+                if footnotes:
+                    story.append(Spacer(1, 10))
+                    for i, footnote in enumerate(footnotes, 1):
+                        footnote_text = f"{i}. {footnote}"
+                        story.append(Paragraph(footnote_text, footnote_style))
+                    story.append(Spacer(1, 10))
 
         # Add summary for this conversation
         if charts_processed > 0 or tables_processed > 0:
@@ -319,7 +425,12 @@ def generate_session_pdf(
 
     # Build PDF with custom canvas
     try:
-        doc.build(story, onFirstPage=_add_header, onLaterPages=_add_header)
+        doc.build(
+            story,
+            onFirstPage=_add_header,
+            onLaterPages=_add_header,
+            canvasmaker=NumberedCanvas,
+        )
         buffer.seek(0)
         return buffer.getvalue()
 
@@ -327,13 +438,17 @@ def generate_session_pdf(
         # Return error as PDF content
         error_buffer = BytesIO()
         error_doc = SimpleDocTemplate(error_buffer, pagesize=letter)
-        error_story = [Paragraph(f"PDF Generation Error: {str(e)}", styles["Normal"])]
+        error_story: list[Flowable] = [
+            Paragraph(f"PDF Generation Error: {str(e)}", styles["Normal"])
+        ]
         error_doc.build(error_story)
         error_buffer.seek(0)
         return error_buffer.getvalue()
 
 
-def _calculate_session_duration(conversation_history: List[Dict]) -> str:
+def _calculate_session_duration(
+    conversation_history: list[PdfConversationEntry],
+) -> str:
     """Calculate session duration from conversation timestamps"""
     if len(conversation_history) < 2:
         return "N/A"
@@ -341,12 +456,9 @@ def _calculate_session_duration(conversation_history: List[Dict]) -> str:
     try:
         timestamps = []
         for entry in conversation_history:
-            ts = entry.get("timestamp")
+            ts = entry.timestamp
             if ts:
-                if hasattr(ts, "to_pydatetime"):
-                    timestamps.append(ts.to_pydatetime())
-                elif hasattr(ts, "timestamp"):
-                    timestamps.append(ts)
+                timestamps.append(ts)
 
         if len(timestamps) >= 2:
             duration = max(timestamps) - min(timestamps)
@@ -378,35 +490,20 @@ def _add_header(canvas, doc):
     canvas.restoreState()
 
 
-def _create_pdf_table_from_census_data(census_data: Dict) -> Table:
+def _create_pdf_table_from_census_data(
+    census_data: StrictCensusApiResponse,
+) -> Table | None:
     """Create ReportLab Table from census_data structure"""
     try:
-        if not census_data or "data" not in census_data or not census_data["data"]:
-            return None
-
-        data_rows = census_data["data"]
-        if len(data_rows) < 2:
-            return None
-
-        # First row is headers, rest are data
-        headers = data_rows[0]
-        table_data = [headers] + data_rows[1:]
-
-        # Limit rows for PDF readability (max 20 rows + header)
-        if len(table_data) > 21:
-            table_data = table_data[:21]
-            # Add note about truncation
-            table_data[-1] = ["...", "Data truncated for PDF display"] + [""] * (
-                len(headers) - 2
-            )
-
+        raw_table = response_to_tabular_payload(census_data)
+        table_data = [raw_table.headers, *raw_table.rows]
         return _create_pdf_table_from_data(table_data, "Census Data")
 
     except Exception:
         return None
 
 
-def _create_pdf_table_from_dataframe(df: pd.DataFrame, title: str) -> Table:
+def _create_pdf_table_from_dataframe(df: pd.DataFrame, title: str) -> Table | None:
     """Create ReportLab Table from pandas DataFrame"""
     try:
         # Limit rows for readability
@@ -430,7 +527,7 @@ def _create_pdf_table_from_dataframe(df: pd.DataFrame, title: str) -> Table:
         return None
 
 
-def _create_pdf_table_from_data(table_data: List[List], title: str) -> Table:
+def _create_pdf_table_from_data(table_data: List[List], title: str) -> Table | None:
     """Create styled ReportLab Table from data array"""
     try:
         if not table_data or len(table_data) < 2:

@@ -7,7 +7,17 @@ and that ChartTool creates multi-series charts with proper color grouping.
 
 import pytest
 import pandas as pd
+from src.domain.census_tool_contract import StrictCensusApiRawTable
+from src.domain.variable_metada_contract import VariableLabels
 from src.workflows.output import get_chart_params, _detect_geography_column
+
+
+def _raw_table(headers: list[str], rows: list[list[str]]) -> StrictCensusApiRawTable:
+    return StrictCensusApiRawTable(headers=headers, rows=rows)
+
+
+def _labels(mapping: dict[str, str]) -> VariableLabels:
+    return VariableLabels(labels=mapping)
 
 
 class TestGeographyColumnDetection:
@@ -74,17 +84,18 @@ class TestMultiSeriesDetection:
 
     def test_multi_series_line_chart_detected(self):
         """Test that multi-series is detected for line chart with multiple states"""
-        census_data = {
-            "data": [
-                ["Year", "NAME", "S1401_C01_001E"],
+        census_data = _raw_table(
+            ["Year", "NAME", "S1401_C01_001E"],
+            [
                 ["2018", "Illinois", "500000"],
                 ["2018", "Texas", "600000"],
                 ["2019", "Illinois", "510000"],
                 ["2019", "Texas", "610000"],
             ],
-            "variables": {"S1401_C01_001E": "High School Enrollment"},
-        }
-        result = get_chart_params(census_data, "line")
+        )
+        result = get_chart_params(
+            census_data, "line", _labels({"S1401_C01_001E": "High School Enrollment"})
+        )
 
         assert result["x_column"] == "Year"
         assert result["y_column"] == "S1401_C01_001E"
@@ -93,15 +104,16 @@ class TestMultiSeriesDetection:
 
     def test_single_series_not_detected(self):
         """Test that single geography does not trigger multi-series"""
-        census_data = {
-            "data": [
-                ["Year", "NAME", "S1401_C01_001E"],
+        census_data = _raw_table(
+            ["Year", "NAME", "S1401_C01_001E"],
+            [
                 ["2018", "Illinois", "500000"],
                 ["2019", "Illinois", "510000"],
             ],
-            "variables": {"S1401_C01_001E": "High School Enrollment"},
-        }
-        result = get_chart_params(census_data, "line")
+        )
+        result = get_chart_params(
+            census_data, "line", _labels({"S1401_C01_001E": "High School Enrollment"})
+        )
 
         assert result["x_column"] == "Year"
         assert result["y_column"] == "S1401_C01_001E"
@@ -109,16 +121,17 @@ class TestMultiSeriesDetection:
 
     def test_multi_series_bar_chart_detected(self):
         """Test that multi-series is detected for bar chart with multiple states"""
-        census_data = {
-            "data": [
-                ["NAME", "B01003_001E"],
+        census_data = _raw_table(
+            ["NAME", "B01003_001E"],
+            [
                 ["Illinois", "12600000"],
                 ["Texas", "29000000"],
                 ["California", "39000000"],
             ],
-            "variables": {"B01003_001E": "Total Population"},
-        }
-        result = get_chart_params(census_data, "bar")
+        )
+        result = get_chart_params(
+            census_data, "bar", _labels({"B01003_001E": "Total Population"})
+        )
 
         assert result["x_column"] == "NAME"
         assert result["y_column"] == "B01003_001E"
@@ -128,28 +141,25 @@ class TestMultiSeriesDetection:
 
     def test_priority_state_over_county(self):
         """Test that state column is preferred over county for multi-series"""
-        census_data = {
-            "data": [
-                ["Year", "state", "county", "NAME", "Value"],
+        census_data = _raw_table(
+            ["Year", "state", "county", "NAME", "Value"],
+            [
                 ["2018", "IL", "Cook", "Cook County, Illinois", "100"],
                 ["2018", "TX", "Harris", "Harris County, Texas", "200"],
                 ["2019", "IL", "Cook", "Cook County, Illinois", "110"],
                 ["2019", "TX", "Harris", "Harris County, Texas", "210"],
             ],
-        }
+        )
         result = get_chart_params(census_data, "line")
 
         assert result["color_column"] == "state"  # State has priority
 
     def test_no_multi_series_when_geography_is_x_column(self):
         """Test that geography column is not used for color if it's the x_column"""
-        census_data = {
-            "data": [
-                ["NAME", "B01003_001E"],
-                ["Illinois", "12600000"],
-                ["Texas", "29000000"],
-            ],
-        }
+        census_data = _raw_table(
+            ["NAME", "B01003_001E"],
+            [["Illinois", "12600000"], ["Texas", "29000000"]],
+        )
         result = get_chart_params(census_data, "bar")
 
         # When NAME is x_column, it shouldn't also be color_column
@@ -158,9 +168,9 @@ class TestMultiSeriesDetection:
 
     def test_multi_series_with_time_series(self):
         """Test multi-series detection with time series data"""
-        census_data = {
-            "data": [
-                ["Year", "state", "S1401_C01_001E"],
+        census_data = _raw_table(
+            ["Year", "state", "S1401_C01_001E"],
+            [
                 ["2018", "IL", "500000"],
                 ["2018", "TX", "600000"],
                 ["2019", "IL", "510000"],
@@ -168,9 +178,10 @@ class TestMultiSeriesDetection:
                 ["2020", "IL", "520000"],
                 ["2020", "TX", "620000"],
             ],
-            "variables": {"S1401_C01_001E": "High School Enrollment"},
-        }
-        result = get_chart_params(census_data, "line")
+        )
+        result = get_chart_params(
+            census_data, "line", _labels({"S1401_C01_001E": "High School Enrollment"})
+        )
 
         assert result["x_column"] == "Year"
         assert result["y_column"] == "S1401_C01_001E"
@@ -180,15 +191,13 @@ class TestMultiSeriesDetection:
 
     def test_backward_compatibility_single_state(self):
         """Test backward compatibility: single state query works as before"""
-        census_data = {
-            "data": [
-                ["Year", "NAME", "B01003_001E"],
-                ["2018", "Illinois", "12600000"],
-                ["2019", "Illinois", "12700000"],
-            ],
-            "variables": {"B01003_001E": "Total Population"},
-        }
-        result = get_chart_params(census_data, "line")
+        census_data = _raw_table(
+            ["Year", "NAME", "B01003_001E"],
+            [["2018", "Illinois", "12600000"], ["2019", "Illinois", "12700000"]],
+        )
+        result = get_chart_params(
+            census_data, "line", _labels({"B01003_001E": "Total Population"})
+        )
 
         # Should work exactly as before (no color_column)
         assert result["x_column"] == "Year"

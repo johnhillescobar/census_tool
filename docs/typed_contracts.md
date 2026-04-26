@@ -169,6 +169,54 @@ This prevents inconsistent wording and helps guarantee deterministic behavior.
 
 ---
 
+## Canonical Data vs Derived Outputs
+
+Another important idea in this repo is:
+
+> **The workflow should keep one canonical typed object in state, and derive presentation/export formats later.**
+
+That means:
+
+- The workflow state should store the **real source of truth**
+- Charts, tables, CSV files, Parquet files, and PDFs should be **derived from that source of truth**
+
+### Plain-English Example
+
+Imagine the app successfully retrieves Census data.
+
+Bad pattern:
+
+- store a loose blob in state
+- also store a mixed `[headers, row1, row2]` table shape
+- also store a CSV path
+- also store a Parquet path
+
+That creates multiple versions of the same data and makes drift likely.
+
+Better pattern:
+
+- store one typed object such as `StrictCensusApiResponse`
+- later, if a chart is needed, derive a table/DataFrame from it
+- later, if CSV is needed, write CSV from it
+- later, if Parquet is needed, write Parquet from it
+
+### Why This Matters
+
+This separation helps because:
+
+- state remains stable and predictable
+- export formats do not become part of the core contract
+- downstream code can share one conversion path
+- file-writing happens only when it is actually needed
+
+### Short Rule
+
+If you want the shortest version:
+
+> **Keep typed canonical data in state. Derive charts/tables/files later.**
+
+---
+
 ## Why They Want It in This Plan
 
 Because they’re building a system where:

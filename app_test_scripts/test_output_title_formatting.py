@@ -6,7 +6,17 @@ generate human-readable titles with variable codes when variables dict is provid
 """
 
 import pytest
+from src.domain.census_tool_contract import StrictCensusApiRawTable
+from src.domain.variable_metada_contract import VariableLabels
 from src.workflows.output import format_chart_title, get_chart_params
+
+
+def _raw_table(headers: list[str], rows: list[list[str]]) -> StrictCensusApiRawTable:
+    return StrictCensusApiRawTable(headers=headers, rows=rows)
+
+
+def _labels(mapping: dict[str, str]) -> VariableLabels:
+    return VariableLabels(labels=mapping)
 
 
 class TestFormatChartTitle:
@@ -69,15 +79,16 @@ class TestGetChartParams:
 
     def test_get_chart_params_with_variables_dict(self):
         """Test get_chart_params extracts variables and formats title"""
-        census_data = {
-            "data": [
-                ["NAME", "B01003_001E", "state"],
+        census_data = _raw_table(
+            ["NAME", "B01003_001E", "state"],
+            [
                 ["California", "39538223", "06"],
                 ["Texas", "29145505", "48"],
             ],
-            "variables": {"B01003_001E": "Total Population"},
-        }
-        result = get_chart_params(census_data, "bar")
+        )
+        result = get_chart_params(
+            census_data, "bar", _labels({"B01003_001E": "Total Population"})
+        )
 
         assert result["x_column"] == "NAME"
         assert result["y_column"] == "B01003_001E"
@@ -85,12 +96,10 @@ class TestGetChartParams:
 
     def test_get_chart_params_without_variables_dict(self):
         """Test get_chart_params without variables dict (fallback)"""
-        census_data = {
-            "data": [
-                ["NAME", "B01003_001E", "state"],
-                ["California", "39538223", "06"],
-            ],
-        }
+        census_data = _raw_table(
+            ["NAME", "B01003_001E", "state"],
+            [["California", "39538223", "06"]],
+        )
         result = get_chart_params(census_data, "bar")
 
         assert result["x_column"] == "NAME"
@@ -99,15 +108,13 @@ class TestGetChartParams:
 
     def test_get_chart_params_line_chart_with_variables(self):
         """Test line chart title formatting with variables"""
-        census_data = {
-            "data": [
-                ["YEAR", "B01003_001E"],
-                ["2020", "331000000"],
-                ["2021", "332000000"],
-            ],
-            "variables": {"B01003_001E": "Total Population"},
-        }
-        result = get_chart_params(census_data, "line")
+        census_data = _raw_table(
+            ["YEAR", "B01003_001E"],
+            [["2020", "331000000"], ["2021", "332000000"]],
+        )
+        result = get_chart_params(
+            census_data, "line", _labels({"B01003_001E": "Total Population"})
+        )
 
         assert result["x_column"] == "YEAR"
         assert result["y_column"] == "B01003_001E"
@@ -115,20 +122,17 @@ class TestGetChartParams:
 
     def test_get_chart_params_empty_variables_dict(self):
         """Test with empty variables dict"""
-        census_data = {
-            "data": [
-                ["NAME", "B01003_001E"],
-                ["California", "39538223"],
-            ],
-            "variables": {},
-        }
+        census_data = _raw_table(
+            ["NAME", "B01003_001E"],
+            [["California", "39538223"]],
+        )
         result = get_chart_params(census_data, "bar")
 
         assert result["title"] == "B01003_001E by NAME"
 
     def test_get_chart_params_invalid_data_format(self):
         """Test error handling for invalid data format"""
-        census_data = {"data": []}  # Missing headers
+        census_data = _raw_table(["NAME"], [["California"]])
 
         # Should raise ValueError or return fallback
         result = get_chart_params(census_data, "bar")

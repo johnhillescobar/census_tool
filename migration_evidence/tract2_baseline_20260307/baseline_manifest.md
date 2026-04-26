@@ -70,6 +70,35 @@
   - Track 2 evidence still needs an explicit decision record for whether that dev-only tooling change is accepted under the dependency-freeze rule
   - the current `mypy` scope is narrower than the full Track 2 surface and does not remove the need to eliminate remaining dict-heavy boundaries
 
+## Review Refresh
+- Refresh Date: 2026-04-26
+- Decision Update: Track 2 remains `partial`; typed artifact ownership and early output-contract work have advanced, but the migration is still not exit-ready because output/UI and persistence boundaries remain mixed.
+- Progress Since 2026-04-21:
+  - `WorkflowArtifactsState.census_data` now uses `StrictCensusApiResponse | None`
+  - `WorkflowArtifactsState.comparison_input_rows` now uses `list[ComparisonInputRow]`
+  - `WorkflowArtifactsState.comparison_metrics` now uses `list[ComparisonMetricRow]`
+  - `WorkflowArtifactsState.variable_labels` now uses the typed `VariableLabels` contract
+  - `src/workflows/comparison_metrics.py` now preserves typed metric rows instead of downgrading them with `model_dump()`
+  - `src/domain/agent_output_contract.py` and `src/workflows/agent.py` now carry and store typed `variable_labels` alongside typed `census_data`
+  - `src/services/census_render_adapter.py` now provides a shared `StrictCensusApiResponse -> StrictCensusApiRawTable` adapter
+  - `src/domain/rendered_output_contract.py` now defines typed DTOs for narrative, footnotes, chart/table outputs, and generic rendered artifacts
+  - `src/tools/table_tool.py` and `src/tools/chart_tool.py` now validate typed `StrictCensusApiRawTable` inputs internally and share a single internal execution path across sync/async entrypoints
+  - `src/workflows/output.py` now calls typed `ChartToolInput` / `TableToolInput` plus `render()` methods and normalizes the resulting `ChartOutput` / `TableOutput` DTOs into `RenderedArtifact`
+  - focused output compatibility tests now pass for chart parameter/title behavior
+- Still Pending:
+  - most non-planning `CensusState` channels remain loose (`messages`, `intent`, `geo`, `candidates`, `profile`, `history`, `cache_index`)
+  - artifact merge/reducer helpers still contain temporary dict/model compatibility paths
+  - `src/workflows/output.py` now uses typed tool inputs on the main path, but tabular derivation is still limited to the temporary `StrictCensusApiRawTable` view and fail-closed handling is still incomplete for empty/invalid render inputs
+  - `src/tools/chart_tool.py` and `src/tools/table_tool.py` still keep `str | dict` compatibility shims, and their LangChain `_run()` / `_arun()` entrypoints still return string success/error messages even though the typed `render()` path exists
+  - memory persistence is still legacy/untyped and still serializes `plan` / `final` at the JSON boundary without the versioned schema migration required for Track 2 exit
+  - the Streamlit UI path still relies on dict-style payload access, and agent/output boundaries are still mixed in key places (`streamlit_app.py`, parts of `src/workflows/agent.py`, compatibility-heavy public wrappers in `src/api/displays.py` and `src/clients/pdf_generator.py`)
+  - `src/api/__init__.py` and `app_test_scripts/test_displays.py` still reference removed legacy display helpers, so the current display-focused test file does not collect
+  - workflow-level canonical acceptance and repeatability coverage are still incomplete outside the current focused tests
+- Verification Evidence Checked:
+  - code: `src/state/types.py`, `src/workflows/comparison_metrics.py`, `src/workflows/agent.py`, `src/workflows/output.py`, `src/services/census_render_adapter.py`, `src/tools/table_tool.py`, `src/tools/chart_tool.py`, `src/domain/rendered_output_contract.py`
+  - tests: `app_test_scripts/test_track2_contract_first.py`, `app_test_scripts/test_census_query_agent.py`, `app_test_scripts/test_output_title_formatting.py`, `app_test_scripts/test_multi_series_charts.py`, `app_test_scripts/test_pdf_generation.py`
+  - focused pytest refresh (2026-04-26): `46 passed` across the files above; `app_test_scripts/test_displays.py` currently fails during collection because `src.api.__init__` re-exports `display_single_value`, `display_series`, `display_table`, and `display_not_census`, but `src/api/displays.py` now only defines `display_results`
+
 ## Track 2 Gate Focus
 - Contract consistency remains partial because validated objects are still flattened into generic dict channels in workflow state.
 - Deterministic planning artifacts exist, but end-to-end typed state preservation does not.

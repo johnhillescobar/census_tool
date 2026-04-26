@@ -83,6 +83,15 @@ memory_load → temporal → benchmark → comparison → agent → comparison_m
 
 The agent still owns repeated tool execution and answer synthesis; upstream nodes set or clarify `plan` before and between agent turns where applicable.
 
+### Data Ownership Rule
+
+The intended separation is:
+
+- **Core workflow state** keeps canonical typed data contracts
+- **Output/export paths** derive presentation formats such as charts, tables, CSV, Parquet, and PDF artifacts from those typed objects
+
+In other words, workflow state should store the source of truth, while file formats and render-ready table views are derived on demand downstream.
+
 ### Key Components
 
 #### Agent Architecture (`src/agents/`)
@@ -111,7 +120,7 @@ Tools **registered on the agent** live in `src/agents/census_query_agent.py` (se
 Additional modules such as **`table_validation_tool.py`** and **`geography_schemas.py`** support validation and schemas; whether the agent invokes them depends on the registered tool list above.
 
 #### State Management (`src/state/`)
-- **`types.py`** - TypedDict definitions for CensusState with agent workflow integration
+- **`types.py`** - Pydantic state models and typed workflow envelopes for `plan`, `artifacts`, and `final`
 
 > **Detailed Architecture**: See [ARCHITECTURE.md](app_description/ARCHITECTURE.md) for complete component specifications, agent tool descriptions, and implementation details.
 

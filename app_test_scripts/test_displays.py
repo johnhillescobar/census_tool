@@ -1,214 +1,110 @@
-"""
-Test script for display functions - testing the fixes you made
-"""
+"""Tests for the contract-first CLI display surface."""
 
-import sys
 from io import StringIO
 from unittest.mock import patch
 
-from src.api.displays import (
-    display_results,
-    display_single_value,
-    display_series,
-    display_table,
-    display_not_census,
-)
+from src.api import display_results
+from src.domain.final_output_contract import FinalChartSpec, FinalTableSpec
+from src.domain.rendered_output_contract import RenderedArtifact
+from src.state.types import FinalResponseState
 
 
-def test_display_single_value():
-    """Test the display_single_value function you fixed"""
-    print("Testing display_single_value...")
-
-    # Test data for single value display
-    final = {
-        "type": "single",
-        "value": "8,804,190",
-        "geo": "New York City",
-        "year": "2023",
-        "variable": "B01003_001E",
-        "dataset": "ACS 5-Year Estimates",
-    }
-
-    # Capture output
-    with patch("sys.stdout", new=StringIO()) as fake_out:
-        display_single_value(final)
-        output = fake_out.getvalue()
-
-    # Assertions
-    assert "New York City" in output, "Should display location"
-    assert "2023" in output, "Should display year"
-    assert "8,804,190" in output, "Should display value"
-    assert "B01003_001E" in output, "Should display variable"
-
-    print("✅ display_single_value test passed!")
-
-
-def test_display_series():
-    """Test the display_series function"""
-    print("Testing display_series...")
-
-    # Test data for series display
-    final = {
-        "type": "series",
-        "data": [
-            {"year": "2020", "value": 8336817, "formatted_value": "8,336,817"},
-            {"year": "2021", "value": 8336817, "formatted_value": "8,336,817"},
-            {"year": "2022", "value": 8336817, "formatted_value": "8,336,817"},
-            {"year": "2023", "value": 8804190, "formatted_value": "8,804,190"},
-        ],
-        "geo": "New York City",
-        "variable": "B01003_001E",
-        "file_path": "/data/population_series.csv",
-    }
-
-    # Capture output
-    with patch("sys.stdout", new=StringIO()) as fake_out:
-        display_series(final)
-        output = fake_out.getvalue()
-
-    # Assertions
-    assert "New York City" in output, "Should display location"
-    assert "B01003_001E" in output, "Should display variable"
-    assert "2020: 8,336,817" in output, "Should display time series data"
-    assert "2023: 8,804,190" in output, "Should display latest data"
-    assert "Full data saved to:" in output, "Should show file path"
-
-    print("✅ display_series test passed!")
-
-
-def test_display_table():
-    """Test the display_table function"""
-    print("Testing display_table...")
-
-    # Test data for table display
-    final = {
-        "type": "table",
-        "data": [
-            {"NAME": "Bronx County", "B01003_001E": 1472654},
-            {"NAME": "Kings County", "B01003_001E": 2736074},
-            {"NAME": "New York County", "B01003_001E": 1694251},
-            {"NAME": "Queens County", "B01003_001E": 2405464},
-            {"NAME": "Richmond County", "B01003_001E": 495747},
-        ],
-        "total_rows": 5,
-        "columns": ["NAME", "B01003_001E"],
-        "file_path": "/data/nyc_counties.csv",
-    }
-
-    # Capture output
-    with patch("sys.stdout", new=StringIO()) as fake_out:
-        display_table(final)
-        output = fake_out.getvalue()
-
-    # Assertions
-    assert "5 rows" in output, "Should display row count"
-    assert "NAME | B01003_001E" in output, "Should display column headers"
-    assert "Bronx County" in output, "Should display table data"
-    assert "Full data saved to:" in output, "Should show file path"
-
-    print("✅ display_table test passed!")
-
-
-def test_display_not_census():
-    """Test the display_not_census function"""
-    print("Testing display_not_census...")
-
-    # Test data for non-census display
-    final = {
-        "type": "not_census",
-        "message": "I can only help with Census data questions.",
-        "suggestion": "Try asking about population, income, or demographics.",
-    }
-
-    # Capture output
-    with patch("sys.stdout", new=StringIO()) as fake_out:
-        display_not_census(final)
-        output = fake_out.getvalue()
-
-    # Assertions
-    assert "I can only help with Census data questions." in output, (
-        "Should display message"
-    )
-    assert "Try asking about population" in output, "Should display suggestion"
-
-    print("✅ display_not_census test passed!")
-
-
-def test_display_results():
-    """Test the main display_results function you fixed"""
-    print("Testing display_results...")
-
-    # Test successful single value result
-    result = {
-        "final": {
-            "type": "single",
-            "value": "8,804,190",
-            "geo": "New York City",
-            "year": "2023",
-            "variable": "B01003_001E",
-            "footnotes": ["Data from ACS 5-Year Estimates, 2023"],
-        },
-        "logs": ["data: processed 1 queries successfully"],
-    }
-
-    # Capture output
+def _render_output(result: dict) -> str:
     with patch("sys.stdout", new=StringIO()) as fake_out:
         display_results(result)
-        output = fake_out.getvalue()
+        return fake_out.getvalue()
 
-    # Assertions
-    assert "CENSUS DATA RESULTS" in output, "Should display header"
-    assert "Answer Type: single" in output, "Should display answer type"
-    assert "New York City" in output, "Should display location"
-    assert "8,804,190" in output, "Should display value"
-    assert "Footnotes:" in output, "Should display footnotes"
-    assert "System Logs:" in output, "Should display logs"
 
-    print("✅ display_results test passed!")
+def test_display_results_renders_typed_final_response():
+    final = FinalResponseState(
+        answer_text="The population of New York City is 8,804,190.",
+        generated_files=[
+            RenderedArtifact(
+                kind="chart",
+                path="data/charts/nyc_population.png",
+                mime_type="image/png",
+                title="NYC Population Chart",
+            ),
+            RenderedArtifact(
+                kind="table",
+                path="data/tables/nyc_population.csv",
+                mime_type="text/csv",
+                title="NYC Population Table",
+            ),
+        ],
+        charts_needed=[
+            FinalChartSpec(type="bar", title="Population by Borough")
+        ],
+        tables_needed=[
+            FinalTableSpec(
+                format="csv",
+                filename="nyc_population.csv",
+                title="NYC Population Export",
+            )
+        ],
+        footnotes=["Data from ACS 5-Year Estimates, 2023"],
+    )
+
+    output = _render_output(
+        {
+            "final": final,
+            "logs": ["data: processed 1 queries successfully"],
+        }
+    )
+
+    assert "CENSUS DATA RESULTS" in output
+    assert "The population of New York City is 8,804,190." in output
+    assert "[FILES GENERATED]: 2 file(s)" in output
+    assert "NYC Population Chart" in output
+    assert "nyc_population.csv" in output
+    assert "[CHARTS REQUESTED]: 1 chart(s)" in output
+    assert "Bar chart: Population by Borough" in output
+    assert "[TABLES REQUESTED]: 1 table(s)" in output
+    assert "CSV table: nyc_population.csv" in output
+    assert "Footnotes:" in output
+    assert "System Logs:" in output
+
+
+def test_display_results_accepts_dict_final_response():
+    output = _render_output(
+        {
+            "final": {
+                "answer_text": "California population answer.",
+                "generated_files": [],
+                "charts_needed": [],
+                "tables_needed": [],
+                "footnotes": [],
+            }
+        }
+    )
+
+    assert "CENSUS DATA RESULTS" in output
+    assert "[ANSWER] California population answer." in output
 
 
 def test_display_results_with_error():
-    """Test display_results with error"""
-    print("Testing display_results with error...")
+    output = _render_output(
+        {"error": "No data found for the specified criteria", "final": None}
+    )
 
-    # Test error result
-    result = {"error": "No data found for the specified criteria", "final": None}
-
-    # Capture output
-    with patch("sys.stdout", new=StringIO()) as fake_out:
-        display_results(result)
-        output = fake_out.getvalue()
-
-    # Assertions - check for actual error message format
-    assert "[ERROR] Error:" in output, "Should display error message"
-    assert "No data found" in output, "Should contain error details"
-
-    print("✅ display_results error test passed!")
+    assert "[ERROR] Error:" in output
+    assert "No data found" in output
 
 
-def run_all_tests():
-    """Run all display function tests"""
-    print("=== RUNNING DISPLAY FUNCTION TESTS ===\n")
+def test_display_results_with_missing_final():
+    output = _render_output({"final": None})
 
-    try:
-        test_display_single_value()
-        test_display_series()
-        test_display_table()
-        test_display_not_census()
-        test_display_results()
-        test_display_results_with_error()
-
-        print("\n🎉 ALL DISPLAY FUNCTION TESTS PASSED! 🎉")
-        return True
-
-    except AssertionError as e:
-        print(f"\n❌ TEST FAILED: {e}")
-        return False
-    except Exception as e:
-        print(f"\n💥 UNEXPECTED ERROR: {e}")
-        return False
+    assert "[ERROR] No answer available" in output
 
 
-if __name__ == "__main__":
-    success = run_all_tests()
-    sys.exit(0 if success else 1)
+def test_display_results_with_invalid_final_shape():
+    output = _render_output(
+        {
+            "final": {
+                "answer_text": "This should be rejected",
+                "generated_files": "not-a-list",
+            }
+        }
+    )
+
+    assert "[ERROR] No answer available" in output

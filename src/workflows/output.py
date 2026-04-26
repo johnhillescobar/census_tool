@@ -1,12 +1,16 @@
 import logging
-import json
 import pandas as pd
-from typing import Dict, Any
+from typing import Dict, Any, Literal
 from langchain_core.runnables import RunnableConfig
 
+
+from src.domain.census_tool_contract import StrictCensusApiRawTable
+from src.domain.rendered_output_contract import RenderedArtifact
+from src.domain.variable_metada_contract import VariableLabels
+from src.services.census_render_adapter import response_to_tabular_payload
 from src.state.types import CensusState, FinalResponseState
-from src.tools.chart_tool import ChartTool
-from src.tools.table_tool import TableTool
+from src.tools.chart_tool import ChartTool, ChartToolInput
+from src.tools.table_tool import TableTool, TableToolInput
 
 logger = logging.getLogger(__name__)
 
@@ -118,127 +122,174 @@ def _detect_geography_column(
     return None
 
 
-def get_chart_params(census_data: Dict[str, Any], chart_type: str) -> Dict[str, str]:
+def _classify_columns(
+    headers: list[str], sample_row: list[Any]
+) -> tuple[list[str], list[str], list[str]]:
+    """
+    Classify columns into text, numeric, and time columns.
+    """
+
+    text_columns: list[str] = []
+    numeric_columns: list[str] = []
+    time_columns: list[str] = []
+
+    for i, header in enumerate(headers):
+        if i >= len(sample_row):
+            continue
+
+        value = str(sample_row[i]).replace(",", "")
+        header_upper = header.upper()
+
+        # Check for time columns
+        if any(
+            keyword in header_upper for keyword in ["YEAR", "DATE", "TIME", "PERIOD"]
+        ):
+            time_columns.append(header)
+
+        # Check if numeric
+        elif value.replace(".", "").replace("-", "").isdigit():
+            numeric_columns.append(header)
+
+        # Otherwise text
+        else:
+            text_columns.append(header)
+
+    return text_columns, numeric_columns, time_columns
+
+
+def _pick_x_column(
+    chart_type: Literal["bar", "line"],
+    headers: list[str],
+    text_columns: list[str],
+    time_columns: list[str],
+) -> str:
+    """
+    Pick the x-axis column from typed raw-table metadata.
+    """
+
+    if chart_type == "line" and time_columns:
+        return time_columns[0]
+
+    if text_columns:
+        # Use first text column for categorical x-axis
+        return text_columns[0]
+
+    # Fallback: use first column
+    return headers[0]
+
+
+def _pick_y_column(
+    numeric_columns: list[str],
+    headers: list[str],
+    x_column: str,
+) -> str:
+    """
+    Pick the y_column based on the numeric columns and the x_column.
+    """
+
+    if numeric_columns:
+        y_column: str | None = None
+        # Use first numeric column that isn't the x_column
+        for col in numeric_columns:
+            if col != x_column:
+                y_column = col
+                break
+        # If all numeric columns are x_column, use first numeric anyway
+        if y_column is None:
+            return numeric_columns[0]
+        return y_column
+
+    # Fallback: use second column if available
+    return headers[1] if len(headers) > 1 else headers[0]
+
+
+def _pick_color_column(
+    df: pd.DataFrame, headers: list[str], x_column: str
+) -> str | None:
+    geography_column = _detect_geography_column(df, headers, x_column)
+    if not geography_column:
+        return None
+
+    unique_geos = df[geography_column].nunique()
+    if unique_geos > 1:
+        logger.info(
+            "Multi-series detected: %s unique values in '%s' column",
+            unique_geos,
+            geography_column,
+        )
+        return geography_column
+
+    logger.info(
+        "Single geography detected: only 1 unique value in '%s' - no color grouping",
+        geography_column,
+    )
+    return None
+
+
+def _get_variable_map(variable_labels: VariableLabels | None) -> dict[str, str] | None:
+    return variable_labels.labels if variable_labels is not None else None
+
+
+def _build_chart_title(
+    y_column: str,
+    x_column: str,
+    chart_type: Literal["bar", "line"],
+    variables: dict[str, str] | None,
+    color_column: str | None,
+) -> str:
+    if not variables:
+        logger.info(
+            "No variables dict provided in census_data - using code-only title for '%s'",
+            y_column,
+        )
+
+    return format_chart_title(
+        y_column,
+        x_column,
+        chart_type,
+        variables,
+        multi_series=color_column is not None,
+    )
+
+
+def get_chart_params(
+    raw_data: StrictCensusApiRawTable,
+    chart_type: Literal["bar", "line"],
+    variable_labels: VariableLabels | None = None,
+) -> Dict[str, str]:
     """
     Dynamically determine chart parameters from actual data structure.
     Adapts to ANY column names the agent provides.
     Auto-detects multi-series when geography + time columns exist.
     """
     try:
-        # Extract headers from data
-        if (
-            "data" in census_data
-            and isinstance(census_data["data"], list)
-            and len(census_data["data"]) >= 2
-        ):
-            headers = census_data["data"][0]
-        else:
-            raise ValueError("Invalid census_data format")
+        headers = raw_data.headers
+        rows = raw_data.rows
 
         if len(headers) < 2:
             raise ValueError("Need at least 2 columns for chart")
 
         # Create DataFrame temporarily to detect geography columns
-        df_temp = pd.DataFrame(census_data["data"][1:], columns=headers)
-
-        # Identify column types by content inspection
-        text_columns = []
-        numeric_columns = []
-        time_columns = []
+        df_temp = pd.DataFrame(rows, columns=pd.Index(headers))
 
         # Sample first data row to determine types
-        sample_row = census_data["data"][1] if len(census_data["data"]) > 1 else []
+        sample_row = rows[0] if len(rows) > 0 else []
 
-        for i, header in enumerate(headers):
-            if i >= len(sample_row):
-                continue
+        text_columns, numeric_columns, time_columns = _classify_columns(
+            headers, sample_row
+        )
 
-            value = str(sample_row[i]).replace(",", "")
-            header_upper = header.upper()
-
-            # Check for time columns
-            if any(
-                keyword in header_upper
-                for keyword in ["YEAR", "DATE", "TIME", "PERIOD"]
-            ):
-                time_columns.append(header)
-            # Check if numeric
-            elif value.replace(".", "").replace("-", "").isdigit():
-                numeric_columns.append(header)
-            # Otherwise text
-            else:
-                text_columns.append(header)
-
-        # Determine x_column (categorical or time axis)
-        x_column = None
-        if chart_type == "line" and time_columns:
-            # Time series: use time column for x-axis
-            x_column = time_columns[0]
-        elif text_columns:
-            # Use first text column for categorical x-axis
-            x_column = text_columns[0]
-        else:
-            # Fallback: use first column
-            x_column = headers[0]
-
-        # Determine y_column (numeric data)
-        y_column = None
-        if numeric_columns:
-            # Use first numeric column that isn't the x_column
-            for col in numeric_columns:
-                if col != x_column:
-                    y_column = col
-                    break
-            # If all numeric columns are x_column, use first numeric anyway
-            if not y_column:
-                y_column = numeric_columns[0]
-        else:
-            # Fallback: use second column if available
-            y_column = headers[1] if len(headers) > 1 else headers[0]
-
-        # Auto-detect multi-series: check for geography column + multiple unique values
-        color_column = None
-        geography_column = _detect_geography_column(df_temp, headers, x_column)
-
-        if geography_column:
-            # Check if multiple unique values exist (indicates multi-series)
-            unique_geos = df_temp[geography_column].nunique()
-            if unique_geos > 1:
-                # Multi-series detected: use geography column for color grouping
-                color_column = geography_column
-                logger.info(
-                    f"Multi-series detected: {unique_geos} unique values in '{geography_column}' column"
-                )
-            else:
-                logger.info(
-                    f"Single geography detected: only 1 unique value in '{geography_column}' - no color grouping"
-                )
-
-        # Generate title
-        if chart_type in ["bar", "line"]:
-            # Extract variables mapping if available
-            variables = census_data.get("variables", {})
-
-            # Log if variables dict is missing (helps debug title formatting)
-            if not variables:
-                logger.info(
-                    f"No variables dict provided in census_data - using code-only title for '{y_column}'"
-                )
-
-            # For multi-series: exclude geography from title (legend will show it)
-            # For single-series: include x_column in title as before
-            if color_column:
-                # Multi-series: title should be "Variable by X" (geography in legend)
-                title = format_chart_title(
-                    y_column, x_column, chart_type, variables, multi_series=True
-                )
-            else:
-                # Single-series: original behavior
-                title = format_chart_title(
-                    y_column, x_column, chart_type, variables, multi_series=False
-                )
-        else:
-            title = "Census Data Visualization"
+        x_column = _pick_x_column(chart_type, headers, text_columns, time_columns)
+        y_column = _pick_y_column(numeric_columns, headers, x_column)
+        color_column = _pick_color_column(df_temp, headers, x_column)
+        variables = _get_variable_map(variable_labels)
+        title = _build_chart_title(
+            y_column=y_column,
+            x_column=x_column,
+            chart_type=chart_type,
+            variables=variables,
+            color_column=color_column,
+        )
 
         result = {"x_column": x_column, "y_column": y_column, "title": title}
         if color_column:
@@ -248,14 +299,7 @@ def get_chart_params(census_data: Dict[str, Any], chart_type: str) -> Dict[str, 
 
     except Exception as e:
         logger.error(f"Error determining chart parameters: {e}")
-        # SAFE fallback: use first two columns from actual data
-        if "data" in census_data and len(census_data.get("data", [])) > 0:
-            headers = census_data["data"][0]
-            return {
-                "x_column": headers[0] if headers else "Column1",
-                "y_column": headers[1] if len(headers) > 1 else "Column2",
-                "title": f"Census Data Visualization ({chart_type})",
-            }
+
         # Ultimate fallback
         return {"x_column": "Location", "y_column": "Value", "title": "Chart"}
 
@@ -268,93 +312,78 @@ def output_node(state: CensusState, config: RunnableConfig) -> Dict[str, Any]:
     final_result = state.final or FinalResponseState()
     charts_needed = final_result.charts_needed
     tables_needed = final_result.tables_needed
-    census_data = state.artifacts.census_data if state.artifacts else {}
-
-    generated_files = []
+    census_data = state.artifacts.census_data if state.artifacts else None
+    generated_files: list[RenderedArtifact] = list(final_result.generated_files)
+    raw_table = (
+        response_to_tabular_payload(census_data)
+        if census_data is not None and census_data.success and census_data.row_count > 0
+        else None
+    )
 
     # Create charts if needed
-    if charts_needed and census_data:
+    if charts_needed and raw_table is not None:
         chart_tool = ChartTool()
         for chart_spec in charts_needed:
             try:
                 # Determine parameters
-                chart_params = get_chart_params(census_data, chart_spec.type)
-                chart_title = chart_spec.title or chart_params["title"]
+                chart_params = get_chart_params(
+                    raw_table,
+                    chart_spec.type,
+                    state.artifacts.variable_labels if state.artifacts else None,
+                )
 
                 logger.info("=== output_node Chart Generation ===")
                 logger.info(f"Chart type: {chart_spec.type}")
                 logger.info(
                     f"Chart params: x={chart_params['x_column']}, y={chart_params['y_column']}"
                 )
-                logger.info(f"Census data keys: {list(census_data.keys())}")
-
-                # Log data structure details
-                if "data" in census_data:
-                    if isinstance(census_data["data"], list):
-                        logger.info(
-                            f"Data is list with {len(census_data['data'])} elements"
-                        )
-                        if len(census_data["data"]) > 0:
-                            logger.info(f"Data headers: {census_data['data'][0]}")
-                            if len(census_data["data"]) > 1:
-                                logger.info(f"First data row: {census_data['data'][1]}")
-                    elif isinstance(census_data["data"], dict):
-                        logger.info(
-                            f"Data is dict with keys: {list(census_data['data'].keys())}"
-                        )
-
-                # Validate column names exist in data
-                if (
-                    "data" in census_data
-                    and isinstance(census_data["data"], list)
-                    and len(census_data["data"]) > 0
-                ):
-                    headers = census_data["data"][0]
-                    logger.info("Checking if selected columns exist in headers...")
-                    logger.info(
-                        f"  x_column '{chart_params['x_column']}' in headers: {chart_params['x_column'] in headers}"
-                    )
-                    logger.info(
-                        f"  y_column '{chart_params['y_column']}' in headers: {chart_params['y_column'] in headers}"
-                    )
 
                 logger.info("=== Calling ChartTool ===\n")
 
-                # Call the tool with proper JSON format
-                chart_input = {
-                    "chart_type": chart_spec.type,
-                    "x_column": chart_params["x_column"],
-                    "y_column": chart_params["y_column"],
-                    "title": chart_title,
-                    "data": census_data,
-                }
+                # Call the tool with typed input format
+                chart_input = ChartToolInput(
+                    chart_type=chart_spec.type,
+                    x_column=chart_params["x_column"],
+                    y_column=chart_params["y_column"],
+                    title=chart_spec.title or chart_params["title"],
+                    color_column=chart_params.get("color_column"),
+                    data=raw_table,
+                )
                 # Add color_column if multi-series was detected
-                if "color_column" in chart_params:
-                    chart_input["color_column"] = chart_params["color_column"]
+                chart_output = chart_tool.render(chart_input)
+                generated_files.append(
+                    RenderedArtifact(
+                        kind="chart",
+                        path=chart_output.path,
+                        mime_type=chart_output.mime_type,
+                        title=chart_output.spec.title,
+                    )
+                )
 
-                result = chart_tool._run(json.dumps(chart_input))
-
-                generated_files.append(result)
             except Exception as e:
                 logger.error(f"Failed to create chart: {e}")
 
     # Create tables if needed
-    if tables_needed and census_data:  # Note: 'if', not 'elif'
+    if tables_needed and raw_table is not None:
         table_tool = TableTool()
         for table_spec in tables_needed:
             try:
-                result = table_tool._run(
-                    json.dumps(
-                        {
-                            "format": table_spec.format,
-                            "filename": table_spec.filename,
-                            "title": table_spec.title or "Census Data",
-                            "data": census_data,
-                        }
+                table_input = TableToolInput(
+                    format=table_spec.format,
+                    filename=table_spec.filename,
+                    title=table_spec.title or "Census Data",
+                    data=raw_table,
+                )
+                table_output = table_tool.render(table_input)
+
+                generated_files.append(
+                    RenderedArtifact(
+                        kind="table",
+                        path=table_output.path,
+                        mime_type=table_output.mime_type,
+                        title=table_output.spec.title,
                     )
                 )
-
-                generated_files.append(result)
             except Exception as e:
                 logger.error(f"Failed to create table: {e}")
 

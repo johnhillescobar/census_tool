@@ -33,6 +33,14 @@ from src.tools.area_resolution_tool import AreaResolutionTool
 from src.tools.variable_validation_tool import VariableValidationTool
 from src.tools.strict_census_api_tool import StrictCensusApiTool
 
+# Import the strict Census response models
+from src.domain.census_tool_contract import (
+    StrictCensusApiRecord,
+    StrictCensusApiRequest,
+    StrictCensusApiResponse,
+)
+from src.domain.agent_output_contract import AgentSolveResult
+
 # Import conversation summarizer
 from src.services.conversation_summarizer import ConversationSummarizer
 from src.services.conversation_summarizer import summarize_intermediate_steps
@@ -53,7 +61,7 @@ class CensusData(BaseModel):
 class AgentOutput(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    census_data: CensusData
+    census_data: StrictCensusApiResponse | CensusData
     data_summary: str
     reasoning_trace: str
     answer_text: str
@@ -163,7 +171,7 @@ class CensusQueryAgent:
     def _build_prompt(self):
         return PromptTemplate.from_template(AGENT_PROMPT_TEMPLATE)
 
-    def solve(self, user_query: str, intent: Dict) -> Dict:
+    def solve(self, user_query: str, intent: Dict) -> AgentSolveResult:
         """
         Reason through the query and return structured data
         """
@@ -171,18 +179,26 @@ class CensusQueryAgent:
             logger.warning(
                 "CensusQueryAgent.solve called in offline mode without API credentials."
             )
-            return {
-                "census_data": {"success": False, "data": []},
-                "data_summary": "Agent execution skipped (no API credentials available)",
-                "reasoning_trace": "Agent skipped because OPENAI_API_KEY is not configured",
-                "answer_text": "Unable to complete this request because the CensusQueryAgent is running without LLM credentials. Provide OPENAI_API_KEY to enable agent execution.",
-                "charts_needed": [],
-                "tables_needed": [],
-                "footnotes": [
+            return AgentSolveResult(
+                census_data=StrictCensusApiResponse(
+                    success=False,
+                    request=None,
+                    headers=[],
+                    records=[],
+                    row_count=0,
+                    error="INVALID_INPUT_SCHEMA",
+                    error_message="Invalid input schema",
+                ),
+                data_summary="Agent execution skipped (no API credentials available)",
+                reasoning_trace="Agent skipped because OPENAI_API_KEY is not configured",
+                answer_text="Unable to complete this request because the CensusQueryAgent is running without LLM credentials. Provide OPENAI_API_KEY to enable agent execution.",
+                charts_needed=[],
+                tables_needed=[],
+                footnotes=[
                     "Agent execution disabled due to missing OPENAI_API_KEY.",
                     "Set OPENAI_API_KEY before running automated workflows or tests.",
                 ],
-            }
+            )
 
         if self.agent_executor is None:
             raise RuntimeError(
@@ -206,7 +222,9 @@ class CensusQueryAgent:
                 f"Trimmed intermediate steps from {len(intermediate_steps)} to {len(result['intermediate_steps'])}"
             )
 
-        return self._parse_solution(result)
+        parsed_solution = self._parse_solution(result)
+
+        return self._to_solve_result(parsed_solution, result)
 
     def _has_invalid_geography(self, result: Dict, parsed: Dict) -> bool:
         """Check if agent tried to query invalid geography"""
@@ -588,6 +606,12 @@ class CensusQueryAgent:
                 "Normalized census_data.variables from list to dict for contract compatibility"
             )
 
+        if "errors" in census_data:
+            census_data.pop("errors", None)
+            logger.warning(
+                "Normalized legacy census_data.errors field out of final answer payload"
+            )
+
         return parsed
 
     def _extract_json_with_state_machine(self, text: str) -> str | None:
@@ -672,3 +696,150 @@ class CensusQueryAgent:
             pass
 
         return False
+
+    def _extract_request_from_intermediate_steps(
+        self, result: Dict[str, Any] | None
+    ) -> StrictCensusApiRequest | None:
+        if not isinstance(result, dict):
+            return None
+
+        intermediate_steps = result.get("intermediate_steps", []) or []
+        for step in reversed(intermediate_steps):
+            if not isinstance(step, (tuple, list)) or len(step) != 2:
+                continue
+
+            action = step[0]
+            if getattr(action, "tool", None) != "strict_census_api_call":
+                continue
+
+            tool_input = getattr(action, "tool_input", None)
+            try:
+                if isinstance(tool_input, str):
+                    request_payload = json.loads(tool_input)
+                else:
+                    request_payload = tool_input
+
+                if isinstance(request_payload, dict):
+                    return StrictCensusApiRequest.model_validate(request_payload)
+            except (json.JSONDecodeError, ValidationError, TypeError) as exc:
+                logger.warning(
+                    "Failed to recover strict_census_api_call request from intermediate steps: %s",
+                    exc,
+                )
+
+        return None
+
+    def _normalize_census_data_to_strict(
+        self, census_data: Any, result: Dict[str, Any] | None = None
+    ) -> StrictCensusApiResponse:
+        if isinstance(census_data, StrictCensusApiResponse):
+            return census_data
+
+        if not isinstance(census_data, dict):
+            return StrictCensusApiResponse(
+                success=False,
+                request=None,
+                headers=[],
+                records=[],
+                row_count=0,
+                error="INVALID_INPUT_SCHEMA",
+                error_message="census_data must be a dictionary",
+            )
+
+        try:
+            return StrictCensusApiResponse.model_validate(census_data)
+        except ValidationError:
+            pass
+
+        success = census_data.get("success", False)
+        raw_data = census_data.get("data", [])
+        request_payload = census_data.get("request")
+        request_obj: StrictCensusApiRequest | None = None
+
+        if isinstance(request_payload, dict):
+            try:
+                request_obj = StrictCensusApiRequest.model_validate(request_payload)
+            except ValidationError:
+                request_obj = None
+
+        if request_obj is None:
+            request_obj = self._extract_request_from_intermediate_steps(result)
+
+        if not success:
+            error_message = str(census_data.get("error", "legacy census_data failure"))
+            return StrictCensusApiResponse(
+                success=False,
+                request=None,
+                headers=[],
+                records=[],
+                row_count=0,
+                error="INVALID_INPUT_SCHEMA",
+                error_message=error_message,
+            )
+
+        if (
+            not isinstance(raw_data, list)
+            or len(raw_data) == 0
+            or not isinstance(raw_data[0], list)
+        ):
+            return StrictCensusApiResponse(
+                success=False,
+                request=None,
+                headers=[],
+                records=[],
+                row_count=0,
+                error="API_PAYLOAD_SHAPE_INVALID",
+                error_message="legacy census_data.data must be a non-empty list of lists",
+            )
+
+        headers = [str(value) for value in raw_data[0]]
+        rows = raw_data[1:]
+        records = [
+            StrictCensusApiRecord(
+                values={
+                    header: str(row[i]) if i < len(row) else ""
+                    for i, header in enumerate(headers)
+                }
+            )
+            for row in rows
+        ]
+        row_count = len(records)
+
+        if request_obj is None:
+            return StrictCensusApiResponse(
+                success=False,
+                request=None,
+                headers=[],
+                records=[],
+                row_count=0,
+                error="INVALID_INPUT_SCHEMA",
+                error_message=(
+                    "Unable to normalize successful census_data payload because no "
+                    "StrictCensusApiRequest was available."
+                ),
+            )
+
+        return StrictCensusApiResponse(
+            success=True,
+            request=request_obj,
+            headers=headers,
+            records=records,
+            row_count=row_count,
+            error=None,
+            error_message=None,
+        )
+
+    def _to_solve_result(
+        self, parsed: Dict, result: Dict[str, Any] | None = None
+    ) -> AgentSolveResult:
+        return AgentSolveResult(
+            census_data=self._normalize_census_data_to_strict(
+                parsed.get("census_data", {}), result
+            ),
+            data_summary=parsed.get("data_summary", ""),
+            reasoning_trace=parsed.get("reasoning_trace", ""),
+            answer_text=parsed.get("answer_text", ""),
+            charts_needed=parsed.get("charts_needed", []),
+            tables_needed=parsed.get("tables_needed", []),
+            footnotes=parsed.get("footnotes", []),
+        )

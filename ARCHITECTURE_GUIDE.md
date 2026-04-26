@@ -128,20 +128,23 @@ self.tools = [
 ]
 ```
 
-### 3. State Management Pattern (TypedDict)
+### 3. State Management Pattern (Pydantic Envelopes)
 
 **Location**: `src/state/types.py`
 
-The workflow uses a **TypedDict** (`CensusState`) for state management:
+The workflow uses a **Pydantic state model** (`CensusState`) with typed sub-model envelopes for planning, artifacts, and final output:
 
 ```python
 class CensusState(BaseModel):
     messages: List[Dict[str, Any]]  # Chat history
-    artifacts: Dict[str, Any]       # Agent results (census_data, reasoning_trace)
-    final: Dict[str, Any]           # Output specs (charts_needed, answer_text)
+    plan: WorkflowPlanState | None
+    artifacts: WorkflowArtifactsState
+    final: FinalResponseState | None
     profile: Dict[str, Any]         # User preferences
     # ... more fields
 ```
+
+`WorkflowArtifactsState` is intended to hold canonical workflow artifacts, while `FinalResponseState` holds user-facing answer and output directives.
 
 **State Reducers**: Defined in `app.py` - specify how state merges:
 - `append_reducer`: For lists (messages, logs, history)
@@ -149,6 +152,27 @@ class CensusState(BaseModel):
 - `merge_reducer`: For dictionaries (artifacts, profile, cache_index)
 
 **Key Rule**: Nodes return partial state dictionaries that get merged using reducers.
+
+### 3.1 Core Data vs Presentation/Export
+
+This repo is moving toward a stricter separation between the **core data layer** and the **presentation/export layer**:
+
+- **Core data layer**: stores the canonical typed result of Census retrieval and deterministic computation in workflow state.
+- **Presentation/export layer**: derives charts, tables, PDFs, CSVs, or Parquet files from those canonical typed objects when needed.
+
+Example mental model:
+
+```text
+StrictCensusApiResponse in state  ->  derive DataFrame/table view  ->  render chart / write CSV / write Parquet
+```
+
+Important implication:
+
+- `WorkflowArtifactsState` should store the canonical typed Census result, not mixed render-ready blobs.
+- CSV/Parquet are **derived outputs**, not the source of truth.
+- File persistence should happen **on-demand** in downstream output/export paths, not automatically at the moment data enters workflow state.
+
+This keeps workflow contracts stable and reduces schema drift. A chart renderer, PDF generator, and CSV exporter should all derive their tabular view from the same canonical typed response instead of each depending on ad hoc `census_data["data"]` conventions.
 
 ### 4. Node Pattern (LangGraph Nodes)
 

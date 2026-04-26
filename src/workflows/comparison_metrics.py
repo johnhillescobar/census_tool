@@ -2,11 +2,11 @@ from typing import Any
 
 from langchain_core.runnables import RunnableConfig
 
-from src.services.comparison_metric_compute import (
+from src.domain.comparison_metric_contract import (
     ComparisonInputRow,
     ComparisonMetricComputeRequest,
-    compute_comparison_metrics,
 )
+from src.services.comparison_metric_compute import compute_comparison_metrics
 from src.state.types import CensusState, WorkflowArtifactsState
 
 
@@ -51,8 +51,6 @@ def comparison_metrics_node(
     metric_rows = compute_comparison_metrics(request)
 
     return {
-        "artifacts": WorkflowArtifactsState(
-            comparison_metrics=[row.model_dump() for row in metric_rows]
-        ),
+        "artifacts": WorkflowArtifactsState(comparison_metrics=metric_rows),
         "logs": [f"comparison_metrics: computed {len(metric_rows)} rows"],
     }

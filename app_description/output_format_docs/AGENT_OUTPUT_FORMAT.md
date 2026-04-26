@@ -4,6 +4,12 @@
 
 This document specifies the expected output format for the CensusQueryAgent. All agent outputs must conform to a Pydantic-validated structure to ensure consistency, type safety, and reliable parsing.
 
+Important scope note:
+
+- This document describes the **agent-emitted payload** used at the reasoning/output boundary.
+- It does **not** define the long-term canonical internal workflow artifact model.
+- The migration direction is for workflow state to normalize agent Census results into stricter typed contracts (for example `StrictCensusApiResponse`) and let charts/tables/CSV/Parquet be derived later in downstream presentation or export paths.
+
 ## Structure
 
 All agent outputs must conform to this structure:
