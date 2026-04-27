@@ -1,114 +1,103 @@
 # Agent Output Format Specification
 
 ## Overview
-
-This document specifies the expected output format for the CensusQueryAgent. All agent outputs must conform to a Pydantic-validated structure to ensure consistency, type safety, and reliable parsing.
+This document specifies the strict agent-emitted payload expected by `CensusQueryAgent` at the reasoning/output boundary.
 
 Important scope note:
+- This document describes the payload emitted by the agent before workflow storage.
+- It does not redefine downstream render/export adapters.
+- The payload is now aligned to the strict contract validated by `AgentSolveResult` and `StrictCensusApiResponse`.
 
-- This document describes the **agent-emitted payload** used at the reasoning/output boundary.
-- It does **not** define the long-term canonical internal workflow artifact model.
-- The migration direction is for workflow state to normalize agent Census results into stricter typed contracts (for example `StrictCensusApiResponse`) and let charts/tables/CSV/Parquet be derived later in downstream presentation or export paths.
-
-## Structure
-
+## Canonical Shape
 All agent outputs must conform to this structure:
 
 ```json
 {
   "census_data": {
-    "success": bool,
-    "data": [[...headers...], [...row1...], [...row2...], ...],
-    "variables": {"var_code": "label", ...}  // optional
+    "success": true,
+    "request": {
+      "year": 2023,
+      "dataset": "acs/acs5",
+      "variables": ["NAME", "B01003_001E"],
+      "geo_for": {"county": "037"},
+      "geo_in": {"state": "06"},
+      "geo_in_chained": []
+    },
+    "headers": ["NAME", "B01003_001E"],
+    "records": [
+      {
+        "values": {
+          "NAME": "Los Angeles County, California",
+          "B01003_001E": "9,848,406"
+        }
+      }
+    ],
+    "row_count": 1,
+    "error": null,
+    "error_message": null
   },
   "data_summary": "Brief description of what was retrieved",
   "reasoning_trace": "Agent's step-by-step reasoning",
   "answer_text": "Natural language answer to user's question",
   "charts_needed": [{"type": "bar|line", "title": "..."}],
-  "tables_needed": [{"format": "csv|excel", "title": "..."}],
-  "footnotes": ["Source: ...", "Disclaimer: ...", ...]
+  "tables_needed": [{"format": "csv|excel|html", "title": "..."}],
+  "footnotes": ["Source: ...", "Disclaimer: ...", "..."]
 }
 ```
+
+## Non-Negotiable Rules
+- `census_data` must use the strict `StrictCensusApiResponse` shape.
+- Do not emit legacy `census_data.data = [[...], [...]]` table blobs.
+- `charts_needed` must match `FinalChartSpec`.
+- `tables_needed` must match `FinalTableSpec`.
+- The entire `Final Answer` JSON must be on one line.
+- If validation fails, the parser treats the payload as invalid and falls back to a typed failure result.
 
 ## Field Specifications
 
-### census_data (required)
+### `census_data`
+Required when the agent has a Census result to report. The structure must match `StrictCensusApiResponse`.
 
-Contains the actual Census data retrieved from the API.
+Required fields:
+- `success`
+- `request`
+- `headers`
+- `records`
+- `row_count`
+- `error`
+- `error_message`
 
-**Type**: Object with required fields:
-- `success` (bool): Whether the data fetch succeeded
-- `data` (array of arrays): Census data in row format
-  - First row: Column headers (e.g., `["NAME", "B01003_001E", "state"]`)
-  - Subsequent rows: Data values (e.g., `["California", "39538223", "06"]`)
-- `variables` (object, optional): Mapping of variable codes to labels
-  - Example: `{"B01003_001E": "Total Population"}`
-  - **Note**: When provided, this enables human-readable chart titles.
-    Charts will display as "Total Population (B01003_001E) by NAME" instead of "B01003_001E by NAME".
-    If omitted, charts will use code-only titles as fallback.
+Success-path rules:
+- `request` must be present
+- `headers` must be non-empty
+- `records` must contain row objects with `values`
+- `row_count` must equal `len(records)`
+- `error` and `error_message` must be `null`
 
-**Example**:
-```json
-{
-  "success": true,
-  "data": [
-    ["NAME", "B01003_001E", "state"],
-    ["California", "39538223", "06"],
-    ["Texas", "29145505", "48"]
-  ],
-  "variables": {
-    "B01003_001E": "Total Population"
-  }
-}
-```
+Failure-path rules:
+- `error` must be present
+- `headers` must be empty
+- `records` must be empty
+- `row_count` must be `0`
 
-### data_summary (required)
+### `data_summary`
+String summary of what was retrieved. Include table code(s), geography, number of records, and year when relevant.
 
-**Type**: String
+### `reasoning_trace`
+String summary of the agent's reasoning path: geography resolution, validation, query construction, and issues encountered.
 
-Brief description of what data was retrieved. Should include:
-- Table code(s) used
-- Geography level
-- Number of records
-- Time period (year)
+### `answer_text`
+Primary user-facing answer.
 
-**Example**: `"Retrieved B01003 (Total Population) for 50 states from 2023 ACS 5-Year estimates"`
+Rules:
+- 1-3 sentences for simple queries, up to a paragraph for complex ones
+- include actual numbers from `census_data`
+- format numbers with commas
+- conversational but professional
 
-### reasoning_trace (required)
+### `charts_needed`
+Array of chart specs using this shape:
 
-**Type**: String
-
-The agent's step-by-step reasoning process. Should document:
-- Geography resolution steps
-- Table search/validation
-- API call construction
-- Any issues encountered
-
-**Example**: `"Resolved California to FIPS 06, validated B01003 supports state geography, queried 2023 ACS5 dataset"`
-
-### answer_text (required)
-
-**Type**: String
-
-Natural language answer to the user's question. This is the primary user-facing output.
-
-**Guidelines**:
-- Should be 1-3 sentences for simple queries
-- Up to a paragraph for complex comparisons
-- Must include actual numbers from census_data
-- Format numbers with commas (e.g., "39,538,223")
-- Be conversational but professional
-- Can stand alone without charts/tables
-
-**Example**: `"California has a population of 39,538,223 people according to 2023 ACS 5-Year estimates, making it the most populous state in the nation."`
-
-### charts_needed (required, can be empty array)
-
-**Type**: Array of objects
-
-Specifies data visualizations to generate.
-
-**Object structure**:
 ```json
 {
   "type": "bar" | "line",
@@ -116,296 +105,160 @@ Specifies data visualizations to generate.
 }
 ```
 
-**Usage**:
-- `bar`: For comparisons across locations or categories
-- `line`: For trends over time
+### `tables_needed`
+Array of table specs using this shape:
 
-**Example**:
-```json
-[
-  {"type": "bar", "title": "Population by State (Top 10)"},
-  {"type": "line", "title": "California Population Trend 2015-2023"}
-]
-```
-
-### tables_needed (required, can be empty array)
-
-**Type**: Array of objects
-
-Specifies data exports to generate.
-
-**Object structure**:
 ```json
 {
   "format": "csv" | "excel" | "html",
-  "filename": "optional_name",  // optional
+  "filename": "optional_name",
   "title": "Descriptive table title"
 }
 ```
 
-**Example**:
-```json
-[
-  {
-    "format": "csv",
-    "filename": "state_population_2023",
-    "title": "State Population Data 2023"
-  }
-]
-```
+### `footnotes`
+Array of strings. Include at minimum:
+- source citation
+- statistical disclaimer
 
-### footnotes (required, minimum 2)
-
-**Type**: Array of strings
-
-Source citations and disclaimers. Must include:
-
-1. **Data source citation** (always required):
-   - Example: `"Source: U.S. Census Bureau, 2023 American Community Survey 5-Year Estimates."`
-
-2. **Statistical disclaimer** (always required):
-   - Example: `"Margins of error not shown. For statistical significance, refer to Census Bureau documentation."`
-
-3. **Table codes** (recommended):
-   - Example: `"Census table(s) used: B01003 (Total Population)."`
-
-4. **Methodology notes** (if relevant):
-   - Example: `"Income values are adjusted for 2023 inflation using CPI-U."`
-
-5. **General disclaimer** (recommended):
-   - Example: `"This tool is for informational purposes only. Verify critical data at census.gov."`
-
-**Example**:
-```json
-[
-  "Source: U.S. Census Bureau, 2023 American Community Survey 5-Year Estimates.",
-  "Margins of error not shown. For statistical significance, refer to Census Bureau documentation.",
-  "Census table(s) used: B01003 (Total Population).",
-  "This tool is for informational purposes only. Verify critical data at census.gov."
-]
-```
+Recommended additions:
+- table codes used
+- methodology note when relevant
+- general disclaimer
 
 ## Validation
-
-### Pydantic Models
-
-The output is validated using Pydantic models defined in `src/utils/agents/census_query_agent.py`:
+The emitted payload is validated against:
 
 ```python
-class CensusData(BaseModel):
-    success: bool
-    data: List[List[Any]]
-    variables: Dict[str, str] | None = None
+class AgentSolveResult(BaseModel):
+    model_config = ConfigDict(extra="forbid")
 
-class AgentOutput(BaseModel):
-    census_data: CensusData
-    data_summary: str
-    reasoning_trace: str
-    answer_text: str
-    charts_needed: List[Dict[str, str]] = []
-    tables_needed: List[Dict[str, str]] = []
-    footnotes: List[str] = []
+    census_data: StrictCensusApiResponse | None = Field(...)
+    variable_labels: VariableLabels = Field(default_factory=VariableLabels)
+    data_summary: str = Field(...)
+    reasoning_trace: str = Field(...)
+    answer_text: str = Field(...)
+    charts_needed: list[FinalChartSpec] = Field(default_factory=list)
+    tables_needed: list[FinalTableSpec] = Field(default_factory=list)
+    footnotes: list[str] = Field(default_factory=list)
 ```
 
-### Error Handling
+The active validation path lives in:
+- `src/domain/agent_output_contract.py`
+- `src/domain/census_tool_contract.py`
+- `src/agents/census_query_agent.py`
 
+## Error Handling
 If validation fails:
-1. Pydantic will raise `ValidationError` with details
-2. Parser falls back to empty structure:
-   ```json
-   {
-     "census_data": {},
-     "data_summary": "Parsing failed - see logs",
-     "reasoning_trace": "Steps: N",
-     "answer_text": "Agent execution completed but output parsing failed",
-     "footnotes": []
-   }
-   ```
+1. The parser rejects the emitted payload.
+2. The agent falls back to a typed failure `AgentSolveResult`.
+3. The fallback uses `census_data=None` and an explanatory `answer_text`.
 
-## Performance Considerations
+Typical fallback shape:
 
-### Large Payloads
-
-The parser supports large payloads (1000+ rows) with optimized parsing:
-- Uses state machine for JSON extraction (handles nested structures)
-- Handles escaped quotes in strings
-- Supports deeply nested arrays (tested with 67 counties × 100+ variables)
-
-### Data Volume Optimization
-
-**Best Practice**: Minimize data volume by specifying only needed variables.
-
-❌ **Bad** (fetches 100+ variables):
 ```json
 {
-  "year": 2023,
-  "dataset": "acs/acs5/cprofile",
-  "variables": ["group(CP03)"],  // Gets ALL economic indicators
-  "geo_for": {"county": "*"},
-  "geo_in": {"state": "12"}
+  "census_data": null,
+  "data_summary": "Parsing failed - see logs",
+  "reasoning_trace": "Steps: N",
+  "answer_text": "Agent execution completed but output parsing failed",
+  "charts_needed": [],
+  "tables_needed": [],
+  "footnotes": []
 }
 ```
-
-✅ **Good** (fetches only needed variables):
-```json
-{
-  "year": 2023,
-  "dataset": "acs/acs5/cprofile",
-  "variables": ["NAME", "CP03_001E", "CP03_002E"],  // Only employment rate
-  "geo_for": {"county": "*"},
-  "geo_in": {"state": "12"}
-}
-```
-
-### When to Use group()
-
-Only use `group(table_code)` syntax when:
-1. User explicitly asks for "complete profile" or "all variables"
-2. You need 10+ variables from the same table
-3. Working with small tables (<20 variables)
-
-For targeted queries, always specify exact variables to minimize response size and parsing time.
 
 ## Multi-Year Time Series Queries
-
 When users request data across multiple years, the agent must:
+1. make one `strict_census_api_call` per year
+2. aggregate the final response into strict `headers` + `records`
+3. use a `line` chart in `charts_needed`
 
-1. Make separate API calls for each year
-2. Restructure data into time series format
-3. Use custom column names like "Year" and descriptive measure names
-4. Output with "line" chart type
+Example `census_data` for a time series:
 
-Example output structure:
 ```json
 {
-  "census_data": {
-    "success": true,
-    "data": [
-      ["Year", "Median Household Income (USD)"],
-      ["2015", "53,889"],
-      ["2016", "55,322"],
-      ["2017", "57,652"]
-    ]
+  "success": true,
+  "request": {
+    "year": 2023,
+    "dataset": "acs/acs5/subject",
+    "variables": ["Year", "Median Household Income (USD)"],
+    "geo_for": {"us": "1"},
+    "geo_in": null,
+    "geo_in_chained": []
   },
-  "charts_needed": [{"type": "line", "title": "Income Trends 2015-2017"}]
+  "headers": ["Year", "Median Household Income (USD)"],
+  "records": [
+    {"values": {"Year": "2015", "Median Household Income (USD)": "53,889"}},
+    {"values": {"Year": "2016", "Median Household Income (USD)": "55,322"}},
+    {"values": {"Year": "2017", "Median Household Income (USD)": "57,652"}}
+  ],
+  "row_count": 3,
+  "error": null,
+  "error_message": null
 }
 ```
-
-The chart generation automatically adapts to these custom column names.
-
-## Agent Prompt Format
-
-The agent must output in this format:
-
-```
-Thought: I now know the final answer
-Final Answer: {"census_data": {...}, "data_summary": "...", ...}
-```
-
-**Critical**: The entire JSON object must be on ONE line with NO line breaks inside it.
-
-## Testing
-
-### Unit Tests
-
-See `test/test_census_query_agent.py` for parsing tests:
-- Direct JSON parsing
-- Final Answer prefix extraction
-- Large nested structures
-- Escaped quotes
-- Invalid structures
-
-### Integration Tests
-
-See `test/test_integration_agent_api.py` for end-to-end tests:
-- Real Census API calls
-- Multi-county queries
-- Large responses (Texas with 254 counties)
-- Chart and table generation
 
 ## Common Issues
 
-### Issue 1: Parsing Fails on Large Responses
+### Missing strict fields
+Symptom: validation error or parser fallback.
 
-**Symptom**: "Agent execution completed but output parsing failed"
+Required strict fields to check:
+- `census_data.success`
+- `census_data.request`
+- `census_data.headers`
+- `census_data.records`
+- `census_data.row_count`
+- `data_summary`
+- `reasoning_trace`
+- `answer_text`
 
-**Solution**: Agent is likely using `group()` syntax and fetching 100+ variables. Update query to specify only needed variables.
+### Legacy table blob emitted
+Symptom: strict parser rejects payload.
 
-### Issue 2: Missing Required Fields
-
-**Symptom**: Pydantic validation error
-
-**Solution**: Ensure all required fields are present in agent output:
-- census_data.success
-- census_data.data
-- data_summary
-- reasoning_trace
-- answer_text
-
-### Issue 3: Escaped Quotes in Data
-
-**Symptom**: JSON parsing fails with quote errors
-
-**Solution**: Parser handles escaped quotes correctly. Ensure agent outputs properly escaped JSON.
-
-## Examples
-
-### Simple Query (Single State)
+Wrong:
 
 ```json
 {
   "census_data": {
     "success": true,
-    "data": [
-      ["NAME", "B01003_001E", "state"],
-      ["California", "39538223", "06"]
-    ],
-    "variables": {
-      "B01003_001E": "Total Population"
-    }
-  },
-  "data_summary": "Retrieved B01003 for California from 2023 ACS 5-Year data",
-  "reasoning_trace": "Resolved CA to FIPS 06, validated B01003, queried ACS5",
-  "answer_text": "California has a population of 39,538,223 people (2023 ACS 5-Year estimates).",
-  "charts_needed": [{"type": "bar", "title": "California Population"}],
-  "tables_needed": [],
-  "footnotes": [
-    "Source: U.S. Census Bureau, 2023 American Community Survey 5-Year Estimates.",
-    "Margins of error not shown. For statistical significance, refer to Census Bureau documentation.",
-    "Census table(s) used: B01003."
-  ]
+    "data": [["NAME"], ["California"]]
+  }
 }
 ```
 
-### Complex Query (Multi-County Comparison)
+Correct:
 
 ```json
 {
   "census_data": {
     "success": true,
-    "data": [
-      ["NAME", "B01003_001E", "state", "county"],
-      ["Los Angeles County, California", "9848406", "06", "037"],
-      ["Cook County, Illinois", "5265605", "17", "031"],
-      ["Harris County, Texas", "4731145", "48", "201"]
-    ]
-  },
-  "data_summary": "Retrieved B01003 for top 3 counties by population, 2023 ACS 5-Year",
-  "reasoning_trace": "Enumerated all US counties, queried B01003, sorted by population",
-  "answer_text": "The three most populous counties are Los Angeles County (9.8M), Cook County (5.3M), and Harris County (4.7M) according to 2023 ACS estimates.",
-  "charts_needed": [{"type": "bar", "title": "Top 3 Counties by Population"}],
-  "tables_needed": [{"format": "csv", "title": "County Population Data"}],
-  "footnotes": [
-    "Source: U.S. Census Bureau, 2023 American Community Survey 5-Year Estimates.",
-    "Margins of error not shown. For statistical significance, refer to Census Bureau documentation.",
-    "Census table(s) used: B01003 (Total Population).",
-    "This tool is for informational purposes only. Verify critical data at census.gov."
-  ]
+    "request": {
+      "year": 2023,
+      "dataset": "acs/acs5",
+      "variables": ["NAME"],
+      "geo_for": {"state": "06"},
+      "geo_in": null,
+      "geo_in_chained": []
+    },
+    "headers": ["NAME"],
+    "records": [{"values": {"NAME": "California"}}],
+    "row_count": 1,
+    "error": null,
+    "error_message": null
+  }
 }
 ```
 
-## Version History
+## Testing
+Focused strict parser coverage lives in:
+- `app_test_scripts/test_census_query_agent.py`
 
-- **v1.0** (2025-11-01): Initial specification with Pydantic validation and optimized parsing
+That test file now enforces:
+- strict direct JSON parsing
+- strict `Final Answer:` extraction
+- strict large-payload handling
+- rejection of legacy `census_data.data` payloads
 
 

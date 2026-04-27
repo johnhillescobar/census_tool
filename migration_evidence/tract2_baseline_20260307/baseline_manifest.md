@@ -92,12 +92,14 @@
   - `src/tools/chart_tool.py` and `src/tools/table_tool.py` still keep `str | dict` compatibility shims, and their LangChain `_run()` / `_arun()` entrypoints still return string success/error messages even though the typed `render()` path exists
   - memory persistence is still legacy/untyped and still serializes `plan` / `final` at the JSON boundary without the versioned schema migration required for Track 2 exit
   - the Streamlit UI path still relies on dict-style payload access, and agent/output boundaries are still mixed in key places (`streamlit_app.py`, parts of `src/workflows/agent.py`, compatibility-heavy public wrappers in `src/api/displays.py` and `src/clients/pdf_generator.py`)
-  - `src/api/__init__.py` and `app_test_scripts/test_displays.py` still reference removed legacy display helpers, so the current display-focused test file does not collect
+  - `src/workflows/agent.py` still downgrades typed `census_data` with `model_dump()` when calling the loose `footnote_generator`
+  - `app_test_scripts/test_track2_contract_first.py` no longer collects because it still imports removed symbol `AgentOutput` from `src/agents/census_query_agent.py`
   - workflow-level canonical acceptance and repeatability coverage are still incomplete outside the current focused tests
 - Verification Evidence Checked:
   - code: `src/state/types.py`, `src/workflows/comparison_metrics.py`, `src/workflows/agent.py`, `src/workflows/output.py`, `src/services/census_render_adapter.py`, `src/tools/table_tool.py`, `src/tools/chart_tool.py`, `src/domain/rendered_output_contract.py`
   - tests: `app_test_scripts/test_track2_contract_first.py`, `app_test_scripts/test_census_query_agent.py`, `app_test_scripts/test_output_title_formatting.py`, `app_test_scripts/test_multi_series_charts.py`, `app_test_scripts/test_pdf_generation.py`
-  - focused pytest refresh (2026-04-26): `46 passed` across the files above; `app_test_scripts/test_displays.py` currently fails during collection because `src.api.__init__` re-exports `display_single_value`, `display_series`, `display_table`, and `display_not_census`, but `src/api/displays.py` now only defines `display_results`
+  - tests: `app_test_scripts/test_displays.py`
+  - focused pytest refresh (2026-04-26): the six-file run currently stops at collection because `app_test_scripts/test_track2_contract_first.py` imports removed symbol `AgentOutput`; excluding that stale test file, `app_test_scripts/test_census_query_agent.py`, `app_test_scripts/test_output_title_formatting.py`, `app_test_scripts/test_multi_series_charts.py`, `app_test_scripts/test_pdf_generation.py`, and `app_test_scripts/test_displays.py` pass (`43 passed`)
 
 ## Track 2 Gate Focus
 - Contract consistency remains partial because validated objects are still flattened into generic dict channels in workflow state.

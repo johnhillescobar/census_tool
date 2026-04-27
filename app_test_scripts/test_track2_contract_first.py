@@ -2,7 +2,6 @@ import pytest
 from pydantic import ValidationError
 
 from app import _route_after_benchmark
-from src.agents.census_query_agent import AgentOutput
 from src.domain.agent_output_contract import AgentSolveResult
 from src.domain.benchmark_contract import BenchmarkIntent, BenchmarkResolved
 from src.domain.comparison_plan import ComparisonPlan
@@ -146,7 +145,7 @@ def test_agent_reasoning_node_returns_typed_final_and_artifacts(monkeypatch):
 
 def test_agent_output_rejects_extra_chart_fields():
     with pytest.raises(ValidationError):
-        AgentOutput.model_validate(
+        AgentSolveResult.model_validate(
             {
                 "census_data": {"success": True, "data": [["NAME"], ["California"]]},
                 "data_summary": "summary",
@@ -167,7 +166,7 @@ def test_agent_output_rejects_extra_chart_fields():
 
 def test_agent_output_rejects_extra_table_fields():
     with pytest.raises(ValidationError):
-        AgentOutput.model_validate(
+        AgentSolveResult.model_validate(
             {
                 "census_data": {"success": True, "data": [["NAME"], ["California"]]},
                 "data_summary": "summary",

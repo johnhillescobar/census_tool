@@ -59,7 +59,7 @@ Source plans:
     - `src/workflows/output.py` now reads `state.final` as `FinalResponseState`, reads typed `artifacts.census_data`, uses `src/services/census_render_adapter.py`, and passes typed `ChartToolInput` / `TableToolInput` into `ChartTool.render()` / `TableTool.render()`
     - `src/domain/rendered_output_contract.py` now defines typed DTOs for narrative, footnotes, chart/table outputs, and generic rendered artifacts
     - `src/tools/table_tool.py` and `src/tools/chart_tool.py` now validate typed `StrictCensusApiRawTable` inputs internally and expose typed `render()` outputs, but their compatibility parsers plus `_run()` / `_arun()` string responses still remain for legacy callers
-    - `src/api/displays.py` now coerces typed `FinalResponseState`, but `src/api/__init__.py` and `app_test_scripts/test_displays.py` still assume removed legacy display helper exports
+    - `src/api/displays.py` now coerces typed `FinalResponseState`, `src/api/__init__.py` now re-exports only `display_results`, and `app_test_scripts/test_displays.py` passes on that typed CLI path
     - `streamlit_app.py` expects dict-like `result` / `final`
     - `src/clients/pdf_generator.py` now defines typed PDF DTOs and coerces typed `final` / `artifacts`, but its public input still accepts loose dict payloads
   - These readers are now part of the Track 2 strict-state migration surface.
@@ -79,8 +79,8 @@ Source plans:
     - Streamlit and public display consumer regression tests on the typed path
     - strict validation failure tests for malformed state payloads outside the currently covered typed contracts
   - Current test reality:
-    - `uv run pytest app_test_scripts/test_track2_contract_first.py app_test_scripts/test_census_query_agent.py app_test_scripts/test_output_title_formatting.py app_test_scripts/test_multi_series_charts.py app_test_scripts/test_pdf_generation.py -q` -> `46 passed`
-    - `app_test_scripts/test_displays.py` currently fails during collection because `src.api.__init__.py` re-exports legacy display helpers that no longer exist in `src/api/displays.py`
+    - `uv run pytest app_test_scripts/test_track2_contract_first.py app_test_scripts/test_census_query_agent.py app_test_scripts/test_output_title_formatting.py app_test_scripts/test_multi_series_charts.py app_test_scripts/test_pdf_generation.py app_test_scripts/test_displays.py -q` currently stops at collection because `app_test_scripts/test_track2_contract_first.py` still imports removed symbol `AgentOutput`
+    - `uv run pytest app_test_scripts/test_census_query_agent.py app_test_scripts/test_output_title_formatting.py app_test_scripts/test_multi_series_charts.py app_test_scripts/test_pdf_generation.py app_test_scripts/test_displays.py -q` -> `43 passed`
 
 - `t2-canonical-suite`: in_progress
   - Service/contract tests covering clarification and resolved paths are present and passing.
@@ -111,7 +111,7 @@ Source plans:
 3. Add explicit reducers/adapters for strict models where LangGraph merge semantics require them, then remove temporary dict/model compatibility shims from artifact merging.
 4. Migrate persisted memory JSON to a versioned strict schema with explicit read-time migration.
 5. Refactor CLI, Streamlit, PDF, and output helpers to typed state or explicit adapters, then switch chart/table outputs from string messages to structured rendered-artifact DTOs.
-   - refinement after 2026-04-26 review: the typed render DTO path now exists on the main output flow, so the remaining work is to remove legacy `_run()` / `_arun()` string callers, align public display exports/tests, and migrate Streamlit off `final.get(...)`.
+  - refinement after 2026-04-26 review: the typed render DTO path now exists on the main output flow, the CLI display export/test path is now aligned, and the remaining work is to remove legacy `_run()` / `_arun()` string callers, migrate Streamlit off `final.get(...)`, and eliminate the agent footnote `model_dump()` bridge.
 6. Reconcile the current `mypy` config/dev dependency with the Track 2 freeze rule, then expand or explicitly bound the static gate with a recorded decision.
 7. Expand canonical suite to include workflow-level deterministic acceptance coverage.
 8. Upgrade `BenchmarkIntent.historical_baseline` from temporary fail-closed behavior to fully typed baseline contract fields and validators.
@@ -157,16 +157,20 @@ Source plans:
   - `src/workflows/comparison_metrics.py` now preserves typed metric rows in `WorkflowArtifactsState`
   - `src/workflows/agent.py` now writes typed `census_data` and `variable_labels` into state, but still has a loose downstream footnote bridge
   - `src/services/census_render_adapter.py` now owns the shared `StrictCensusApiResponse -> StrictCensusApiRawTable` conversion
-  - `src/workflows/output.py` now consumes the shared adapter and typed variable labels, but still emits legacy dict payloads at one tool boundary
-  - `src/tools/table_tool.py` and `src/tools/chart_tool.py` now validate typed raw-table inputs internally
+  - `src/workflows/output.py` now consumes the shared adapter and typed variable labels, uses typed `render()` calls on the main path, and guards against unsuccessful/empty Census responses before tabular derivation
+  - `src/tools/table_tool.py` and `src/tools/chart_tool.py` now validate typed raw-table inputs internally, but still keep legacy parsing and string-return entrypoints for older callers
   - `src/workflows/memory.py` still serializes `plan` / `final` at the persistence boundary
   - `pyproject.toml` now contains scoped `mypy` config plus a dev dependency entry
 - Test evidence checked:
-  - `app_test_scripts/test_track2_contract_first.py`
   - `app_test_scripts/test_output_title_formatting.py`
   - `app_test_scripts/test_multi_series_charts.py`
+  - `app_test_scripts/test_census_query_agent.py`
+  - `app_test_scripts/test_pdf_generation.py`
+  - `app_test_scripts/test_displays.py`
   - `app_test_scripts/test_variable_validation_tool.py`
   - `app_test_scripts/test_comparison_plan_policy.py`
+- Current blocker in the intended focused suite:
+  - `app_test_scripts/test_track2_contract_first.py` is stale at import time because it still references removed `AgentOutput`
 - Planning decision still in force:
   - strict Pydantic state migration selected
   - JSON schema migration allowed

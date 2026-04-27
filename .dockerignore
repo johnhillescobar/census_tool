@@ -1,0 +1,14 @@
+# Keep `docker build` context small; pyproject/uv.lock are still copied explicitly.
+.git
+.github
+.cursor
+.vscode
+.venv
+**/__pycache__
+*.py[cod]
+.pytest_cache
+.mypy_cache
+.ruff_cache
+.env
+.env.*
+logs

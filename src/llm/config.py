@@ -331,7 +331,7 @@ CRITICAL OUTPUT FORMAT RULES:
 When you have the final data, you MUST output EXACTLY this format on ONE line:
 
 Thought: I now know the final answer
-Final Answer: {{"census_data": {{"success": true, "data": [...actual data...]}}, "data_summary": "brief summary text", "reasoning_trace": "your steps", "answer_text": "natural language answer", "charts_needed": [...chart specifications...], "tables_needed": [...table specifications...], "footnotes": ["footnote 1", "footnote 2", ...]}}
+Final Answer: {{"census_data": {{"success": true, "request": {{"year": 2023, "dataset": "acs/acs5", "variables": ["NAME", "B01003_001E"], "geo_for": {{"county": "037"}}, "geo_in": {{"state": "06"}}, "geo_in_chained": []}}, "headers": ["NAME", "B01003_001E"], "records": [{{"values": {{"NAME": "Los Angeles County, California", "B01003_001E": "9,848,406"}}}}], "row_count": 1, "error": null, "error_message": null}}, "data_summary": "brief summary text", "reasoning_trace": "your steps", "answer_text": "natural language answer", "charts_needed": [...chart specifications...], "tables_needed": [...table specifications...], "footnotes": ["footnote 1", "footnote 2", ...]}}
 
 RULES:
 1. Write "Thought: I now know the final answer" on its own line
@@ -339,11 +339,13 @@ RULES:
 3. The ENTIRE JSON object must be on ONE line with NO line breaks inside it
 4. Compress the JSON - no pretty printing, no indentation, no newlines
 5. Include all 7 keys: census_data, data_summary, reasoning_trace, answer_text, charts_needed, tables_needed, footnotes
-6. CRITICAL: Output COMPLETE, VALID JSON - NO ellipses (...), NO abbreviations, NO truncation
-7. If data is very large (100+ columns), include ALL data without abbreviation - the JSON must be parseable
+6. CRITICAL: census_data MUST use the strict response shape from strict_census_api_call: success, request, headers, records, row_count, error, error_message
+7. DO NOT emit the legacy census_data.data = [[...], [...]] table blob format
+8. CRITICAL: Output COMPLETE, VALID JSON - NO ellipses (...), NO abbreviations, NO truncation
+9. If data is very large (100+ columns), include ALL data without abbreviation - the JSON must be parseable
 
 CORRECT example:
-Final Answer: {{"census_data":{{"success":true,"data":[["NAME","B01003_001E"],["Los Angeles County","9,848,406"]]}},"data_summary":"Population data for Los Angeles County from 2023 ACS","reasoning_trace":"Resolved LA to Los Angeles County, queried B01003 table","answer_text":"Los Angeles County has a population of 9,848,406 people according to 2023 ACS 5-Year estimates.","charts_needed":[{{"type":"bar","title":"Population by County"}}],"tables_needed":[{{"format":"csv","filename":"la_population","title":"Population Data"}}],"footnotes":["Source: U.S. Census Bureau, 2023 American Community Survey 5-Year Estimates.","Margins of error not shown. For statistical significance, refer to Census Bureau documentation."]}}
+Final Answer: {{"census_data":{{"success":true,"request":{{"year":2023,"dataset":"acs/acs5","variables":["NAME","B01003_001E"],"geo_for":{{"county":"037"}},"geo_in":{{"state":"06"}},"geo_in_chained":[]}},"headers":["NAME","B01003_001E"],"records":[{{"values":{{"NAME":"Los Angeles County, California","B01003_001E":"9,848,406"}}}}],"row_count":1,"error":null,"error_message":null}},"data_summary":"Population data for Los Angeles County from 2023 ACS","reasoning_trace":"Resolved Los Angeles County, validated geography and variable, and queried strict_census_api_call for B01003_001E.","answer_text":"Los Angeles County has a population of 9,848,406 people according to 2023 ACS 5-Year estimates.","charts_needed":[{{"type":"bar","title":"Population by County"}}],"tables_needed":[{{"format":"csv","filename":"la_population","title":"Population Data"}}],"footnotes":["Source: U.S. Census Bureau, 2023 American Community Survey 5-Year Estimates.","Margins of error not shown. For statistical significance, refer to Census Bureau documentation."]}}
 
 
 WRONG examples (DO NOT DO THIS):
@@ -354,6 +356,7 @@ Final Answer: {{
 }}
 
 WRONG - multi-line JSON will cause parsing errors. Keep it on ONE line!
+WRONG - do not output legacy census_data.data arrays. Use request/headers/records/row_count instead.
 
 REASONING PROCESS FOR COMPLEX CENSUS QUERIES:
 1. For listing/enumeration → use geography_discovery with enumerate_areas (supports CBSAs, metropolitan divisions, NECTAs, etc.)
@@ -396,12 +399,10 @@ For queries requesting data across multiple years (e.g., "2015 to 2020", "trends
    - Use same dataset, variables, and geography for each year
    
 3. AGGREGATE results into time series format:
-   - Restructure data with columns: ["Year", "Measure Name", "<other geography columns>"]
-   - Example output format:
-     [["Year", "Median Household Income (USD)", "Geography"],
-      ["2015", "53,889", "United States"],
-      ["2016", "55,322", "United States"],
-      ...]
+   - Restructure data into the strict census_data shape
+   - Use headers like ["Year", "Median Household Income (USD)", "Geography"]
+   - Use records like [{{"values": {{"Year": "2015", "Median Household Income (USD)": "53,889", "Geography": "United States"}}}}, ...]
+   - Set row_count to the number of records
 
 4. CHARTS for time series:
    - ALWAYS use "line" chart type for multi-year trends
@@ -428,8 +429,7 @@ Action: strict_census_api_call
 Action Input: {{"year": 2016, "dataset": "acs/acs5/subject", "variables": ["S1903_C03_001E"], "geo_for": {{"us": "1"}}}}
 Observation: [...2016 data...]
 ... (repeat for 2017, 2018, 2019, 2020)
-Thought: I now have all years. Restructure into time series format.
-Final Answer: {{"census_data": {{"success": true, "data": [["Year", "Median Household Income (USD)"], ["2015", "53,889"], ["2016", "55,322"], ...]}}...}}
+Thought: I now have all years. Restructure into strict headers/records format and return the final answer on one line.
 
 OUTPUT GENERATION GUIDELINES:
 7. ALWAYS generate charts for census data visualization:

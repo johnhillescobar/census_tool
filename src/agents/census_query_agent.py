@@ -1,9 +1,9 @@
 import os
 import logging
 import json
-from typing import Dict, List, Any, cast
+from typing import Dict, Any, cast
 from dotenv import load_dotenv
-from pydantic import BaseModel, ConfigDict, Field, ValidationError
+from pydantic import ValidationError
 
 from langchain.agents import AgentExecutor
 from langchain_core.tools import BaseTool
@@ -21,7 +21,6 @@ from langchain.prompts import PromptTemplate
 
 from src.llm.config import LLM_CONFIG, AGENT_PROMPT_TEMPLATE
 from src.llm.factory import create_llm
-from src.domain.final_output_contract import FinalChartSpec, FinalTableSpec
 from src.tools.geography_discovery_tool import GeographyDiscoveryTool
 from src.tools.geography_hierarchy_tool import GeographyHierarchyTool
 from src.tools.geography_validation_tool import GeographyValidationTool
@@ -34,11 +33,7 @@ from src.tools.variable_validation_tool import VariableValidationTool
 from src.tools.strict_census_api_tool import StrictCensusApiTool
 
 # Import the strict Census response models
-from src.domain.census_tool_contract import (
-    StrictCensusApiRecord,
-    StrictCensusApiRequest,
-    StrictCensusApiResponse,
-)
+from src.domain.census_tool_contract import StrictCensusApiResponse
 from src.domain.agent_output_contract import AgentSolveResult
 
 # Import conversation summarizer
@@ -49,25 +44,6 @@ load_dotenv()
 
 logger = logging.getLogger(__name__)
 
-
-class CensusData(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
-    success: bool
-    data: List[List[Any]]
-    variables: Dict[str, str] | None = None
-
-
-class AgentOutput(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
-    census_data: StrictCensusApiResponse | CensusData
-    data_summary: str
-    reasoning_trace: str
-    answer_text: str
-    charts_needed: list[FinalChartSpec] = Field(default_factory=list)
-    tables_needed: list[FinalTableSpec] = Field(default_factory=list)
-    footnotes: list[str] = Field(default_factory=list)
 
 
 class CensusQueryAgent:
@@ -128,6 +104,76 @@ class CensusQueryAgent:
             callbacks=[self.summarizer],
         )
 
+    
+    def _build_failure_solve_result(
+        self,
+        *,
+        census_data: StrictCensusApiResponse | None,
+        data_summary: str,
+        reasoning_trace: str,
+        answer_text: str,
+        footnotes: list[str],
+    ) -> AgentSolveResult:
+
+        return AgentSolveResult(
+            census_data=census_data,
+            data_summary=data_summary,
+            reasoning_trace=reasoning_trace,
+            answer_text=answer_text,
+            charts_needed=[],
+            tables_needed=[],
+            footnotes=footnotes,
+        )
+
+
+    def _coerce_observation_to_strict_response(
+        self, observation: Any
+    ) -> StrictCensusApiResponse | None:
+
+        if isinstance(observation, StrictCensusApiResponse):
+            return observation
+
+        if isinstance(observation, str):
+            text = observation.strip()
+            if text.startswith("{") and text.endswith("}"):
+                try:
+                    observation = json.loads(text)
+                except json.JSONDecodeError:
+                    return None
+
+        if isinstance(observation, dict):
+            try:
+                return StrictCensusApiResponse.model_validate(observation)
+            except ValidationError:
+                return None
+
+        return None
+
+    def _validate_agent_solve_result(
+        self,
+        parsed: dict[str, Any],
+    ) -> AgentSolveResult:
+
+        if not isinstance(parsed, dict):
+            raise TypeError("parsed agent output must be a dict")
+
+        strict_census_data = (
+            StrictCensusApiResponse.model_validate(parsed["census_data"])
+            if parsed.get("census_data") is not None
+            else None
+        )
+
+        return AgentSolveResult(
+            census_data=strict_census_data,
+            data_summary=parsed["data_summary"],
+            reasoning_trace=parsed["reasoning_trace"],
+            answer_text=parsed["answer_text"],
+            charts_needed=parsed["charts_needed"],
+            tables_needed=parsed["tables_needed"],
+            footnotes=parsed["footnotes"],
+        )
+    
+    
     def _build_tools(self) -> list[BaseTool]:
         """
         Keep Track 2 tool ownership explicit:
@@ -224,9 +270,11 @@ class CensusQueryAgent:
 
         parsed_solution = self._parse_solution(result)
 
-        return self._to_solve_result(parsed_solution, result)
+        return parsed_solution
 
-    def _has_invalid_geography(self, result: Dict, parsed: Dict) -> bool:
+    def _has_invalid_geography(
+        self, result: Dict, parsed: AgentSolveResult | Dict[str, Any]
+    ) -> bool:
         """Check if agent tried to query invalid geography"""
         intermediate_steps = result.get("intermediate_steps", [])
 
@@ -272,29 +320,35 @@ class CensusQueryAgent:
 
         return False
 
-    def _build_invalid_geography_response(self, result: Dict, parsed: Dict) -> Dict:
-        """Build error response for invalid geography"""
-        return {
-            "census_data": {"success": False, "data": []},
-            "data_summary": "Invalid geography - not available in Census data",
-            "reasoning_trace": "Geography resolution failed or Census API returned error",
-            "answer_text": "I was unable to complete this query. The geography you requested is not available in the U.S. Census data. Please try a valid U.S. geography (state, county, city, etc.).",
-            "charts_needed": [],
-            "tables_needed": [],
-            "footnotes": [
+    def _build_invalid_geography_response(
+        self, result: Dict, parsed: AgentSolveResult
+    ) -> AgentSolveResult:
+        """Build error response for invalid geography."""
+        return self._build_failure_solve_result(
+            census_data=parsed.census_data,
+            data_summary="Invalid geography - not available in Census data",
+            reasoning_trace="Geography resolution failed or Census API returned error",
+            answer_text=(
+                "I was unable to complete this query. The geography you requested "
+                "is not available in the U.S. Census data. Please try a valid "
+                "U.S. geography (state, county, city, etc.)."
+            ),
+            footnotes=[
                 "The requested geography is not available in Census datasets.",
                 "U.S. Census covers U.S. geographies only.",
             ],
-        }
+        )
 
-    def _normalize_error_response(self, parsed: Dict, result: Dict) -> Dict:
+    def _normalize_error_response(
+        self, parsed: AgentSolveResult, result: Dict
+    ) -> AgentSolveResult:
         """
         Normalize error responses to ensure answer_text contains expected phrases.
         If success is False but answer_text doesn't match test expectations, update it.
         """
-        census_data = parsed.get("census_data", {})
-        if isinstance(census_data, dict) and census_data.get("success") is False:
-            answer_text = parsed.get("answer_text", "").lower()
+        census_data = parsed.census_data
+        if census_data is not None and census_data.success is False:
+            answer_text = parsed.answer_text.lower()
             # Check if answer_text contains expected error phrases
             has_expected_phrases = (
                 "unable to complete" in answer_text or "not available" in answer_text
@@ -303,23 +357,24 @@ class CensusQueryAgent:
             if not has_expected_phrases:
                 # Normalize to expected format
                 logger.info("Normalizing error response to match test expectations")
-                parsed["answer_text"] = (
-                    "I was unable to complete this query. "
-                    "The geography you requested is not available in the U.S. Census data. "
-                    "Please try a valid U.S. geography (state, county, city, etc.)."
+                return parsed.model_copy(
+                    update={
+                        "answer_text": (
+                            "I was unable to complete this query. "
+                            "The geography you requested is not available in the "
+                            "U.S. Census data. Please try a valid U.S. geography "
+                            "(state, county, city, etc.)."
+                        )
+                    }
                 )
-                # Ensure census_data structure is correct
-                if not isinstance(census_data, dict):
-                    parsed["census_data"] = {"success": False, "data": []}
-                elif "data" not in census_data:
-                    parsed["census_data"]["data"] = []
 
         return parsed
 
-    def _parse_solution(self, result: Dict) -> Dict:
+    def _parse_solution(self, result: Dict[str, Any]) -> AgentSolveResult:
         """
         Parse agent output - extract JSON after 'Final Answer:' prefix.
-        Simplified to 2 methods: direct parse or prefix extraction.
+        Simplified to 2 methods: direct parse or prefix extraction. 
+        Return AgentSolveResult instead of Dict.
         """
         output = result.get("output", "")
         if self._did_reach_iteration_limit(result, output):
@@ -329,7 +384,7 @@ class CensusQueryAgent:
         logger.info(f"Parsing agent output (length: {len(output)} chars)")
 
         # Method 1: Direct JSON parse (when AgentExecutor strips prefix)
-        parsed = self._try_direct_json_parse(output)
+        parsed = self._try_direct_json_parse(output, result)
         if parsed:
             # Validate that geography resolution succeeded
             if self._has_invalid_geography(result, parsed):
@@ -339,7 +394,7 @@ class CensusQueryAgent:
             return parsed
 
         # Method 2: Extract after "Final Answer:" prefix
-        parsed = self._extract_after_final_answer(output)
+        parsed = self._extract_after_final_answer(output, result)
         if parsed:
             # Validate that geography resolution succeeded
             if self._has_invalid_geography(result, parsed):
@@ -353,7 +408,7 @@ class CensusQueryAgent:
             logger.warning(
                 "Agent returned bare JSON without 'Final Answer:' prefix, attempting direct parse"
             )
-            parsed = self._try_direct_json_parse(output)
+            parsed = self._try_direct_json_parse(output, result)
             if parsed:
                 # Validate that geography resolution succeeded
                 if self._has_invalid_geography(result, parsed):
@@ -367,17 +422,19 @@ class CensusQueryAgent:
         logger.debug(f"Raw output sample: {output[:500]}")
 
         intermediate_steps = result.get("intermediate_steps", [])
-        return {
-            "census_data": {"success": False, "data": []},
-            "data_summary": "Parsing failed - see logs",
-            "reasoning_trace": f"Steps: {len(intermediate_steps)}",
-            "answer_text": "Agent execution completed but output parsing failed",
-            "charts_needed": [],
-            "tables_needed": [],
-            "footnotes": [],
-        }
+        return self._build_failure_solve_result(
+            census_data=None,
+            data_summary="Parsing failed - see logs",
+            reasoning_trace=f"Steps: {len(intermediate_steps)}",
+            answer_text="Agent execution completed but output parsing failed",
+            footnotes=[],
+        )
 
-    def _try_direct_json_parse(self, output: str) -> Dict | None:
+    def _try_direct_json_parse(
+        self, 
+        output: str,
+        result: Dict[str, Any]
+        ) -> AgentSolveResult | None:
         """Attempt direct JSON parsing of entire output."""
         try:
             logger.error(
@@ -388,45 +445,34 @@ class CensusQueryAgent:
                 f"[PARSE DEBUG] json.loads() succeeded. Type: {type(parsed)}, has census_data: {'census_data' in parsed if isinstance(parsed, dict) else 'N/A'}"
             )
             if isinstance(parsed, dict) and "census_data" in parsed:
-                parsed = self._normalize_parsed_output_contract(parsed)
                 logger.error("[PARSE DEBUG] Attempting Pydantic validation...")
-                validated = AgentOutput(**parsed)  # Pydantic validation
+                validated = self._validate_agent_solve_result(parsed)
                 logger.info("Successfully parsed as direct JSON")
-                return validated.model_dump()
+                return validated
             else:
                 logger.error(
                     f"[PARSE DEBUG] Direct parse - parsed but missing census_data. Keys: {list(parsed.keys()) if isinstance(parsed, dict) else 'not a dict'}"
                 )
-        except json.JSONDecodeError as e:
-            logger.error(f"[PARSE DEBUG] Direct parse JSONDecodeError: {str(e)[:300]}")
-        except ValidationError as e:
+        except (json.JSONDecodeError, ValidationError, KeyError, TypeError) as e:
             logger.error(
-                f"[PARSE DEBUG] Direct parse Pydantic ValidationError: {str(e)[:500]}"
-            )
-        except Exception as e:
-            logger.error(
-                f"[PARSE DEBUG] Direct parse unexpected error: {type(e).__name__}: {str(e)[:300]}"
+                f"[PARSE DEBUG] Direct parse failed: {type(e).__name__}: {str(e)[:500]}"
             )
         return None
 
-    def _build_empty_output_response(self, result: Dict) -> Dict[str, Any]:
+    def _build_empty_output_response(self, result: Dict) -> AgentSolveResult:
         intermediate_steps = result.get("intermediate_steps", []) or []
         step_count = len(intermediate_steps)
 
-        last_tool = None
         last_observation = None
         if intermediate_steps:
             last_step = intermediate_steps[-1]
             if isinstance(last_step, (tuple, list)) and len(last_step) == 2:
-                action, observation = last_step
-                last_tool = getattr(action, "tool", None)
+                _, observation = last_step
                 last_observation = observation
 
         summary_parts = [
             f"The agent completed {step_count} tool steps but did not emit a final answer payload."
         ]
-        if last_tool:
-            summary_parts.append(f"Last tool invoked: {last_tool}.")
         if last_observation:
             summary_parts.append("Review the session log for the final tool output.")
 
@@ -436,23 +482,13 @@ class CensusQueryAgent:
             "Please rerun the question and I will try again."
         )
 
-        census_data_payload: Dict[str, Any] = {
-            "success": False,
-            "error": "empty_output",
-        }
-        observation_dict = self._coerce_observation_to_dict(last_observation)
-        if observation_dict and isinstance(observation_dict, dict):
-            census_data_payload = observation_dict
-
-        return {
-            "census_data": census_data_payload,
-            "data_summary": data_summary,
-            "reasoning_trace": f"No final output after {step_count} steps.",
-            "answer_text": answer_text,
-            "charts_needed": [],
-            "tables_needed": [],
-            "footnotes": [],
-        }
+        return self._build_failure_solve_result(
+            census_data=self._coerce_observation_to_strict_response(last_observation),
+            data_summary=data_summary,
+            reasoning_trace=f"No final output after {step_count} steps.",
+            answer_text=answer_text,
+            footnotes=[],
+        )
 
     def _did_reach_iteration_limit(self, result: Dict, output: str) -> bool:
         if not output:
@@ -473,7 +509,7 @@ class CensusQueryAgent:
 
     def _build_iteration_limit_response(
         self, result: Dict, output: str
-    ) -> Dict[str, Any]:
+    ) -> AgentSolveResult:
         intermediate_steps = result.get("intermediate_steps", []) or []
         step_count = len(intermediate_steps)
 
@@ -500,39 +536,18 @@ class CensusQueryAgent:
             "Please rerun the question or adjust it and I will try again."
         )
 
-        census_data_payload: Dict[str, Any] = {
-            "success": False,
-            "error": "iteration_limit",
-        }
-        observation_dict = self._coerce_observation_to_dict(last_observation)
-        if observation_dict and isinstance(observation_dict, dict):
-            census_data_payload = observation_dict
+        return self._build_failure_solve_result(
+            census_data=self._coerce_observation_to_strict_response(last_observation),
+            data_summary=data_summary,
+            reasoning_trace=f"Iteration limit reached after {step_count} steps.",
+            answer_text=answer_text,
+            footnotes=[],
+        )
 
-        return {
-            "census_data": census_data_payload,
-            "data_summary": data_summary,
-            "reasoning_trace": f"Iteration limit reached after {step_count} steps.",
-            "answer_text": answer_text,
-            "charts_needed": [],
-            "tables_needed": [],
-            "footnotes": [],
-        }
-
-    def _coerce_observation_to_dict(self, observation: Any) -> Dict[str, Any] | None:
-        if isinstance(observation, dict):
-            return observation
-        if isinstance(observation, str):
-            text = observation.strip()
-            if text.startswith("{") and text.endswith("}"):
-                try:
-                    parsed = json.loads(text)
-                    if isinstance(parsed, dict):
-                        return parsed
-                except json.JSONDecodeError:
-                    return None
-        return None
-
-    def _extract_after_final_answer(self, output: str) -> Dict | None:
+    def _extract_after_final_answer(
+        self, 
+        output: str,
+        result: Dict[str, Any]) -> AgentSolveResult | None:
         """Extract JSON after 'Final Answer:' prefix using state machine."""
         # Find "Final Answer:" marker
         marker = "Final Answer:"
@@ -546,10 +561,7 @@ class CensusQueryAgent:
         # Start after the marker
         json_start = idx + len(marker)
         json_text = output[json_start:].strip()
-        logger.error(
-            f"[PARSE DEBUG] Found 'Final Answer:' at position {idx}. Text after marker (first 200 chars): {json_text[:200]}"
-        )
-
+        
         # Extract JSON using brace-matching state machine
         extracted = self._extract_json_with_state_machine(json_text)
         if not extracted:
@@ -558,62 +570,22 @@ class CensusQueryAgent:
             )
             return None
 
-        logger.error(f"[PARSE DEBUG] Extracted JSON length: {len(extracted)} chars")
-        logger.error(f"[PARSE DEBUG] First 150 chars: {extracted[:150]}")
-        logger.error(f"[PARSE DEBUG] Last 150 chars: {extracted[-150:]}")
-
         try:
             parsed = json.loads(extracted)
             if isinstance(parsed, dict) and "census_data" in parsed:
-                parsed = self._normalize_parsed_output_contract(parsed)
-                validated = AgentOutput(**parsed)  # Pydantic validation
+                validated = self._validate_agent_solve_result(parsed)
                 logger.info("Successfully extracted JSON after 'Final Answer:'")
-                return validated.model_dump()
+                return validated
             else:
                 logger.error(
                     f"[PARSE DEBUG] Parsed JSON but missing 'census_data' key. Keys: {list(parsed.keys()) if isinstance(parsed, dict) else 'not a dict'}"
                 )
-        except (json.JSONDecodeError, ValidationError) as e:
+        except (json.JSONDecodeError, ValidationError, KeyError, TypeError) as e:
             logger.error(
-                f"[PARSE DEBUG] JSON parse or Pydantic validation failed: {type(e).__name__}: {str(e)[:300]}"
+                f"[PARSE DEBUG] JSON parse or validation failed: {type(e).__name__}: {str(e)[:300]}"
             )
         return None
-
-    def _normalize_parsed_output_contract(
-        self, parsed: Dict[str, Any]
-    ) -> Dict[str, Any]:
-        """
-        Normalize common LLM contract drift before strict Pydantic validation.
-
-        Current fix:
-        - census_data.variables may arrive as a list (["NAME", "B01003_001E"]).
-          Convert it to dict shape expected by CensusData:
-          {"NAME": "NAME", "B01003_001E": "B01003_001E"}.
-        """
-        census_data = parsed.get("census_data")
-        if not isinstance(census_data, dict):
-            return parsed
-
-        variables = census_data.get("variables")
-        if isinstance(variables, list):
-            normalized_variables: Dict[str, str] = {}
-            for item in variables:
-                if isinstance(item, str) and item.strip():
-                    normalized_variables[item] = item
-            census_data["variables"] = normalized_variables
-
-            logger.warning(
-                "Normalized census_data.variables from list to dict for contract compatibility"
-            )
-
-        if "errors" in census_data:
-            census_data.pop("errors", None)
-            logger.warning(
-                "Normalized legacy census_data.errors field out of final answer payload"
-            )
-
-        return parsed
-
+ 
     def _extract_json_with_state_machine(self, text: str) -> str | None:
         """
         Extract JSON object using state machine that handles:
@@ -696,150 +668,3 @@ class CensusQueryAgent:
             pass
 
         return False
-
-    def _extract_request_from_intermediate_steps(
-        self, result: Dict[str, Any] | None
-    ) -> StrictCensusApiRequest | None:
-        if not isinstance(result, dict):
-            return None
-
-        intermediate_steps = result.get("intermediate_steps", []) or []
-        for step in reversed(intermediate_steps):
-            if not isinstance(step, (tuple, list)) or len(step) != 2:
-                continue
-
-            action = step[0]
-            if getattr(action, "tool", None) != "strict_census_api_call":
-                continue
-
-            tool_input = getattr(action, "tool_input", None)
-            try:
-                if isinstance(tool_input, str):
-                    request_payload = json.loads(tool_input)
-                else:
-                    request_payload = tool_input
-
-                if isinstance(request_payload, dict):
-                    return StrictCensusApiRequest.model_validate(request_payload)
-            except (json.JSONDecodeError, ValidationError, TypeError) as exc:
-                logger.warning(
-                    "Failed to recover strict_census_api_call request from intermediate steps: %s",
-                    exc,
-                )
-
-        return None
-
-    def _normalize_census_data_to_strict(
-        self, census_data: Any, result: Dict[str, Any] | None = None
-    ) -> StrictCensusApiResponse:
-        if isinstance(census_data, StrictCensusApiResponse):
-            return census_data
-
-        if not isinstance(census_data, dict):
-            return StrictCensusApiResponse(
-                success=False,
-                request=None,
-                headers=[],
-                records=[],
-                row_count=0,
-                error="INVALID_INPUT_SCHEMA",
-                error_message="census_data must be a dictionary",
-            )
-
-        try:
-            return StrictCensusApiResponse.model_validate(census_data)
-        except ValidationError:
-            pass
-
-        success = census_data.get("success", False)
-        raw_data = census_data.get("data", [])
-        request_payload = census_data.get("request")
-        request_obj: StrictCensusApiRequest | None = None
-
-        if isinstance(request_payload, dict):
-            try:
-                request_obj = StrictCensusApiRequest.model_validate(request_payload)
-            except ValidationError:
-                request_obj = None
-
-        if request_obj is None:
-            request_obj = self._extract_request_from_intermediate_steps(result)
-
-        if not success:
-            error_message = str(census_data.get("error", "legacy census_data failure"))
-            return StrictCensusApiResponse(
-                success=False,
-                request=None,
-                headers=[],
-                records=[],
-                row_count=0,
-                error="INVALID_INPUT_SCHEMA",
-                error_message=error_message,
-            )
-
-        if (
-            not isinstance(raw_data, list)
-            or len(raw_data) == 0
-            or not isinstance(raw_data[0], list)
-        ):
-            return StrictCensusApiResponse(
-                success=False,
-                request=None,
-                headers=[],
-                records=[],
-                row_count=0,
-                error="API_PAYLOAD_SHAPE_INVALID",
-                error_message="legacy census_data.data must be a non-empty list of lists",
-            )
-
-        headers = [str(value) for value in raw_data[0]]
-        rows = raw_data[1:]
-        records = [
-            StrictCensusApiRecord(
-                values={
-                    header: str(row[i]) if i < len(row) else ""
-                    for i, header in enumerate(headers)
-                }
-            )
-            for row in rows
-        ]
-        row_count = len(records)
-
-        if request_obj is None:
-            return StrictCensusApiResponse(
-                success=False,
-                request=None,
-                headers=[],
-                records=[],
-                row_count=0,
-                error="INVALID_INPUT_SCHEMA",
-                error_message=(
-                    "Unable to normalize successful census_data payload because no "
-                    "StrictCensusApiRequest was available."
-                ),
-            )
-
-        return StrictCensusApiResponse(
-            success=True,
-            request=request_obj,
-            headers=headers,
-            records=records,
-            row_count=row_count,
-            error=None,
-            error_message=None,
-        )
-
-    def _to_solve_result(
-        self, parsed: Dict, result: Dict[str, Any] | None = None
-    ) -> AgentSolveResult:
-        return AgentSolveResult(
-            census_data=self._normalize_census_data_to_strict(
-                parsed.get("census_data", {}), result
-            ),
-            data_summary=parsed.get("data_summary", ""),
-            reasoning_trace=parsed.get("reasoning_trace", ""),
-            answer_text=parsed.get("answer_text", ""),
-            charts_needed=parsed.get("charts_needed", []),
-            tables_needed=parsed.get("tables_needed", []),
-            footnotes=parsed.get("footnotes", []),
-        )
