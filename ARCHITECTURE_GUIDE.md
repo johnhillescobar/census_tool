@@ -172,7 +172,7 @@ Important implication:
 - CSV/Parquet are **derived outputs**, not the source of truth.
 - File persistence should happen **on-demand** in downstream output/export paths, not automatically at the moment data enters workflow state.
 
-This keeps workflow contracts stable and reduces schema drift. A chart renderer, PDF generator, and CSV exporter should all derive their tabular view from the same canonical typed response instead of each depending on ad hoc `census_data["data"]` conventions.
+This keeps workflow contracts stable and reduces schema drift. Canonical implementation: [`src/services/census_render_adapter.py`](src/services/census_render_adapter.py) (`response_to_tabular_payload`, `response_to_dataframe`, `export_dataframe_to_csv`, `export_dataframe_to_parquet`) plus preprocessing helpers in [`src/services/dataframe_utils.py`](src/services/dataframe_utils.py). Legacy JSON-shaped ingestion remains `_create_dataframe_from_json()` until callers finish migrating tests. Chart renderers, PDF generator, CSV/Parquet exports, and CLI/Streamlit download buttons should derive their frames from those paths instead of ad hoc `census_data["data"]` blobs.
 
 ### 4. Node Pattern (LangGraph Nodes)
 

@@ -383,7 +383,8 @@ def generate_session_pdf(
                             if df is not None:
                                 table_data = _create_pdf_table_from_dataframe(
                                     df,
-                                    artifact.title or f"Table from {artifact_path.name}",
+                                    artifact.title
+                                    or f"Table from {artifact_path.name}",
                                 )
                                 if table_data:
                                     story.append(table_data)

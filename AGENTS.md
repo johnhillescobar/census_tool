@@ -131,6 +131,7 @@ Track 2 — Deterministic Planning Layer.
   [.cursor/plans/v2-track2-deterministic-planning.plan.md](.cursor/plans/v2-track2-deterministic-planning.plan.md)
 - Sub-plan (still to be folded back in):
   `~/.cursor/plans/strict_census_artifacts_*.plan.md`
+  — **`derive-tabular-view`** (shared adapter + dataframe + CSV/Parquet export helpers) is **completed** in that YAML; **`migrate-consumers`**, **`tighten-tests`**, **`decide-census-data-required-vs-optional`** remain open there.
 - Skill:
   [.cursor/skills/census-v2-tech-lead/SKILL.md](.cursor/skills/census-v2-tech-lead/SKILL.md)
 - Latest audit:

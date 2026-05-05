@@ -36,7 +36,7 @@ the Census API, and returns a typed answer with optional charts/tables/PDF.
 - Multi-year temporal queries (point-in-time, range, rolling — see
   `TemporalIntent`)
 - Benchmark/comparison reports (`BenchmarkIntent`, `ComparisonPlan`)
-- Chart + table generation as side outputs
+- Chart + table generation as side outputs (**tabular derivation centralized in [`src/services/census_render_adapter.py`](src/services/census_render_adapter.py)** — payload → dataframe → CSV/Parquet export helpers consumed by downstream tools)
 - Session PDF export
 - CLI (`main.py`) and browser UI (`streamlit_app.py`)
 
