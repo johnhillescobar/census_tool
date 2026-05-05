@@ -274,6 +274,7 @@ TOOL USAGE GUIDE (all Action Inputs must be valid JSON):
    - CSV: {{"format": "csv", "filename": "ny_population", "title": "Population Data", "data": <strict_census_api_call_result>}}
    - Excel: {{"format": "excel", "filename": "population_table", "title": "Population by County", "data": <strict_census_api_call_result>}}
    - HTML: {{"format": "html", "title": "Population Report", "data": <strict_census_api_call_result>}}
+   - Parquet: {{"format": "parquet", "filename": "population_data", "title": "Population Data", "data": <strict_census_api_call_result>}}
    Note: filename is optional (will auto-generate with timestamp if not provided)
 
 CRITICAL REASONING CHECKLIST (apply every time):

@@ -1,16 +1,22 @@
 import logging
+from typing import Any, cast
+
 import pandas as pd
-from typing import Dict
 
 logger = logging.getLogger(__name__)
 
 
-def _create_dataframe_from_json(json_obj: Dict) -> pd.DataFrame:
+def _json_initial_processor(
+    json_obj: dict[str, Any],
+) -> tuple[list[str], list[list[str]]]:
     """
-    Creates a pandas DataFrame from Census API response format.
+    Processes the initial JSON object.
 
-    Handles nested structure from agent: {"data": {"success": True, "data": [...]}}
-    Converts numeric columns from strings to proper numeric types.
+    Args:
+        json_obj: JSON object
+
+    Returns:
+        pandas DataFrame
     """
     logger.info("=== DataFrame Creation Debug ===")
     logger.info(f"Input json_obj type: {type(json_obj)}")
@@ -54,8 +60,25 @@ def _create_dataframe_from_json(json_obj: Dict) -> pd.DataFrame:
     logger.info(f"First data row: {rows[0] if rows else 'No data'}")
     logger.info(f"Number of data rows: {len(rows)}")
 
-    df = pd.DataFrame(rows, columns=header)
+    return header, rows
 
+
+def _create_dataframe_from_list_of_lists(
+    data: list[list[str]], headers: list[str]
+) -> pd.DataFrame:
+    """
+    Creates a pandas DataFrame from a list of lists.
+
+    Args:
+        data: list of lists
+        headers: list of headers
+
+    Returns:
+        pandas DataFrame
+
+    """
+
+    df = pd.DataFrame(data, columns=pd.Index(headers))
     logger.info(
         f"DataFrame created with shape: {df.shape}, columns: {list(df.columns)}"
     )
@@ -122,7 +145,7 @@ def _create_dataframe_from_json(json_obj: Dict) -> pd.DataFrame:
 
             # If conversion produced all NaNs, it was likely a text column
             # Revert to original string values
-            if df[col].isna().all():
+            if int(df[col].isna().sum()) == len(df):
                 logger.warning(
                     "Conversion produced all NaNs for column '%s'; reverting to string type. Original sample: %s",
                     col,
@@ -135,6 +158,19 @@ def _create_dataframe_from_json(json_obj: Dict) -> pd.DataFrame:
             logger.warning(f"  FAILED to convert column '{col}': {e}")
             continue
 
+    return cast(pd.DataFrame, df)
+
+
+def _process_geography_columns(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Processes geography columns in a pandas DataFrame.
+
+    Args:
+        df: pandas DataFrame
+
+    Returns:
+        pandas DataFrame
+    """
     # Reorder columns: geography identifiers first, then value columns
     geography_cols = []
     value_cols = []
@@ -170,10 +206,32 @@ def _create_dataframe_from_json(json_obj: Dict) -> pd.DataFrame:
             value_cols.append(col)
 
     # Reorder: geography first, then values
-    df = df[geography_cols + value_cols]
+    ordered_cols = geography_cols + value_cols
+    df = cast(pd.DataFrame, df.loc[:, ordered_cols])
 
-    logger.info(f"Final DataFrame dtypes: {df.dtypes.to_dict()}")
+    return cast(pd.DataFrame, df)
+
+
+def _create_dataframe_from_json(json_obj: dict[str, Any]) -> pd.DataFrame:
+    """
+    Creates a pandas DataFrame from Census API response format.
+
+    Handles nested structure from agent: {"data": {"success": True, "data": [...]}}
+    Converts numeric columns from strings to proper numeric types.
+    """
+
+    header, rows = _json_initial_processor(json_obj)
+    # Create initial dataframe
+    df_initial = _create_dataframe_from_list_of_lists(rows, header)
+
+    # Process geography columns
+    df = _process_geography_columns(df_initial)
+
+    logger.info(
+        "Final DataFrame dtypes: %s",
+        cast(pd.Series, df.dtypes).to_dict(),
+    )
     logger.info(f"Sample data (first 3 rows):\n{df.head(3)}")
     logger.info("=== End DataFrame Creation Debug ===\n")
 
-    return df
+    return cast(pd.DataFrame, df)

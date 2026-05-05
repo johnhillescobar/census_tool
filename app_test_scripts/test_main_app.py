@@ -9,7 +9,7 @@ from typing import Any, cast
 
 import main
 from app import create_census_graph
-from src.state.types import CensusState
+from src.state.types import CensusState, WorkflowArtifactsState
 
 
 def test_main_app_startup():
@@ -84,7 +84,7 @@ def test_census_state_creation():
     assert state.geo == {}
     assert state.candidates == {}
     assert state.plan is None
-    assert state.artifacts == {}
+    assert state.artifacts == WorkflowArtifactsState()
     assert state.final is None
     assert state.logs == []
 
@@ -219,6 +219,7 @@ def test_census_state_field_types():
     assert isinstance(state.logs, list), "logs should be a list"
     assert state.intent is None, "intent should be None"
     assert state.plan is None, "plan should be None"
+    assert isinstance(state.artifacts, WorkflowArtifactsState)
 
     print("✅ CensusState field types test passed!")
 

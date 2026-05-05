@@ -8,6 +8,7 @@ TableMimeType = Literal[
     "text/csv",
     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     "text/html",
+    "application/vnd.apache.parquet",
 ]
 ChartMimeType = Literal["image/png", "text/html"]
 

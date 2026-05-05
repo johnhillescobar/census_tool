@@ -1,6 +1,7 @@
 """Strict-contract tests for CensusQueryAgent parsing."""
 
 import json
+from types import SimpleNamespace
 
 import pytest
 
@@ -47,6 +48,40 @@ def _strict_census_data(
 
 class TestAgentParsing:
     """Test suite for strict agent output parsing methods."""
+
+    def test_authoritative_census_data_overrides_llm_restated_payload(self):
+        """Tool-validated strict_census_api_call observation wins over Final Answer census_data."""
+        tool_truth = _strict_census_data(
+            headers=["NAME"],
+            rows=[["Texas"]],
+            variables=["NAME"],
+        )
+        llm_restated = _strict_census_data(
+            headers=["NAME"],
+            rows=[["California"]],
+            variables=["NAME"],
+        )
+        payload = {
+            "census_data": llm_restated,
+            "data_summary": "summary",
+            "reasoning_trace": "trace",
+            "answer_text": "Answer text",
+            "charts_needed": [],
+            "tables_needed": [],
+            "footnotes": [],
+        }
+        fake_action = SimpleNamespace(tool="strict_census_api_call")
+        result = {
+            "output": json.dumps(payload),
+            "intermediate_steps": [(fake_action, json.dumps(tool_truth))],
+        }
+        agent = CensusQueryAgent()
+        parsed = agent._parse_solution(result)
+
+        assert parsed.census_data is not None
+        assert parsed.census_data.success is True
+        assert parsed.census_data.records[0].values["NAME"] == "Texas"
+        assert parsed.answer_text == "Answer text"
 
     def test_parse_direct_json_strict_contract(self):
         output = json.dumps(
@@ -103,9 +138,7 @@ class TestAgentParsing:
 
     def test_parse_large_strict_structure(self):
         headers = ["NAME"] + [f"CP03_{i:03d}E" for i in range(100)]
-        rows = [
-            [f"County {i}"] + [str(j * i) for j in range(100)] for i in range(67)
-        ]
+        rows = [[f"County {i}"] + [str(j * i) for j in range(100)] for i in range(67)]
         large_json = {
             "census_data": _strict_census_data(
                 headers=headers,
@@ -155,7 +188,10 @@ class TestAgentParsing:
 
         assert parsed.census_data is not None
         assert parsed.census_data.headers[0] == 'County "Name"'
-        assert parsed.census_data.records[0].values['County "Name"'] == 'Miami-Dade "Metro"'
+        assert (
+            parsed.census_data.records[0].values['County "Name"']
+            == 'Miami-Dade "Metro"'
+        )
         assert '"quotes"' in parsed.answer_text
 
     def test_parse_solution_rejects_invalid_strict_structure(self):
@@ -175,7 +211,9 @@ class TestAgentParsing:
         parsed = agent._parse_solution(result)
 
         assert parsed.census_data is None
-        assert parsed.answer_text == "Agent execution completed but output parsing failed"
+        assert (
+            parsed.answer_text == "Agent execution completed but output parsing failed"
+        )
 
     def test_parse_multiline_output_with_thoughts_strict_contract(self):
         json_data = {
@@ -235,9 +273,7 @@ Final Answer: {json.dumps(json_data)}"""
         assert parsed.census_data is not None
         assert parsed.census_data.records[0].values["NAME"] == "St. Mary's County"
         assert parsed.census_data.records[1].values["NAME"] == "O'Brien County"
-        assert (
-            parsed.census_data.records[2].values["NAME"] == "Prince George's County"
-        )
+        assert parsed.census_data.records[2].values["NAME"] == "Prince George's County"
 
     def test_parse_solution_accepts_strict_agent_output(self):
         output = {

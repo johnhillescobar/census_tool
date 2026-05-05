@@ -72,6 +72,3 @@ def display_results(result: Dict[str, Any]) -> None:
         logger.info(f"System Logs: {logs}")
         for log in logs[-3:]:  # Show last 3 logs
             print(f"  • {log}")
-
-
-

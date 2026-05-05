@@ -9,7 +9,11 @@ from datetime import datetime
 from src.domain.census_tool_contract import StrictCensusApiRawTable
 from src.domain.final_output_contract import FinalTableSpec
 from src.domain.rendered_output_contract import TableMimeType, TableOutput
-from src.services.dataframe_utils import _create_dataframe_from_json
+from src.services.census_render_adapter import (
+    export_dataframe_to_csv,
+    export_dataframe_to_parquet,
+    response_to_dataframe,
+)
 from src.tools.json_parse import parse_first_json
 
 logger = logging.getLogger(__name__)
@@ -42,9 +46,12 @@ class TableToolInput(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    format: Literal["csv", "excel", "html"] = Field(
+    format: Literal["csv", "excel", "html", "parquet"] = Field(
         default="csv",
-        description="Output format: 'csv' for simple export, 'excel' for Excel files, 'html' for web tables",
+        description=(
+            "Output format: csv, excel (.xlsx), html, or parquet "
+            "(columnar binary; reads require pyarrow)"
+        ),
     )
     filename: str | None = Field(
         default=None, description="Optional custom filename (without extension)"
@@ -61,6 +68,18 @@ class TableTool(BaseTool):
     name: str = "create_table"
     description: str = "Export census data as formatted tables"
     model_config = ConfigDict(extra="forbid")
+
+    # --- FUTURE PHASE (PHASE 3): real sync + async coexistence (mirror ChartTool rationale) ---
+    #
+    # Current state:
+    # - `render()` is synchronous; workflows call it from `src/workflows/output.py` for typed TableOutput.
+    # - `_run`/`_execute` are synchronous LangChain/agent paths returning user-facing strings.
+    # - `_arun` delegates to `_run` → blocking pandas + openpyxl + disk I/O on the asyncio loop.
+    #
+    # When implementing: extract one sync `_produce_table_output(...) -> TableOutput`, share between
+    # `render()` and `_execute()`, then `_arun` uses `await asyncio.to_thread(...)` (or executor) around
+    # that primitive. Optionally offload only `_write_table` if profiling shows CSV vs Excel hotspots differ.
+    # --- END FUTURE PHASE ---
 
     # TODO: remove str and dict input types and replace with TableToolInput once the typed-tool migration is complete
     def _parse_input(
@@ -80,10 +99,6 @@ class TableTool(BaseTool):
 
         return TableToolInput.model_validate(raw_input)
 
-    # TODO: remove this function and replace it with a function that uses the StrictCensusApiRawTable model. See T2-CG-010.
-    def _build_dataframe(self, data: StrictCensusApiRawTable) -> pd.DataFrame:
-        return _create_dataframe_from_json({"data": [data.headers, *data.rows]})
-
     def _build_output_path(self, format_type: str, filename: str | None) -> Path:
         tables_dir = Path("data/tables")
         tables_dir.mkdir(parents=True, exist_ok=True)
@@ -96,6 +111,7 @@ class TableTool(BaseTool):
             "csv": ".csv",
             "excel": ".xlsx",
             "html": ".html",
+            "parquet": ".parquet",
         }
         return tables_dir / f"{filename}{suffix_map[format_type]}"
 
@@ -107,7 +123,9 @@ class TableTool(BaseTool):
         title: str | None,
     ) -> None:
         if format_type == "csv":
-            df.to_csv(filepath, index=False, encoding="utf-8")
+            export_dataframe_to_csv(df, filepath)
+        elif format_type == "parquet":
+            export_dataframe_to_parquet(df, filepath)
         elif format_type == "excel":
             with pd.ExcelWriter(filepath, engine="openpyxl") as writer:
                 df.to_excel(writer, sheet_name="Census Data", index=False)
@@ -128,15 +146,18 @@ class TableTool(BaseTool):
 
     def render(self, tool_input: TableToolInput) -> TableOutput:
         parsed_input = self._parse_input(tool_input)
-        df = self._build_dataframe(parsed_input.data)
+        df = response_to_dataframe(parsed_input.data, reset_index=True)
         filepath = self._build_output_path(parsed_input.format, parsed_input.filename)
         self._write_table(df, filepath, parsed_input.format, parsed_input.title)
         logger.info("Table saved to %s", filepath)
 
-        mime_type_map: dict[Literal["csv", "excel", "html"], TableMimeType] = {
+        mime_type_map: dict[
+            Literal["csv", "excel", "html", "parquet"], TableMimeType
+        ] = {
             "csv": "text/csv",
             "excel": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             "html": "text/html",
+            "parquet": "application/vnd.apache.parquet",
         }
 
         return TableOutput(
@@ -152,7 +173,7 @@ class TableTool(BaseTool):
     # TODO: remove str and dict input types and replace with TableToolInput once the typed-tool migration is complete
     def _execute(self, tool_input: str | dict[str, Any] | TableToolInput) -> str:
         parsed_input = self._parse_input(tool_input)
-        df = self._build_dataframe(parsed_input.data)
+        df = response_to_dataframe(parsed_input.data, reset_index=True)
         filepath = self._build_output_path(parsed_input.format, parsed_input.filename)
         self._write_table(df, filepath, parsed_input.format, parsed_input.title)
         logger.info("Table saved to %s", filepath)
@@ -166,4 +187,5 @@ class TableTool(BaseTool):
             return f"Error: {str(e)}"
 
     async def _arun(self, tool_input: str | dict[str, Any] | TableToolInput) -> str:
+        # FUTURE PHASE (PHASE 3): offload blocking `_run`/core — see PHASE block above; async hook is synchronous today.
         return self._run(tool_input)

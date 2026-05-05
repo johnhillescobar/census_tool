@@ -1,7 +1,7 @@
 import os
 import logging
 import json
-from typing import Dict, Any, cast
+from typing import Any, Dict, cast
 from dotenv import load_dotenv
 from pydantic import ValidationError
 
@@ -44,6 +44,8 @@ load_dotenv()
 
 logger = logging.getLogger(__name__)
 
+# Must stay aligned with StrictCensusApiTool.name (single source in tools layer).
+_STRICT_CENSUS_TOOL_NAME = "strict_census_api_call"
 
 
 class CensusQueryAgent:
@@ -104,7 +106,6 @@ class CensusQueryAgent:
             callbacks=[self.summarizer],
         )
 
-    
     def _build_failure_solve_result(
         self,
         *,
@@ -114,7 +115,6 @@ class CensusQueryAgent:
         answer_text: str,
         footnotes: list[str],
     ) -> AgentSolveResult:
-
         return AgentSolveResult(
             census_data=census_data,
             data_summary=data_summary,
@@ -125,11 +125,9 @@ class CensusQueryAgent:
             footnotes=footnotes,
         )
 
-
     def _coerce_observation_to_strict_response(
         self, observation: Any
     ) -> StrictCensusApiResponse | None:
-
         if isinstance(observation, StrictCensusApiResponse):
             return observation
 
@@ -149,11 +147,52 @@ class CensusQueryAgent:
 
         return None
 
+    def _resolve_strict_census_data_from_steps(
+        self, intermediate_steps: list[Any]
+    ) -> StrictCensusApiResponse | None:
+        """Last successful strict Census API observation (validated tool output)."""
+        last_success: StrictCensusApiResponse | None = None
+        for step in intermediate_steps:
+            if not step or len(step) < 2:
+                continue
+            action, observation = step[0], step[1]
+            if not action or not hasattr(action, "tool"):
+                continue
+            if action.tool != _STRICT_CENSUS_TOOL_NAME:
+                continue
+            coerced = self._coerce_observation_to_strict_response(observation)
+            if coerced is not None and coerced.success:
+                last_success = coerced
+        return last_success
+
+    def _effective_strict_census_authority(
+        self, result: Dict[str, Any]
+    ) -> StrictCensusApiResponse | None:
+        """
+        Prefer authority captured before intermediate_steps summarization (solve path).
+        Otherwise scan current intermediate_steps (tests / direct _parse_solution calls).
+        """
+        if "_strict_census_authority" in result:
+            return cast(
+                StrictCensusApiResponse | None, result["_strict_census_authority"]
+            )
+        return self._resolve_strict_census_data_from_steps(
+            result.get("intermediate_steps") or []
+        )
+
+    def _apply_authoritative_census_data(
+        self, result: Dict[str, Any], parsed: AgentSolveResult
+    ) -> AgentSolveResult:
+        """Tool-validated Census payload wins over LLM-restated census_data."""
+        authority = self._effective_strict_census_authority(result)
+        if authority is not None:
+            return parsed.model_copy(update={"census_data": authority})
+        return parsed
+
     def _validate_agent_solve_result(
         self,
         parsed: dict[str, Any],
     ) -> AgentSolveResult:
-
         if not isinstance(parsed, dict):
             raise TypeError("parsed agent output must be a dict")
 
@@ -172,8 +211,7 @@ class CensusQueryAgent:
             tables_needed=parsed["tables_needed"],
             footnotes=parsed["footnotes"],
         )
-    
-    
+
     def _build_tools(self) -> list[BaseTool]:
         """
         Keep Track 2 tool ownership explicit:
@@ -258,14 +296,19 @@ class CensusQueryAgent:
             }
         )
 
+        raw_steps = result.get("intermediate_steps") or []
+        # Before summarization may discard/replace observations, capture API truth for census_data.
+        result["_strict_census_authority"] = (
+            self._resolve_strict_census_data_from_steps(raw_steps)
+        )
+
         # Trim intermediate steps if they're too large (context length management)
-        intermediate_steps = result.get("intermediate_steps", [])
-        if len(intermediate_steps) > 10:
+        if len(raw_steps) > 10:
             result["intermediate_steps"] = summarize_intermediate_steps(
-                intermediate_steps, keep_recent=5
+                raw_steps, keep_recent=5
             )
             logger.info(
-                f"Trimmed intermediate steps from {len(intermediate_steps)} to {len(result['intermediate_steps'])}"
+                f"Trimmed intermediate steps from {len(raw_steps)} to {len(result['intermediate_steps'])}"
             )
 
         parsed_solution = self._parse_solution(result)
@@ -373,7 +416,7 @@ class CensusQueryAgent:
     def _parse_solution(self, result: Dict[str, Any]) -> AgentSolveResult:
         """
         Parse agent output - extract JSON after 'Final Answer:' prefix.
-        Simplified to 2 methods: direct parse or prefix extraction. 
+        Simplified to 2 methods: direct parse or prefix extraction.
         Return AgentSolveResult instead of Dict.
         """
         output = result.get("output", "")
@@ -386,6 +429,7 @@ class CensusQueryAgent:
         # Method 1: Direct JSON parse (when AgentExecutor strips prefix)
         parsed = self._try_direct_json_parse(output, result)
         if parsed:
+            parsed = self._apply_authoritative_census_data(result, parsed)
             # Validate that geography resolution succeeded
             if self._has_invalid_geography(result, parsed):
                 return self._build_invalid_geography_response(result, parsed)
@@ -396,6 +440,7 @@ class CensusQueryAgent:
         # Method 2: Extract after "Final Answer:" prefix
         parsed = self._extract_after_final_answer(output, result)
         if parsed:
+            parsed = self._apply_authoritative_census_data(result, parsed)
             # Validate that geography resolution succeeded
             if self._has_invalid_geography(result, parsed):
                 return self._build_invalid_geography_response(result, parsed)
@@ -410,6 +455,7 @@ class CensusQueryAgent:
             )
             parsed = self._try_direct_json_parse(output, result)
             if parsed:
+                parsed = self._apply_authoritative_census_data(result, parsed)
                 # Validate that geography resolution succeeded
                 if self._has_invalid_geography(result, parsed):
                     return self._build_invalid_geography_response(result, parsed)
@@ -422,8 +468,9 @@ class CensusQueryAgent:
         logger.debug(f"Raw output sample: {output[:500]}")
 
         intermediate_steps = result.get("intermediate_steps", [])
+        auth = self._effective_strict_census_authority(result)
         return self._build_failure_solve_result(
-            census_data=None,
+            census_data=auth,
             data_summary="Parsing failed - see logs",
             reasoning_trace=f"Steps: {len(intermediate_steps)}",
             answer_text="Agent execution completed but output parsing failed",
@@ -431,10 +478,8 @@ class CensusQueryAgent:
         )
 
     def _try_direct_json_parse(
-        self, 
-        output: str,
-        result: Dict[str, Any]
-        ) -> AgentSolveResult | None:
+        self, output: str, result: Dict[str, Any]
+    ) -> AgentSolveResult | None:
         """Attempt direct JSON parsing of entire output."""
         try:
             logger.error(
@@ -482,8 +527,12 @@ class CensusQueryAgent:
             "Please rerun the question and I will try again."
         )
 
+        census_data = self._effective_strict_census_authority(result)
+        if census_data is None:
+            census_data = self._coerce_observation_to_strict_response(last_observation)
+
         return self._build_failure_solve_result(
-            census_data=self._coerce_observation_to_strict_response(last_observation),
+            census_data=census_data,
             data_summary=data_summary,
             reasoning_trace=f"No final output after {step_count} steps.",
             answer_text=answer_text,
@@ -536,8 +585,12 @@ class CensusQueryAgent:
             "Please rerun the question or adjust it and I will try again."
         )
 
+        census_data = self._effective_strict_census_authority(result)
+        if census_data is None:
+            census_data = self._coerce_observation_to_strict_response(last_observation)
+
         return self._build_failure_solve_result(
-            census_data=self._coerce_observation_to_strict_response(last_observation),
+            census_data=census_data,
             data_summary=data_summary,
             reasoning_trace=f"Iteration limit reached after {step_count} steps.",
             answer_text=answer_text,
@@ -545,9 +598,8 @@ class CensusQueryAgent:
         )
 
     def _extract_after_final_answer(
-        self, 
-        output: str,
-        result: Dict[str, Any]) -> AgentSolveResult | None:
+        self, output: str, result: Dict[str, Any]
+    ) -> AgentSolveResult | None:
         """Extract JSON after 'Final Answer:' prefix using state machine."""
         # Find "Final Answer:" marker
         marker = "Final Answer:"
@@ -561,7 +613,7 @@ class CensusQueryAgent:
         # Start after the marker
         json_start = idx + len(marker)
         json_text = output[json_start:].strip()
-        
+
         # Extract JSON using brace-matching state machine
         extracted = self._extract_json_with_state_machine(json_text)
         if not extracted:
@@ -585,7 +637,7 @@ class CensusQueryAgent:
                 f"[PARSE DEBUG] JSON parse or validation failed: {type(e).__name__}: {str(e)[:300]}"
             )
         return None
- 
+
     def _extract_json_with_state_machine(self, text: str) -> str | None:
         """
         Extract JSON object using state machine that handles:

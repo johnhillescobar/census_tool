@@ -372,15 +372,23 @@ def generate_session_pdf(
                 # Method 2: Try to read the saved table file
                 if not table_embedded:
                     try:
-                        if artifact_path.exists() and artifact_path.suffix == ".csv":
-                            df = pd.read_csv(artifact_path)
-                            table_data = _create_pdf_table_from_dataframe(
-                                df, artifact.title or f"Table from {artifact_path.name}"
-                            )
-                            if table_data:
-                                story.append(table_data)
-                                table_embedded = True
-                                tables_processed += 1
+                        if artifact_path.exists():
+                            suffix = artifact_path.suffix.lower()
+                            if suffix == ".csv":
+                                df = pd.read_csv(artifact_path)
+                            elif suffix == ".parquet":
+                                df = pd.read_parquet(artifact_path)
+                            else:
+                                df = None
+                            if df is not None:
+                                table_data = _create_pdf_table_from_dataframe(
+                                    df,
+                                    artifact.title or f"Table from {artifact_path.name}",
+                                )
+                                if table_data:
+                                    story.append(table_data)
+                                    table_embedded = True
+                                    tables_processed += 1
                     except Exception:
                         pass  # Fall back to file reference
 

@@ -76,6 +76,31 @@ def test_run_saves_clean_csv(tmp_path, monkeypatch, sample_census_payload):
     assert "Table created successfully" in result
 
 
+def test_run_saves_parquet_round_trip(tmp_path, monkeypatch, sample_census_payload):
+    pytest.importorskip("pyarrow")
+    tool = TableTool()
+    monkeypatch.chdir(tmp_path)
+
+    filename = "health_insurance_parquet_test"
+    tool_input = json.dumps(
+        {
+            "format": "parquet",
+            "filename": filename,
+            "title": "Test Parquet Table",
+            "data": sample_census_payload,
+        }
+    )
+
+    result = tool._run(tool_input)
+
+    expected_path = Path("data/tables") / f"{filename}.parquet"
+    assert expected_path.exists(), f"Expected table file at {expected_path}"
+
+    saved = pd.read_parquet(expected_path)
+    assert saved["C27012_022E"].iloc[0] == 132980
+    assert "Table created successfully" in result
+
+
 def test_preserves_identifier_columns():
     """Test that Area Name, GeoID, CSA Name are preserved"""
     data = {

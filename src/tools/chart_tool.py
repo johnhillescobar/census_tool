@@ -11,7 +11,7 @@ from datetime import datetime
 from src.domain.census_tool_contract import StrictCensusApiRawTable
 from src.domain.final_output_contract import FinalChartSpec
 from src.domain.rendered_output_contract import ChartOutput
-from src.services.dataframe_utils import _create_dataframe_from_json
+from src.services.census_render_adapter import response_to_dataframe
 from src.tools.json_parse import parse_first_json
 
 logger = logging.getLogger(__name__)
@@ -80,6 +80,29 @@ class ChartTool(BaseTool):
     # args_schema = ChartToolInput  # Disabled for ReAct compatibility
     model_config = ConfigDict(extra="forbid")
 
+    # --- FUTURE PHASE (PHASE 3): real sync + async coexistence ---
+    #
+    # Current state:
+    # - `render()` is synchronous and is invoked from `src/workflows/output.py` to build typed
+    #   ChartOutput paths + MIME for `generated_files`; it is irrelevant to LangChain tool plumbing.
+    # - `_run`/`_execute` are synchronous for the agent string response path.
+    # - `_arun` forwards to `_run`, so whenever an async orchestrator invokes the async hook, blocking
+    #   code still executes on the event loop (no cooperative yield).
+    #
+    # Blocking hotspots: pandas/DataFrame paths, Plotly Figure construction + Kaleido/png export via
+    # `Figure.write_image`, disk writes, HTML fallback in `_write_chart` / duplicated save block in `render`.
+    #
+    # When implementing this phase:
+    # 1) Factor a single private sync primitive (e.g. `_produce_chart_output(...) -> ChartOutput` or tuple)
+    #    used by both `render()` and `_execute()`, so `_write_chart`/`render` never diverge.
+    # 2) `_arun` should typically `await asyncio.to_thread(sync_impl, ...)`, `run_in_executor`, or isolate
+    #    heavyweight export only—measure before splitting; Kaleido dominates cost.
+    # 3) If `output.py`/`output_node` ever becomes async, either `await asyncio.to_thread(tool.render...)`
+    #    against the same sync primitive or expose an explicit async workflow API layered on thread offload.
+    # 4) Document thread-safety: Plotly/matplotlib backends are historically not concurrency-safe unless
+    #    each invocation is isolated—verify before parallelizing `_arun` calls.
+    # --- END FUTURE PHASE ---
+
     # TODO: remove str and dict input types and replace with ChartToolInput once the typed-tool migration is complete
     def _parse_input(
         self, tool_input: str | dict[str, Any] | ChartToolInput
@@ -98,13 +121,6 @@ class ChartTool(BaseTool):
             }
 
         return ChartToolInput.model_validate(raw_input)
-
-    # TODO: remove this function and replace it with a function that uses the StrictCensusApiRawTable model. See T2-CG-010.
-    def _build_dataframe(self, data: StrictCensusApiRawTable) -> pd.DataFrame:
-        df = _create_dataframe_from_json({"data": [data.headers, *data.rows]})
-        # Reset index to prevent Plotly from using index as values
-        df = df.reset_index(drop=True)
-        return df
 
     def _build_visualization(
         self,
@@ -213,7 +229,7 @@ class ChartTool(BaseTool):
 
     def render(self, tool_input: ChartToolInput) -> ChartOutput:
         parsed_input = self._parse_input(tool_input)
-        df = self._build_dataframe(parsed_input.data)
+        df = response_to_dataframe(parsed_input.data, reset_index=True)
         fig = self._build_visualization(
             df=df,
             chart_type=parsed_input.chart_type,
@@ -246,7 +262,7 @@ class ChartTool(BaseTool):
 
     def _execute(self, tool_input: str | dict[str, Any] | ChartToolInput) -> str:
         parsed_input = self._parse_input(tool_input)
-        df = self._build_dataframe(parsed_input.data)
+        df = response_to_dataframe(parsed_input.data, reset_index=True)
         fig = self._build_visualization(
             df=df,
             chart_type=parsed_input.chart_type,
@@ -267,4 +283,6 @@ class ChartTool(BaseTool):
             return f"Error: {str(e)}"
 
     async def _arun(self, tool_input: str | dict[str, Any] | ChartToolInput) -> str:
+        # FUTURE PHASE (PHASE 3): offload blocking `_run`/core (see sync+async PHASE block on `ChartTool`) — forwarding
+        # here today keeps async callers on the blocking path deliberately until that work is prioritized.
         return self._run(tool_input)

@@ -15,6 +15,12 @@
 #
 # Then: cd /workspace && python -m pytest && python main.py
 # (Use .env on the host or pass -e as needed; do not copy secrets into the image.)
+#
+# Multiple terminals: start a long-lived container and attach shells.
+#   docker run -it --name census-dev -v "${PWD}:/workspace" -w /workspace census-tool-uv
+#   # other terminals:
+#   docker exec -it census-dev bash
+# Stop/remove when done: docker stop census-dev && docker rm census-dev
 
 FROM ghcr.io/astral-sh/uv:python3.12-bookworm-slim
 

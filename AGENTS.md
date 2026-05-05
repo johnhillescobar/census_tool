@@ -1,8 +1,9 @@
 # Census Tool — Agent Conventions
 
 This file is read by Cursor at the start of every session. It defines the
-stack, layout, and non-negotiable rules. It is the SLIM **L**ayout leg.
-For goals, features, and boundaries see [SPEC.md](SPEC.md).
+stack, layout, and non-negotiable rules. It is the **bootstrap-SLIM** Layout
+leg. For goals, features, and boundaries see [SPEC.md](SPEC.md). For the
+unrelated refactor-SLIM skill see `.cursor/skills/slim/SKILL.md`.
 
 ## Stack
 
@@ -101,6 +102,26 @@ These are governance artifacts, not implementation code:
 The user should be able to plan, organize, and execute software work
 *without* AI tools, and direct AI tools effectively when they are
 available.
+
+## SLIM disciplines — when to use which
+
+This repo has two unrelated disciplines that share the acronym SLIM:
+
+- **Use bootstrap-SLIM** when starting something new or grounding the
+  session: define spec, then layout, then implement, then monitor.
+  `SPEC.md` and `AGENTS.md` are the persistent artifacts; this is the
+  organizing framing for the whole project.
+- **Use refactor-SLIM** (the skill at
+  [.cursor/skills/slim/SKILL.md](.cursor/skills/slim/SKILL.md)) when
+  modifying code you don't fully understand without breaking it: pick a
+  seam, write learning tests, extract incrementally, mock the seam. The
+  skill is invoked per-task, not persisted. Especially relevant for the
+  current Track 2 typed-state migration work (R3 cluster, N4 streamlit
+  dead-schema, workflow↔agent boundary cleanup).
+
+The two disciplines compose with [working modes](#working-mode-this-is-a-learning-project):
+SLIM tells the agent *what* to do per turn, working modes tell the agent
+*how* to communicate per turn.
 
 ## Active migration track
 

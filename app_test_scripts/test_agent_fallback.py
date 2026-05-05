@@ -4,6 +4,8 @@ Test that agent doesn't loop forever when validation fails.
 
 from unittest.mock import MagicMock, patch
 import os
+import json
+
 from src.agents.census_query_agent import CensusQueryAgent
 
 
@@ -15,10 +17,31 @@ def test_agent_returns_error_on_iteration_limit():
             mock_create_llm.return_value = MagicMock()
             agent = CensusQueryAgent(allow_offline=False)
 
+            strict_failure_census = {
+                "success": False,
+                "request": None,
+                "headers": [],
+                "records": [],
+                "row_count": 0,
+                "error": "INVALID_INPUT_SCHEMA",
+                "error_message": None,
+            }
+            final_answer = {
+                "census_data": strict_failure_census,
+                "data_summary": "No Census data exists for Mars",
+                "reasoning_trace": "Recognized Mars is not a U.S. geography",
+                "answer_text": (
+                    "Mars has a population of 0; there are no permanent human residents."
+                ),
+                "charts_needed": [],
+                "tables_needed": [],
+                "footnotes": [],
+            }
+
             # Mock the agent_executor to simulate invalid geography scenario
             # This simulates what happens when resolve_area_name fails
             mock_result = {
-                "output": '{"census_data":{"success":false,"data":[]},"data_summary":"No Census data exists for Mars","reasoning_trace":"Recognized Mars is not a U.S. geography","answer_text":"Mars has a population of 0; there are no permanent human residents.","charts_needed":[],"tables_needed":[],"footnotes":[]}',
+                "output": json.dumps(final_answer),
                 "intermediate_steps": [
                     (
                         MagicMock(
@@ -38,9 +61,10 @@ def test_agent_returns_error_on_iteration_limit():
                 {"is_census": True, "topic": "general"},
             )
 
-            # Should get error response, not loop forever
-            assert result["census_data"]["success"] is False
+            # Invalid geography path normalizes to the standard error answer
+            assert result.census_data is not None
+            assert result.census_data.success is False
             assert (
-                "unable to complete" in result["answer_text"].lower()
-                or "not available" in result["answer_text"].lower()
+                "unable to complete" in result.answer_text.lower()
+                or "not available" in result.answer_text.lower()
             )

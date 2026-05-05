@@ -9,62 +9,34 @@ Generates dynamic footnotes based on census data metadata, including:
 """
 
 import re
-from typing import Dict, List
+from typing import List
 import logging
+
+from src.domain.census_tool_contract import StrictCensusApiResponse
 
 logger = logging.getLogger(__name__)
 
 
-def extract_year_from_data(census_data: Dict) -> str:
-    """Extract year from census data or URL"""
-    try:
-        # Try to get from URL
-        url = census_data.get("url", "")
-        if url:
-            # Match patterns like /2023/ or /2015/
-            year_match = re.search(r"/(\d{4})/", url)
-            if year_match:
-                return year_match.group(1)
-
-        # Try to get from data headers
-        data = census_data.get("data", [])
-        if data and len(data) > 0:
-            headers = data[0]
-            if "YEAR" in headers or "Year" in headers:
-                # Get from first data row
-                if len(data) > 1:
-                    year_idx = (
-                        headers.index("YEAR")
-                        if "YEAR" in headers
-                        else headers.index("Year")
-                    )
-                    return str(data[1][year_idx])
-
-        # Default to most recent common year
-        return "2023"
-    except Exception as e:
-        logger.warning(f"Could not extract year from data: {e}")
-        return "2023"
+def _year_from_strict(census_data: StrictCensusApiResponse | None) -> str:
+    """Resolve survey year from typed API response when available."""
+    if census_data and census_data.success and census_data.request is not None:
+        return str(census_data.request.year)
+    logger.debug("Footnote year fallback: no successful typed request on census_data")
+    return "2023"
 
 
-def extract_dataset_from_data(census_data: Dict) -> str:
-    """Extract dataset type from census data URL"""
-    try:
-        url = census_data.get("url", "")
-        if url:
-            # Match ACS dataset patterns
-            if "acs5" in url or "acs/acs5" in url:
-                return "5-Year Estimates"
-            elif "acs1" in url or "acs/acs1" in url:
-                return "1-Year Estimates"
-            elif "acs3" in url or "acs/acs3" in url:
-                return "3-Year Estimates"
-
-        # Default
-        return "5-Year Estimates"
-    except Exception as e:
-        logger.warning(f"Could not extract dataset from data: {e}")
-        return "5-Year Estimates"
+def _dataset_label_from_strict(census_data: StrictCensusApiResponse | None) -> str:
+    """Human-readable ACS product label from typed request dataset."""
+    if census_data and census_data.success and census_data.request is not None:
+        raw = census_data.request.dataset
+        s = raw.lower() if isinstance(raw, str) else str(raw).lower()
+        if "acs5" in s or "acs/acs5" in s:
+            return "5-Year Estimates"
+        if "acs1" in s:
+            return "1-Year Estimates"
+        if "acs3" in s:
+            return "3-Year Estimates"
+    return "5-Year Estimates"
 
 
 def extract_table_codes_from_reasoning(reasoning_trace: str) -> List[str]:
@@ -82,13 +54,15 @@ def extract_table_codes_from_reasoning(reasoning_trace: str) -> List[str]:
 
 
 def generate_footnotes(
-    census_data: Dict, data_summary: str, reasoning_trace: str
+    census_data: StrictCensusApiResponse | None,
+    data_summary: str,
+    reasoning_trace: str,
 ) -> List[str]:
     """
-    Generate footnotes dynamically based on census data used.
+    Generate footnotes from optional typed Census response and agent text.
 
     Args:
-        census_data: Census API response data
+        census_data: Validated API response, or None when no Census payload exists.
         data_summary: Brief summary of the data
         reasoning_trace: Agent's reasoning steps
 
@@ -98,9 +72,8 @@ def generate_footnotes(
     footnotes = []
 
     try:
-        # Extract metadata from census_data
-        year = extract_year_from_data(census_data)
-        dataset = extract_dataset_from_data(census_data)
+        year = _year_from_strict(census_data)
+        dataset = _dataset_label_from_strict(census_data)
         table_codes = extract_table_codes_from_reasoning(reasoning_trace)
 
         # Static footnote: Data source citation (always included)

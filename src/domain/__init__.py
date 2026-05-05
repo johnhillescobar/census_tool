@@ -50,6 +50,8 @@ from .census_client_contract import (
     CensusApiCallFailure,
     CensusApiCallResult,
 )
+from .variable_metada_contract import VariableLabels
+from .presentation_contract import PresentationKind, PresentationRouting
 
 __all__ = [
     "extract_years",
@@ -91,4 +93,7 @@ __all__ = [
     "CensusApiCallSuccess",
     "CensusApiCallFailure",
     "CensusApiCallResult",
+    "VariableLabels",
+    "PresentationKind",
+    "PresentationRouting",
 ]

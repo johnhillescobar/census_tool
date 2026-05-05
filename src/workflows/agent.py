@@ -62,9 +62,7 @@ def agent_reasoning_node(state: CensusState, config: RunnableConfig) -> Dict[str
         logger.info("Generating footnotes (not provided by agent)")
         try:
             footnotes = generate_footnotes(
-                census_data=result.census_data.model_dump()
-                if result.census_data
-                else {},
+                census_data=result.census_data,
                 data_summary=result.data_summary,
                 reasoning_trace=result.reasoning_trace,
             )

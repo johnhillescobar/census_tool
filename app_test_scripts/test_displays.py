@@ -32,9 +32,7 @@ def test_display_results_renders_typed_final_response():
                 title="NYC Population Table",
             ),
         ],
-        charts_needed=[
-            FinalChartSpec(type="bar", title="Population by Borough")
-        ],
+        charts_needed=[FinalChartSpec(type="bar", title="Population by Borough")],
         tables_needed=[
             FinalTableSpec(
                 format="csv",

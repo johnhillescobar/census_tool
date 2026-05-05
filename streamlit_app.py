@@ -10,10 +10,20 @@ import pandas as pd
 import plotly.express as px
 from pathlib import Path
 import logging
-from typing import Dict, Any
+from typing import Any
 from datetime import datetime
-from src.clients import generate_session_pdf
+
+from src.domain.benchmark_contract import BenchmarkClarificationRequired
+from src.domain.temporal_contract import TemporalClarificationRequired
+from src.state.types import (
+    FinalResponseState,
+    WorkflowArtifactsState,
+    WorkflowPlanState,
+)
 from src.clients import SessionLogger
+from src.domain.presentation_contract import PresentationKind
+from src.clients.pdf_generator import PdfSessionMetadata, generate_session_pdf
+from src.services.presentation_routing import compute_presentation_routing
 from app import create_census_graph
 from src.state.types import CensusState
 from langchain_core.runnables import RunnableConfig
@@ -33,6 +43,40 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded",
 )
+
+
+def _first_table_download_info(
+    final: FinalResponseState | None,
+) -> tuple[str, str] | None:
+    """Saved table path and MIME from rendered artifacts (`RenderedArtifact`)."""
+    if final is None or not final.generated_files:
+        return None
+    for art in final.generated_files:
+        if art.kind == "table" and art.path:
+            mime = art.mime_type or "application/octet-stream"
+            return art.path, mime
+    for art in final.generated_files:
+        if art.mime_type == "text/csv" and art.path:
+            return art.path, art.mime_type
+    return None
+
+
+def _clarification_question_and_options(
+    plan: WorkflowPlanState, final: FinalResponseState
+) -> tuple[str, list[str]]:
+    """Clarification UI text from plan (temporal/benchmark prompts), not FinalResponseState fields."""
+    temporal = plan.temporal
+    if isinstance(temporal, TemporalClarificationRequired):
+        p = temporal.clarification_prompt
+        lines = [f"{o.option_id}: {o.label}" for o in p.options]
+        return (p.question_text, lines)
+    benchmark = plan.benchmark
+    if isinstance(benchmark, BenchmarkClarificationRequired):
+        p = benchmark.clarification_prompt
+        lines = [f"{o.option_id}: {o.label}" for o in p.options]
+        return (p.question_text, lines)
+    text = (final.answer_text or "").strip()
+    return (text or "I need more information.", [])
 
 
 def initialize_session_state():
@@ -88,69 +132,86 @@ def initialize_session_state():
             logger.error(f"Error starting session logger: {e}")
 
 
-def display_streamlit_results(result: Dict[str, Any]):
-    """Display results using Streamlit components"""
+def display_streamlit_results(payload: CensusState | dict[str, Any] | None) -> None:
+    """Render workflow state from a ``CensusState`` or raw LangGraph invoke dict."""
 
-    if not result:
+    if payload is None:
         st.error("No results to display")
         return
 
-    # Check for errors
-    if result.get("error"):
-        st.error(f"❌ Error: {result['error']}")
+    if isinstance(payload, dict) and payload.get("error"):
+        st.error(str(payload["error"]))
         return
 
-    # Display final answer
-    final = result.get("final")
-    if not final:
-        st.warning("❌ No answer available")
+    try:
+        state = (
+            payload
+            if isinstance(payload, CensusState)
+            else CensusState.model_validate(payload)
+        )
+    except Exception as e:
+        logger.warning("Invalid workflow state for display: %s", e)
+        st.error("Could not read workflow results.")
         return
 
-    # Display answer type
-    answer_type = final.get("type", "Unknown")
+    routing = compute_presentation_routing(state)
+    final = state.final
+    st.caption(f"Presentation routing: {routing.kind.value} — {routing.reason}")
 
-    # Create columns for better layout
-    col1, col2 = st.columns([2, 1])
+    if routing.kind == PresentationKind.CLARIFICATION:
+        display_clarification_streamlit(state.plan, state.final)
+        return
 
-    with col1:
-        st.subheader("📊 Census Data Results")
+    if routing.kind == PresentationKind.NON_CENSUS_OR_EMPTY:
+        display_not_census_streamlit(state.final)
+        return
 
-        if answer_type == "single":
-            display_single_value_streamlit(final)
-        elif answer_type == "series":
-            display_series_streamlit(final)
-        elif answer_type == "table":
-            display_table_streamlit(final)
-        elif answer_type == "not_census":
-            display_not_census_streamlit(final)
-        elif answer_type == "clarification":
-            display_clarification_streamlit(final)
-        else:
-            st.info(f"Answer: {final}")
+    if not final or not final.answer_text:
+        st.warning("No answer available")
+        return
 
-    with col2:
-        # Display footnotes
-        footnotes = final.get("footnotes", [])
-        if footnotes:
-            st.subheader("📝 Footnotes")
-            for i, footnote in enumerate(footnotes):
-                st.caption(f"{i + 1}. {footnote}")
+    st.subheader("Answer")
+    st.markdown(final.answer_text)
 
-        # Display system logs
-        logs = result.get("logs", [])
-        if logs:
-            with st.expander("🔍 System Logs"):
-                for log in logs[-5:]:  # Show last 5 logs
-                    st.text(log)
+    footnotes = final.footnotes if final.footnotes else []
+    if footnotes:
+        st.subheader("Footnotes")
+        for i, footnote in enumerate(footnotes):
+            st.caption(f"{i + 1}. {footnote}")
+
+    if routing.kind == PresentationKind.SINGLE_VALUE:
+        display_single_value_streamlit(state.artifacts)
+    elif routing.kind == PresentationKind.TIME_SERIES:
+        display_series_streamlit(state.artifacts)
+    elif routing.kind == PresentationKind.TABLE:
+        display_table_streamlit(state.artifacts, final)
+    elif routing.kind == PresentationKind.NARRATIVE_ONLY:
+        pass
+    else:
+        st.warning("No presentation routing available")
 
 
-def display_single_value_streamlit(final: Dict[str, Any]):
+def display_single_value_streamlit(artifacts: WorkflowArtifactsState) -> None:
     """Display a single value answer with Streamlit components"""
 
-    value = final.get("value", "N/A")
-    geo = final.get("geo", "Unknown location")
-    year = final.get("year", "Unknown year")
-    variable = final.get("variable", "Unknown variable")
+    cd = artifacts.census_data
+    if cd is None or not cd.success or cd.row_count < 1:
+        st.warning("No census data to display as a single value.")
+        return
+
+    row = cd.records[0].values
+    year = str(cd.request.year) if cd.request else "-"
+    geo = row.get("NAME", "Unknown location") or row.get("name", "Unknown location")
+
+    value = "N/A"
+    label = "Value"
+
+    if cd.request and cd.request.variables:
+        for var in cd.request.variables:
+            if var in row:
+                value = row[var]
+                label = artifacts.variable_labels.labels.get(var, var)
+                break
 
     # Create metrics display
     col1, col2, col3 = st.columns(3)
@@ -164,16 +225,28 @@ def display_single_value_streamlit(final: Dict[str, Any]):
     with col3:
         st.metric("📊 Value", value)
 
-    if variable != "Unknown variable":
-        st.info(f"🔢 Variable: {variable}")
+    if label != "Value":
+        st.info(f"🔢 Variable: {label}")
 
 
-def display_series_streamlit(final: Dict[str, Any]):
+def display_series_streamlit(artifacts: WorkflowArtifactsState) -> None:
     """Display a time series answer with interactive chart"""
 
-    data = final.get("data", [])
-    geo = final.get("geo", "Unknown location")
-    variable = final.get("variable", "Unknown variable")
+    cd = artifacts.census_data
+    if cd is None or not cd.success or cd.row_count < 1:
+        st.warning("No census data to display as a time series.")
+        return
+
+    data = cd.records
+    geo = data[0].values.get("NAME", "Unknown location") or data[0].values.get(
+        "name", "Unknown location"
+    )
+    year = str(cd.request.year) if cd.request else "-"
+    variable = (
+        cd.request.variables[0]
+        if cd.request and cd.request.variables
+        else "Unknown variable"
+    )
 
     if not data:
         st.warning("No data available")
@@ -184,10 +257,10 @@ def display_series_streamlit(final: Dict[str, Any]):
     for item in data:
         df_data.append(
             {
-                "Year": item.get("year", "Unknown"),
-                "Value": item.get("value", 0),
-                "Formatted Value": item.get(
-                    "formatted_value", str(item.get("value", 0))
+                "Year": item.values.get("year", "Unknown"),
+                "Value": item.values.get("value", 0),
+                "Formatted Value": item.values.get(
+                    "formatted_value", str(item.values.get("value", 0))
                 ),
             }
         )
@@ -196,6 +269,7 @@ def display_series_streamlit(final: Dict[str, Any]):
 
     # Display summary
     st.info(f"📍 Location: {geo}")
+    st.info(f"📅 Year: {year}")
     st.info(f"🔢 Variable: {variable}")
 
     # Create interactive line chart
@@ -215,29 +289,20 @@ def display_series_streamlit(final: Dict[str, Any]):
     st.subheader("📈 Data Table")
     st.dataframe(df, use_container_width=True)
 
-    # Show file path if available
-    file_path = final.get("file_path")
-    if file_path:
-        st.success(f"💾 Full data saved to: {file_path}")
 
-        # Add download button
-        try:
-            with open(file_path, "rb") as f:
-                st.download_button(
-                    label="📥 Download CSV",
-                    data=f.read(),
-                    file_name=Path(file_path).name,
-                    mime="text/csv",
-                )
-        except FileNotFoundError:
-            st.warning("File not found for download")
-
-
-def display_table_streamlit(final: Dict[str, Any]):
+def display_table_streamlit(
+    artifacts: WorkflowArtifactsState,
+    final: FinalResponseState | None = None,
+) -> None:
     """Display a table answer with interactive table"""
 
-    data = final.get("data", [])
-    total_rows = final.get("total_rows", 0)
+    cd = artifacts.census_data
+    if cd is None or not cd.success or cd.row_count < 1:
+        st.warning("No census data to display as a table.")
+        return
+
+    data = cd.records
+    total_rows = cd.row_count
 
     st.info(f"📊 Table Data ({total_rows} rows)")
 
@@ -245,46 +310,70 @@ def display_table_streamlit(final: Dict[str, Any]):
         st.warning("No data available")
         return
 
-    # Convert to DataFrame
-    df = pd.DataFrame(data)
+    # Convert records to rows for DataFrame (StrictCensusApiRecord.values)
+    df = pd.DataFrame([dict(r.values) for r in data])
 
     # Display interactive table
     st.dataframe(df, use_container_width=True)
 
-    # Show file path if available
-    file_path = final.get("file_path")
-    if file_path:
+    # Show export path when workflow wrote a table/CSV file
+    download_info = _first_table_download_info(final)
+    if download_info:
+        file_path, download_mime = download_info
         st.success(f"💾 Full data saved to: {file_path}")
 
         # Add download button
+        label = (
+            "📥 Download CSV"
+            if download_mime == "text/csv"
+            else "📥 Download table export"
+        )
         try:
             with open(file_path, "rb") as f:
                 st.download_button(
-                    label="📥 Download CSV",
+                    label=label,
                     data=f.read(),
                     file_name=Path(file_path).name,
-                    mime="text/csv",
+                    mime=download_mime,
                 )
         except FileNotFoundError:
             st.warning("File not found for download")
 
 
-def display_not_census_streamlit(final: Dict[str, Any]):
+def display_not_census_streamlit(final: FinalResponseState | None = None) -> None:
     """Display a non-Census response"""
 
-    message = final.get("message", "I can't help with that.")
-    suggestion = final.get("suggestion", "")
+    if final is None:
+        st.warning("No non-Census response to display")
+        return
 
-    st.info(f"ℹ️ {message}")
-    if suggestion:
-        st.info(f"💡 {suggestion}")
+    if not isinstance(final, FinalResponseState):
+        st.warning("Invalid non-Census response type")
+        return
+
+    answer_text = final.answer_text if final.answer_text else "I can't help with that."
+
+    st.info(f"ℹ️ {answer_text}")
 
 
-def display_clarification_streamlit(final: Dict[str, Any]):
+def display_clarification_streamlit(
+    plan: WorkflowPlanState | None = None,
+    final: FinalResponseState | None = None,
+) -> None:
     """Display clarification request"""
+    if plan is None or final is None:
+        st.warning("No clarification request to display")
+        return
 
-    message = final.get("message", "I need more information.")
-    clarification_needed = final.get("clarification_needed", [])
+    if not isinstance(plan, WorkflowPlanState):
+        st.warning("Invalid clarification plan type")
+        return
+
+    if not isinstance(final, FinalResponseState):
+        st.warning("Invalid clarification final response type")
+        return
+
+    message, clarification_needed = _clarification_question_and_options(plan, final)
 
     st.warning(f"❓ {message}")
 
@@ -294,7 +383,7 @@ def display_clarification_streamlit(final: Dict[str, Any]):
             st.write(f"{i}. {item}")
 
 
-def process_question(user_input: str) -> Dict[str, Any]:
+def process_question(user_input: str) -> CensusState | dict[str, Any]:
     """Process a user question through the LangGraph workflow"""
 
     try:
@@ -310,7 +399,7 @@ def process_question(user_input: str) -> Dict[str, Any]:
             geo={},
             candidates={},
             plan=None,
-            artifacts={},
+            artifacts=WorkflowArtifactsState(),
             final=None,
             logs=[],
             error=None,
@@ -330,9 +419,10 @@ def process_question(user_input: str) -> Dict[str, Any]:
 
         # Process through graph
         result = st.session_state.graph.invoke(initial_state, config)
-        final = result.get("final", {})
-        answer_text = final.get("answer_text", "No answer available")
-        generated_files = final.get("generated_files", [])
+        census_state = CensusState.model_validate(result)
+        final = census_state.final
+        answer_text = final.answer_text if final else "No answer available"
+        generated_files = final.generated_files if final else []
 
         # Add to conversation history
         st.session_state.conversation_history.append(
@@ -345,7 +435,7 @@ def process_question(user_input: str) -> Dict[str, Any]:
             }
         )
 
-        return result
+        return census_state
 
     except Exception as e:
         logger.error(f"Error processing question: {str(e)}")
@@ -401,10 +491,9 @@ def main():
                     pdf_bytes = generate_session_pdf(
                         conversation_history=st.session_state.conversation_history,
                         user_id=st.session_state.user_id or "demo",
-                        session_metadata={
-                            "thread_id": st.session_state.thread_id,
-                            "generated_at": datetime.now(),
-                        },
+                        session_metadata=PdfSessionMetadata(
+                            thread_id=st.session_state.thread_id,
+                        ),
                     )
 
                     st.sidebar.download_button(

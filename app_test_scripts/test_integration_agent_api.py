@@ -10,7 +10,10 @@ Run locally with API keys configured.
 import pytest
 import os
 from unittest.mock import patch
+
 from src.agents.census_query_agent import CensusQueryAgent
+from src.domain.agent_output_contract import AgentSolveResult
+from src.domain.census_tool_contract import StrictCensusApiResponse
 from src.llm.config import LLM_CONFIG
 
 
@@ -27,6 +30,13 @@ requires_api_key = pytest.mark.skipif(
 )
 
 
+def _assert_solve_result(result: AgentSolveResult) -> StrictCensusApiResponse:
+    """Narrow census_data to non-None for tests that require a Census payload."""
+    assert isinstance(result, AgentSolveResult)
+    assert result.census_data is not None
+    return result.census_data
+
+
 class TestAgentIntegration:
     """Integration tests with real Census API calls."""
 
@@ -40,22 +50,15 @@ class TestAgentIntegration:
             intent={"is_census": True, "topic": "population"},
         )
 
-        # Verify structure
-        assert "census_data" in result
-        assert "answer_text" in result
-        assert "footnotes" in result
+        cd = _assert_solve_result(result)
+        assert cd.success is True
+        assert cd.row_count >= 1
 
-        # Verify data was fetched
-        assert result["census_data"].get("success") is True
-        census_data = result["census_data"].get("data", [])
-        assert len(census_data) >= 2  # Headers + at least one row
+        snapshot = f"{cd.headers}{[r.values for r in cd.records]}"
+        assert "California" in result.answer_text or "CA" in snapshot
 
-        # Verify California is mentioned
-        assert "California" in result["answer_text"] or "CA" in str(census_data)
-
-        # Verify footnotes were generated
-        assert len(result["footnotes"]) >= 2
-        assert any("Census" in note for note in result["footnotes"])
+        assert len(result.footnotes) >= 2
+        assert any("Census" in note for note in result.footnotes)
 
     @requires_api_key
     @pytest.mark.integration
@@ -67,15 +70,12 @@ class TestAgentIntegration:
             intent={"is_census": True, "topic": "population", "geography": "state"},
         )
 
-        assert "census_data" in result
-        assert result["census_data"].get("success") is True
+        cd = _assert_solve_result(result)
+        assert cd.success is True
+        assert cd.row_count >= 3
 
-        census_data = result["census_data"].get("data", [])
-        assert len(census_data) >= 4  # Headers + 3 states
-
-        # Should have chart for comparison
-        assert len(result.get("charts_needed", [])) >= 1
-        assert result["charts_needed"][0]["type"] == "bar"
+        assert len(result.charts_needed) >= 1
+        assert result.charts_needed[0].type == "bar"
 
     @requires_api_key
     @pytest.mark.integration
@@ -90,26 +90,17 @@ class TestAgentIntegration:
             intent={"is_census": True, "topic": "population", "geography": "county"},
         )
 
-        # Should have census data
-        assert "census_data" in result
-        assert result["census_data"].get("success") is True
+        cd = _assert_solve_result(result)
+        assert cd.success is True
+        num_columns = len(cd.headers)
+        assert num_columns < 20, (
+            f"Too many variables fetched ({num_columns} columns). "
+            f"For simple population query, should be < 20 columns, not entire table group."
+        )
 
-        data = result["census_data"].get("data", [])
-        if len(data) > 0:
-            # Check that we don't have excessive columns
-            # Population query should have just a few columns (NAME, population, maybe state/county codes)
-            # NOT 100+ variables like full CP03
-            num_columns = len(data[0])
-            assert num_columns < 20, (
-                f"Too many variables fetched ({num_columns} columns). "
-                f"For simple population query, should be < 20 columns, not entire table group."
-            )
-
-        # Should have answer text
-        assert len(result["answer_text"]) > 50
+        assert len(result.answer_text) > 50
         assert (
-            "Delaware" in result["answer_text"]
-            or "county" in result["answer_text"].lower()
+            "Delaware" in result.answer_text or "county" in result.answer_text.lower()
         )
 
     @requires_api_key
@@ -145,25 +136,18 @@ class TestAgentIntegration:
                 },
             )
 
-            # Texas has 254 counties - this is a large response
-            assert "census_data" in result
-            assert result["census_data"].get("success") is True
-
-            data = result["census_data"].get("data", [])
-            # Should have headers + many county rows
-            assert len(data) > 200, (
-                f"Expected 250+ rows for Texas counties, got {len(data)}"
+            cd = _assert_solve_result(result)
+            assert cd.success is True
+            assert cd.row_count > 200, (
+                f"Expected 250+ rows for Texas counties, got {cd.row_count}"
             )
 
-        # Verify parsing succeeded
+        data_snapshot = [r.values for r in cd.records]
         assert (
-            result["answer_text"]
-            != "Agent execution completed but output parsing failed"
+            result.answer_text != "Agent execution completed but output parsing failed"
         )
-        assert "census_data" in result
 
-        # Should mention Texas
-        assert "Texas" in result["answer_text"] or "TX" in str(data)
+        assert "Texas" in result.answer_text or "TX" in str(data_snapshot)
 
     @requires_api_key
     @pytest.mark.integration
@@ -175,17 +159,15 @@ class TestAgentIntegration:
             intent={"is_census": True, "topic": "income"},
         )
 
-        assert "census_data" in result
-        assert result["census_data"].get("success") is True
+        cd = _assert_solve_result(result)
+        assert cd.success is True
 
-        # Should mention income in answer
         assert any(
-            word in result["answer_text"].lower()
+            word in result.answer_text.lower()
             for word in ["income", "median", "household"]
         )
 
-        # Should reference appropriate table in footnotes
-        footnotes_text = " ".join(result.get("footnotes", []))
+        footnotes_text = " ".join(result.footnotes)
         assert "table" in footnotes_text.lower() or "B19013" in footnotes_text
 
     @requires_api_key
@@ -213,13 +195,11 @@ class TestAgentIntegration:
                 intent={"is_census": True, "topic": "population"},
             )
 
-            # Should specify chart for comparison
-            assert len(result.get("charts_needed", [])) >= 1
-            assert result["charts_needed"][0]["type"] in ["bar", "line"]
+            assert len(result.charts_needed) >= 1
+            assert result.charts_needed[0].type in ("bar", "line")
 
-            # Should specify table export
-            assert len(result.get("tables_needed", [])) >= 1
-            assert result["tables_needed"][0]["format"] == "csv"
+            assert len(result.tables_needed) >= 1
+            assert result.tables_needed[0].format == "csv"
 
     @requires_api_key
     @pytest.mark.integration
@@ -248,8 +228,9 @@ class TestAgentIntegration:
                 intent={"is_census": True, "topic": "population", "geography": "state"},
             )
 
-            assert result["census_data"].get("success") is True
-            assert "error" not in result["answer_text"].lower()
+            cd = _assert_solve_result(result)
+            assert cd.success is True
+            assert "error" not in result.answer_text.lower()
 
 
 class TestAgentErrorHandling:
@@ -279,9 +260,7 @@ class TestAgentErrorHandling:
                 intent={"is_census": True, "topic": "general"},
             )
 
-            # Should still produce some response (even if limited)
-            assert "answer_text" in result
-            assert len(result["answer_text"]) > 20
+            assert len(result.answer_text) > 20
 
     def test_agent_handles_invalid_geography(self):
         """Test agent handles invalid geography names gracefully."""
@@ -291,10 +270,8 @@ class TestAgentErrorHandling:
             intent={"is_census": True, "topic": "population"},
         )
 
-        # Should not crash - may have empty data or error message
-        assert "answer_text" in result
-        # Result should acknowledge the issue
-        assert result["census_data"].get("success") in [True, False]
+        if result.census_data is not None:
+            assert result.census_data.success in (True, False)
 
 
 if __name__ == "__main__":

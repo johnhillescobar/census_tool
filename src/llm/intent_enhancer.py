@@ -1,6 +1,6 @@
 import json
 import logging
-from typing import Dict, Any, List
+from typing import Any
 from dotenv import load_dotenv
 
 from .config import (
@@ -18,8 +18,8 @@ logger = logging.getLogger(__name__)
 
 
 def parse_intent_with_llm(
-    user_text: str, user_profile: Dict[str, Any]
-) -> Dict[str, Any]:
+    user_text: str, user_profile: dict[str, Any]
+) -> dict[str, Any]:
     """Parse intent using LLM when heuristic parsing has low confidence"""
 
     # Build context from user text and profile
@@ -43,8 +43,8 @@ def parse_intent_with_llm(
 
 
 def merge_intent_results(
-    heuristic_intent: Dict[str, Any], llm_intent: Dict[str, Any]
-) -> Dict[str, Any]:
+    heuristic_intent: dict[str, Any], llm_intent: dict[str, Any]
+) -> dict[str, Any]:
     """Intelligently merge heuristic and LLM intent results"""
     merged = heuristic_intent.copy()
 
@@ -75,9 +75,9 @@ def merge_intent_results(
 
 def generate_intelligent_clarification(
     user_question: str,
-    clarification_needed: List[str],
-    intent: Dict[str, Any],
-    available_options: Dict[str, Any] = None,
+    clarification_needed: list[str],
+    intent: dict[str, Any],
+    available_options: dict[str, Any] | None = None,
 ) -> str:
     """Generate an intelligent clarification question" using LLM"""
 
@@ -99,7 +99,7 @@ def generate_intelligent_clarification(
 
 
 def build_data_summary(
-    artifacts: Dict[str, Any], geo: Dict[str, Any], intent: Dict[str, Any]
+    artifacts: dict[str, Any], geo: dict[str, Any], intent: dict[str, Any]
 ) -> str:
     """Extract key data points for LLM to format naturally"""
 
@@ -154,9 +154,9 @@ def build_data_summary(
 def generate_llm_answer(
     user_question: str,
     data_summary: str,
-    geo_context: Dict[str, Any],
-    intent: Dict[str, Any],
-) -> str:
+    geo_context: dict[str, Any],
+    intent: dict[str, Any],
+) -> str | None:
     """Generate natural language answer using LLM"""
 
     # Extract answer_type from intent

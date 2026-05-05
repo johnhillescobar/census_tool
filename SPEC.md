@@ -1,10 +1,17 @@
 # Census Tool — Spec
 
-This is the SLIM **S**pec leg. It is an **index**, not a place for new content.
-When goals/features/boundaries change, edit here AND open a track plan if the
-change requires migration work. If a section here contradicts code, that is
-drift — log it under D-IDs in
+This is the **bootstrap-SLIM** Spec leg (Spec → Layout → Implement → Monitor).
+It is an **index**, not a place for new content. When goals/features/boundaries
+change, edit here AND open a track plan if the change requires migration work.
+If a section here contradicts code, that is drift — log it under D-IDs in
 [.cursor/skills/drift-audit/references/known-regressions.md](.cursor/skills/drift-audit/references/known-regressions.md).
+
+> **Naming note.** This repo uses two unrelated disciplines that share the
+> acronym SLIM. **bootstrap-SLIM** (Spec/Layout/Implement/Monitor) is the
+> project-organization framing used by `SPEC.md` and `AGENTS.md`. The
+> **refactor-SLIM** skill at `.cursor/skills/slim/SKILL.md` is an unrelated
+> legacy-code refactoring discipline (Seams/Learning-tests/Incremental/Mocking).
+> When in doubt, "the SLIM skill" always means refactor-SLIM.
 
 ## Goal
 
@@ -91,5 +98,5 @@ This is a long-running migration. To prevent perpetual refactor:
 
 ## Companion file
 
-- [AGENTS.md](AGENTS.md) — SLIM **L**ayout leg. Stack, folder rules,
+- [AGENTS.md](AGENTS.md) — **bootstrap-SLIM** Layout leg. Stack, folder rules,
   working modes, drift policy.

@@ -28,7 +28,7 @@ class FinalChartSpec(BaseModel):
 class FinalTableSpec(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    format: Literal["csv", "excel", "html"] = Field(
+    format: Literal["csv", "excel", "html", "parquet"] = Field(
         default="csv", description="Requested table export format."
     )
     filename: str | None = Field(default=None, description="Optional output filename.")
