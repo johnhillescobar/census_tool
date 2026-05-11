@@ -1,4 +1,14 @@
+import pytest
+
+from src.domain.temporal_contract import TemporalIntent
 from src.services.temporal_policy import resolve_temporal_intent
+
+
+def test_point_in_time_is_resolved():
+    result = resolve_temporal_intent("population in 2023")
+    assert result.status == "resolved"
+    assert result.time.mode == "point_in_time"
+    assert result.time.anchor_year == 2023
 
 
 def test_conflict_requires_clarification():
@@ -25,3 +35,27 @@ def test_range_is_normalized():
     assert result.time.mode == "range"
     assert result.time.start_year == 2019
     assert result.time.end_year == 2023
+
+
+def test_rolling_window_is_typed():
+    result = resolve_temporal_intent("population over the past 4 years")
+    assert result.status == "resolved"
+    assert result.time.mode == "rolling"
+    assert result.time.rolling_window_years == 4
+    assert result.time.start_year is None
+    assert result.time.end_year is None
+    assert result.time.anchor_year is None
+
+
+def test_rolling_window_requires_window_size():
+    with pytest.raises(ValueError, match="rolling_window_years is required"):
+        TemporalIntent(mode="rolling")
+
+
+def test_non_rolling_rejects_window_size():
+    with pytest.raises(ValueError, match="rolling_window_years is only allowed"):
+        TemporalIntent(
+            mode="point_in_time",
+            anchor_year=2023,
+            rolling_window_years=3,
+        )

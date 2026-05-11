@@ -1,9 +1,25 @@
 # Track 2 Todo Status (Strict State Sync)
 
-Date: 2026-04-26
+Date: 2026-05-04
 Source plans:
 - `.cursor/plans/v2-track2-deterministic-planning.plan.md`
 - `.cursor/plans/v2_track2_state_ab67f8f6.plan.md`
+
+Refresh source:
+- `migration_evidence/track2_progress_20260504/track2_evidence_refresh.md`
+
+## Track 2 Split
+
+Track 2 remains the umbrella migration, but the remaining work is now grouped
+into four reviewable gates:
+
+- Track 2A - Deterministic Planning Complete: closed 2026-05-04
+- Track 2B - Typed Workflow State
+- Track 2C - Output, UI, And Persistence Hardening
+- Track 2D - Tooling And Governance
+
+This split is a planning aid, not a relaxation of the final Track 2 contract
+rules. Full Track 2 exit still requires all four gates to close.
 
 ## Todo Status
 
@@ -40,10 +56,17 @@ Source plans:
     - `src/workflows/agent.py` now writes typed `result.census_data` and typed `result.variable_labels` into `WorkflowArtifactsState`
     - `src/workflows/output.py` now reads typed `artifacts.census_data`, uses a shared adapter boundary, and threads typed variable labels into chart-title generation
   - Current evidence of remaining intra-graph downgrade risk:
-    - `src/workflows/agent.py` still contains legacy footnote generation that calls `result.census_data.model_dump()` for a downstream loose consumer
+    - `src/workflows/agent.py` no longer contains the previously recorded footnote `model_dump()` bridge, but footnote generation still needs an explicit typed contract before this boundary can be considered closed
     - `src/workflows/output.py` now uses typed `ChartToolInput` / `TableToolInput` on the main path, but it still depends on the temporary `StrictCensusApiRawTable` adapter and has not removed the legacy-compatible tool parsers for other callers
     - `src/state/types.py` still allows loose non-planning state channels
   - Locked execution model remains unchanged: temporal/benchmark/comparison nodes are early clarification gates; reasoning node remains responsible for multi-step typed tool execution and synthesis directives.
+
+- `t2-nodes-services`: done for Track 2A
+  - Typed rolling temporal windows are implemented.
+  - Rolling comparison plans expand deterministically through
+    `LATEST_AVAILABLE_YEAR`.
+  - `historical_baseline` is explicitly deferred and fail-closed.
+  - Evidence: `migration_evidence/track2_progress_20260504/track2a_closeout.md`.
 
 - `migrate-persistence-schema`: pending
   - Chosen direction: allow a real JSON schema migration for persisted memory files.
@@ -54,13 +77,13 @@ Source plans:
   - Required outcome: read-time migration from old JSON, write-only-new-schema behavior, and explicit schema versioning.
 
 - `update-output-consumers`: in_progress
-  - Output/UI consumers are no longer all at the same baseline: CLI display and PDF now coerce typed models in key places, while Streamlit and some public compatibility wrappers still assume mapping-style `final` / `artifacts`.
+  - Output/UI consumers are no longer all at the same baseline: CLI display, Streamlit display, and PDF now coerce or validate typed models in key places, while public/session compatibility wrappers still accept raw dict payloads before validation.
   - Current evidence:
     - `src/workflows/output.py` now reads `state.final` as `FinalResponseState`, reads typed `artifacts.census_data`, uses `src/services/census_render_adapter.py`, and passes typed `ChartToolInput` / `TableToolInput` into `ChartTool.render()` / `TableTool.render()`
     - `src/domain/rendered_output_contract.py` now defines typed DTOs for narrative, footnotes, chart/table outputs, and generic rendered artifacts
     - `src/tools/table_tool.py` and `src/tools/chart_tool.py` now validate typed `StrictCensusApiRawTable` inputs internally and expose typed `render()` outputs, but their compatibility parsers plus `_run()` / `_arun()` string responses still remain for legacy callers
     - `src/api/displays.py` now coerces typed `FinalResponseState`, `src/api/__init__.py` now re-exports only `display_results`, and `app_test_scripts/test_displays.py` passes on that typed CLI path
-    - `streamlit_app.py` expects dict-like `result` / `final`
+    - `streamlit_app.py` now validates raw graph dicts into `CensusState` and renders typed final/artifact paths, but its public/session boundary still accepts raw dict payloads before validation
     - `src/clients/pdf_generator.py` now defines typed PDF DTOs and coerces typed `final` / `artifacts`, but its public input still accepts loose dict payloads
   - These readers are now part of the Track 2 strict-state migration surface.
 
@@ -79,18 +102,22 @@ Source plans:
     - Streamlit and public display consumer regression tests on the typed path
     - strict validation failure tests for malformed state payloads outside the currently covered typed contracts
   - Current test reality:
-    - `uv run pytest app_test_scripts/test_track2_contract_first.py app_test_scripts/test_census_query_agent.py app_test_scripts/test_output_title_formatting.py app_test_scripts/test_multi_series_charts.py app_test_scripts/test_pdf_generation.py app_test_scripts/test_displays.py -q` currently stops at collection because `app_test_scripts/test_track2_contract_first.py` still imports removed symbol `AgentOutput`
-    - `uv run pytest app_test_scripts/test_census_query_agent.py app_test_scripts/test_output_title_formatting.py app_test_scripts/test_multi_series_charts.py app_test_scripts/test_pdf_generation.py app_test_scripts/test_displays.py -q` -> `43 passed`
+    - `uv run pytest --collect-only` -> `186 tests collected`
+    - `uv run pytest app_test_scripts/test_track2_contract_first.py` -> `7 passed`
+    - `uv run pytest app_test_scripts/test_comparison_plan.py app_test_scripts/test_comparison_plan_policy.py app_test_scripts/test_comparison_metric_compute.py app_test_scripts/test_temporal_policy_contract.py` -> `20 passed`
 
-- `t2-canonical-suite`: in_progress
-  - Service/contract tests covering clarification and resolved paths are present and passing.
-  - Workflow-focused Track 2 tests now exist, but full canonical acceptance coverage across workflow integration boundaries is still incomplete.
+- `t2-canonical-suite`: done for Track 2A
+  - Canonical temporal, benchmark, comparison-plan, and workflow-node planning
+    coverage is present and passing.
+  - Evidence: `migration_evidence/track2_progress_20260504/track2a_closeout.md`.
 
-- `t2-repeatability-tests`: in_progress
+- `t2-repeatability-tests`: done for Track 2A
   - Repeatability requirement is documented (same input -> same planning outputs).
   - `test_deterministic_rerun_same_input_same_output` now asserts identical `model_dump()` outputs from repeated `resolve_comparison_plan` calls with identical typed inputs.
-  - Additional workflow-level deterministic coverage now exists for fixed comparison-metric inputs in `app_test_scripts/test_track2_contract_first.py`.
-  - Gap remains: temporal, benchmark, broader workflow-level, and persisted-state rerun coverage is still incomplete.
+  - Rolling comparison-plan rerun coverage and workflow-level rolling planning
+    determinism now exist.
+  - Persisted-state rerun coverage belongs to Track 2C, not Track 2A.
+  - Evidence: `migration_evidence/track2_progress_20260504/track2a_closeout.md`.
 
 - `t2-mypy-boundary-gate`: in_progress
   - `mypy` configuration is now present in `pyproject.toml`.
@@ -106,15 +133,55 @@ Source plans:
 
 ## Remaining Track 2 Work
 
-1. Define strict Pydantic models for most of `CensusState`, including graph, persistence, and output-facing channels.
-2. Complete workflow integration for typed handoff-only boundaries and remove remaining generic dict state artifacts from the intra-graph path, especially the agent footnote downgrade and the remaining legacy-compatible chart/table entrypoints.
-3. Add explicit reducers/adapters for strict models where LangGraph merge semantics require them, then remove temporary dict/model compatibility shims from artifact merging.
-4. Migrate persisted memory JSON to a versioned strict schema with explicit read-time migration.
-5. Refactor CLI, Streamlit, PDF, and output helpers to typed state or explicit adapters, then switch chart/table outputs from string messages to structured rendered-artifact DTOs.
-  - refinement after 2026-04-26 review: the typed render DTO path now exists on the main output flow, the CLI display export/test path is now aligned, and the remaining work is to remove legacy `_run()` / `_arun()` string callers, migrate Streamlit off `final.get(...)`, and eliminate the agent footnote `model_dump()` bridge.
-6. Reconcile the current `mypy` config/dev dependency with the Track 2 freeze rule, then expand or explicitly bound the static gate with a recorded decision.
-7. Expand canonical suite to include workflow-level deterministic acceptance coverage.
-8. Upgrade `BenchmarkIntent.historical_baseline` from temporary fail-closed behavior to fully typed baseline contract fields and validators.
+### Track 2A - Deterministic Planning Complete
+
+Status: closed 2026-05-04.
+
+Evidence: `migration_evidence/track2_progress_20260504/track2a_closeout.md`.
+
+Closed items:
+
+1. `TemporalIntent` rolling-window validation is typed through
+   `rolling_window_years`.
+2. Rolling comparison plans expand deterministically through
+   `LATEST_AVAILABLE_YEAR`.
+3. Canonical temporal/benchmark/comparison tests pass at service and
+   workflow-node levels.
+4. Repeatability coverage exists for deterministic planning outputs.
+5. `BenchmarkIntent.historical_baseline` is explicitly deferred out of Track 2A
+   and fails closed.
+
+### Track 2B - Typed Workflow State
+
+1. Define strict Pydantic models for remaining loose `CensusState` channels:
+   `messages`, `intent`, `geo`, `candidates`, `profile`, `history`, and
+   `cache_index`.
+2. Complete workflow integration for typed handoff-only boundaries and remove
+   remaining generic dict state artifacts from the intra-graph path.
+3. Add explicit reducers/adapters for strict models where LangGraph merge
+   semantics require them, then remove temporary dict/model compatibility shims
+   from artifact merging.
+4. Tighten refined agent `census_data` source-of-truth behavior so malformed
+   LLM-restated data cannot outrank or block authoritative strict tool
+   observations.
+
+### Track 2C - Output, UI, And Persistence Hardening
+
+1. Migrate persisted memory JSON to a versioned strict schema with explicit
+   read-time migration.
+2. Refactor CLI, Streamlit, PDF, and output helpers to typed state or explicit
+   adapters at their public/session boundaries.
+3. Remove legacy chart/table `_run()` / `_arun()` string callers or quarantine
+   them as explicit compatibility adapters.
+4. Surface render failures as typed artifacts/state instead of logs only.
+
+### Track 2D - Tooling And Governance
+
+1. Reconcile the current `mypy` config/dev dependency with the Track 2 freeze
+   rule.
+2. Expand or explicitly bound the static gate with a recorded decision.
+3. Confirm final dependency-freeze status before any full Track 2 exit claim.
+4. Keep migration evidence and baseline Markdown current as each gate closes.
 
 ## Locked Policy Decisions (Track 2)
 
@@ -149,13 +216,13 @@ Source plans:
   - `mypy` is now configured for selected deterministic modules, but the Track 2 evidence has not yet recorded whether that dev-only tooling addition is accepted under the freeze rule.
   - Removing generic dict state handoffs is still higher priority than broadening the `mypy` gate; otherwise the static gate will have weak signal.
 
-## Verification Snapshot (2026-04-26 review)
+## Verification Snapshot (2026-05-04 review)
 
 - Code/state evidence checked:
   - `src/state/types.py` now shows typed `plan`, `artifacts`, and `final` envelopes
   - `src/workflows/comparison.py` preserves typed `ComparisonPlan` inside `WorkflowPlanState`
   - `src/workflows/comparison_metrics.py` now preserves typed metric rows in `WorkflowArtifactsState`
-  - `src/workflows/agent.py` now writes typed `census_data` and `variable_labels` into state, but still has a loose downstream footnote bridge
+  - `src/workflows/agent.py` now writes typed `census_data` and `variable_labels` into state and no longer has the previously recorded footnote `model_dump()` bridge
   - `src/services/census_render_adapter.py` now owns the shared `StrictCensusApiResponse -> StrictCensusApiRawTable` conversion
   - `src/workflows/output.py` now consumes the shared adapter and typed variable labels, uses typed `render()` calls on the main path, and guards against unsuccessful/empty Census responses before tabular derivation
   - `src/tools/table_tool.py` and `src/tools/chart_tool.py` now validate typed raw-table inputs internally, but still keep legacy parsing and string-return entrypoints for older callers
@@ -169,8 +236,9 @@ Source plans:
   - `app_test_scripts/test_displays.py`
   - `app_test_scripts/test_variable_validation_tool.py`
   - `app_test_scripts/test_comparison_plan_policy.py`
-- Current blocker in the intended focused suite:
-  - `app_test_scripts/test_track2_contract_first.py` is stale at import time because it still references removed `AgentOutput`
+- Current test evidence:
+  - full pytest collection succeeds (`194 tests collected`)
+  - Track 2A focused suite passes (`38 passed`)
 - Planning decision still in force:
   - strict Pydantic state migration selected
   - JSON schema migration allowed

@@ -50,6 +50,13 @@ class BenchmarkConflictBaselineVsPeerGroupSlots(BaseModel):
     subject_text: str
 
 
+class BenchmarkBaselineDeferredSlots(BaseModel):
+    reason_code: Literal["BENCHMARK_BASELINE_DEFERRED"] = (
+        "BENCHMARK_BASELINE_DEFERRED"
+    )
+    subject_text: str
+
+
 # Create OptionTemplate for the clarification prompt
 
 
@@ -183,6 +190,21 @@ TEMPLATES: dict[str, ClarificationTemplate] = {
             OptionTemplate(option_id="peer_group", label_template="Use the peer group"),
         ],
     ),
+    "BENCHMARK_BASELINE_DEFERRED": ClarificationTemplate(
+        template_id="benchmark.baseline_deferred.v1",
+        reason_code="BENCHMARK_BASELINE_DEFERRED",
+        question_template=(
+            "Historical baseline comparisons are not enabled in Track 2A. "
+            "Please choose a supported benchmark comparison instead."
+        ),
+        option_templates=[
+            OptionTemplate(
+                option_id="supported_benchmark",
+                label_template="Use a national, state, or peer-group benchmark",
+            ),
+            OptionTemplate(option_id="cancel", label_template="Cancel"),
+        ],
+    ),
 }
 
 # Define the slots for the clarification template for temporal
@@ -202,6 +224,7 @@ BenchmarkClarificationSlots = Annotated[
         BenchmarkMissingMetricSlots,
         BenchmarkMissingGeoLevelSlots,
         BenchmarkConflictBaselineVsPeerGroupSlots,
+        BenchmarkBaselineDeferredSlots,
     ],
     Field(discriminator="reason_code"),
 ]

@@ -2,6 +2,11 @@
 
 Date: 2026-04-08
 
+Refresh: 2026-05-04. Stale 2026-04-26 notes about the Track 2 contract test
+collection blocker, Streamlit dead-schema rendering, and the agent footnote
+`model_dump()` bridge have been superseded by
+`migration_evidence/track2_progress_20260504/track2_evidence_refresh.md`.
+
 ## Purpose
 - Enumerate the remaining runtime `Dict[...]`, `dict[...]`, `List[Dict[...]]`, and `list[dict[...]]` boundaries that still weaken Track 2.
 - Separate real Track 2 blockers from temporary adapters and acceptable map-shaped payloads.
@@ -51,7 +56,7 @@ Date: 2026-04-08
 | `src/workflows/comparison.py` | `comparison_node()` | returns `dict[str, Any]` | `temporary_adapter` | Same issue. |
 | `src/workflows/comparison_metrics.py` | `comparison_metrics_node()` | returns `dict[str, Any]` | `temporary_adapter` | Same issue. |
 | `src/workflows/agent.py` | `agent_reasoning_node()` | returns `Dict[str, Any]` | `temporary_adapter` | Envelope is still dict-shaped, but typed `WorkflowArtifactsState` / `FinalResponseState` payloads are now used inside it. |
-| `src/workflows/agent.py` | footnote bridge (`result.census_data.model_dump()`) | typed response downgraded for downstream loose consumer | `temporary_adapter` | Footnote generation still requires a compatibility bridge. |
+| `src/workflows/agent.py` | footnote generation boundary | typed `result.census_data` passed directly to downstream consumer | `temporary_adapter` | The previously recorded `model_dump()` bridge is gone; keep watching this boundary until footnote generation has an explicit typed input/output contract. |
 | `src/workflows/output.py` | `get_chart_params(raw_data: StrictCensusApiRawTable \| Dict[str, Any], ...)` | typed input plus legacy dict fallback | `temporary_adapter` | Main path is typed now; dict fallback remains for compatibility and existing tests. |
 | `src/workflows/output.py` | `output_node()` | returns `Dict[str, Any]` | `temporary_adapter` | Envelope is dict-shaped. |
 | `src/workflows/output.py` | `_response_to_tabular_payload()` | typed raw table converted back to legacy dict payload | `temporary_adapter` | Output path still bridges typed render data back to old tool shape. |
@@ -63,7 +68,7 @@ Date: 2026-04-08
 | File | Symbol / field | Current shape | Class | Notes |
 |---|---|---|---|---|
 | `src/api/displays.py` | `display_results()` public wrapper | `Dict[str, Any]` outer result plus typed `FinalResponseState` coercion | `temporary_adapter` | CLI display now validates/coerces `final`, but the public wrapper is still dict-shaped and stale exports/tests still target removed legacy helpers. |
-| `streamlit_app.py` | `display_streamlit_results()` and helpers | `Dict[str, Any]` | `blocking_any_dict` | Streamlit display reads `result` and `final` as dicts. |
+| `streamlit_app.py` | `display_streamlit_results()` and helpers | `CensusState \| dict[str, Any] \| None` | `temporary_adapter` | Display now validates raw graph dicts into `CensusState` and renders typed final/artifact paths; public/session entry still accepts raw dict payloads before validation. |
 | `streamlit_app.py` | `process_question()` | returns `Dict[str, Any]` | `blocking_any_dict` | Graph output stored and passed around as loose dict. |
 | `streamlit_app.py` | `initial_state = CensusState(... geo={}, artifacts={}, profile={} ...)` | raw dict initialization | `blocking_any_dict` | Entry point seeds loose state bags directly. |
 | `main.py` | `initial_state = CensusState(... geo={}, artifacts={}, profile={} ...)` | raw dict initialization | `blocking_any_dict` | CLI does the same. |
@@ -146,9 +151,9 @@ Date: 2026-04-08
 
 1. `src/state/types.py` still contains the main remaining contract failures: `messages`, `intent`, `geo`, `candidates`, `profile`, `history`, and `cache_index`.
 2. `src/workflows/memory.py` and `src/services/memory_utils.py` still flatten and persist typed state through loose dict contracts.
-3. The output path still has a compatibility bridge: `src/workflows/output.py` converts typed render data back to legacy dict payloads, and `src/tools/chart_tool.py` / `src/tools/table_tool.py` still accept `str | dict` shims and return string success messages.
+3. The output path still has compatibility bridges: typed render data is adapted for legacy callers, `src/tools/chart_tool.py` / `src/tools/table_tool.py` still accept `str | dict` shims, LangChain `_run()` / `_arun()` paths still return string success messages, and render failures are logged rather than surfaced as typed failure artifacts.
 4. `src/clients/census_api_utils.py` still exposes loose `geo` and `table_metadata` contracts, and the legacy `fetch_census_data()` wrapper is still alive under strict tooling.
-5. `streamlit_app.py` is still fully dict-style, while `src/api/displays.py` and `src/clients/pdf_generator.py` are only partially migrated because their public wrappers remain compatibility adapters and stale display exports/tests still assume the old helper surface.
+5. `streamlit_app.py`, `src/api/displays.py`, and `src/clients/pdf_generator.py` now have typed/coercing display paths in key places, but their public/session wrappers remain compatibility adapters that can still receive raw dict payloads.
 6. `src/domain/geography_registry.py`, `src/domain/geo_utils.py`, `src/domain/text_utils.py`, and `src/llm/intent_enhancer.py` still carry planning-relevant blobs.
 
 ## Track 2 closure rule

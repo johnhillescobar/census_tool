@@ -125,7 +125,19 @@ SLIM tells the agent *what* to do per turn, working modes tell the agent
 
 ## Active migration track
 
-Track 2 — Deterministic Planning Layer.
+Track 2 — Deterministic Planning Layer, now split into four reviewable gates:
+
+- **Track 2A — Deterministic Planning Complete**: closed 2026-05-04. Evidence:
+  [migration_evidence/track2_progress_20260504/track2a_closeout.md](migration_evidence/track2_progress_20260504/track2a_closeout.md).
+- **Track 2B — Typed Workflow State**: finish strict state ownership for loose
+  graph channels and remove intra-graph dict downgrades except explicit
+  serialization boundaries.
+- **Track 2C — Output, UI, And Persistence Hardening**: finish render failure
+  DTOs, display/PDF/Streamlit adapters, chart/table compatibility cleanup, and
+  versioned memory persistence.
+- **Track 2D — Tooling And Governance**: record the `mypy` freeze-policy
+  decision, set static gate scope, reconcile dependency status, and keep
+  migration evidence current.
 
 - Plan:
   [.cursor/plans/v2-track2-deterministic-planning.plan.md](.cursor/plans/v2-track2-deterministic-planning.plan.md)
@@ -134,8 +146,8 @@ Track 2 — Deterministic Planning Layer.
   — **`derive-tabular-view`** (shared adapter + dataframe + CSV/Parquet export helpers) is **completed** in that YAML; **`migrate-consumers`**, **`tighten-tests`**, **`decide-census-data-required-vs-optional`** remain open there.
 - Skill:
   [.cursor/skills/census-v2-tech-lead/SKILL.md](.cursor/skills/census-v2-tech-lead/SKILL.md)
-- Latest audit:
-  [migration_evidence/track2_progress_20260426/](migration_evidence/track2_progress_20260426/)
+- Latest evidence refresh:
+  [migration_evidence/track2_progress_20260504/](migration_evidence/track2_progress_20260504/)
 
 ## Drift policy
 
@@ -145,5 +157,5 @@ Track 2 — Deterministic Planning Layer.
   the catalog (see
   [.cursor/skills/drift-audit/SKILL.md](.cursor/skills/drift-audit/SKILL.md)
   step 5).
-- Last run: 2026-04-26 →
-  [migration_evidence/track2_progress_20260426/](migration_evidence/track2_progress_20260426/)
+- Last evidence refresh: 2026-05-04 →
+  [migration_evidence/track2_progress_20260504/](migration_evidence/track2_progress_20260504/)

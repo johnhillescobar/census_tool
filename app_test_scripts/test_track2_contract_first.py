@@ -16,8 +16,10 @@ from src.state.types import (
 from src.tools.geography_validation_tool import GeographyValidationTool
 from src.tools.variable_validation_tool import VariableValidationTool
 from src.workflows.agent import agent_reasoning_node
+from src.workflows.benchmark import benchmark_node
 from src.workflows.comparison import comparison_node
 from src.workflows.comparison_metrics import comparison_metrics_node
+from src.workflows.temporal import temporal_node
 
 
 def _build_temporal_resolved() -> TemporalResolved:
@@ -62,6 +64,42 @@ def test_comparison_node_preserves_typed_plan_objects():
     assert isinstance(result["plan"].comparison, ComparisonPlan)
     assert result["plan"].comparison is not None
     assert result["plan"].comparison.query_years == [2023]
+
+
+def test_workflow_canonical_rolling_peer_comparison_is_deterministic():
+    user_message = "compare population for counties over the past 3 years"
+    initial_state = CensusState(messages=[{"content": user_message}])
+
+    temporal_result = temporal_node(initial_state, {})
+    temporal_plan = temporal_result["plan"]
+
+    benchmark_result = benchmark_node(
+        CensusState(messages=[{"content": user_message}], plan=temporal_plan),
+        {},
+    )
+    benchmark_plan = benchmark_result["plan"]
+
+    first_comparison = comparison_node(
+        CensusState(messages=[{"content": user_message}], plan=benchmark_plan),
+        {},
+    )
+    second_comparison = comparison_node(
+        CensusState(messages=[{"content": user_message}], plan=benchmark_plan),
+        {},
+    )
+
+    first_plan = first_comparison["plan"]
+    second_plan = second_comparison["plan"]
+
+    assert isinstance(first_plan, WorkflowPlanState)
+    assert isinstance(first_plan.temporal, TemporalResolved)
+    assert first_plan.temporal.time.mode == "rolling"
+    assert first_plan.temporal.time.rolling_window_years == 3
+    assert isinstance(first_plan.benchmark, BenchmarkResolved)
+    assert first_plan.benchmark.benchmark.benchmark_type == "peer_group"
+    assert isinstance(first_plan.comparison, ComparisonPlan)
+    assert first_plan.comparison.query_years == [2021, 2022, 2023]
+    assert first_plan.model_dump() == second_plan.model_dump()
 
 
 def test_comparison_metrics_node_reads_typed_state():

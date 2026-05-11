@@ -19,7 +19,13 @@ def _expand_query_years(temporal_intent: TemporalIntent) -> list[int]:
 
         return list(range(temporal_intent.start_year, temporal_intent.end_year + 1))
 
-    if temporal_intent.mode in {"rolling", "latest_available"}:
+    if temporal_intent.mode == "rolling":
+        if temporal_intent.rolling_window_years is None:
+            raise ValueError("rolling_window_years is required for rolling mode.")
+        start_year = LATEST_AVAILABLE_YEAR - temporal_intent.rolling_window_years + 1
+        return list(range(start_year, LATEST_AVAILABLE_YEAR + 1))
+
+    if temporal_intent.mode == "latest_available":
         return [LATEST_AVAILABLE_YEAR]
 
     raise ValueError(f"Unsupported temporal mode: {temporal_intent.mode}")

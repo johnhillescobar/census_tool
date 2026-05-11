@@ -9,6 +9,7 @@ from src.domain.benchmark_contract import (
 )
 from src.domain.clarification_templates import (
     BenchmarkAmbiguousTargetSlots,
+    BenchmarkBaselineDeferredSlots,
     BenchmarkConflictBaselineVsPeerGroupSlots,
     BenchmarkMissingGeoLevelSlots,
     BenchmarkMissingMetricSlots,
@@ -27,7 +28,8 @@ PEER_GROUP_PATTERN = re.compile(
     r"\b(peer group|peer|similar counties|similar states)\b", re.IGNORECASE
 )
 BASELINE_PATTERN = re.compile(
-    r"\b(baseline|vs\s+\d{4}|compared to \d{4}|historical)\b", re.IGNORECASE
+    r"\b(baseline|vs\s+\d{4}|against\s+\d{4}|compared to \d{4}|historical)\b",
+    re.IGNORECASE,
 )
 
 
@@ -92,6 +94,20 @@ def resolve_benchmark_intent(user_text: str) -> BenchmarkResolution:
         return BenchmarkClarificationRequired(
             status="clarification_required",
             reason_code="BENCHMARK_CONFLICT_BASELINE_VS_PEER_GROUP",
+            clarification_prompt=clarification,
+        )
+
+    # Track 2A explicitly defers historical baseline semantics.
+    if BASELINE_PATTERN.search(text_1):
+        clarification = render_benchmark_clarification(
+            BenchmarkBaselineDeferredSlots(
+                reason_code="BENCHMARK_BASELINE_DEFERRED",
+                subject_text=text,
+            )
+        )
+        return BenchmarkClarificationRequired(
+            status="clarification_required",
+            reason_code="BENCHMARK_BASELINE_DEFERRED",
             clarification_prompt=clarification,
         )
 

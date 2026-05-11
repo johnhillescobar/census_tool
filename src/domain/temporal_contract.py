@@ -26,6 +26,9 @@ class TemporalIntent(BaseModel):
     anchor_year: int | None = Field(
         None, description="The anchor year of the temporal intent."
     )
+    rolling_window_years: int | None = Field(
+        None, description="The number of years in a rolling temporal window."
+    )
     missing_year_policy: MissingYearPolicy = Field(
         default="skip_with_note", description="The policy for handling missing years."
     )
@@ -35,6 +38,9 @@ class TemporalIntent(BaseModel):
 
     @model_validator(mode="after")
     def validate_mode_fields(self) -> "TemporalIntent":
+        if self.mode != "rolling" and self.rolling_window_years is not None:
+            raise ValueError("rolling_window_years is only allowed for rolling mode.")
+
         if self.mode == "point_in_time":
             if self.anchor_year is None:
                 raise ValueError("Anchor year is required for point in time mode.")
@@ -50,9 +56,17 @@ class TemporalIntent(BaseModel):
                 raise ValueError("start_year must be <= end_year for range mode.")
 
         elif self.mode == "rolling":
-            # Keep loose for now until final TemporalIntent lands.
-            # You can enforce a rolling_window_years field later.
-            pass
+            if self.rolling_window_years is None:
+                raise ValueError("rolling_window_years is required for rolling mode.")
+            if self.rolling_window_years <= 0:
+                raise ValueError("rolling_window_years must be > 0 for rolling mode.")
+            if any(
+                v is not None
+                for v in [self.start_year, self.end_year, self.anchor_year]
+            ):
+                raise ValueError(
+                    "start_year/end_year/anchor_year must be null for rolling mode."
+                )
 
         elif self.mode == "latest_available":
             if any(

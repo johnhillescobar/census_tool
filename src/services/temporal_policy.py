@@ -27,21 +27,21 @@ def _extract_explicit_years(text: str) -> list[int]:
     return [int(y) for y in EXPLICIT_YEAR_PATTERN.findall(text or "")]
 
 
-def _extract_rolling_phrase(text: str) -> str | None:
-    """Extract the rolling phrase from the text.
+def _extract_rolling_window(text: str) -> tuple[str, int] | None:
+    """Extract the rolling phrase and window size from the text.
 
     Args:
         text: The text to extract the rolling phrase from.
 
     Returns:
-        A string representing the rolling phrase.
+        A tuple of rolling phrase and number of years.
     """
     match = ROLLING_PATTERN.search(text or "")
 
     if not match:
         return None
 
-    return f"{match.group(1).lower()} {match.group(2)} years"
+    return f"{match.group(1).lower()} {match.group(2)} years", int(match.group(2))
 
 
 def resolve_temporal_intent(user_text: str) -> TemporalResolution:
@@ -56,7 +56,8 @@ def resolve_temporal_intent(user_text: str) -> TemporalResolution:
 
     text = user_text or ""
     years = _extract_explicit_years(text)
-    rolling_phrase = _extract_rolling_phrase(text)
+    rolling_window = _extract_rolling_window(text)
+    rolling_phrase = rolling_window[0] if rolling_window else None
 
     # Global ambiguity policy: conflicting valid temporal interpretations => clarification
     if rolling_phrase and len(years) >= 2:
@@ -124,6 +125,7 @@ def resolve_temporal_intent(user_text: str) -> TemporalResolution:
             start_year=None,
             end_year=None,
             anchor_year=None,
+            rolling_window_years=rolling_window[1] if rolling_window else None,
             missing_year_policy="skip_with_note",
             requested_text=text,
         ),

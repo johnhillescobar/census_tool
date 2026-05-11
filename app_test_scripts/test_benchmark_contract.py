@@ -118,3 +118,14 @@ def test_historical_baseline_rejected_path():
             normalization="none",
             requested_text="compare population counties",
         )
+
+
+def test_historical_baseline_language_is_deferred():
+    result = resolve_benchmark_intent("compare population for counties against 2019")
+    assert result.status == "clarification_required"
+    assert result.reason_code == "BENCHMARK_BASELINE_DEFERRED"
+    assert result.clarification_prompt.template_id == "benchmark.baseline_deferred.v1"
+    assert [o.option_id for o in result.clarification_prompt.options] == [
+        "supported_benchmark",
+        "cancel",
+    ]

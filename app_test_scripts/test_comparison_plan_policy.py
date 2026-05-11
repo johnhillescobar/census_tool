@@ -1,3 +1,4 @@
+from config import LATEST_AVAILABLE_YEAR
 from src.domain.benchmark_contract import BenchmarkIntent
 from src.domain.temporal_contract import TemporalIntent, TemporalMode
 from src.services.comparison_plan_policy import resolve_comparison_plan
@@ -22,12 +23,14 @@ def _build_temporal_intent(
     start_year: int | None,
     end_year: int | None,
     anchor_year: int | None,
+    rolling_window_years: int | None = None,
 ) -> TemporalIntent:
     return TemporalIntent(
         mode=mode,
         start_year=start_year,
         end_year=end_year,
         anchor_year=anchor_year,
+        rolling_window_years=rolling_window_years,
         requested_text=None,
     )
 
@@ -74,9 +77,34 @@ def test_latest_available():
     _assert_common_plan_fields(result)
 
 
+def test_rolling_window_expands_to_latest_available_window():
+    result = resolve_comparison_plan(
+        _build_benchmark_intent(),
+        _build_temporal_intent("rolling", None, None, None, rolling_window_years=3),
+    )
+    assert result.query_years == [
+        LATEST_AVAILABLE_YEAR - 2,
+        LATEST_AVAILABLE_YEAR - 1,
+        LATEST_AVAILABLE_YEAR,
+    ]
+    _assert_common_plan_fields(result)
+
+
 def test_deterministic_rerun_same_input_same_output():
     benchmark_intent = _build_benchmark_intent()
     temporal_intent = _build_temporal_intent("range", 2020, 2022, None)
+
+    first_result = resolve_comparison_plan(benchmark_intent, temporal_intent)
+    second_result = resolve_comparison_plan(benchmark_intent, temporal_intent)
+
+    assert first_result.model_dump() == second_result.model_dump()
+
+
+def test_rolling_deterministic_rerun_same_input_same_output():
+    benchmark_intent = _build_benchmark_intent()
+    temporal_intent = _build_temporal_intent(
+        "rolling", None, None, None, rolling_window_years=4
+    )
 
     first_result = resolve_comparison_plan(benchmark_intent, temporal_intent)
     second_result = resolve_comparison_plan(benchmark_intent, temporal_intent)

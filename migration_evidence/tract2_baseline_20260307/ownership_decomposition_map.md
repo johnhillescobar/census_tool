@@ -1,5 +1,10 @@
 # Track 2 - Strict Pydantic State Ownership Map
 
+Refresh: 2026-05-04. This ownership map remains active, but status details
+that mentioned the 2026-04-26 test collection blocker, Streamlit dead-schema
+rendering, or the agent footnote `model_dump()` bridge are superseded by
+`migration_evidence/track2_progress_20260504/track2_evidence_refresh.md`.
+
 ## Scope
 - Goal: Define ownership for Track 2 strict state contracts, deterministic computation path, and required serialization boundaries.
 - Rule: Track 2 now includes strict Pydantic state migration for most of `CensusState`, plus the consumers and persistence layers required to keep those state contracts intact end-to-end.
@@ -12,9 +17,22 @@
 - Layer order: `domain -> clients -> services -> agents -> workflows -> api`
 
 ## Status Legend
+
 - `T2-P1`: implement first (contract and deterministic foundations)
 - `T2-P2`: implement second (workflow integration and canonical coverage)
 - `T2-P3`: implement last (refinements, docs hardening)
+
+## Track 2 Gate Split
+
+- Track 2A - Deterministic Planning Complete: closed 2026-05-04. Evidence:
+  `migration_evidence/track2_progress_20260504/track2a_closeout.md`.
+- Track 2B - Typed Workflow State: state/workflow/agent ownership for strict
+  graph channels, reducers/adapters, and authoritative `census_data` flow.
+- Track 2C - Output, UI, And Persistence Hardening: workflow/api/client
+  ownership for render DTOs, display adapters, chart/table compatibility, and
+  versioned memory persistence.
+- Track 2D - Tooling And Governance: repo tooling and migration evidence
+  ownership for `mypy`, dependency-freeze reconciliation, and final gate docs.
 
 ## Track 2 Ownership Map
 
@@ -34,7 +52,7 @@
 | Planning orchestration nodes | `workflows` | Sequence and typed handoff enforcement | services + state typing | app/workflow entry | T2-P2 | Partial progress landed: core planning nodes now hand off typed plan payloads, but the broader graph still contains loose state/artifact channels and dict-based adapters |
 | Reasoning execution loop (tool use + synthesis) | `agents` | Owns multi-step execution against typed artifacts and tool outputs | typed planning artifacts + typed tools | workflows, output | T2-P2 | Reasoning node calls strict Census tool(s) as needed and produces answer/table/chart directives |
 | Workflow state typing updates | `workflows` / `state` | Preserve contract consistency across nodes | domain contracts | workflows | T2-P2 | Remove raw dict handoff across the full graph; current `CensusState` generic dict channels are not sufficient for silent-error prevention |
-| Output/UI consumers (`output`, CLI displays, Streamlit, PDF) | `workflows` + `api` + `clients` | These readers must consume typed `final` / `artifacts` instead of assuming mapping semantics | typed state models + external library adapters | end users | T2-P2 | Refactor `.get(...)`, `**dict` merge assumptions, and tabular payload conversion points |
+| Output/UI consumers (`output`, CLI displays, Streamlit, PDF) | `workflows` + `api` + `clients` | These readers must consume typed `final` / `artifacts` instead of assuming mapping semantics | typed state models + external library adapters | end users | T2-P2 | Partial progress landed in output, CLI display, Streamlit display, and PDF coercion paths; remaining work is to narrow public/session dict entrypoints, remove legacy chart/table string/dict shims, and surface render failures as typed artifacts |
 | Memory schema migration path | `services` + `clients` | Safely move persisted memory files from legacy dict schema to strict typed schema | persisted JSON + migration versioning | memory load/write | T2-P2 | Must support read-time migration and write-only-new-schema behavior |
 | Scoped Track 2 `mypy` gate | `api/docs` + repo tooling | Add static verification for deterministic planning boundaries and stop regressions from landing unnoticed | concrete annotations in domain/services/workflows/state modules | CI / reviewers | T2-P2 | Partial progress landed: scoped `mypy` config now exists for selected deterministic modules, but the migration evidence still needs an explicit freeze-policy decision and the gate does not yet cover the broader state/workflow/tool surfaces |
 | Canonical temporal/benchmark suite | `services` + `workflows` tests | Release gate for deterministic correctness | test fixtures + contracts | CI / gate review | T2-P2 | Includes failure/clarification cases |
