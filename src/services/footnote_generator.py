@@ -17,17 +17,17 @@ from src.domain.census_tool_contract import StrictCensusApiResponse
 logger = logging.getLogger(__name__)
 
 
-def _year_from_strict(census_data: StrictCensusApiResponse | None) -> str:
+def _year_from_strict(census_data: StrictCensusApiResponse) -> str:
     """Resolve survey year from typed API response when available."""
-    if census_data and census_data.success and census_data.request is not None:
+    if census_data.success and census_data.request is not None:
         return str(census_data.request.year)
     logger.debug("Footnote year fallback: no successful typed request on census_data")
     return "2023"
 
 
-def _dataset_label_from_strict(census_data: StrictCensusApiResponse | None) -> str:
+def _dataset_label_from_strict(census_data: StrictCensusApiResponse) -> str:
     """Human-readable ACS product label from typed request dataset."""
-    if census_data and census_data.success and census_data.request is not None:
+    if census_data.success and census_data.request is not None:
         raw = census_data.request.dataset
         s = raw.lower() if isinstance(raw, str) else str(raw).lower()
         if "acs5" in s or "acs/acs5" in s:
@@ -54,15 +54,15 @@ def extract_table_codes_from_reasoning(reasoning_trace: str) -> List[str]:
 
 
 def generate_footnotes(
-    census_data: StrictCensusApiResponse | None,
+    census_data: StrictCensusApiResponse,
     data_summary: str,
     reasoning_trace: str,
 ) -> List[str]:
     """
-    Generate footnotes from optional typed Census response and agent text.
+    Generate footnotes from typed Census response and agent text.
 
     Args:
-        census_data: Validated API response, or None when no Census payload exists.
+        census_data: Validated API response (use no_strict_census_payload when absent).
         data_summary: Brief summary of the data
         reasoning_trace: Agent's reasoning steps
 

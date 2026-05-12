@@ -31,9 +31,8 @@ requires_api_key = pytest.mark.skipif(
 
 
 def _assert_solve_result(result: AgentSolveResult) -> StrictCensusApiResponse:
-    """Narrow census_data to non-None for tests that require a Census payload."""
+    """Return typed census_data (always present after Option B)."""
     assert isinstance(result, AgentSolveResult)
-    assert result.census_data is not None
     return result.census_data
 
 
@@ -270,8 +269,7 @@ class TestAgentErrorHandling:
             intent={"is_census": True, "topic": "population"},
         )
 
-        if result.census_data is not None:
-            assert result.census_data.success in (True, False)
+        assert result.census_data.success in (True, False)
 
 
 if __name__ == "__main__":

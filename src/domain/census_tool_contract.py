@@ -7,6 +7,7 @@ SUPPORTED_DATASETS = set(get_args(CensusDataset))
 
 StrictCensusApiErrorCode = Literal[
     "INVALID_INPUT_SCHEMA",
+    "NO_STRICT_CENSUS_PAYLOAD",
     "INVALID_GEO_PARAMS",
     "UNSUPPORTED_DATASET",
     "UNSUPPORTED_YEAR",
@@ -17,6 +18,7 @@ StrictCensusApiErrorCode = Literal[
 
 ERROR_CODE_TO_MESSAGE = {
     "INVALID_INPUT_SCHEMA": "The input schema is invalid",
+    "NO_STRICT_CENSUS_PAYLOAD": "No validated strict Census API payload is attached",
     "INVALID_GEO_PARAMS": "The geography parameters are invalid",
     "UNSUPPORTED_DATASET": "The dataset is not supported",
     "UNSUPPORTED_YEAR": "The year is not supported",
@@ -192,9 +194,18 @@ class StrictCensusApiResponse(BaseModel):
         # failure path
         if self.error is None:
             raise ValueError("error is required when success is False")
-        if self.request is None and self.error != "INVALID_INPUT_SCHEMA":
+        if self.error == "NO_STRICT_CENSUS_PAYLOAD" and self.request is not None:
             raise ValueError(
-                "request must be present when success is False unless error is INVALID_INPUT_SCHEMA"
+                "request must be None when error is NO_STRICT_CENSUS_PAYLOAD"
+            )
+        allow_missing_request = self.error in (
+            "INVALID_INPUT_SCHEMA",
+            "NO_STRICT_CENSUS_PAYLOAD",
+        )
+        if self.request is None and not allow_missing_request:
+            raise ValueError(
+                "request must be present when success is False unless error is "
+                "INVALID_INPUT_SCHEMA or NO_STRICT_CENSUS_PAYLOAD"
             )
         if self.error_message is None:
             self.error_message = ERROR_CODE_TO_MESSAGE[self.error]
@@ -205,3 +216,16 @@ class StrictCensusApiResponse(BaseModel):
         if self.row_count != 0:
             raise ValueError("row_count must be 0 when success is False")
         return self
+
+
+def no_strict_census_payload(error_message: str | None = None) -> StrictCensusApiResponse:
+    """Canonical failure shape when no strict tool success is available (Option B)."""
+    return StrictCensusApiResponse(
+        success=False,
+        request=None,
+        headers=[],
+        records=[],
+        row_count=0,
+        error="NO_STRICT_CENSUS_PAYLOAD",
+        error_message=error_message,
+    )

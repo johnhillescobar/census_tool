@@ -1,10 +1,15 @@
+from typing import Any
+
 import pytest
-from pydantic import ValidationError
+from pydantic_core import ValidationError
 
 from app import _route_after_benchmark
 from src.domain.agent_output_contract import AgentSolveResult
 from src.domain.benchmark_contract import BenchmarkIntent, BenchmarkResolved
+from src.domain.census_tool_contract import StrictCensusApiResponse, no_strict_census_payload
+from src.domain.comparison_metric_contract import ComparisonInputRow
 from src.domain.comparison_plan import ComparisonPlan
+from src.domain.final_output_contract import FinalChartSpec, FinalTableSpec
 from src.domain.temporal_contract import TemporalIntent, TemporalResolved
 from src.state.types import (
     BenchmarkNotApplicable,
@@ -12,6 +17,7 @@ from src.state.types import (
     FinalResponseState,
     WorkflowArtifactsState,
     WorkflowPlanState,
+    _merge_artifacts,
 )
 from src.tools.geography_validation_tool import GeographyValidationTool
 from src.tools.variable_validation_tool import VariableValidationTool
@@ -22,14 +28,73 @@ from src.workflows.comparison_metrics import comparison_metrics_node
 from src.workflows.temporal import temporal_node
 
 
+def _mini_census_state(
+    *,
+    messages: list[dict[str, Any]],
+    plan: WorkflowPlanState | None = None,
+    artifacts: WorkflowArtifactsState | None = None,
+) -> CensusState:
+    """Construct state with optional fields Pyright expects spelled out."""
+    return CensusState(
+        messages=messages,
+        original_query=None,
+        intent=None,
+        geo={},
+        candidates={},
+        plan=plan,
+        artifacts=artifacts if artifacts is not None else WorkflowArtifactsState(),
+        final=None,
+        logs=[],
+        error=None,
+        summary=None,
+        profile={},
+        history=[],
+        cache_index={},
+    )
+
+
 def _build_temporal_resolved() -> TemporalResolved:
     return TemporalResolved(
         time=TemporalIntent(
             mode="point_in_time",
             anchor_year=2023,
             requested_text="population in 2023",
+            start_year=None,
+            end_year=None,
+            rolling_window_years=None,
         )
     )
+
+
+def _minimal_agent_solve_payload() -> dict:
+    return {
+        "census_data": no_strict_census_payload().model_dump(mode="python"),
+        "data_summary": "summary",
+        "reasoning_trace": "trace",
+        "answer_text": "answer",
+        "charts_needed": [],
+        "tables_needed": [],
+        "footnotes": [],
+    }
+
+
+def _minimal_strict_census_api_response_dict() -> dict:
+    return {
+        "success": True,
+        "request": {
+            "year": 2023,
+            "dataset": "acs/acs5",
+            "variables": ["NAME"],
+            "geo_for": {"place": "44000"},
+            "geo_in": {"state": "06"},
+            "geo_in_chained": [],
+        },
+        "headers": ["NAME"],
+        "records": [{"values": {"NAME": "Los Angeles"}}],
+        "row_count": 1,
+        "error": None,
+        "error_message": None,
+    }
 
 
 def _build_benchmark_resolved() -> BenchmarkResolved:
@@ -49,7 +114,7 @@ def _build_benchmark_resolved() -> BenchmarkResolved:
 
 
 def test_comparison_node_preserves_typed_plan_objects():
-    state = CensusState(
+    state = _mini_census_state(
         messages=[{"content": "Compare county populations"}],
         plan=WorkflowPlanState(
             temporal=_build_temporal_resolved(),
@@ -68,23 +133,32 @@ def test_comparison_node_preserves_typed_plan_objects():
 
 def test_workflow_canonical_rolling_peer_comparison_is_deterministic():
     user_message = "compare population for counties over the past 3 years"
-    initial_state = CensusState(messages=[{"content": user_message}])
+    initial_state = _mini_census_state(messages=[{"content": user_message}])
 
     temporal_result = temporal_node(initial_state, {})
     temporal_plan = temporal_result["plan"]
 
     benchmark_result = benchmark_node(
-        CensusState(messages=[{"content": user_message}], plan=temporal_plan),
+        _mini_census_state(
+            messages=[{"content": user_message}],
+            plan=temporal_plan,
+        ),
         {},
     )
     benchmark_plan = benchmark_result["plan"]
 
     first_comparison = comparison_node(
-        CensusState(messages=[{"content": user_message}], plan=benchmark_plan),
+        _mini_census_state(
+            messages=[{"content": user_message}],
+            plan=benchmark_plan,
+        ),
         {},
     )
     second_comparison = comparison_node(
-        CensusState(messages=[{"content": user_message}], plan=benchmark_plan),
+        _mini_census_state(
+            messages=[{"content": user_message}],
+            plan=benchmark_plan,
+        ),
         {},
     )
 
@@ -104,7 +178,7 @@ def test_workflow_canonical_rolling_peer_comparison_is_deterministic():
 
 def test_comparison_metrics_node_reads_typed_state():
     comparison_result = comparison_node(
-        CensusState(
+        _mini_census_state(
             messages=[{"content": "Compare county populations"}],
             plan=WorkflowPlanState(
                 temporal=_build_temporal_resolved(),
@@ -116,18 +190,18 @@ def test_comparison_metrics_node_reads_typed_state():
     )
     plan = comparison_result["plan"]
 
-    state = CensusState(
+    state = _mini_census_state(
         messages=[{"content": "Compare county populations"}],
         plan=plan,
         artifacts=WorkflowArtifactsState(
             comparison_input_rows=[
-                {
-                    "year": 2023,
-                    "geo_id": "10001",
-                    "metric": "population",
-                    "value": 10.0,
-                    "benchmark_value": 8.0,
-                }
+                ComparisonInputRow(
+                    year=2023,
+                    geo_id="10001",
+                    metric="population",
+                    value=10.0,
+                    benchmark_value=8.0,
+                )
             ]
         ),
     )
@@ -140,7 +214,7 @@ def test_comparison_metrics_node_reads_typed_state():
 
 
 def test_route_after_benchmark_handles_typed_not_applicable_plan():
-    state = CensusState(
+    state = _mini_census_state(
         messages=[{"content": "Population in California"}],
         plan=WorkflowPlanState(
             temporal=_build_temporal_resolved(),
@@ -152,17 +226,33 @@ def test_route_after_benchmark_handles_typed_not_applicable_plan():
     assert _route_after_benchmark(state) == "agent"
 
 
+def test_merge_artifacts_preserves_census_data_on_data_summary_only_patch() -> None:
+    good = StrictCensusApiResponse.model_validate(_minimal_strict_census_api_response_dict())
+    existing = WorkflowArtifactsState(
+        census_data=good, data_summary="old_sum", reasoning_trace="rt"
+    )
+    patch = WorkflowArtifactsState(data_summary="new_sum")
+    merged = _merge_artifacts(existing, patch)
+    assert merged.data_summary == "new_sum"
+    assert merged.census_data.success is True
+    assert merged.reasoning_trace == "rt"
+
+
 def test_agent_reasoning_node_returns_typed_final_and_artifacts(monkeypatch):
     class FakeAgent:
         def solve(self, user_query, intent):
             return AgentSolveResult(
-                census_data=None,
+                census_data=no_strict_census_payload(),
                 data_summary="summary",
                 reasoning_trace="trace",
                 answer_text="California has a population according to the ACS.",
-                charts_needed=[{"type": "bar", "title": "Population by Location"}],
+                charts_needed=[
+                    FinalChartSpec(type="bar", title="Population by Location")
+                ],
                 tables_needed=[
-                    {"format": "csv", "filename": "population", "title": "Population"}
+                    FinalTableSpec(
+                        format="csv", filename="population", title="Population"
+                    )
                 ],
                 footnotes=["Source note"],
             )
@@ -170,7 +260,7 @@ def test_agent_reasoning_node_returns_typed_final_and_artifacts(monkeypatch):
     monkeypatch.setattr("src.workflows.agent.CensusQueryAgent", FakeAgent)
 
     result = agent_reasoning_node(
-        CensusState(messages=[{"content": "Population in California"}]),
+        _mini_census_state(messages=[{"content": "Population in California"}]),
         {},
     )
 
@@ -179,6 +269,45 @@ def test_agent_reasoning_node_returns_typed_final_and_artifacts(monkeypatch):
     assert result["final"].charts_needed[0].type == "bar"
     assert result["final"].charts_needed[0].title == "Population by Location"
     assert result["final"].tables_needed[0].filename == "population"
+
+
+def test_agent_output_rejects_extra_top_level_key():
+    with pytest.raises(ValidationError):
+        AgentSolveResult.model_validate(
+            {**_minimal_agent_solve_payload(), "legacy_bundle": {"k": 1}}
+        )
+
+
+def test_agent_output_rejects_variable_labels_extra_key():
+    with pytest.raises(ValidationError):
+        AgentSolveResult.model_validate(
+            {
+                **_minimal_agent_solve_payload(),
+                "variable_labels": {"labels": {}, "not_allowed": True},
+            }
+        )
+
+
+def test_strict_census_response_rejects_extra_top_level_key():
+    bad = {**_minimal_strict_census_api_response_dict(), "shadow_field": 1}
+    with pytest.raises(ValidationError):
+        StrictCensusApiResponse.model_validate(bad)
+
+
+def test_strict_census_response_rejects_extra_request_key():
+    inner = _minimal_strict_census_api_response_dict()
+    inner["request"] = {**inner["request"], "spurious": True}
+    with pytest.raises(ValidationError):
+        StrictCensusApiResponse.model_validate(inner)
+
+
+def test_strict_census_response_rejects_extra_record_key():
+    inner = _minimal_strict_census_api_response_dict()
+    inner["records"] = [
+        {**inner["records"][0], "unexpected_trace": "x"},
+    ]
+    with pytest.raises(ValidationError):
+        StrictCensusApiResponse.model_validate(inner)
 
 
 def test_agent_output_rejects_extra_chart_fields():

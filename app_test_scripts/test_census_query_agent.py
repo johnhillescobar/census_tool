@@ -210,7 +210,8 @@ class TestAgentParsing:
         agent = CensusQueryAgent()
         parsed = agent._parse_solution(result)
 
-        assert parsed.census_data is None
+        assert parsed.census_data.success is False
+        assert parsed.census_data.error == "NO_STRICT_CENSUS_PAYLOAD"
         assert (
             parsed.answer_text == "Agent execution completed but output parsing failed"
         )
@@ -325,6 +326,65 @@ Final Answer: {json.dumps(json_data)}"""
         )
 
         assert parsed is None
+
+    def test_parse_solution_fails_closed_on_forbidden_chart_spec_field(self):
+        payload = {
+            "census_data": _strict_census_data(
+                headers=["NAME"],
+                rows=[["California"]],
+                variables=["NAME"],
+            ),
+            "data_summary": "summary",
+            "reasoning_trace": "trace",
+            "answer_text": "answer text",
+            "charts_needed": [
+                {"type": "bar", "title": "Chart", "x_column": "NAME"},
+            ],
+            "tables_needed": [],
+            "footnotes": [],
+        }
+        result = {"output": json.dumps(payload)}
+        agent = CensusQueryAgent()
+        parsed = agent._parse_solution(result)
+
+        assert parsed.census_data.success is False
+        assert parsed.census_data.error == "NO_STRICT_CENSUS_PAYLOAD"
+        assert (
+            parsed.answer_text
+            == "Agent execution completed but output parsing failed"
+        )
+
+    def test_parse_solution_fails_closed_on_forbidden_table_spec_field(self):
+        payload = {
+            "census_data": _strict_census_data(
+                headers=["NAME"],
+                rows=[["California"]],
+                variables=["NAME"],
+            ),
+            "data_summary": "summary",
+            "reasoning_trace": "trace",
+            "answer_text": "answer text",
+            "charts_needed": [],
+            "tables_needed": [
+                {
+                    "format": "csv",
+                    "filename": "out",
+                    "title": "T",
+                    "sheet_name": "S1",
+                },
+            ],
+            "footnotes": [],
+        }
+        result = {"output": json.dumps(payload)}
+        agent = CensusQueryAgent()
+        parsed = agent._parse_solution(result)
+
+        assert parsed.census_data.success is False
+        assert parsed.census_data.error == "NO_STRICT_CENSUS_PAYLOAD"
+        assert (
+            parsed.answer_text
+            == "Agent execution completed but output parsing failed"
+        )
 
 
 if __name__ == "__main__":

@@ -1,9 +1,10 @@
+from src.domain.census_tool_contract import StrictCensusApiResponse
 from src.domain.presentation_contract import PresentationKind, PresentationRouting
 from src.state.types import CensusState, FinalResponseState
 
 
-def _headers(cd) -> list[str]:
-    return list(cd.headers) if cd else []
+def _headers(cd: StrictCensusApiResponse) -> list[str]:
+    return list(cd.headers)
 
 
 def _has_yearish_columns(headers: list[str]) -> bool:
@@ -28,8 +29,8 @@ def compute_presentation_routing(state: CensusState) -> PresentationRouting:
             reason="missing_final",
         )
 
-    cd = artifacts.census_data if artifacts else None
-    if cd is None or not cd.success:
+    cd = artifacts.census_data
+    if not cd.success:
         return PresentationRouting(
             kind=PresentationKind.NARRATIVE_ONLY,
             reason="no_successful_census_data",

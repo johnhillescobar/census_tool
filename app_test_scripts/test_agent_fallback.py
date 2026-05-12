@@ -62,7 +62,6 @@ def test_agent_returns_error_on_iteration_limit():
             )
 
             # Invalid geography path normalizes to the standard error answer
-            assert result.census_data is not None
             assert result.census_data.success is False
             assert (
                 "unable to complete" in result.answer_text.lower()

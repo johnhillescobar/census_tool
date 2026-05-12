@@ -342,8 +342,9 @@ RULES:
 5. Include all 7 keys: census_data, data_summary, reasoning_trace, answer_text, charts_needed, tables_needed, footnotes
 6. CRITICAL: census_data MUST use the strict response shape from strict_census_api_call: success, request, headers, records, row_count, error, error_message
 7. DO NOT emit the legacy census_data.data = [[...], [...]] table blob format
-8. CRITICAL: Output COMPLETE, VALID JSON - NO ellipses (...), NO abbreviations, NO truncation
-9. If data is very large (100+ columns), include ALL data without abbreviation - the JSON must be parseable
+8. NEVER use "census_data": null. If there is no Census table for this turn, emit the strict failure shell: success:false, request:null, empty headers/records, row_count:0, error:"NO_STRICT_CENSUS_PAYLOAD", and error_message explaining why.
+9. CRITICAL: Output COMPLETE, VALID JSON - NO ellipses (...), NO abbreviations, NO truncation
+10. If data is very large (100+ columns), include ALL data without abbreviation - the JSON must be parseable
 
 CORRECT example:
 Final Answer: {{"census_data":{{"success":true,"request":{{"year":2023,"dataset":"acs/acs5","variables":["NAME","B01003_001E"],"geo_for":{{"county":"037"}},"geo_in":{{"state":"06"}},"geo_in_chained":[]}},"headers":["NAME","B01003_001E"],"records":[{{"values":{{"NAME":"Los Angeles County, California","B01003_001E":"9,848,406"}}}}],"row_count":1,"error":null,"error_message":null}},"data_summary":"Population data for Los Angeles County from 2023 ACS","reasoning_trace":"Resolved Los Angeles County, validated geography and variable, and queried strict_census_api_call for B01003_001E.","answer_text":"Los Angeles County has a population of 9,848,406 people according to 2023 ACS 5-Year estimates.","charts_needed":[{{"type":"bar","title":"Population by County"}}],"tables_needed":[{{"format":"csv","filename":"la_population","title":"Population Data"}}],"footnotes":["Source: U.S. Census Bureau, 2023 American Community Survey 5-Year Estimates.","Margins of error not shown. For statistical significance, refer to Census Bureau documentation."]}}

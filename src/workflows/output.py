@@ -312,11 +312,11 @@ def output_node(state: CensusState, config: RunnableConfig) -> Dict[str, Any]:
     final_result = state.final or FinalResponseState()
     charts_needed = final_result.charts_needed
     tables_needed = final_result.tables_needed
-    census_data = state.artifacts.census_data if state.artifacts else None
+    census_data = state.artifacts.census_data
     generated_files: list[RenderedArtifact] = list(final_result.generated_files)
     raw_table = (
         response_to_tabular_payload(census_data)
-        if census_data is not None and census_data.success and census_data.row_count > 0
+        if census_data.success and census_data.row_count > 0
         else None
     )
 

@@ -1,14 +1,17 @@
 import operator
 from typing import Annotated, Any, Dict, List, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from src.domain.benchmark_contract import (
     BenchmarkClarificationRequired,
     BenchmarkResolved,
 )
 from src.domain.comparison_plan import ComparisonPlan
-from src.domain.census_tool_contract import StrictCensusApiResponse
+from src.domain.census_tool_contract import (
+    StrictCensusApiResponse,
+    no_strict_census_payload,
+)
 from src.domain.final_output_contract import FinalChartSpec, FinalTableSpec
 from src.domain.temporal_contract import TemporalResolution
 from src.domain.comparison_metric_contract import (
@@ -65,9 +68,9 @@ class FinalResponseState(BaseModel):
 class WorkflowArtifactsState(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    # TODO: remove the | None and make it required when we have a way to enforce it. See T2-CG-010. Should be optional during the migration
-    census_data: StrictCensusApiResponse | None = Field(
-        default=None, description="The Census API response."
+    census_data: StrictCensusApiResponse = Field(
+        default_factory=no_strict_census_payload,
+        description="The Census API response (use no_strict_census_payload when absent).",
     )
     variable_labels: VariableLabels = Field(default_factory=VariableLabels)
     data_summary: str = Field(default="", description="The summary of the data.")
@@ -78,6 +81,15 @@ class WorkflowArtifactsState(BaseModel):
     comparison_metrics: list[ComparisonMetricRow] = Field(
         default_factory=list, description="The metrics for the comparison."
     )
+
+    @model_validator(mode="before")
+    @classmethod
+    def _coerce_null_census_data(cls, data: Any) -> Any:
+        if isinstance(data, dict) and data.get("census_data") is None:
+            out = dict(data)
+            out["census_data"] = no_strict_census_payload().model_dump(mode="python")
+            return out
+        return data
 
 
 def _coerce_artifacts(

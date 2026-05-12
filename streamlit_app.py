@@ -23,6 +23,16 @@ from src.state.types import (
 from src.clients import SessionLogger
 from src.domain.presentation_contract import PresentationKind
 from src.clients.pdf_generator import PdfSessionMetadata, generate_session_pdf
+from src.services.census_render_adapter import (
+    response_to_dataframe,
+    response_to_tabular_payload,
+)
+from src.services.conversation_history import (
+    census_state_from_pdf_history_entry,
+    history_entry_presentation_kind,
+    infer_streamlit_line_xy,
+    pdf_conversation_result_dict,
+)
 from src.services.presentation_routing import compute_presentation_routing
 from app import create_census_graph
 from src.state.types import CensusState
@@ -195,7 +205,7 @@ def display_single_value_streamlit(artifacts: WorkflowArtifactsState) -> None:
     """Display a single value answer with Streamlit components"""
 
     cd = artifacts.census_data
-    if cd is None or not cd.success or cd.row_count < 1:
+    if not cd.success or cd.row_count < 1:
         st.warning("No census data to display as a single value.")
         return
 
@@ -233,7 +243,7 @@ def display_series_streamlit(artifacts: WorkflowArtifactsState) -> None:
     """Display a time series answer with interactive chart"""
 
     cd = artifacts.census_data
-    if cd is None or not cd.success or cd.row_count < 1:
+    if not cd.success or cd.row_count < 1:
         st.warning("No census data to display as a time series.")
         return
 
@@ -252,40 +262,47 @@ def display_series_streamlit(artifacts: WorkflowArtifactsState) -> None:
         st.warning("No data available")
         return
 
-    # Convert to DataFrame for easier handling
-    df_data = []
-    for item in data:
-        df_data.append(
-            {
-                "Year": item.values.get("year", "Unknown"),
-                "Value": item.values.get("value", 0),
-                "Formatted Value": item.values.get(
-                    "formatted_value", str(item.values.get("value", 0))
-                ),
-            }
-        )
+    df = response_to_dataframe(response_to_tabular_payload(cd))
 
-    df = pd.DataFrame(df_data)
+    try:
+        x_col, y_col = infer_streamlit_line_xy(df, cd)
+        plot_df = df[[x_col, y_col]].copy()
+    except ValueError:
+        # Narrow projection when API rows use year/value keys but headers differ.
+        plot_df = pd.DataFrame(
+            [
+                {
+                    "Year": item.values.get("year", "Unknown"),
+                    "Value": item.values.get("value", 0),
+                    "Formatted Value": item.values.get(
+                        "formatted_value",
+                        str(item.values.get("value", 0)),
+                    ),
+                }
+                for item in data
+            ]
+        )
+        x_col, y_col = "Year", "Value"
 
     # Display summary
     st.info(f"📍 Location: {geo}")
     st.info(f"📅 Year: {year}")
     st.info(f"🔢 Variable: {variable}")
 
-    # Create interactive line chart
     fig = px.line(
-        df,
-        x="Year",
-        y="Value",
+        plot_df,
+        x=x_col,
+        y=y_col,
         title=f"{variable} Trends for {geo}",
-        labels={"Value": "Value", "Year": "Year"},
+        labels={y_col: y_col, x_col: x_col},
     )
 
-    fig.update_layout(xaxis_title="Year", yaxis_title="Value", hovermode="x unified")
+    fig.update_layout(
+        xaxis_title=x_col, yaxis_title=y_col, hovermode="x unified"
+    )
 
     st.plotly_chart(fig, use_container_width=True)
 
-    # Display data table
     st.subheader("📈 Data Table")
     st.dataframe(df, use_container_width=True)
 
@@ -297,7 +314,7 @@ def display_table_streamlit(
     """Display a table answer with interactive table"""
 
     cd = artifacts.census_data
-    if cd is None or not cd.success or cd.row_count < 1:
+    if not cd.success or cd.row_count < 1:
         st.warning("No census data to display as a table.")
         return
 
@@ -310,10 +327,7 @@ def display_table_streamlit(
         st.warning("No data available")
         return
 
-    # Convert records to rows for DataFrame (StrictCensusApiRecord.values)
-    df = pd.DataFrame([dict(r.values) for r in data])
-
-    # Display interactive table
+    df = response_to_dataframe(response_to_tabular_payload(cd))
     st.dataframe(df, use_container_width=True)
 
     # Show export path when workflow wrote a table/CSV file
@@ -420,18 +434,13 @@ def process_question(user_input: str) -> CensusState | dict[str, Any]:
         # Process through graph
         result = st.session_state.graph.invoke(initial_state, config)
         census_state = CensusState.model_validate(result)
-        final = census_state.final
-        answer_text = final.answer_text if final else "No answer available"
-        generated_files = final.generated_files if final else []
 
-        # Add to conversation history
+        # PdfConversationEntry shape only (session PDF + sidebar); no duplicate top-level keys.
         st.session_state.conversation_history.append(
             {
                 "question": user_input,
-                "answer_text": answer_text,
-                "generated_files": generated_files,
-                "timestamp": pd.Timestamp.now(),
-                "result": result,
+                "timestamp": datetime.now(),
+                "result": pdf_conversation_result_dict(census_state),
             }
         )
 
@@ -515,10 +524,16 @@ def main():
             for i, entry in enumerate(st.session_state.conversation_history[-5:]):
                 with st.expander(f"Q{i + 1}: {entry['question'][:50]}..."):
                     st.text(f"Question: {entry['question']}")
-                    if entry["result"].get("final"):
-                        st.text(
-                            f"Answer: {entry['result']['final'].get('type', 'Unknown')}"
-                        )
+                    try:
+                        kind = history_entry_presentation_kind(entry)
+                        st.text(f"Presentation: {kind.value}")
+                        hist_state = census_state_from_pdf_history_entry(entry)
+                        if hist_state.final and hist_state.final.answer_text:
+                            ans = hist_state.final.answer_text
+                            st.text(f"Answer preview: {ans[:200]}{'…' if len(ans) > 200 else ''}")
+                    except Exception as ex:
+                        logger.warning("Sidebar history preview failed: %s", ex)
+                        st.text("Presentation: (unavailable)")
 
     # Main interface
     st.header("💬 Ask a Question")

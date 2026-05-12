@@ -356,7 +356,11 @@ def generate_session_pdf(
                 table_embedded = False
 
                 # Method 1: Embed directly from typed census data
-                if census_data is not None:
+                if (
+                    census_data is not None
+                    and census_data.success
+                    and census_data.row_count > 0
+                ):
                     try:
                         table_data = _create_pdf_table_from_census_data(census_data)
                         if table_data:

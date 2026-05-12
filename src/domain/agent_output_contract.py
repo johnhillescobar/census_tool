@@ -9,7 +9,7 @@ class AgentSolveResult(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     # Canonical payload comes from strict_census_api_call observations (agent merge), not LLM JSON alone.
-    census_data: StrictCensusApiResponse | None = Field(
+    census_data: StrictCensusApiResponse = Field(
         ...,
         description="Validated Census API response attached by the agent from tool output",
     )

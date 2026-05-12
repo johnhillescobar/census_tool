@@ -33,7 +33,7 @@ from src.tools.variable_validation_tool import VariableValidationTool
 from src.tools.strict_census_api_tool import StrictCensusApiTool
 
 # Import the strict Census response models
-from src.domain.census_tool_contract import StrictCensusApiResponse
+from src.domain.census_tool_contract import StrictCensusApiResponse, no_strict_census_payload
 from src.domain.agent_output_contract import AgentSolveResult
 
 # Import conversation summarizer
@@ -115,8 +115,11 @@ class CensusQueryAgent:
         answer_text: str,
         footnotes: list[str],
     ) -> AgentSolveResult:
+        resolved = (
+            census_data if census_data is not None else no_strict_census_payload()
+        )
         return AgentSolveResult(
-            census_data=census_data,
+            census_data=resolved,
             data_summary=data_summary,
             reasoning_trace=reasoning_trace,
             answer_text=answer_text,
@@ -199,7 +202,7 @@ class CensusQueryAgent:
         strict_census_data = (
             StrictCensusApiResponse.model_validate(parsed["census_data"])
             if parsed.get("census_data") is not None
-            else None
+            else no_strict_census_payload()
         )
 
         return AgentSolveResult(
@@ -264,14 +267,8 @@ class CensusQueryAgent:
                 "CensusQueryAgent.solve called in offline mode without API credentials."
             )
             return AgentSolveResult(
-                census_data=StrictCensusApiResponse(
-                    success=False,
-                    request=None,
-                    headers=[],
-                    records=[],
-                    row_count=0,
-                    error="INVALID_INPUT_SCHEMA",
-                    error_message="Invalid input schema",
+                census_data=no_strict_census_payload(
+                    "Invalid input schema — agent execution disabled (no OPENAI_API_KEY)."
                 ),
                 data_summary="Agent execution skipped (no API credentials available)",
                 reasoning_trace="Agent skipped because OPENAI_API_KEY is not configured",
@@ -390,7 +387,7 @@ class CensusQueryAgent:
         If success is False but answer_text doesn't match test expectations, update it.
         """
         census_data = parsed.census_data
-        if census_data is not None and census_data.success is False:
+        if not census_data.success:
             answer_text = parsed.answer_text.lower()
             # Check if answer_text contains expected error phrases
             has_expected_phrases = (
@@ -530,6 +527,9 @@ class CensusQueryAgent:
         census_data = self._effective_strict_census_authority(result)
         if census_data is None:
             census_data = self._coerce_observation_to_strict_response(last_observation)
+        # Option B: always attach a validated strict response (absent sentinel if nothing else).
+        if census_data is None:
+            census_data = no_strict_census_payload()
 
         return self._build_failure_solve_result(
             census_data=census_data,
@@ -588,6 +588,9 @@ class CensusQueryAgent:
         census_data = self._effective_strict_census_authority(result)
         if census_data is None:
             census_data = self._coerce_observation_to_strict_response(last_observation)
+        # Option B: always attach a validated strict response (absent sentinel if nothing else).
+        if census_data is None:
+            census_data = no_strict_census_payload()
 
         return self._build_failure_solve_result(
             census_data=census_data,

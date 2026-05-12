@@ -37,7 +37,7 @@ def agent_reasoning_node(state: CensusState, config: RunnableConfig) -> Dict[str
         data_summary = result.data_summary
         geo_context = state.geo or {}
 
-        if census_data and data_summary:
+        if census_data.success and data_summary:
             logger.info(
                 "answer_text is too short, generating rich answer from census data"
             )

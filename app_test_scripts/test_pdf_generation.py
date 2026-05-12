@@ -4,10 +4,16 @@ Test PDF generation functionality.
 
 from datetime import datetime
 from pathlib import Path
+from typing import cast
 
 import pytest
+from pydantic_core import ValidationError
 
-from src.clients import generate_session_pdf
+from src.clients.pdf_generator import (
+    PdfConversationEntry,
+    PdfSessionMetadata,
+    generate_session_pdf,
+)
 
 
 def _sample_census_data() -> dict:
@@ -36,7 +42,7 @@ def _sample_census_data() -> dict:
     }
 
 
-def _sample_entry(*, generated_files: list[dict], census_data: dict) -> dict:
+def _sample_entry(*, generated_files, census_data: dict) -> dict:
     return {
         "question": "What's the population of Los Angeles?",
         "timestamp": datetime.now(),
@@ -65,6 +71,55 @@ def _sample_entry(*, generated_files: list[dict], census_data: dict) -> dict:
     }
 
 
+def _sample_entry_model(*, generated_files, census_data: dict) -> PdfConversationEntry:
+    return PdfConversationEntry.model_validate(
+        _sample_entry(generated_files=generated_files, census_data=census_data)
+    )
+
+
+@pytest.mark.parametrize(
+    "bad_generated_files",
+    [
+        pytest.param("not-a-list", id="generated_files_scalar_string"),
+        pytest.param(
+            ["Chart created successfully: data/charts/chart_bar.png"],
+            id="generated_files_list_of_strings",
+        ),
+        pytest.param(
+            [{"kind": "chart", "path": "/fake/path.png"}],
+            id="rendered_artifact_missing_mime_type",
+        ),
+        pytest.param(
+            [
+                {
+                    "kind": "chart",
+                    "path": "/fake/path.png",
+                    "mime_type": "image/png",
+                    "junk_key": True,
+                }
+            ],
+            id="rendered_artifact_extra_key",
+        ),
+    ],
+)
+def test_generate_session_pdf_rejects_invalid_generated_files(bad_generated_files):
+    conversation_history_raw = [
+        _sample_entry(
+            generated_files=bad_generated_files,
+            census_data=_sample_census_data(),
+        )
+    ]
+
+    with pytest.raises(ValidationError):
+        generate_session_pdf(
+            conversation_history=cast(
+                list[PdfConversationEntry], conversation_history_raw
+            ),
+            user_id="test_user",
+            session_metadata=PdfSessionMetadata(thread_id="test_thread"),
+        )
+
+
 def test_pdf_generation(tmp_path: Path):
     """Test PDF generation with sample data"""
 
@@ -73,7 +128,7 @@ def test_pdf_generation(tmp_path: Path):
     csv_path.write_text("NAME,B01003_001E\nLos Angeles,9848406\n", encoding="utf-8")
 
     conversation_history = [
-        _sample_entry(
+        _sample_entry_model(
             generated_files=[
                 {
                     "kind": "table",
@@ -91,9 +146,7 @@ def test_pdf_generation(tmp_path: Path):
         pdf_bytes = generate_session_pdf(
             conversation_history=conversation_history,
             user_id="test_user",
-            session_metadata={
-                "thread_id": "test_thread",
-            },
+            session_metadata=PdfSessionMetadata(thread_id="test_thread"),
         )
 
         # ASSERTION 1: PDF generation should not raise an exception
@@ -138,9 +191,7 @@ def test_empty_conversation():
         pdf_bytes = generate_session_pdf(
             conversation_history=[],
             user_id="test_user",
-            session_metadata={
-                "thread_id": "test_thread",
-            },
+            session_metadata=PdfSessionMetadata(thread_id="test_thread"),
         )
 
         # ASSERTION: Should still generate a PDF (cover page only)
@@ -157,51 +208,51 @@ def test_missing_files():
     """Test PDF generation with missing chart/table files"""
 
     conversation_history = [
-        {
-            "question": "Test question with missing files",
-            "timestamp": datetime.now(),
-            "result": {
-                "final": {
-                    "answer_text": "This is a test answer.",
-                    "generated_files": [
-                        {
-                            "kind": "chart",
-                            "path": "data/charts/nonexistent_chart.png",
-                            "mime_type": "image/png",
-                            "title": "Missing Chart",
-                        },
-                        {
-                            "kind": "table",
-                            "path": "data/tables/nonexistent_table.csv",
-                            "mime_type": "text/csv",
-                            "title": "Missing Table",
-                        },
-                    ],
-                    "footnotes": [],
-                    "charts_needed": [],
-                    "tables_needed": [],
+        PdfConversationEntry.model_validate(
+            {
+                "question": "Test question with missing files",
+                "timestamp": datetime.now(),
+                "result": {
+                    "final": {
+                        "answer_text": "This is a test answer.",
+                        "generated_files": [
+                            {
+                                "kind": "chart",
+                                "path": "data/charts/nonexistent_chart.png",
+                                "mime_type": "image/png",
+                                "title": "Missing Chart",
+                            },
+                            {
+                                "kind": "table",
+                                "path": "data/tables/nonexistent_table.csv",
+                                "mime_type": "text/csv",
+                                "title": "Missing Table",
+                            },
+                        ],
+                        "footnotes": [],
+                        "charts_needed": [],
+                        "tables_needed": [],
+                    },
+                    "artifacts": {
+                        "census_data": _sample_census_data(),
+                        "variable_labels": {"labels": {}},
+                        "data_summary": "",
+                        "reasoning_trace": "",
+                        "comparison_input_rows": [],
+                        "comparison_metrics": [],
+                    },
+                    "logs": [],
+                    "error": None,
                 },
-                "artifacts": {
-                    "census_data": _sample_census_data(),
-                    "variable_labels": {"labels": {}},
-                    "data_summary": "",
-                    "reasoning_trace": "",
-                    "comparison_input_rows": [],
-                    "comparison_metrics": [],
-                },
-                "logs": [],
-                "error": None,
-            },
-        }
+            }
+        )
     ]
 
     try:
         pdf_bytes = generate_session_pdf(
             conversation_history=conversation_history,
             user_id="test_user",
-            session_metadata={
-                "thread_id": "test_thread",
-            },
+            session_metadata=PdfSessionMetadata(thread_id="test_thread"),
         )
 
         # ASSERTION: Should still generate PDF even with missing files

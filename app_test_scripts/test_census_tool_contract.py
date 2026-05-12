@@ -5,6 +5,7 @@ from src.domain.census_tool_contract import (
     StrictCensusApiRecord,
     StrictCensusApiRequest,
     StrictCensusApiResponse,
+    no_strict_census_payload,
 )
 
 
@@ -136,3 +137,34 @@ def test_failure_response_fills_default_error_message() -> None:
 
     assert response.error == "EMPTY_RESULT"
     assert response.error_message == "The result is empty"
+
+
+def test_no_strict_census_payload_factory() -> None:
+    r = no_strict_census_payload()
+    assert r.success is False
+    assert r.error == "NO_STRICT_CENSUS_PAYLOAD"
+    assert r.request is None
+    assert r.headers == []
+    assert r.records == []
+    assert r.row_count == 0
+    assert r.error_message is not None
+
+
+def test_no_strict_census_payload_custom_message() -> None:
+    r = no_strict_census_payload("Specific reason")
+    assert r.error_message == "Specific reason"
+
+
+def test_no_strict_census_payload_rejects_non_null_request() -> None:
+    with pytest.raises(
+        ValueError, match="request must be None when error is NO_STRICT_CENSUS_PAYLOAD"
+    ):
+        StrictCensusApiResponse(
+            success=False,
+            request=_valid_request(),
+            headers=[],
+            records=[],
+            row_count=0,
+            error="NO_STRICT_CENSUS_PAYLOAD",
+            error_message=None,
+        )

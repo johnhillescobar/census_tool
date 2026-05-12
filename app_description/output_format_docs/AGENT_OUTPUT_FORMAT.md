@@ -133,7 +133,7 @@ The emitted payload is validated against:
 class AgentSolveResult(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    census_data: StrictCensusApiResponse | None = Field(...)
+    census_data: StrictCensusApiResponse = Field(...)
     variable_labels: VariableLabels = Field(default_factory=VariableLabels)
     data_summary: str = Field(...)
     reasoning_trace: str = Field(...)
@@ -152,13 +152,21 @@ The active validation path lives in:
 If validation fails:
 1. The parser rejects the emitted payload.
 2. The agent falls back to a typed failure `AgentSolveResult`.
-3. The fallback uses `census_data=None` and an explanatory `answer_text`.
+3. The fallback **never** uses JSON `null` for `census_data`; absence of a Census table is expressed as `success: false` with `error: "NO_STRICT_CENSUS_PAYLOAD"` per `StrictCensusApiResponse`.
 
-Typical fallback shape:
+Typical parse-fallback shape:
 
 ```json
 {
-  "census_data": null,
+  "census_data": {
+    "success": false,
+    "request": null,
+    "headers": [],
+    "records": [],
+    "row_count": 0,
+    "error": "NO_STRICT_CENSUS_PAYLOAD",
+    "error_message": null
+  },
   "data_summary": "Parsing failed - see logs",
   "reasoning_trace": "Steps: N",
   "answer_text": "Agent execution completed but output parsing failed",
