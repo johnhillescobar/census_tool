@@ -7,7 +7,8 @@ pytest.importorskip("langchain_core.tools")
 
 import pandas as pd
 
-from src.tools.table_tool import TableTool
+from src.domain.census_tool_contract import StrictCensusApiRawTable
+from src.tools.table_tool import TableTool, TableToolInput
 from src.services.dataframe_utils import _create_dataframe_from_json
 
 
@@ -99,6 +100,29 @@ def test_run_saves_parquet_round_trip(tmp_path, monkeypatch, sample_census_paylo
     saved = pd.read_parquet(expected_path)
     assert saved["C27012_022E"].iloc[0] == 132980
     assert "Table created successfully" in result
+
+
+def test_render_rejects_plain_dict_even_if_well_formed(monkeypatch, tmp_path, sample_census_payload):
+    tool = TableTool()
+    monkeypatch.chdir(tmp_path)
+    tbl = StrictCensusApiRawTable(
+        headers=sample_census_payload["data"][0],
+        rows=[sample_census_payload["data"][i] for i in range(1, len(sample_census_payload["data"]))],
+    )
+    bad = {"format": "csv", "filename": "x", "title": "t", "data": tbl}
+    with pytest.raises(TypeError, match="TableTool.render"):
+        tool.render(bad)
+
+
+def test_render_accepts_strict_table_tool_input(monkeypatch, tmp_path, sample_census_payload):
+    tool = TableTool()
+    monkeypatch.chdir(tmp_path)
+    tbl = StrictCensusApiRawTable(
+        headers=sample_census_payload["data"][0],
+        rows=[sample_census_payload["data"][i] for i in range(1, len(sample_census_payload["data"]))],
+    )
+    out = tool.render(TableToolInput(format="csv", filename="typed_in", title="T", data=tbl))
+    assert out.path.endswith(".csv")
 
 
 def test_preserves_identifier_columns():

@@ -20,6 +20,7 @@ from src.state.types import (
     _merge_artifacts,
 )
 from src.tools.geography_validation_tool import GeographyValidationTool
+from src.tools.strict_census_api_tool import StrictCensusApiTool
 from src.tools.variable_validation_tool import VariableValidationTool
 from src.workflows.agent import agent_reasoning_node
 from src.workflows.benchmark import benchmark_node
@@ -124,11 +125,12 @@ def test_comparison_node_preserves_typed_plan_objects():
     )
 
     result = comparison_node(state, {})
+    merged_plan = WorkflowPlanState.model_validate(result["plan"])
 
-    assert isinstance(result["plan"], WorkflowPlanState)
-    assert isinstance(result["plan"].comparison, ComparisonPlan)
-    assert result["plan"].comparison is not None
-    assert result["plan"].comparison.query_years == [2023]
+    assert isinstance(merged_plan, WorkflowPlanState)
+    assert isinstance(merged_plan.comparison, ComparisonPlan)
+    assert merged_plan.comparison is not None
+    assert merged_plan.comparison.query_years == [2023]
 
 
 def test_workflow_canonical_rolling_peer_comparison_is_deterministic():
@@ -136,7 +138,7 @@ def test_workflow_canonical_rolling_peer_comparison_is_deterministic():
     initial_state = _mini_census_state(messages=[{"content": user_message}])
 
     temporal_result = temporal_node(initial_state, {})
-    temporal_plan = temporal_result["plan"]
+    temporal_plan = WorkflowPlanState.model_validate(temporal_result["plan"])
 
     benchmark_result = benchmark_node(
         _mini_census_state(
@@ -145,7 +147,7 @@ def test_workflow_canonical_rolling_peer_comparison_is_deterministic():
         ),
         {},
     )
-    benchmark_plan = benchmark_result["plan"]
+    benchmark_plan = WorkflowPlanState.model_validate(benchmark_result["plan"])
 
     first_comparison = comparison_node(
         _mini_census_state(
@@ -162,8 +164,8 @@ def test_workflow_canonical_rolling_peer_comparison_is_deterministic():
         {},
     )
 
-    first_plan = first_comparison["plan"]
-    second_plan = second_comparison["plan"]
+    first_plan = WorkflowPlanState.model_validate(first_comparison["plan"])
+    second_plan = WorkflowPlanState.model_validate(second_comparison["plan"])
 
     assert isinstance(first_plan, WorkflowPlanState)
     assert isinstance(first_plan.temporal, TemporalResolved)
@@ -188,7 +190,7 @@ def test_comparison_metrics_node_reads_typed_state():
         ),
         {},
     )
-    plan = comparison_result["plan"]
+    plan = WorkflowPlanState.model_validate(comparison_result["plan"])
 
     state = _mini_census_state(
         messages=[{"content": "Compare county populations"}],
@@ -207,10 +209,11 @@ def test_comparison_metrics_node_reads_typed_state():
     )
 
     result = comparison_metrics_node(state, {})
+    patched_artifacts = WorkflowArtifactsState.model_validate(result["artifacts"])
 
-    assert isinstance(result["artifacts"], WorkflowArtifactsState)
-    assert result["artifacts"].comparison_metrics[0].derived_metric == "difference"
-    assert result["artifacts"].comparison_metrics[0].value == 2.0
+    assert isinstance(patched_artifacts, WorkflowArtifactsState)
+    assert patched_artifacts.comparison_metrics[0].derived_metric == "difference"
+    assert patched_artifacts.comparison_metrics[0].value == 2.0
 
 
 def test_route_after_benchmark_handles_typed_not_applicable_plan():
@@ -263,12 +266,14 @@ def test_agent_reasoning_node_returns_typed_final_and_artifacts(monkeypatch):
         _mini_census_state(messages=[{"content": "Population in California"}]),
         {},
     )
+    patched_artifacts = WorkflowArtifactsState.model_validate(result["artifacts"])
+    patched_final = FinalResponseState.model_validate(result["final"])
 
-    assert isinstance(result["artifacts"], WorkflowArtifactsState)
-    assert isinstance(result["final"], FinalResponseState)
-    assert result["final"].charts_needed[0].type == "bar"
-    assert result["final"].charts_needed[0].title == "Population by Location"
-    assert result["final"].tables_needed[0].filename == "population"
+    assert isinstance(patched_artifacts, WorkflowArtifactsState)
+    assert isinstance(patched_final, FinalResponseState)
+    assert patched_final.charts_needed[0].type == "bar"
+    assert patched_final.charts_needed[0].title == "Population by Location"
+    assert patched_final.tables_needed[0].filename == "population"
 
 
 def test_agent_output_rejects_extra_top_level_key():
@@ -412,3 +417,107 @@ def test_planning_tools_expose_strict_args_schema(monkeypatch):
     assert geography_response.request is not None
     assert variable_response.success is True
     assert variable_response.request is not None
+
+
+def test_planning_tools_accept_public_langchain_invoke_payloads(monkeypatch):
+    geography_tool = GeographyValidationTool()
+    variable_tool = VariableValidationTool()
+    strict_api_tool = StrictCensusApiTool()
+
+    monkeypatch.setattr(
+        "src.tools.geography_validation_tool.validate_and_fix_geo_params",
+        lambda dataset, year, geo_for, geo_in, **kwargs: (
+            "us",
+            "1",
+            [],
+        ),
+    )
+    monkeypatch.setattr(
+        "src.tools.geography_validation_tool.validate_geography_hierarchy",
+        lambda dataset, year, for_token, provided_parents: (True, [], ""),
+    )
+    monkeypatch.setattr(
+        "src.tools.variable_validation_tool.validate_variables",
+        lambda dataset, year, variables: {
+            "valid": variables,
+            "invalid": [],
+            "years_available": {var: [str(year)] for var in variables},
+            "details": {
+                var: {
+                    "concept": "Median income",
+                    "label": "Median income",
+                    "universe": "Households",
+                    "dataset": dataset,
+                }
+                for var in variables
+            },
+            "alternatives": {},
+            "source": {var: "test" for var in variables},
+            "warnings": [],
+        },
+    )
+    monkeypatch.setattr(
+        "src.tools.strict_census_api_tool.build_geo_filters",
+        lambda dataset, year, geo_for, geo_in, geo_in_chained: {"for": "us:1"},
+    )
+    monkeypatch.setattr(
+        "src.tools.strict_census_api_tool.fetch_census_data",
+        lambda dataset, year, variables, geo: {
+            "success": True,
+            "data": [
+                ["NAME", "S1903_C03_001E"],
+                ["United States", "75000"],
+            ],
+            "url": "https://api.census.gov/data/test",
+        },
+    )
+
+    geography_response = geography_tool.invoke(
+        {
+            "dataset": "acs/acs5/subject",
+            "year": 2015,
+            "geo_for": {"us": "1"},
+        }
+    )
+    variable_response = variable_tool.invoke(
+        {
+            "action": "validate_variables",
+            "dataset": "acs/acs5/subject",
+            "year": 2015,
+            "variables": ["NAME", "S1903_C03_001E"],
+        }
+    )
+    strict_api_response = strict_api_tool.invoke(
+        {
+            "year": 2015,
+            "dataset": "acs/acs5/subject",
+            "variables": ["NAME", "S1903_C03_001E"],
+            "geo_for": {"us": "1"},
+        }
+    )
+
+    assert geography_response.success is True
+    assert geography_response.request is not None
+    assert geography_response.request.dataset == "acs/acs5/subject"
+    assert variable_response.success is True
+    assert variable_response.request is not None
+    assert variable_response.request.variables == ["NAME", "S1903_C03_001E"]
+    assert strict_api_response.success is True
+    assert strict_api_response.request is not None
+    assert strict_api_response.request.dataset == "acs/acs5/subject"
+
+
+def test_geography_validation_rejects_prior_observation_as_next_request():
+    tool = GeographyValidationTool()
+    prior_observation = (
+        '{"is_valid":true,"repaired_for":{"us":"1"},"repaired_in":null,'
+        '"warnings":[],"errors":[]}'
+    )
+
+    response = tool.invoke(prior_observation)
+
+    assert response.success is False
+    assert response.request is None
+    assert response.error == "INVALID_INPUT_SCHEMA"
+    assert "Field required" in response.error_message
+    assert "input_value='{" not in response.error_message

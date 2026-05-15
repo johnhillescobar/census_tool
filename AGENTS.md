@@ -36,6 +36,21 @@ domain → clients → services → agents → workflows → api
 - `src/tools/` — LangChain tools registered on the agent
 - `src/llm/` — LLM config + factory
 
+## Top-level layout (outside `src/`)
+
+Canonical code and docs at repo root and alongside `src/`:
+
+- `app_test_scripts/` — pytest (`test_*.py`)
+- `app_description/` — architecture deep-dive (`ARCHITECTURE.md`, geography summaries, migration notes)
+- `docs/` — contributor-focused notes (contracts primer, track framework, common errors)
+- `index/` — Chroma / catalog index builders (`build_index.py`, etc.)
+- `migration_evidence/` — track baselines and drift snapshots
+- `.cursor/plans/` — versioned migration plans
+- `articles/`, `test_questions/` — notes and sample question sets
+- `data/`, `chroma/`, `memory/`, `logs/` — runtime artifacts (often gitignored or machine-local)
+
+Entrypoints: `app.py` (graph), `main.py` (CLI), `launcher.py` (menu), `streamlit_app.py` (browser). **Full tree**: see the **Project Structure** section in [README.md](README.md).
+
 ## Non-negotiable contract rules
 
 From
@@ -125,19 +140,19 @@ SLIM tells the agent *what* to do per turn, working modes tell the agent
 
 ## Active migration track
 
-Track 2 — Deterministic Planning Layer, now split into four reviewable gates:
+**Track 2 — Deterministic Planning Layer** (`2A`–`2D`) plus **Track 2E (raw JSON /
+`CensusState` channel closure)** is **closed**.
 
-- **Track 2A — Deterministic Planning Complete**: closed 2026-05-04. Evidence:
-  [migration_evidence/track2_progress_20260504/track2a_closeout.md](migration_evidence/track2_progress_20260504/track2a_closeout.md).
-- **Track 2B — Typed Workflow State**: finish strict state ownership for loose
-  graph channels and remove intra-graph dict downgrades except explicit
-  serialization boundaries.
-- **Track 2C — Output, UI, And Persistence Hardening**: finish render failure
-  DTOs, display/PDF/Streamlit adapters, chart/table compatibility cleanup, and
-  versioned memory persistence.
-- **Track 2D — Tooling And Governance**: record the `mypy` freeze-policy
-  decision, set static gate scope, reconcile dependency status, and keep
-  migration evidence current.
+- **Track 2E (final strict-state JSON gate):** [migration_evidence/track2_progress_20260511/track2e_raw_dict_closeout.md](migration_evidence/track2_progress_20260511/track2e_raw_dict_closeout.md)
+  — drift ratchet: [`scripts/track2_raw_dict_audit.py`](scripts/track2_raw_dict_audit.py) /
+  [`scripts/track2_raw_dict_baseline.txt`](scripts/track2_raw_dict_baseline.txt)
+- **Track 2A**: [migration_evidence/track2_progress_20260504/track2a_closeout.md](migration_evidence/track2_progress_20260504/track2a_closeout.md)
+- **Track 2B**: [migration_evidence/track2_progress_20260511/track2b_closeout.md](migration_evidence/track2_progress_20260511/track2b_closeout.md)
+- **Track 2C**: [migration_evidence/track2_progress_20260511/track2c_closeout.md](migration_evidence/track2_progress_20260511/track2c_closeout.md)
+- **Track 2D** (tooling/governance gate): [migration_evidence/track2_progress_20260511/track2d_closeout.md](migration_evidence/track2_progress_20260511/track2d_closeout.md)
+
+**Next:** **Track 3 — Provenance Enforcement** per
+[.cursor/plans/v2-track3-provenance-enforcement.plan.md](.cursor/plans/v2-track3-provenance-enforcement.plan.md).
 
 - Plan:
   [.cursor/plans/v2-track2-deterministic-planning.plan.md](.cursor/plans/v2-track2-deterministic-planning.plan.md)
@@ -147,7 +162,8 @@ Track 2 — Deterministic Planning Layer, now split into four reviewable gates:
 - Skill:
   [.cursor/skills/census-v2-tech-lead/SKILL.md](.cursor/skills/census-v2-tech-lead/SKILL.md)
 - Latest evidence refresh:
-  [migration_evidence/track2_progress_20260504/](migration_evidence/track2_progress_20260504/)
+  [migration_evidence/track2_progress_20260511/](migration_evidence/track2_progress_20260511/)
+  (includes `track2e_raw_dict_closeout.md`).
 
 ## Drift policy
 
@@ -157,5 +173,6 @@ Track 2 — Deterministic Planning Layer, now split into four reviewable gates:
   the catalog (see
   [.cursor/skills/drift-audit/SKILL.md](.cursor/skills/drift-audit/SKILL.md)
   step 5).
-- Last evidence refresh: 2026-05-04 →
-  [migration_evidence/track2_progress_20260504/](migration_evidence/track2_progress_20260504/)
+- Last evidence refresh: 2026-05-12 →
+  [migration_evidence/track2_progress_20260511/](migration_evidence/track2_progress_20260511/)
+  (includes `track2d_closeout.md`).

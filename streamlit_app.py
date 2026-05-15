@@ -14,6 +14,7 @@ from typing import Any
 from datetime import datetime
 
 from src.domain.benchmark_contract import BenchmarkClarificationRequired
+from src.domain.strict_json import ConversationMessage
 from src.domain.temporal_contract import TemporalClarificationRequired
 from src.state.types import (
     FinalResponseState,
@@ -22,7 +23,9 @@ from src.state.types import (
 )
 from src.clients import SessionLogger
 from src.domain.presentation_contract import PresentationKind
+from src.api.displays import census_state_from_graph_invoke
 from src.clients.pdf_generator import PdfSessionMetadata, generate_session_pdf
+from src.domain.rendered_output_contract import RenderedArtifactFailure, RenderedArtifactSuccess
 from src.services.census_render_adapter import (
     response_to_dataframe,
     response_to_tabular_payload,
@@ -39,6 +42,17 @@ from src.state.types import CensusState
 from langchain_core.runnables import RunnableConfig
 
 project_root = Path(__file__).parent
+
+
+def _session_current_result_as_state(raw: CensusState | Any) -> CensusState:
+    """Coerce persisted session payloads (legacy dict invoke output) to ``CensusState``."""
+    if isinstance(raw, CensusState):
+        return raw
+    if isinstance(raw, dict):
+        return census_state_from_graph_invoke(raw)
+    return CensusState.model_validate(raw)
+
+
 streamlit_logs_dir = project_root / "logs" / "streamlit_logs"
 streamlit_logs_dir.mkdir(parents=True, exist_ok=True)
 
@@ -58,15 +72,23 @@ st.set_page_config(
 def _first_table_download_info(
     final: FinalResponseState | None,
 ) -> tuple[str, str] | None:
-    """Saved table path and MIME from rendered artifacts (`RenderedArtifact`)."""
+    """Saved table path and MIME from successful rendered artifacts only."""
     if final is None or not final.generated_files:
         return None
     for art in final.generated_files:
-        if art.kind == "table" and art.path:
+        if (
+            isinstance(art, RenderedArtifactSuccess)
+            and art.kind == "table"
+            and art.path
+        ):
             mime = art.mime_type or "application/octet-stream"
             return art.path, mime
     for art in final.generated_files:
-        if art.mime_type == "text/csv" and art.path:
+        if (
+            isinstance(art, RenderedArtifactSuccess)
+            and art.mime_type == "text/csv"
+            and art.path
+        ):
             return art.path, art.mime_type
     return None
 
@@ -142,26 +164,15 @@ def initialize_session_state():
             logger.error(f"Error starting session logger: {e}")
 
 
-def display_streamlit_results(payload: CensusState | dict[str, Any] | None) -> None:
-    """Render workflow state from a ``CensusState`` or raw LangGraph invoke dict."""
+def display_streamlit_results(state: CensusState | None) -> None:
+    """Render workflow state from typed ``CensusState``."""
 
-    if payload is None:
+    if state is None:
         st.error("No results to display")
         return
 
-    if isinstance(payload, dict) and payload.get("error"):
-        st.error(str(payload["error"]))
-        return
-
-    try:
-        state = (
-            payload
-            if isinstance(payload, CensusState)
-            else CensusState.model_validate(payload)
-        )
-    except Exception as e:
-        logger.warning("Invalid workflow state for display: %s", e)
-        st.error("Could not read workflow results.")
+    if state.error:
+        st.error(state.error)
         return
 
     routing = compute_presentation_routing(state)
@@ -182,6 +193,11 @@ def display_streamlit_results(payload: CensusState | dict[str, Any] | None) -> N
 
     st.subheader("Answer")
     st.markdown(final.answer_text)
+
+    for art in final.generated_files or []:
+        if isinstance(art, RenderedArtifactFailure):
+            title = art.title or art.kind
+            st.warning(f"⚠️ Could not render {art.kind} ({title}): [{art.error_code}] {art.message}")
 
     footnotes = final.footnotes if final.footnotes else []
     if footnotes:
@@ -397,8 +413,8 @@ def display_clarification_streamlit(
             st.write(f"{i}. {item}")
 
 
-def process_question(user_input: str) -> CensusState | dict[str, Any]:
-    """Process a user question through the LangGraph workflow"""
+def process_question(user_input: str) -> CensusState:
+    """Process a user question through the LangGraph workflow."""
 
     try:
         logger.info(f"Processing question: {user_input}")
@@ -407,7 +423,7 @@ def process_question(user_input: str) -> CensusState | dict[str, Any]:
 
         # Create initial state
         initial_state = CensusState(
-            messages=[{"role": "user", "content": user_input}],
+            messages=[ConversationMessage(role="user", content=user_input)],
             original_query=user_input,
             intent=None,
             geo={},
@@ -448,7 +464,22 @@ def process_question(user_input: str) -> CensusState | dict[str, Any]:
 
     except Exception as e:
         logger.error(f"Error processing question: {str(e)}")
-        return {"error": f"Error processing question: {str(e)}"}
+        return CensusState(
+            messages=[ConversationMessage(role="user", content=user_input)],
+            original_query=user_input,
+            intent=None,
+            geo={},
+            candidates={},
+            plan=None,
+            artifacts=WorkflowArtifactsState(),
+            final=None,
+            logs=[],
+            error=f"Error processing question: {str(e)}",
+            summary=None,
+            profile={},
+            history=[],
+            cache_index={},
+        )
 
 
 def main():
@@ -585,7 +616,9 @@ def main():
 
     # Display current result if available
     elif st.session_state.current_result:
-        display_streamlit_results(st.session_state.current_result)
+        display_streamlit_results(
+            _session_current_result_as_state(st.session_state.current_result)
+        )
 
     # Footer
     st.markdown("---")

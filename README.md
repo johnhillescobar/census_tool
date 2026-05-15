@@ -556,35 +556,36 @@ LANGCHAIN_PROJECT=census-tool
 
 ## 📁 Project Structure
 
-Layout of the repository (omitting editor-only folders, virtualenvs, pytest/ruff caches, and `__pycache__`):
+Layout of the repository (omitting editor-only folders, virtualenvs, pytest/ruff/mypy caches, and `__pycache__`):
 
 ```
 census_tool/
 ├── .cursor/                      # Cursor rules, skills, plans
-├── .github/workflows/            # CI
-├── app_description/              # Deep-dive specs and references
+├── .github/workflows/            # CI (e.g. ci.yml)
+├── .release_notes/               # Version notes (optional archive)
+├── app_description/             # Deep-dive specs and references
 │   ├── ARCHITECTURE.md
 │   ├── CENSUS_DISCUSSION.md
 │   ├── geography_summaries/
 │   ├── langchain_migration/
 │   └── output_format_docs/
-├── app_test_scripts/             # pytest: test_*.py (integration, contracts, tools)
-├── articles/                     # Long-form notes / drafts
-├── chroma/                       # ChromaDB on-disk store (runtime / local)
-├── data/                         # API downloads, charts, caches (runtime)
+├── app_test_scripts/            # pytest: test_*.py (integration, contracts, tools)
+├── articles/                      # Long-form notes / drafts
+├── chroma/                      # ChromaDB on-disk store (runtime / local)
+├── data/                        # API downloads, charts, caches (runtime)
 │   ├── charts/
 │   ├── geography_cache/
 │   ├── geography_levels_cache/
 │   └── tables/
-├── docs/                         # Typed contracts, migration tracks, examples
-├── index/                        # Index builders and query helpers
-│   ├── build_index.py            # Variable/table Chroma index (one-time setup)
+├── docs/                        # Phase-1 notes, typed-contracts primer, track-2 framework, review notebook
+├── index/                       # Index builders and query helpers
+│   ├── build_index.py           # Variable/table Chroma index (one-time setup)
 │   ├── build_index_table.py
 │   ├── build_geography_index.py
 │   └── read_query.py
-├── logs/                         # cli, streamlit, chroma, test logs (runtime)
-├── memory/                       # Profiles / session-related files (runtime)
-├── migration_evidence/           # Baseline manifests and migration snapshots
+├── logs/                        # cli, streamlit, telemetry (runtime)
+├── memory/                      # Profiles / session-related files (runtime)
+├── migration_evidence/          # Baseline manifests and migration snapshots
 ├── src/
 │   ├── agents/
 │   │   └── census_query_agent.py
@@ -595,40 +596,49 @@ census_tool/
 │   │   ├── pdf_generator.py, session_logger.py, telemetry.py
 │   ├── domain/
 │   │   ├── geography_registry.py, geo_utils.py, census_groups.py
-│   │   ├── text_utils.py, time_utils.py
-│   │   ├── census_tool_contract.py, census_client_contract.py
+│   │   ├── text_utils.py, time_utils.py, clarification_templates.py
+│   │   ├── census_tool_contract.py, census_client_contract.py, agent_output_contract.py
 │   │   ├── temporal_contract.py, benchmark_contract.py, comparison_plan.py
-│   │   └── clarification_templates.py
+│   │   ├── planning_tool_contracts.py, comparison_metric_contract.py
+│   │   ├── final_output_contract.py, rendered_output_contract.py, presentation_contract.py
+│   │   └── variable_metada_contract.py
 │   ├── llm/
 │   │   ├── config.py, factory.py, factory_legacy.py
 │   │   ├── category_detector.py, geography_resolver.py, intent_enhancer.py
-│   ├── locations/                # Reference CSVs (see locations/README.md)
+│   ├── locations/               # Reference CSVs (states, counties)
 │   │   ├── states_abbrev.csv, counties_processed.csv
 │   ├── services/
 │   │   ├── dataset_geography_validator.py, variable_validator.py
 │   │   ├── enumeration_detector.py, memory_utils.py, temporal_policy.py
 │   │   ├── benchmark_policy.py, comparison_plan_policy.py, comparison_metric_compute.py
-│   │   ├── dataframe_utils.py, conversation_summarizer.py, footnote_generator.py
+│   │   ├── dataframe_utils.py, census_render_adapter.py
+│   │   ├── conversation_summarizer.py, conversation_history.py
+│   │   ├── presentation_routing.py, footnote_generator.py
 │   ├── state/
 │   │   └── types.py
-│   ├── tools/                    # LangChain tools (registry in census_query_agent)
+│   ├── tools/                   # LangChain tools (registry in census_query_agent)
 │   │   ├── geography_discovery_tool.py, geography_validation_tool.py
 │   │   ├── geography_hierarchy_tool.py, geography_schemas.py
 │   │   ├── area_resolution_tool.py, pattern_builder_tool.py
 │   │   ├── table_search_tool.py, table_validation_tool.py, variable_validation_tool.py
 │   │   ├── strict_census_api_tool.py, census_api_tool.py, json_parse.py
 │   │   ├── chart_tool.py, table_tool.py
-│   ├── workflows/              # LangGraph nodes (wired in app.py)
+│   ├── workflows/               # LangGraph nodes (wired in app.py)
 │   │   ├── memory.py, agent.py, output.py
 │   │   ├── temporal.py, benchmark.py, comparison.py, comparison_metrics.py
 │   └── __init__.py
-├── test_questions/               # Example or regression question sets
-├── app.py                        # StateGraph definition, checkpointing
+├── test_questions/              # Example or regression question sets
+├── AGENTS.md                    # Layer order, Cursor/bootstrap-SLIM layout leg
+├── SPEC.md                      # Bootstrap-SLIM spec index
+├── app.py                       # StateGraph definition, checkpointing
 ├── config.py
+├── Dockerfile
+├── .dockerignore
 ├── launcher.py
 ├── main.py
 ├── streamlit_app.py
 ├── pyproject.toml
+├── uv.lock
 ├── README.md
 ├── ARCHITECTURE_GUIDE.md
 └── USAGE_GUIDE.md

@@ -4,9 +4,10 @@ import logging
 from dotenv import load_dotenv
 
 from app import create_census_graph
-from src.state.types import CensusState
+from src.domain.strict_json import ConversationMessage
+from src.state.types import CensusState, WorkflowArtifactsState
 from langchain_core.runnables import RunnableConfig
-from src.api.displays import display_results
+from src.api.displays import census_state_from_graph_invoke, display_results
 from src.clients import SessionLogger
 
 project_root = Path(__file__).parent
@@ -94,13 +95,15 @@ def main():
 
                     # Create initial state
                     initial_state = CensusState(
-                        messages=[{"role": "user", "content": user_input}],
+                        messages=[
+                            ConversationMessage(role="user", content=user_input)
+                        ],
                         original_query=None,  # Will be set by intent_node
                         intent=None,
                         geo={},
                         candidates={},
                         plan=None,
-                        artifacts={},
+                        artifacts=WorkflowArtifactsState(),
                         final=None,
                         logs=[],
                         error=None,
@@ -119,7 +122,7 @@ def main():
                     result = graph.invoke(initial_state, config)
 
                     # Display results
-                    display_results(result)
+                    display_results(census_state_from_graph_invoke(result))
 
                 except KeyboardInterrupt:
                     print("\n\nGoodbye!")

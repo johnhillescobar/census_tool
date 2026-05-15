@@ -35,6 +35,7 @@ from src.tools.strict_census_api_tool import StrictCensusApiTool
 # Import the strict Census response models
 from src.domain.census_tool_contract import StrictCensusApiResponse, no_strict_census_payload
 from src.domain.agent_output_contract import AgentSolveResult
+from src.domain.strict_json import JsonMap
 
 # Import conversation summarizer
 from src.services.conversation_summarizer import ConversationSummarizer
@@ -258,7 +259,7 @@ class CensusQueryAgent:
     def _build_prompt(self):
         return PromptTemplate.from_template(AGENT_PROMPT_TEMPLATE)
 
-    def solve(self, user_query: str, intent: Dict) -> AgentSolveResult:
+    def solve(self, user_query: str, intent: JsonMap) -> AgentSolveResult:
         """
         Reason through the query and return structured data
         """
@@ -286,10 +287,13 @@ class CensusQueryAgent:
                 "Agent executor is not initialized. Set OPENAI_API_KEY or enable offline mode."
             )
 
+        if not isinstance(intent, JsonMap):
+            intent = JsonMap.model_validate(intent)
+
         result = self.agent_executor.invoke(
             {
                 "input": f"""User query: {user_query}
-                Intent: {intent}"""
+                Intent: {intent.model_dump(mode="python")}"""
             }
         )
 

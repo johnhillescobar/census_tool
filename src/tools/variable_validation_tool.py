@@ -1,4 +1,5 @@
 import logging
+import json
 from typing import Any, Type
 
 from langchain.callbacks.manager import (
@@ -13,6 +14,7 @@ from src.domain.planning_tool_contracts import (
     VariableValidationResponse,
 )
 from src.services.variable_validator import list_variables, validate_variables
+from src.tools.json_parse import parse_first_json
 
 logger = logging.getLogger(__name__)
 
@@ -38,6 +40,18 @@ class VariableValidationTool(BaseTool):
 
     args_schema: Type[BaseModel] = VariableValidationRequest
 
+    def _parse_input(
+        self, tool_input: str | dict[str, Any], tool_call_id: str | None
+    ) -> str | dict[str, Any]:
+        if isinstance(tool_input, str):
+            try:
+                parsed = parse_first_json(tool_input.strip())
+            except json.JSONDecodeError:
+                return tool_input
+            if isinstance(parsed, dict):
+                return parsed
+        return tool_input
+
     def _error_response(
         self,
         request: VariableValidationRequest | None,
@@ -55,21 +69,37 @@ class VariableValidationTool(BaseTool):
         )
 
     def _coerce_request(
-        self, tool_input: VariableValidationRequest | str | dict[str, Any]
+        self,
+        tool_input: VariableValidationRequest | str | dict[str, Any] | None = None,
+        **kwargs: Any,
     ) -> VariableValidationRequest:
+        if kwargs:
+            if tool_input is None:
+                tool_input = kwargs
+            elif isinstance(tool_input, dict):
+                tool_input = {**tool_input, **kwargs}
+            elif isinstance(tool_input, VariableValidationRequest):
+                tool_input = tool_input.model_copy(update=kwargs)
+
         if isinstance(tool_input, VariableValidationRequest):
             return tool_input
         if isinstance(tool_input, str):
-            return VariableValidationRequest.model_validate_json(tool_input)
+            stripped = tool_input.strip()
+            try:
+                parsed = parse_first_json(stripped)
+            except json.JSONDecodeError:
+                return VariableValidationRequest.model_validate_json(stripped)
+            return VariableValidationRequest.model_validate(parsed)
         return VariableValidationRequest.model_validate(tool_input)
 
     def _run(
         self,
-        tool_input: VariableValidationRequest | str | dict[str, Any],
+        tool_input: VariableValidationRequest | str | dict[str, Any] | None = None,
         run_manager: CallbackManagerForToolRun | None = None,
+        **kwargs: Any,
     ) -> VariableValidationResponse:
         try:
-            payload = self._coerce_request(tool_input)
+            payload = self._coerce_request(tool_input, **kwargs)
         except ValidationError as exc:
             return self._error_response(
                 request=None,
@@ -130,10 +160,11 @@ class VariableValidationTool(BaseTool):
 
     async def _arun(
         self,
-        tool_input: VariableValidationRequest | str | dict[str, Any],
+        tool_input: VariableValidationRequest | str | dict[str, Any] | None = None,
         run_manager: AsyncCallbackManagerForToolRun | None = None,
+        **kwargs: Any,
     ) -> VariableValidationResponse:
-        return self._run(tool_input)
+        return self._run(tool_input, **kwargs)
 
 
 __all__ = ["VariableValidationTool"]

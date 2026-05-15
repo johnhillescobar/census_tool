@@ -276,7 +276,7 @@ src/
 ├── workflows/      # LangGraph nodes: memory, temporal, benchmark, comparison, agent, comparison_metrics, output
 ├── domain/         # Geography registry, Pydantic contracts, time/text/geo helpers
 ├── clients/        # Census API, Chroma, files, PDF, telemetry, session logging
-├── services/       # Validators, policies, memory, footnotes, dataframes, summarizer
+├── services/       # Validators, policies, memory, footnotes, tabular adapter (census_render_adapter), comparison math (comparison_metric_compute), presentation_routing, conversation_history, summarizer
 ├── agents/         # CensusQueryAgent
 ├── tools/          # BaseTool implementations (registered in census_query_agent)
 ├── api/            # Presentation helpers (e.g. displays)

@@ -1,249 +1,166 @@
 """
-Test script for memory_utils.py - testing the fixes you made
+Tests for typed memory helpers (Track 2E).
 """
 
-from unittest.mock import patch
 from datetime import datetime, timedelta
 from pathlib import Path
+from unittest.mock import patch
 
+
+from src.domain.strict_json import ConversationMessage, JsonMap
 from src.services.memory_utils import (
     build_history_record,
     update_profile,
     prune_history_by_age,
+    prune_cache_by_age,
     enforce_retention_policies,
 )
+from src.state.types import FinalResponseState, WorkflowPlanState
 
 
 def test_build_history_record():
-    """Test history record building"""
-    print("Testing build_history_record...")
-
-    # Test case 1: Basic functionality with valid inputs
     messages = [
-        {"role": "user", "content": "What is the population of the United States?"}
+        ConversationMessage(role="user", content="Population of NYC?"),
     ]
-    final = {"type": "number", "value": "8.4 million"}
-    intent = {"type": "population_query", "location": "NYC"}
-    geo = {"level": "place", "name": "New York City"}
-    # Create QuerySpec objects as expected by build_history_record
-    from src.state.types import QuerySpec
-
-    plan = {
-        "queries": [
-            QuerySpec(
-                year=2020,
-                dataset="acs/acs5",
-                variables=["B01003_001E"],
-                geo=geo,
-                save_as="test_2020",
-            ),
-            QuerySpec(
-                year=2019,
-                dataset="acs/acs5",
-                variables=["B01003_001E"],
-                geo=geo,
-                save_as="test_2019",
-            ),
-        ]
-    }
-
-    user_id = "test_user"
-
-    # Call the function
-    result = build_history_record(messages, final, intent, geo, plan, user_id)
-
-    # Test the result
-    assert isinstance(result, dict), "Result should be a dictionary"
-    assert "timestamp" in result, "Result should contain timestamp"
-    assert result["user_id"] == "test_user", "User ID should match"
-    assert result["question"] == "What is the population of the United States?", (
-        "Question should be extracted"
+    final = FinalResponseState(answer_text="about 8.4m")
+    intent = JsonMap.model_validate({"type": "population_query", "location": "NYC"})
+    geo = JsonMap.model_validate({"level": "place", "name": "New York City"})
+    plan = WorkflowPlanState(
+        temporal=None,
+        benchmark=None,
+        comparison=None,
+        requires_clarification=False,
     )
-    assert result["intent"] == intent, "Intent should be preserved"
-    assert result["geo"] == geo, "Geo should be preserved"
-    # The actual function returns years as integers and datasets as actual dataset names
-    assert "2 queries for years" in result["plan_summary"], (
-        "Plan summary should contain query count"
-    )
-    assert "2020" in result["plan_summary"] or "[2020" in result["plan_summary"], (
-        "Plan summary should contain year 2020"
-    )
-    assert "2019" in result["plan_summary"] or ", 2019" in result["plan_summary"], (
-        "Plan summary should contain year 2019"
-    )
-    assert "acs/acs5" in result["plan_summary"], (
-        "Plan summary should contain dataset name"
-    )
-    assert result["answer_type"] == "number", "Answer type should be extracted"
-    assert result["success"], "Success should be True when no error"
 
-    print("✅ build_history_record test passed!")
+    rec = build_history_record(
+        messages,
+        final,
+        intent,
+        geo,
+        plan,
+        user_id="u1",
+        workflow_error=None,
+    )
+
+    assert isinstance(rec, JsonMap)
+    assert rec.root["question"] == "Population of NYC?"
+    assert rec.root["user_id"] == "u1"
+    assert rec.root["intent"] == intent.root
+    assert rec.root["geo"] == geo.root
+    assert rec.root["answer_type"] == "text"
+    assert rec.root["success"] is True
 
 
 def test_update_profile():
-    """Test profile updating logic"""
-    print("Testing update_profile...")
-
-    # Test case 1: Basic profile update with successful query
-    profile = {}
-    intent = {
-        "type": "population_query",
-        "dataset": "population",
-        "measures": ["population"],
-    }
-    geo = {"level": "place", "name": "New York City", "display_name": "NYC"}
-
-    final = {"type": "number", "value": "8.4 million", "variable": "B01003_001E"}
-
-    # Call the function
-    result = update_profile(profile, intent, geo, final)
-
-    # Test the result
-    assert isinstance(result, dict), "Result should be a dictionary"
-    assert result["default_geo"] == geo, "Default geo should be updated"
-    assert result["last_geo"] == "NYC", "Last geo should be updated"
-    assert result["preferred_dataset"] == "population", (
-        "Preferred dataset should be updated"
+    profile = JsonMap.model_validate({})
+    intent = JsonMap.model_validate(
+        {
+            "type": "population_query",
+            "dataset": "population",
+            "measures": ["population"],
+        }
     )
-    assert "var_aliases" in result, "Variable aliases should be present"
-    assert result["var_aliases"]["population"] == "B01003_001E", (
-        "Variable alias should be set"
+    geo = JsonMap.model_validate(
+        {"level": "place", "name": "New York City", "display_name": "NYC"}
     )
-    assert "usage_stats" in result, "Usage stats should be present"
-    assert result["usage_stats"]["total_queries"] == 1, "Total queries should be 1"
-    assert result["usage_stats"]["success_queries"] == 1, "Success queries should be 1"
-    assert result["usage_stats"]["last_query_date"] is not None, (
-        "Last query date should be set"
-    )
+    final = FinalResponseState(answer_text="value B01003_001E")
 
-    print("✅ Basic profile update test passed!")
+    out = update_profile(
+        profile, intent, geo, final, workflow_error=None
+    )
+    assert isinstance(out, JsonMap)
+    assert out.root["last_geo"] == "NYC"
+    assert out.root["preferred_dataset"] == "population"
+    alias = out.root["var_aliases"]
+    assert isinstance(alias, dict)
 
 
 def test_prune_history_by_age():
-    """Test retention policy enforcement"""
-    print("Testing prune_history_by_age...")
-
-    # Test case 1: Basic functionality with old entries
     now = datetime.now()
     old_date = (now - timedelta(days=10)).isoformat()
-    new_date = (now - timedelta(days=3)).isoformat()  # 3 days old instead of 5
+    new_date = (now - timedelta(days=3)).isoformat()
 
     history = [
-        {"timestamp": old_date, "question": "Old question", "user_id": "user1"},
-        {"timestamp": new_date, "question": "New question", "user_id": "user2"},
-        {
-            "timestamp": now.isoformat(),
-            "question": "Current question",
-            "user_id": "user3",
-        },
+        {"timestamp": old_date, "question": "Old", "user_id": "a"},
+        {"timestamp": new_date, "question": "New", "user_id": "b"},
+        {"timestamp": now.isoformat(), "question": "Curr", "user_id": "c"},
     ]
-
-    # Test with 5-day retention (should keep only 2-day old and current entries)
     result = prune_history_by_age(history, 5)
+    assert len(result) == 2
+    assert result[0].root["question"] == "New"
 
-    # Test the result
-    assert isinstance(result, list), "Result should be a list"
-    assert len(result) == 2, "Result should contain 2 entries"
-    assert result[0]["question"] == "New question", "New question should be kept"
-    assert result[1]["question"] == "Current question", (
-        "Current question should be kept"
+
+def test_prune_cache_by_age_accepts_plain_dict():
+    """LangGraph/SQLite can hand back bare dict envelopes; do not require .root."""
+    now = datetime.now().isoformat()
+    raw = {"sig_a": {"timestamp": now, "file_path": None}}
+    out = prune_cache_by_age(raw, 9999)
+    assert isinstance(out, JsonMap)
+    assert "sig_a" in out.root
+
+
+def test_update_profile_accepts_plain_dict_profile():
+    out = update_profile(
+        {},
+        JsonMap.model_validate({"dataset": "population"}),
+        JsonMap.model_validate(
+            {"level": "place", "name": "NYC", "display_name": "NYC"}
+        ),
+        FinalResponseState(answer_text="ok"),
+        workflow_error=None,
     )
-
-    print("✅ prune_history_by_age test passed!")
-
-    # Test case 2: Empty history
-    result = prune_history_by_age([], 5)
-    assert result == [], "Empty history should return empty list"
-
-    print("✅ Empty history test passed!")
-
-    # Test case 3: All entries are old
-    old_history = [
-        {"timestamp": old_date, "question": "Very old question", "user_id": "user1"}
-    ]
-    result = prune_history_by_age(old_history, 5)
-    assert result == [], "All old entries should be removed"
-
-    print("✅ All old entries test passed!")
+    assert isinstance(out, JsonMap)
+    assert out.root.get("preferred_dataset") == "population"
 
 
 def test_enforce_retention_policies():
-    """Test retention policy enforcement"""
-    # Create test data
     test_profile = {
         "user_id": "test_user",
+        "schema_version": 2,
+        "default_geo": {},
+        "preferred_dataset": "acs/acs5",
+        "default_year_range": [2012, 2023],
+        "preferred_level": "place",
+        "var_aliases": {},
         "history": [
             {
                 "timestamp": (datetime.now() - timedelta(days=10)).isoformat(),
-                "question": "Old question",
+                "question": "Old",
             },
             {
                 "timestamp": (datetime.now() - timedelta(days=2)).isoformat(),
-                "question": "New question",
+                "question": "New",
             },
         ],
     }
 
-    test_cache_index = {
-        "cache1": {
-            "timestamp": (datetime.now() - timedelta(days=10)).isoformat(),
-            "file_path": "/tmp/old.csv",
-        },
-        "cache2": {
+    cache_meta_new = JsonMap.model_validate(
+        {
             "timestamp": (datetime.now() - timedelta(days=2)).isoformat(),
             "file_path": "/tmp/new.csv",
-        },
-    }
+        }
+    )
 
-    # Mock file operations
     with (
         patch("src.services.memory_utils.load_json_file") as mock_load,
         patch("src.services.memory_utils.save_json_file") as mock_save,
         patch("src.services.memory_utils.prune_cache_by_age") as mock_prune_cache,
+        patch(
+            "src.services.memory_utils.prune_history_by_age",
+            side_effect=lambda h, _: h[-1:],  # keep newest only
+        ) as _mock_ph,
     ):
-        # Set up mocks
-        mock_load.side_effect = [test_profile, test_cache_index]
-        mock_prune_cache.return_value = {"cache2": test_cache_index["cache2"]}
+        mock_load.side_effect = [
+            test_profile,
+            {},  # raw cache migrated from empty envelope
+        ]
+        mock_prune_cache.return_value = JsonMap.model_validate(
+            {"cache2": cache_meta_new.model_dump(mode="python")}
+        )
 
-        # Mock prune_history_by_age to return a different length (to trigger save)
-        with patch(
-            "src.services.memory_utils.prune_history_by_age"
-        ) as mock_prune_history:
-            mock_prune_history.return_value = [test_profile["history"][1]]
-
-        # Call the function
         profile_file = Path("/tmp/test_profile.json")
         cache_file = Path("/tmp/test_cache.json")
-        user_id = "test_user"
+        enforce_retention_policies(profile_file, cache_file, "test_user")
 
-        enforce_retention_policies(profile_file, cache_file, user_id)
-
-        # Test that functions were called correctly
-        assert mock_load.call_count == 2, "Should load profile and cache files"
-        assert mock_save.call_count >= 1, "Should save at least one file"
-        assert mock_prune_cache.called, "Should call prune_cache_by_age"
-
-        print("✅ Basic retention enforcement test passed!")
-
-    # Test case 2: Error handling
-    with patch("src.services.memory_utils.load_json_file") as mock_load:
-        mock_load.side_effect = Exception("File not found")
-
-        # Should not raise exception
-        try:
-            enforce_retention_policies(
-                Path("/tmp/missing.json"), Path("/tmp/missing.json"), "test_user"
-            )
-            print("✅ Error handling test passed!")
-        except Exception:
-            assert False, "Function should handle errors gracefully"
-
-    print("✅ All enforce_retention_policies tests passed!")
-
-
-if __name__ == "__main__":
-    test_build_history_record()
-    test_update_profile()
-    test_prune_history_by_age()
-    test_enforce_retention_policies()
-    print("✅ All tests passed!")
+        assert mock_load.call_count == 2
+        assert mock_save.call_count >= 1

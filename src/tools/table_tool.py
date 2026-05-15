@@ -145,7 +145,12 @@ class TableTool(BaseTool):
             raise ValueError(f"Unsupported format: {format_type}")
 
     def render(self, tool_input: TableToolInput) -> TableOutput:
-        parsed_input = self._parse_input(tool_input)
+        if not isinstance(tool_input, TableToolInput):
+            raise TypeError(
+                "TableTool.render() requires a TableToolInput instance. "
+                "For string/JSON or dict inputs use the LangChain _run() entrypoint."
+            )
+        parsed_input = tool_input
         df = response_to_dataframe(parsed_input.data, reset_index=True)
         filepath = self._build_output_path(parsed_input.format, parsed_input.filename)
         self._write_table(df, filepath, parsed_input.format, parsed_input.title)

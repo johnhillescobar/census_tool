@@ -76,6 +76,11 @@ Output: test case table with expected TemporalIntent/BenchmarkIntent/ComparisonP
     - Decide one explicit check for “no dependency upgrades during Track 2”.
     - Output: a gate item you run before merge.
 
+9. Track 2D verification gate (recorded 2026-05-12)
+
+    - `mypy`: Scoped dev-only static gate — see `[tool.mypy].files` in `pyproject.toml`. Run `uv run mypy` for the listed modules.
+    - Planning-critical tools: Keep public `tool.invoke({...})` coverage (not only `tool._run(...)`) for structured tools; canonical tests in `app_test_scripts/test_track2_contract_first.py`; policy in `migration_evidence/track2_progress_20260511/track2d_tooling_governance.md`.
+
 # Track 2 policy decisions (locked)
 
 1. Default when no temporal phrase is present:

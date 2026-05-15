@@ -56,6 +56,10 @@ pythonpath = ["."]                  # Add to Python path
 python_files = ["test_*.py"]        # Test file patterns
 python_classes = ["Test*"]          # Test class patterns
 python_functions = ["test_*"]       # Test function patterns
+markers = [
+    "integration: tests that call external live APIs",
+    "slow: tests that are intentionally slow or long-running",
+]
 
 [tool.mypy]
 plugins = ["pydantic.mypy"]
@@ -70,6 +74,9 @@ files = [
     "src/services/benchmark_policy.py",
     "src/services/comparison_plan_policy.py",
     "src/services/comparison_metric_compute.py",
+    "src/domain/strict_json.py",
+    "src/domain/memory_persistence_contract.py",
+    "src/workflows/graph_patch.py",
 ]
 follow_imports = "silent"
 warn_redundant_casts = true

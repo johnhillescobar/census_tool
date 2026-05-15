@@ -120,6 +120,33 @@ def test_generate_session_pdf_rejects_invalid_generated_files(bad_generated_file
         )
 
 
+def test_pdf_generation_with_failure_artifact_bytes(tmp_path: Path):
+    """Failure rows must validate on the PDF ingest path and still produce PDF bytes."""
+
+    pdf_bytes = generate_session_pdf(
+        conversation_history=[
+            _sample_entry_model(
+                generated_files=[
+                    {
+                        "status": "failure",
+                        "kind": "chart",
+                        "error_code": "NO_TABULAR_DATA",
+                        "message": "No tabular census rows available for chart rendering.",
+                        "title": "My chart",
+                    }
+                ],
+                census_data=_sample_census_data(),
+            )
+        ],
+        user_id="test_user",
+        session_metadata=PdfSessionMetadata(thread_id="test_thread"),
+    )
+
+    assert isinstance(pdf_bytes, bytes)
+    assert pdf_bytes.startswith(b"%PDF")
+    assert len(pdf_bytes) > 500
+
+
 def test_pdf_generation(tmp_path: Path):
     """Test PDF generation with sample data"""
 

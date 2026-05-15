@@ -394,6 +394,32 @@ def test_geography_validation_tool_missing_parent(monkeypatch):
     assert "Missing required parent geography" in response.errors[0]
 
 
+def test_geography_validation_accepts_concatenated_json(monkeypatch):
+    """Agent sometimes appends a second JSON blob; take the first object only."""
+    tool = GeographyValidationTool()
+
+    def fake_validate(dataset, year, geo_for, geo_in, **kwargs):
+        return ("county", "*", [("state", "06")])
+
+    def fake_validate_hierarchy(dataset, year, for_token, provided_parents):
+        return (True, [], "")
+
+    monkeypatch.setattr(
+        "src.tools.geography_validation_tool.validate_and_fix_geo_params", fake_validate
+    )
+    monkeypatch.setattr(
+        "src.tools.geography_validation_tool.validate_geography_hierarchy",
+        fake_validate_hierarchy,
+    )
+
+    first_obj = '{"dataset":"acs/acs5","year":2023,"geo_for":{"county":"*"},"geo_in":{"state":"06"}}'
+    stray = '{"success":false,"warnings":[],"errors":[]}'
+    glued = first_obj + stray
+    resp = tool._run(glued)
+    assert resp.success is True
+    assert resp.error is None
+
+
 # ============================================================================
 # Phase 4: Auto-Repair Tests
 # ============================================================================

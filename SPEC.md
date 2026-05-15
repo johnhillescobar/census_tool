@@ -47,7 +47,7 @@ the Census API, and returns a typed answer with optional charts/tables/PDF.
 - No real-time data streaming (all responses are point-in-time queries).
 - **No LLM math.** Derived metrics (differences, ratios, percent changes,
   benchmark comparisons) are computed by deterministic Python in
-  `src/services/comparison_metrics.py`, never by model text.
+  `src/services/comparison_metric_compute.py`, never by model text.
 - **Math is reached via tools, not LLM reasoning.** Long-term direction:
   expose deterministic math as a registered agent tool (LangChain
   `BaseTool`), not just as a workflow node. Today it lives in
@@ -57,8 +57,11 @@ the Census API, and returns a typed answer with optional charts/tables/PDF.
 
 ## Architecture status
 
-- Currently mid-migration. Active track: **Track 2 — Deterministic Planning
-  Layer**.
+- **Track 2 — Deterministic Planning Layer** gate set (2A–2D) is **closed**.
+  Latest closeout: Track 2D
+  [migration_evidence/track2_progress_20260511/track2d_closeout.md](migration_evidence/track2_progress_20260511/track2d_closeout.md).
+  **Next active track:** Track 3 — Provenance Enforcement (see
+  [.cursor/plans/v2-track3-provenance-enforcement.plan.md](.cursor/plans/v2-track3-provenance-enforcement.plan.md)).
 - Migration plan:
   [.cursor/plans/full-v2-architecture-migration.plan.md](.cursor/plans/full-v2-architecture-migration.plan.md)
 - Per-track plans: see [.cursor/plans/](.cursor/plans/)

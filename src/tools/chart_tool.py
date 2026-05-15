@@ -228,7 +228,12 @@ class ChartTool(BaseTool):
             return f"Chart saved as HTML: {html_path}"
 
     def render(self, tool_input: ChartToolInput) -> ChartOutput:
-        parsed_input = self._parse_input(tool_input)
+        if not isinstance(tool_input, ChartToolInput):
+            raise TypeError(
+                "ChartTool.render() requires a ChartToolInput instance. "
+                "For string/JSON or dict inputs use the LangChain _run() entrypoint."
+            )
+        parsed_input = tool_input
         df = response_to_dataframe(parsed_input.data, reset_index=True)
         fig = self._build_visualization(
             df=df,

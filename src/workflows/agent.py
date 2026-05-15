@@ -1,13 +1,14 @@
 import logging
 
-from typing import Dict, Any
 from langchain_core.runnables import RunnableConfig
 
+from src.domain.strict_json import DEFAULT_AGENT_INTENT, as_json_map
 from src.state.types import (
     CensusState,
     FinalResponseState,
     WorkflowArtifactsState,
 )
+from src.workflows.graph_patch import CensusGraphPatch
 from src.agents.census_query_agent import CensusQueryAgent
 from src.llm.intent_enhancer import generate_llm_answer
 
@@ -15,18 +16,24 @@ from src.llm.intent_enhancer import generate_llm_answer
 logger = logging.getLogger(__name__)
 
 
-def agent_reasoning_node(state: CensusState, config: RunnableConfig) -> Dict[str, Any]:
-    user_question = state.messages[-1]["content"]
+def agent_reasoning_node(state: CensusState, config: RunnableConfig) -> dict[str, object]:
+    user_question = state.messages[-1].content
 
-    # Agent expects intent dict - create basic one if not exists
-    intent = state.intent or {"is_census": True, "topic": "general"}
+    if state.intent is None:
+        intent_channel = DEFAULT_AGENT_INTENT
+    else:
+        intent_channel = as_json_map(state.intent)
+
+    geo_for_llm = as_json_map(state.geo)
 
     plan = state.plan
     if plan and plan.requires_clarification:
-        return {"logs": ["agent: skipped (clarification required)"]}
+        return CensusGraphPatch(
+            logs=["agent: skipped (clarification required)"],
+        ).as_langgraph_update()
 
     agent = CensusQueryAgent()
-    result = agent.solve(user_query=user_question, intent=intent)
+    result = agent.solve(user_query=user_question, intent=intent_channel)
 
     # Get answer_text from agent result
     answer_text = result.answer_text
@@ -35,7 +42,6 @@ def agent_reasoning_node(state: CensusState, config: RunnableConfig) -> Dict[str
     if not answer_text or len(answer_text.strip()) < 20:
         census_data = result.census_data
         data_summary = result.data_summary
-        geo_context = state.geo or {}
 
         if census_data.success and data_summary:
             logger.info(
@@ -45,8 +51,8 @@ def agent_reasoning_node(state: CensusState, config: RunnableConfig) -> Dict[str
                 generated_answer = generate_llm_answer(
                     user_question=user_question,
                     data_summary=data_summary,
-                    geo_context=geo_context,
-                    intent=intent,
+                    geo_context=geo_for_llm,
+                    intent=intent_channel,
                 )
                 if generated_answer:
                     answer_text = generated_answer
@@ -77,19 +83,19 @@ def agent_reasoning_node(state: CensusState, config: RunnableConfig) -> Dict[str
 
     existing_final = state.final or FinalResponseState()
 
-    return {
-        "artifacts": WorkflowArtifactsState(
+    return CensusGraphPatch(
+        artifacts=WorkflowArtifactsState(
             census_data=result.census_data,
             variable_labels=result.variable_labels,
             data_summary=result.data_summary,
             reasoning_trace=result.reasoning_trace,
         ),
-        "final": FinalResponseState(
+        final=FinalResponseState(
             answer_text=answer_text,
             charts_needed=result.charts_needed,
             tables_needed=result.tables_needed,
             footnotes=footnotes,
             generated_files=existing_final.generated_files,
         ),
-        "logs": ["agent: completed reasoning with data"],
-    }
+        logs=["agent: completed reasoning with data"],
+    ).as_langgraph_update()

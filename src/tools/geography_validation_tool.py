@@ -1,4 +1,5 @@
 import logging
+import json
 from typing import Any, Type
 
 from langchain.callbacks.manager import (
@@ -16,6 +17,7 @@ from src.domain.planning_tool_contracts import (
     GeographyValidationRequest,
     GeographyValidationResponse,
 )
+from src.tools.json_parse import parse_first_json
 
 logger = logging.getLogger(__name__)
 
@@ -52,6 +54,18 @@ class GeographyValidationTool(BaseTool):
 
     args_schema: Type[BaseModel] = GeographyValidationRequest
 
+    def _parse_input(
+        self, tool_input: str | dict[str, Any], tool_call_id: str | None
+    ) -> str | dict[str, Any]:
+        if isinstance(tool_input, str):
+            try:
+                parsed = parse_first_json(tool_input.strip())
+            except json.JSONDecodeError:
+                return tool_input
+            if isinstance(parsed, dict):
+                return parsed
+        return tool_input
+
     def _error_response(
         self,
         request: GeographyValidationRequest | None,
@@ -71,12 +85,32 @@ class GeographyValidationTool(BaseTool):
         )
 
     def _coerce_request(
-        self, tool_input: GeographyValidationRequest | str | dict[str, Any]
+        self,
+        tool_input: GeographyValidationRequest | str | dict[str, Any] | None = None,
+        **kwargs: Any,
     ) -> GeographyValidationRequest:
+        if kwargs:
+            if tool_input is None:
+                tool_input = kwargs
+            elif isinstance(tool_input, dict):
+                tool_input = {**tool_input, **kwargs}
+            elif isinstance(tool_input, GeographyValidationRequest):
+                tool_input = tool_input.model_copy(update=kwargs)
+
         if isinstance(tool_input, GeographyValidationRequest):
             return tool_input
         if isinstance(tool_input, str):
-            return GeographyValidationRequest.model_validate_json(tool_input)
+            stripped = tool_input.strip()
+            try:
+                parsed = parse_first_json(stripped)
+            except json.JSONDecodeError:
+                return GeographyValidationRequest.model_validate_json(stripped)
+            if isinstance(parsed, dict):
+                payload = dict(parsed)
+                if payload.get("geo_in") is None:
+                    payload.pop("geo_in", None)
+                return GeographyValidationRequest.model_validate(payload)
+            return GeographyValidationRequest.model_validate(parsed)
         if isinstance(tool_input, dict) and tool_input.get("geo_in") is None:
             payload = dict(tool_input)
             payload.pop("geo_in", None)
@@ -85,12 +119,13 @@ class GeographyValidationTool(BaseTool):
 
     def _run(
         self,
-        tool_input: GeographyValidationRequest | str | dict[str, Any],
+        tool_input: GeographyValidationRequest | str | dict[str, Any] | None = None,
         run_manager: CallbackManagerForToolRun | None = None,
+        **kwargs: Any,
     ) -> GeographyValidationResponse:
         """Validate geography parameters"""
         try:
-            request_obj = self._coerce_request(tool_input)
+            request_obj = self._coerce_request(tool_input, **kwargs)
         except ValidationError as exc:
             return self._error_response(
                 request=None,
@@ -170,10 +205,11 @@ class GeographyValidationTool(BaseTool):
 
     async def _arun(
         self,
-        tool_input: GeographyValidationRequest | str | dict[str, Any],
+        tool_input: GeographyValidationRequest | str | dict[str, Any] | None = None,
         run_manager: AsyncCallbackManagerForToolRun | None = None,
+        **kwargs: Any,
     ) -> GeographyValidationResponse:
-        return self._run(tool_input)
+        return self._run(tool_input, **kwargs)
 
 
 __all__ = ["GeographyValidationTool"]

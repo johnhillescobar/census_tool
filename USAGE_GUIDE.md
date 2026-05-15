@@ -112,15 +112,13 @@ Then open http://localhost:8501 in your browser.
 
 ## 🔧 Technical Details
 
-### Architecture (Verified Working)
+### Architecture (paths verified against repo layout)
 Both interfaces use the same agent-first architecture:
-- **`app.py`** - LangGraph workflow: `memory_load → agent → output → memory_write`
-- **`src/nodes/agent.py`** - `agent_reasoning_node` calls CensusQueryAgent.solve()
-- **`src/nodes/output.py`** - `output_node` generates charts/tables from agent results
-- **`src/utils/agents/census_query_agent.py`** - ReAct agent with 8 specialized tools
-- **`src/tools/`** - All 8 agent tools actively registered and used:
-  - GeographyDiscoveryTool, AreaResolutionTool, TableSearchTool, TableValidationTool
-  - PatternBuilderTool, CensusAPITool, ChartTool, TableTool
+- **`app.py`** - LangGraph workflow: `memory_load → temporal → benchmark → comparison → agent → comparison_metrics → output → memory_write` (with conditional edges to `output` for clarification)
+- **`src/workflows/agent.py`** - `agent_reasoning_node` calls `CensusQueryAgent.solve()`
+- **`src/workflows/output.py`** - `output_node` generates charts/tables from agent results
+- **`src/agents/census_query_agent.py`** - ReAct agent; tool list in `CensusQueryAgent.__init__` (see README feature list for current registrations)
+- **`src/tools/`** - LangChain `BaseTool` implementations registered on the agent (geography discovery/validation/hierarchy, area resolution, table search/validation, variable validation, pattern builder, strict Census API, chart, table, plus shared `json_parse` / schema helpers)
 - **`config.py`** - Configuration settings (retention, API limits, performance)
 - **SQLite checkpoints** - Conversation persistence (`checkpoints.db`)
 
@@ -136,7 +134,7 @@ Both interfaces use the same agent-first architecture:
    - Generates tables using TableTool (if `tables_needed` specified)
    - Combines with agent's `answer_text` and `footnotes`
 4. **Memory write** → `memory_write_node` saves conversation state
-5. **Display** → CLI (`displays.py`) or Web (Streamlit components)
+5. **Display** → CLI (`src/api/displays.py`) or Web (Streamlit components)
 
 ### Test Evidence
 ```bash
@@ -195,7 +193,7 @@ uv run pytest app_test_scripts/test_e2e_workflows.py -v
 
 ## 🔮 Future Enhancements
 
-- **PDF Report Generation** - Comprehensive reports with embedded charts and tables
+- **Richer PDF / report templates** - Beyond current Streamlit session export (see README PDF section)
 - **Geographic mapping** - Interactive maps showing geographic data
 - **Advanced Analytics** - Statistical analysis and trend detection
 - **Export to Parquet** - High-performance data formats

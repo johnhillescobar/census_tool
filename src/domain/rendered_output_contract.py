@@ -1,4 +1,5 @@
-from typing import Literal
+from typing import Annotated, Literal, TypeAlias
+
 from pydantic import BaseModel, ConfigDict, Field
 
 from src.domain.final_output_contract import FinalChartSpec, FinalTableSpec
@@ -47,10 +48,41 @@ class TableOutput(BaseModel):
     mime_type: TableMimeType
 
 
-class RenderedArtifact(BaseModel):
+# --- Typed generated-file artifacts (Track 2C): success vs failure ---
+
+RENDER_ERROR_NO_TABULAR_DATA = "NO_TABULAR_DATA"
+RENDER_ERROR_RENDER_EXCEPTION = "RENDER_EXCEPTION"
+
+
+class RenderedArtifactSuccess(BaseModel):
+    """Successful chart/table export written to disk."""
+
     model_config = ConfigDict(extra="forbid")
 
+    status: Literal["success"] = "success"
     kind: Literal["chart", "table"]
     path: str
     mime_type: str
     title: str | None = None
+
+
+class RenderedArtifactFailure(BaseModel):
+    """Chart/table could not be produced; surfaced to CLI/Streamlit/PDF."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    status: Literal["failure"] = "failure"
+    kind: Literal["chart", "table"]
+    error_code: str
+    message: str
+    title: str | None = None
+
+
+GeneratedFileArtifact: TypeAlias = Annotated[
+    RenderedArtifactSuccess | RenderedArtifactFailure,
+    Field(discriminator="status"),
+]
+
+
+# Legacy name: callers constructing success rows use ``RenderedArtifact`` / ``RenderedArtifactSuccess``.
+RenderedArtifact = RenderedArtifactSuccess

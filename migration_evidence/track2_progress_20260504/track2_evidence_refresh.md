@@ -69,6 +69,15 @@ This is not a full Track 2 exit. It proves the prior collection blocker is resol
 Track 2A closeout evidence is recorded in
 `migration_evidence/track2_progress_20260504/track2a_closeout.md`.
 
+
+## Supersession (2026-05-12)
+
+Track **2D** closed; frozen-policy + static gate documented in
+[`migration_evidence/track2_progress_20260511/track2d_closeout.md`](../track2_progress_20260511/track2d_closeout.md).
+The “Track 2 Plan Impact” bullets below that still list `t2-mypy-boundary-gate`
+/ `t2-freeze-deps` as **in progress** are **historical** for the 2026-05-04
+snapshot only.
+
 ## Track 2 Plan Impact
 
 - `t2-contracts`: remains completed.

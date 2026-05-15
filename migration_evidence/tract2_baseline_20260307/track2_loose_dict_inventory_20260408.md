@@ -2,11 +2,20 @@
 
 Date: 2026-04-08
 
-Refresh: 2026-05-04. Stale 2026-04-26 notes about the Track 2 contract test
+Refresh: **2026-05-12 (Track 2E)** — Core `CensusState` JSON channels use
+`JsonMap` / `ConversationMessage`; LangGraph nodes emit `CensusGraphPatch`
+(see `migration_evidence/track2_progress_20260511/track2e_raw_dict_closeout.md`
+and `scripts/track2_raw_dict_audit.py`). §State core table rows below are
+**stale** archeology.
+
+Refresh: 2026-05-11. Stale 2026-04-26 notes about the Track 2 contract test
 collection blocker, Streamlit dead-schema rendering, and the agent footnote
 `model_dump()` bridge have been superseded by
 `migration_evidence/track2_progress_20260504/track2_evidence_refresh.md`.
-
+The 2026-05-11 tool-boundary finding is closed for Track 2B by
+`migration_evidence/track2_progress_20260511/track2b_closeout.md`: public
+LangChain `tool.invoke({...})` calls are covered and passing for the checked
+planning-critical structured tools.
 ## Purpose
 - Enumerate the remaining runtime `Dict[...]`, `dict[...]`, `List[Dict[...]]`, and `list[dict[...]]` boundaries that still weaken Track 2.
 - Separate real Track 2 blockers from temporary adapters and acceptable map-shaped payloads.
@@ -79,13 +88,14 @@ collection blocker, Streamlit dead-schema rendering, and the agent footnote
 | File | Symbol / field | Current shape | Class | Notes |
 |---|---|---|---|---|
 | `src/tools/strict_census_api_tool.py` | strict request -> legacy dict wrapper | `result.get(...)` on dict payload | `blocking_any_dict` | Supposedly strict path still depends on loose client wrapper. |
+| `src/tools/strict_census_api_tool.py` | public LangChain invocation | accepts schema-shaped `tool.invoke({...})` payloads | removed from blocker list | Closed by Track 2B public invocation regression coverage; direct `_run(payload)` remains unit evidence. |
 | `src/tools/census_api_tool.py` | `_run(tool_input: str)` + JSON parse + `.get(...)` | loose legacy tool path | `blocking_any_dict` | Parallel untyped path still exists. |
 | `src/tools/chart_tool.py` | `ChartToolInput.data` | `StrictCensusApiRawTable` | removed from blocker list | Tool input is typed now; legacy compatibility lives in parse/coercion helpers instead. |
 | `src/tools/chart_tool.py` | `_parse_input()` / `_coerce_legacy_table_data()` | typed input plus `str | dict` compatibility | `temporary_adapter` | ReAct-era compatibility shim still present. |
 | `src/tools/table_tool.py` | `TableToolInput.data` | `StrictCensusApiRawTable` | removed from blocker list | Tool input is typed now; legacy compatibility lives in parse/coercion helpers instead. |
 | `src/tools/table_tool.py` | `_parse_input()` / `_coerce_legacy_table_data()` | typed input plus `str | dict` compatibility | `temporary_adapter` | ReAct-era compatibility shim still present. |
-| `src/tools/geography_validation_tool.py` | `GeographyValidationRequest \| str \| dict[str, Any]` | typed contract plus shim | `temporary_adapter` | Dict/string input still accepted for compatibility. |
-| `src/tools/variable_validation_tool.py` | `VariableValidationRequest \| str \| dict[str, Any]` | typed contract plus shim | `temporary_adapter` | Same issue. |
+| `src/tools/geography_validation_tool.py` | `GeographyValidationRequest \| str \| dict[str, Any]` plus public invocation support | typed contract plus shim | `temporary_adapter` | Public `tool.invoke({...})` now passes for schema-shaped payloads; string/dict compatibility remains as a documented adapter. |
+| `src/tools/variable_validation_tool.py` | `VariableValidationRequest \| str \| dict[str, Any]` plus public invocation support | typed contract plus shim | `temporary_adapter` | Public `tool.invoke({...})` now passes for schema-shaped payloads; direct `_run(payload)` tests remain unit-only evidence. |
 | `src/tools/pattern_builder_tool.py` | JSON string parsing + `.get(...)` | loose tool input | `blocking_any_dict` | Still planning-adjacent and untyped. |
 | `src/tools/geography_discovery_tool.py` | disabled `args_schema`, JSON string parsing | loose tool input | `temporary_adapter` | ReAct-compatibility shim. |
 | `src/tools/geography_hierarchy_tool.py` | JSON parse then manual response dict | partial adapter | `temporary_adapter` | Typed input is incomplete, response remains manual dict/json. |
@@ -111,6 +121,7 @@ collection blocker, Streamlit dead-schema rendering, and the agent footnote
 | `src/agents/census_query_agent.py` | `_build_iteration_limit_response()` | returns `Dict[str, Any]` | `blocking_any_dict` | Same issue. |
 | `src/agents/census_query_agent.py` | `_coerce_observation_to_dict()` | `Dict[str, Any] \| None` | `temporary_adapter` | Intermediate shim for tool observations. |
 | `src/agents/census_query_agent.py` | `_normalize_parsed_output_contract()` | `Dict[str, Any] -> Dict[str, Any]` | `temporary_adapter` | Contract drift shim before validation. |
+| `src/agents/census_query_agent.py` | `AgentExecutor(handle_parsing_errors=...)` recovery path | parser recovery boundary now has focused tool-level regression | removed from blocker list | Track 2B coverage proves a prior `validate_geography_params` observation string fails closed instead of becoming the next request's `dataset`; broader agent-loop redesign remains out of scope until Track 4. |
 | `src/agents/census_query_agent.py` | `charts_needed`, `tables_needed` | typed `FinalChartSpec` / `FinalTableSpec` via `AgentSolveResult` | removed from blocker list | Output intent models are no longer raw inner dicts at the solved-result boundary. |
 
 ### Services

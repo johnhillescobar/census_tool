@@ -1,4 +1,5 @@
 {
+  "schema_version": 2,
   "user_id": "demo",
   "default_geo": {},
   "preferred_dataset": "acs/acs5",
@@ -8,32 +9,13 @@
   ],
   "preferred_level": "place",
   "var_aliases": {},
+  "last_geo": null,
   "usage_stats": {
-    "total_queries": 55,
-    "success_queries": 55,
-    "last_query_date": "2026-03-07T08:12:41.155988"
+    "total_queries": 65,
+    "success_queries": 65,
+    "last_query_date": "2026-05-11T22:41:13.097553"
   },
   "history": [
-    {
-      "timestamp": "2026-02-03T20:26:49.476951",
-      "user_id": "demo",
-      "question": "What's the population of New York City?",
-      "intent": {},
-      "geo": {},
-      "plan_summary": "",
-      "answer_type": "Unknown",
-      "success": true
-    },
-    {
-      "timestamp": "2026-02-03T20:29:01.188168",
-      "user_id": "demo",
-      "question": "Show me median income trends from 2015 to 2020",
-      "intent": {},
-      "geo": {},
-      "plan_summary": "",
-      "answer_type": "Unknown",
-      "success": true
-    },
     {
       "timestamp": "2026-03-03T07:35:37.973494",
       "user_id": "demo",
@@ -203,7 +185,107 @@
       "plan_summary": "",
       "answer_type": "Unknown",
       "success": true
+    },
+    {
+      "timestamp": "2026-05-11T20:18:08.186902",
+      "user_id": "demo",
+      "question": "What's the population of New York City?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2026-05-11T20:19:12.074238",
+      "user_id": "demo",
+      "question": "What's the median income in Los Angeles County?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2026-05-11T20:21:05.831229",
+      "user_id": "demo",
+      "question": "Compare population by county in California",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2026-05-11T22:22:38.009655",
+      "user_id": "demo",
+      "question": "Show me median income trends from 2015 to 2020",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "visual",
+      "success": true
+    },
+    {
+      "timestamp": "2026-05-11T22:30:42.215451",
+      "user_id": "demo",
+      "question": "What's the population of New York City?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "visual",
+      "success": true
+    },
+    {
+      "timestamp": "2026-05-11T22:31:13.814154",
+      "user_id": "demo",
+      "question": "Compare population by county in California",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "metric=population, dataset=acs/acs5, years=[2023], comparison_op=difference",
+      "answer_type": "text",
+      "success": true
+    },
+    {
+      "timestamp": "2026-05-11T22:37:00.494439",
+      "user_id": "demo",
+      "question": "Compare population by county in California",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "metric=population, dataset=acs/acs5, years=[2023], comparison_op=difference",
+      "answer_type": "visual",
+      "success": true
+    },
+    {
+      "timestamp": "2026-05-11T22:38:18.585304",
+      "user_id": "demo",
+      "question": "Show me median income trends from 2015 to 2020",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "text",
+      "success": true
+    },
+    {
+      "timestamp": "2026-05-11T22:39:52.947463",
+      "user_id": "demo",
+      "question": "What's the median income in Los Angeles County?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "",
+      "answer_type": "visual",
+      "success": true
+    },
+    {
+      "timestamp": "2026-05-11T22:41:13.096436",
+      "user_id": "demo",
+      "question": "Compare population by county in California",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "metric=population, dataset=acs/acs5, years=[2023], comparison_op=difference",
+      "answer_type": "visual",
+      "success": true
     }
   ],
-  "last_updated": "2026-03-07T08:12:41.155988"
+  "last_updated": "2026-05-11T22:41:13.097553"
 }

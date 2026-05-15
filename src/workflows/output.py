@@ -5,12 +5,19 @@ from langchain_core.runnables import RunnableConfig
 
 
 from src.domain.census_tool_contract import StrictCensusApiRawTable
-from src.domain.rendered_output_contract import RenderedArtifact
+from src.domain.rendered_output_contract import (
+    GeneratedFileArtifact,
+    RenderedArtifactFailure,
+    RenderedArtifactSuccess,
+    RENDER_ERROR_NO_TABULAR_DATA,
+    RENDER_ERROR_RENDER_EXCEPTION,
+)
 from src.domain.variable_metada_contract import VariableLabels
 from src.services.census_render_adapter import response_to_tabular_payload
 from src.state.types import CensusState, FinalResponseState
 from src.tools.chart_tool import ChartTool, ChartToolInput
 from src.tools.table_tool import TableTool, TableToolInput
+from src.workflows.graph_patch import CensusGraphPatch
 
 logger = logging.getLogger(__name__)
 
@@ -304,7 +311,7 @@ def get_chart_params(
         return {"x_column": "Location", "y_column": "Value", "title": "Chart"}
 
 
-def output_node(state: CensusState, config: RunnableConfig) -> Dict[str, Any]:
+def output_node(state: CensusState, config: RunnableConfig) -> dict[str, object]:
     """
     Generate charts and tables from census data
     """
@@ -313,7 +320,7 @@ def output_node(state: CensusState, config: RunnableConfig) -> Dict[str, Any]:
     charts_needed = final_result.charts_needed
     tables_needed = final_result.tables_needed
     census_data = state.artifacts.census_data
-    generated_files: list[RenderedArtifact] = list(final_result.generated_files)
+    generated_files: list[GeneratedFileArtifact] = list(final_result.generated_files)
     raw_table = (
         response_to_tabular_payload(census_data)
         if census_data.success and census_data.row_count > 0
@@ -321,74 +328,116 @@ def output_node(state: CensusState, config: RunnableConfig) -> Dict[str, Any]:
     )
 
     # Create charts if needed
-    if charts_needed and raw_table is not None:
-        chart_tool = ChartTool()
-        for chart_spec in charts_needed:
-            try:
-                # Determine parameters
-                chart_params = get_chart_params(
-                    raw_table,
-                    chart_spec.type,
-                    state.artifacts.variable_labels if state.artifacts else None,
-                )
-
-                logger.info("=== output_node Chart Generation ===")
-                logger.info(f"Chart type: {chart_spec.type}")
-                logger.info(
-                    f"Chart params: x={chart_params['x_column']}, y={chart_params['y_column']}"
-                )
-
-                logger.info("=== Calling ChartTool ===\n")
-
-                # Call the tool with typed input format
-                chart_input = ChartToolInput(
-                    chart_type=chart_spec.type,
-                    x_column=chart_params["x_column"],
-                    y_column=chart_params["y_column"],
-                    title=chart_spec.title or chart_params["title"],
-                    color_column=chart_params.get("color_column"),
-                    data=raw_table,
-                )
-                # Add color_column if multi-series was detected
-                chart_output = chart_tool.render(chart_input)
+    if charts_needed:
+        if raw_table is None:
+            for chart_spec in charts_needed:
                 generated_files.append(
-                    RenderedArtifact(
+                    RenderedArtifactFailure(
+                        status="failure",
                         kind="chart",
-                        path=chart_output.path,
-                        mime_type=chart_output.mime_type,
-                        title=chart_output.spec.title,
+                        error_code=RENDER_ERROR_NO_TABULAR_DATA,
+                        message="No tabular census rows available for chart rendering.",
+                        title=chart_spec.title,
                     )
                 )
+        else:
+            chart_tool = ChartTool()
+            for chart_spec in charts_needed:
+                try:
+                    # Determine parameters
+                    chart_params = get_chart_params(
+                        raw_table,
+                        chart_spec.type,
+                        state.artifacts.variable_labels if state.artifacts else None,
+                    )
 
-            except Exception as e:
-                logger.error(f"Failed to create chart: {e}")
+                    logger.info("=== output_node Chart Generation ===")
+                    logger.info(f"Chart type: {chart_spec.type}")
+                    logger.info(
+                        f"Chart params: x={chart_params['x_column']}, y={chart_params['y_column']}"
+                    )
+
+                    logger.info("=== Calling ChartTool ===\n")
+
+                    # Call the tool with typed input format
+                    chart_input = ChartToolInput(
+                        chart_type=chart_spec.type,
+                        x_column=chart_params["x_column"],
+                        y_column=chart_params["y_column"],
+                        title=chart_spec.title or chart_params["title"],
+                        color_column=chart_params.get("color_column"),
+                        data=raw_table,
+                    )
+                    # Add color_column if multi-series was detected
+                    chart_output = chart_tool.render(chart_input)
+                    generated_files.append(
+                        RenderedArtifactSuccess(
+                            kind="chart",
+                            path=chart_output.path,
+                            mime_type=chart_output.mime_type,
+                            title=chart_output.spec.title,
+                        )
+                    )
+
+                except Exception as e:
+                    logger.error(f"Failed to create chart: {e}")
+                    generated_files.append(
+                        RenderedArtifactFailure(
+                            status="failure",
+                            kind="chart",
+                            error_code=RENDER_ERROR_RENDER_EXCEPTION,
+                            message=str(e),
+                            title=chart_spec.title,
+                        )
+                    )
 
     # Create tables if needed
-    if tables_needed and raw_table is not None:
-        table_tool = TableTool()
-        for table_spec in tables_needed:
-            try:
-                table_input = TableToolInput(
-                    format=table_spec.format,
-                    filename=table_spec.filename,
-                    title=table_spec.title or "Census Data",
-                    data=raw_table,
-                )
-                table_output = table_tool.render(table_input)
-
+    if tables_needed:
+        if raw_table is None:
+            for table_spec in tables_needed:
                 generated_files.append(
-                    RenderedArtifact(
+                    RenderedArtifactFailure(
+                        status="failure",
                         kind="table",
-                        path=table_output.path,
-                        mime_type=table_output.mime_type,
-                        title=table_output.spec.title,
+                        error_code=RENDER_ERROR_NO_TABULAR_DATA,
+                        message="No tabular census rows available for table export.",
+                        title=table_spec.title,
                     )
                 )
-            except Exception as e:
-                logger.error(f"Failed to create table: {e}")
+        else:
+            table_tool = TableTool()
+            for table_spec in tables_needed:
+                try:
+                    table_input = TableToolInput(
+                        format=table_spec.format,
+                        filename=table_spec.filename,
+                        title=table_spec.title or "Census Data",
+                        data=raw_table,
+                    )
+                    table_output = table_tool.render(table_input)
+
+                    generated_files.append(
+                        RenderedArtifactSuccess(
+                            kind="table",
+                            path=table_output.path,
+                            mime_type=table_output.mime_type,
+                            title=table_output.spec.title,
+                        )
+                    )
+                except Exception as e:
+                    logger.error(f"Failed to create table: {e}")
+                    generated_files.append(
+                        RenderedArtifactFailure(
+                            status="failure",
+                            kind="table",
+                            error_code=RENDER_ERROR_RENDER_EXCEPTION,
+                            message=str(e),
+                            title=table_spec.title,
+                        )
+                    )
 
     # Get existing final from state (preserve answer_text, charts_needed, etc.)
-    return {
-        "final": final_result.model_copy(update={"generated_files": generated_files}),
-        "logs": [f"output: generated {len(generated_files)} files"],
-    }
+    return CensusGraphPatch(
+        final=final_result.model_copy(update={"generated_files": generated_files}),
+        logs=[f"output: generated {len(generated_files)} files"],
+    ).as_langgraph_update()

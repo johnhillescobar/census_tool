@@ -1,12 +1,20 @@
-from typing import Dict, Any
 from pathlib import Path
-import pandas as pd
 import logging
 
+import pandas as pd
 from langchain_core.runnables import RunnableConfig
 
 from src.state.types import CensusState
 from src.clients import load_json_file, save_json_file
+from src.domain.memory_persistence_contract import (
+    CacheIndexFileV2,
+    UserMemoryFileV2,
+    cache_index_for_state,
+    memory_profile_to_state_profile,
+    migrate_cache_index_file,
+    migrate_user_memory_file,
+)
+from src.domain.strict_json import JsonMap, as_json_map, as_json_map_optional
 from src.services import (
     prune_history_by_age,
     prune_cache_by_age,
@@ -14,154 +22,163 @@ from src.services import (
     update_profile,
     enforce_retention_policies,
 )
+from src.workflows.graph_patch import CensusGraphPatch
 
 from config import RETENTION_DAYS
 
 logger = logging.getLogger(__name__)
 
 
-def memory_load_node(state: CensusState, config: RunnableConfig) -> Dict[str, Any]:
+def memory_load_node(state: CensusState, config: RunnableConfig) -> dict[str, object]:
     """Load user profile, history, and cache index"""
 
-    # Get user_id from config
     user_id = config.get("configurable", {}).get("user_id")
 
     if not user_id:
         logger.error("User ID is required")
-        return {
-            "error": "user_id is required in config",
-            "logs": ["memory_load: ERROR - user_id missing"],
-        }
+        return CensusGraphPatch(
+            error="user_id is required in config",
+            logs=["memory_load: ERROR - user_id missing"],
+        ).as_langgraph_update()
 
     logger.info(f"Loading user memory for user_id: {user_id}")
 
-    # Initialize user memory
     memory_dir = Path("memory")
     memory_dir.mkdir(parents=True, exist_ok=True)
 
-    # Load user profile and history
     profile_file = memory_dir / f"user_{user_id}.json"
-    profile = load_json_file(profile_file, {})
+    raw_profile = load_json_file(profile_file, {})
 
-    # Initialize profile with defaults if empty
-    if not profile:
-        profile = {
-            "user_id": user_id,
-            "default_geo": {},
-            "preferred_dataset": "acs/acs5",
-            "default_year_range": [2012, 2023],
-            "preferred_level": "place",
-            "var_aliases": {},
-        }
-
-    # Load and prune history
-    history = profile.get("history", [])
-    pruned_history = prune_history_by_age(history, RETENTION_DAYS)
-
-    if len(history) != len(pruned_history):
-        logger.info(f"Pruned {len(history) - len(pruned_history)} old history items")
-        profile["history"] = pruned_history
-        save_json_file(profile_file, profile)
-
-    # Load and prune cache index
-    cache_index_file = memory_dir / f"cache_index_{user_id}.json"
-    cache_index = load_json_file(cache_index_file, {})
-    pruned_cache_index = prune_cache_by_age(cache_index, RETENTION_DAYS)
-
-    if len(cache_index) != len(pruned_cache_index):
-        logger.info(
-            f"Pruned {len(cache_index) - len(pruned_cache_index)} old cache items"
+    if not raw_profile:
+        doc = UserMemoryFileV2(
+            user_id=user_id,
+            default_geo=JsonMap.model_validate({}),
         )
-        save_json_file(cache_index_file, pruned_cache_index)
+    else:
+        doc = migrate_user_memory_file(dict(raw_profile), fallback_user_id=user_id)
 
-    log_entry = f"memory_load: loaded profile for user_{user_id}, {len(pruned_history)} history entries, {len(pruned_cache_index)} cache entries"
+    pruned_history = prune_history_by_age(doc.history, RETENTION_DAYS)
 
-    return {
-        "profile": profile,
-        "history": pruned_history,
-        "cache_index": pruned_cache_index,
-        "logs": [log_entry],
-    }
+    if len(doc.history) != len(pruned_history):
+        logger.info(f"Pruned {len(doc.history) - len(pruned_history)} old history items")
+        doc = doc.model_copy(update={"history": pruned_history})
+        save_json_file(profile_file, doc.model_dump())
+
+    cache_index_file = memory_dir / f"cache_index_{user_id}.json"
+    raw_cache = load_json_file(cache_index_file, {})
+    cache_doc = migrate_cache_index_file(dict(raw_cache))
+    pruned_entries = prune_cache_by_age(cache_doc.entries, RETENTION_DAYS)
+
+    if len(cache_doc.entries.root) != len(pruned_entries.root):
+        logger.info(
+            f"Pruned {len(cache_doc.entries.root) - len(pruned_entries.root)} old cache items"
+        )
+        save_json_file(
+            cache_index_file,
+            CacheIndexFileV2(entries=pruned_entries).model_dump(),
+        )
+
+    log_entry = (
+        f"memory_load: loaded profile for user_{user_id}, {len(pruned_history)} "
+        f"history entries, {len(pruned_entries.root)} cache entries"
+    )
+
+    return CensusGraphPatch(
+        profile=memory_profile_to_state_profile(doc),
+        history=pruned_history,
+        cache_index=pruned_entries,
+        logs=[log_entry],
+    ).as_langgraph_update()
 
 
-def memory_write_node(state: CensusState, config: RunnableConfig) -> Dict[str, Any]:
+def memory_write_node(state: CensusState, config: RunnableConfig) -> dict[str, object]:
     """Write user profile, history, and cache index"""
 
-    # Get user_id from config
     user_id = config.get("configurable", {}).get("user_id")
 
     if not user_id:
         logger.error("User ID is required")
-        return {
-            "error": "user_id is required in config",
-            "logs": ["memory_write: ERROR - user_id missing"],
-        }
+        return CensusGraphPatch(
+            error="user_id is required in config",
+            logs=["memory_write: ERROR - user_id missing"],
+        ).as_langgraph_update()
 
     logger.info(f"Writing user memory for user_id: {user_id}")
 
-    # Get profile and history from state
-    profile = state.profile or {}
-    history = state.history or []
-    cache_index = state.cache_index or {}
-    messages = state.messages or []
-    intent = state.intent or {}
-    geo = state.geo or {}
-    plan = state.plan.model_dump(exclude_none=True) if state.plan else {}
-    final = state.final.model_dump(exclude_none=True) if state.final else {}
+    doc = migrate_user_memory_file(
+        as_json_map(state.profile).model_dump(mode="python"), fallback_user_id=user_id
+    )
 
-    # Initialize memory directory
+    history = list(state.history)
+    messages = state.messages
+    intent = as_json_map_optional(state.intent)
+    geo = as_json_map(state.geo)
+    plan = state.plan
+    final = state.final
+
     memory_dir = Path("memory")
     memory_dir.mkdir(parents=True, exist_ok=True)
 
     try:
-        # 1. Build history record for this conversation
         if messages and final:
             history_record = build_history_record(
-                messages, final, intent, geo, plan, user_id
+                messages,
+                final,
+                intent,
+                geo,
+                plan,
+                user_id,
+                workflow_error=state.error,
             )
             history.append(history_record)
 
-        # 2. Update profile with latest intent and geo
-        updated_profile = update_profile(profile, intent, geo, final)
+        profile_as_map = JsonMap.model_validate(doc.model_dump(mode="python"))
+        updated_profile_map = update_profile(
+            profile_as_map,
+            intent,
+            geo,
+            final,
+            workflow_error=state.error,
+        )
+        payload = updated_profile_map.model_dump(mode="python")
+        payload["history"] = [h.model_dump(mode="python") for h in history]
+        payload["user_id"] = user_id
+        payload["last_updated"] = pd.Timestamp.now().isoformat()
 
-        # 3. Save profile and history
+        profile_out = UserMemoryFileV2.model_validate(payload)
         profile_file = memory_dir / f"user_{user_id}.json"
-        updated_profile["history"] = history
-        updated_profile["user_id"] = user_id
-        updated_profile["last_updated"] = pd.Timestamp.now().isoformat()
 
-        save_success = save_json_file(profile_file, updated_profile)
+        save_success = save_json_file(profile_file, profile_out.model_dump())
         if not save_success:
             logger.error(f"Failed to save profile for user_{user_id}")
-            return {
-                "error": "failed to save profile",
-                "logs": ["memory_write: ERROR - failed to save profile"],
-            }
+            return CensusGraphPatch(
+                error="failed to save profile",
+                logs=["memory_write: ERROR - failed to save profile"],
+            ).as_langgraph_update()
 
-        # 4. Save cache index
+        cache_doc_out = CacheIndexFileV2(entries=as_json_map(state.cache_index))
         cache_index_file = memory_dir / f"cache_index_{user_id}.json"
-        cache_success = save_json_file(cache_index_file, cache_index)
+        cache_success = save_json_file(cache_index_file, cache_doc_out.model_dump())
         if not cache_success:
             logger.error(f"Failed to save cache index for user_{user_id}")
-            return {
-                "error": "failed to save cache index",
-                "logs": ["memory_write: ERROR - failed to save cache index"],
-            }
+            return CensusGraphPatch(
+                error="failed to save cache index",
+                logs=["memory_write: ERROR - failed to save cache index"],
+            ).as_langgraph_update()
 
-        # 5. Enforce retention policies
         enforce_retention_policies(profile_file, cache_index_file, user_id)
 
         log_entry = f"memory_write: saved profile and {len(history)} history entries for user_{user_id}"
 
-        return {
-            "profile": updated_profile,
-            "cache_index": cache_index,
-            "logs": [log_entry],
-        }
+        return CensusGraphPatch(
+            profile=memory_profile_to_state_profile(profile_out),
+            cache_index=cache_index_for_state(cache_doc_out),
+            logs=[log_entry],
+        ).as_langgraph_update()
 
     except Exception as e:
         logger.error(f"Error writing memory for user {user_id}: {str(e)}")
-        return {
-            "error": f"Error writing memory: {str(e)}",
-            "logs": [f"memory_write: ERROR - {str(e)}"],
-        }
+        return CensusGraphPatch(
+            error=f"Error writing memory: {str(e)}",
+            logs=[f"memory_write: ERROR - {str(e)}"],
+        ).as_langgraph_update()

@@ -1,5 +1,3 @@
-from typing import Any
-
 from langchain_core.runnables import RunnableConfig
 
 from src.domain.comparison_metric_contract import (
@@ -8,15 +6,13 @@ from src.domain.comparison_metric_contract import (
 )
 from src.services.comparison_metric_compute import compute_comparison_metrics
 from src.state.types import CensusState, WorkflowArtifactsState
+from src.workflows.graph_patch import CensusGraphPatch
 
 
 def _extract_comparison_rows(state: CensusState) -> list[ComparisonInputRow]:
     """
-    Expected wired input contract from upstream tools/agent:
-      state.artifacts["comparison_input_rows"] = [
-        {"year": 2020, "geo_id": "10001", "metric": "population", "value": 10.0, "benchmark_value": 8.0},
-        ...
-      ]
+    Expected wired input contract from upstream tools/agent: typed
+    `ComparisonInputRow` objects in `state.artifacts.comparison_input_rows`.
     """
     raw_rows = state.artifacts.comparison_input_rows if state.artifacts else []
     rows: list[ComparisonInputRow] = []
@@ -27,30 +23,36 @@ def _extract_comparison_rows(state: CensusState) -> list[ComparisonInputRow]:
 
 def comparison_metrics_node(
     state: CensusState, config: RunnableConfig
-) -> dict[str, Any]:
+) -> dict[str, object]:
     plan_obj = state.plan
     if plan_obj and plan_obj.requires_clarification:
-        return {"logs": ["comparison_metrics: skipped (clarification required)"]}
+        return CensusGraphPatch(
+            logs=["comparison_metrics: skipped (clarification required)"],
+        ).as_langgraph_update()
 
     comparison_plan = plan_obj.comparison if plan_obj else None
     if not comparison_plan:
-        return {"logs": ["comparison_metrics: skipped (no comparison plan)"]}
+        return CensusGraphPatch(
+            logs=["comparison_metrics: skipped (no comparison plan)"],
+        ).as_langgraph_update()
 
     try:
         rows = _extract_comparison_rows(state)
     except Exception as exc:
-        return {
-            "logs": ["comparison_metrics: failed (invalid comparison rows)"],
-            "error": f"comparison_metrics invalid rows: {exc}",
-        }
+        return CensusGraphPatch(
+            logs=["comparison_metrics: failed (invalid comparison rows)"],
+            error=f"comparison_metrics invalid rows: {exc}",
+        ).as_langgraph_update()
 
     if not rows:
-        return {"logs": ["comparison_metrics: skipped (no comparison input rows)"]}
+        return CensusGraphPatch(
+            logs=["comparison_metrics: skipped (no comparison input rows)"],
+        ).as_langgraph_update()
 
     request = ComparisonMetricComputeRequest(plan=comparison_plan, rows=rows)
     metric_rows = compute_comparison_metrics(request)
 
-    return {
-        "artifacts": WorkflowArtifactsState(comparison_metrics=metric_rows),
-        "logs": [f"comparison_metrics: computed {len(metric_rows)} rows"],
-    }
+    return CensusGraphPatch(
+        artifacts=WorkflowArtifactsState(comparison_metrics=metric_rows),
+        logs=[f"comparison_metrics: computed {len(metric_rows)} rows"],
+    ).as_langgraph_update()

@@ -1,5 +1,6 @@
 import logging
-from typing import Type
+import json
+from typing import Any, Type
 
 from langchain.callbacks.manager import (
     AsyncCallbackManagerForToolRun,
@@ -30,6 +31,18 @@ class StrictCensusApiTool(BaseTool):
     )
     args_schema: Type[BaseModel] = StrictCensusApiRequest
 
+    def _parse_input(
+        self, tool_input: str | dict[str, Any], tool_call_id: str | None
+    ) -> str | dict[str, Any]:
+        if isinstance(tool_input, str):
+            try:
+                parsed = json.loads(tool_input)
+            except json.JSONDecodeError:
+                return tool_input
+            if isinstance(parsed, dict):
+                return parsed
+        return tool_input
+
     def _error_response(
         self,
         request: StrictCensusApiRequest | None,
@@ -59,16 +72,32 @@ class StrictCensusApiTool(BaseTool):
         )
         return payload
 
+    def _coerce_request(
+        self,
+        tool_input: StrictCensusApiRequest | dict[str, Any] | None = None,
+        **kwargs: Any,
+    ) -> StrictCensusApiRequest:
+        if kwargs:
+            if tool_input is None:
+                tool_input = kwargs
+            elif isinstance(tool_input, dict):
+                tool_input = {**tool_input, **kwargs}
+            elif isinstance(tool_input, StrictCensusApiRequest):
+                tool_input = tool_input.model_copy(update=kwargs)
+
+        return StrictCensusApiRequest.model_validate(tool_input)
+
     def _run(
         self,
-        tool_input: StrictCensusApiRequest,
+        tool_input: StrictCensusApiRequest | dict[str, Any] | None = None,
         run_manager: CallbackManagerForToolRun | None = None,
+        **kwargs: Any,
     ) -> StrictCensusApiResponse:
         request_obj: StrictCensusApiRequest | None = None
 
         # 1) Validate request through strict typed contract only
         try:
-            request_obj = StrictCensusApiRequest.model_validate(tool_input)
+            request_obj = self._coerce_request(tool_input, **kwargs)
         except ValidationError as exc:
             return self._error_response(
                 request=None,
@@ -173,8 +202,9 @@ class StrictCensusApiTool(BaseTool):
 
     async def _arun(
         self,
-        tool_input: StrictCensusApiRequest,
+        tool_input: StrictCensusApiRequest | dict[str, Any] | None = None,
         run_manager: AsyncCallbackManagerForToolRun | None = None,
+        **kwargs: Any,
     ) -> StrictCensusApiResponse:
         # Keep async contract; sync execution is deterministic and already validated.
-        return self._run(tool_input)
+        return self._run(tool_input, **kwargs)

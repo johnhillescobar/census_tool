@@ -110,15 +110,36 @@
   - deterministic planning/service subset passes (`20 passed`)
   - `src/workflows/agent.py` no longer contains the previously documented footnote `model_dump()` bridge
   - `streamlit_app.py` now validates `CensusState` and renders through typed `FinalResponseState` / `WorkflowArtifactsState` paths instead of reading the previously listed dead final-state keys
-- Still Pending:
+- Still Pending (post-2026-05-04; several items closed in Track 2C/2D — see **`2026-05-12` Review Refresh**):
   - most non-planning `CensusState` channels remain loose (`messages`, `intent`, `geo`, `candidates`, `profile`, `history`, `cache_index`)
   - `TemporalIntent` rolling mode still has placeholder validation
   - strict Census tool observations can override LLM-restated `census_data`, but direct parsed-output validation still needs tightening so malformed LLM-restated data cannot block the authoritative tool payload path
-  - output render failures are still logged rather than surfaced through typed failure artifacts
-  - memory persistence is still legacy/untyped and lacks versioned schema migration evidence
-  - the `mypy` dev-tooling addition still needs an explicit Track 2 freeze-policy decision
+  - ~~output render failures are still logged rather than surfaced through typed failure artifacts~~ **→ closed Track 2C:** typed `RENDER_EXCEPTION` / `NO_TABULAR_DATA` artifacts ([`track2c_closeout.md`](../track2_progress_20260511/track2c_closeout.md))
+  - ~~memory persistence …~~ **→ closed Track 2C (bounded):** `UserMemoryFileV2` / `CacheIndexFileV2` ([`track2c_closeout.md`](../track2_progress_20260511/track2c_closeout.md))
+  - ~~the `mypy` … freeze-policy …~~ **→ closed Track 2D:** dev-only exception + scoped gate ([`track2d_tooling_governance.md`](../track2_progress_20260511/track2d_tooling_governance.md))
 - Current Evidence:
   - `migration_evidence/track2_progress_20260504/track2_evidence_refresh.md`
+
+## Review Refresh
+- Refresh Date: 2026-05-11
+- **Historical diagnostics:** [`tool_invocation_boundary_analysis.md`](../track2_progress_20260511/tool_invocation_boundary_analysis.md) captured **pre-fix** gaps between `_run(payload)` coverage and real LangChain `invoke` behavior. Alignment + tests landed the same sprint; **`track2b_closeout.md` is the authoritative close** for runtime-boundary tooling.
+- New Evidence linked from this sprint:
+  - `migration_evidence/track2_progress_20260511/tool_invocation_boundary_analysis.md`
+  - `migration_evidence/track2_progress_20260511/track2b_closeout.md`
+- Track 2B **closed `2026-05-11`** with:
+  - public `tool.invoke({...})` tests for checked planning-critical structured tools (`args_schema`-aligned payloads)
+  - structured tool signature alignment with LangChain keyword invocation
+  - parser-recovery regression coverage so a prior tool observation cannot be reinterpreted as the next structured tool request (`validate_geography_params` boundary)
+  - planning downgrade audit + state-channel classification evidence cited in Track 2B closeout
+- Track **2C / 2D** closures for output/persistence tooling are summarized in **`2026-05-12` Review Refresh** below (`track2c_closeout.md`, `track2d_closeout.md`).
+
+## Review Refresh
+- Refresh Date: 2026-05-12
+- Decision Update: **Deterministic Track 2 umbrella gates 2A–2D are closed.** Next track: **Track 3 — Provenance Enforcement** (see [`SPEC.md`](../../SPEC.md)).
+- Closure evidence (by gate):
+  - 2C: [`migration_evidence/track2_progress_20260511/track2c_closeout.md`](../track2_progress_20260511/track2c_closeout.md)
+  - 2D: [`migration_evidence/track2_progress_20260511/track2d_closeout.md`](../track2_progress_20260511/track2d_closeout.md) and [`track2d_tooling_governance.md`](../track2_progress_20260511/track2d_tooling_governance.md)
+- Note: Original baseline run artifacts in [Run Info](#run-info) remain **2026-03-07**; this refresh updates **migration status** only.
 
 ## Track 2 Split
 - Split Date: 2026-05-04
@@ -127,30 +148,32 @@
   not one practical finish line.
 - Gates:
   - Track 2A - Deterministic Planning Complete: closed 2026-05-04
-  - Track 2B - Typed Workflow State
-  - Track 2C - Output, UI, And Persistence Hardening
-  - Track 2D - Tooling And Governance
-- Rule: each gate may be reviewed and closed independently, but full Track 2
-  exit still requires all four gates to satisfy the non-negotiable contract
-  rules.
-- Track 2A evidence:
+  - Track 2B - Typed Workflow State: closed 2026-05-11
+  - Track 2C - Output, UI, And Persistence Hardening: closed 2026-05-11
+  - Track 2D - Tooling And Governance: closed 2026-05-12
+- Closed evidence:
+  - 2C: [`migration_evidence/track2_progress_20260511/track2c_closeout.md`](../track2_progress_20260511/track2c_closeout.md)
+  - 2D: [`migration_evidence/track2_progress_20260511/track2d_closeout.md`](../track2_progress_20260511/track2d_closeout.md)
+- Rule: all four gates reviewed and closed independently; umbrella status summarized in **2026-05-12** refresh above.
+- Track 2A evidence (historical):
   `migration_evidence/track2_progress_20260504/track2a_closeout.md`
 
-## Track 2 Gate Focus
-- Contract consistency remains partial because validated objects are still flattened into generic dict channels in workflow state.
-- Deterministic planning artifacts exist, but end-to-end typed state preservation does not.
-- Most `CensusState` channels (`messages`, `intent`, `geo`, `plan`, `artifacts`, `final`, `profile`, `history`, `cache_index`) still need explicit strict Pydantic ownership decisions.
-- Output/UI helpers are partially typed but still expose compatibility adapters; memory persistence still assumes dict/list payloads. Both remain part of the Track 2 hardening surface.
-- Derived comparison math is isolated into deterministic service-only paths for supported metrics, but workflow/state integration is not yet fully typed.
-- Canonical temporal/benchmark suite and repeated-input determinism checks are still incomplete at full workflow/state level.
+## Track 2 Gate Focus *(post-closeout — 2026-05-12 + 2E refresh)*
+
+- **Track 2 complete (2A–2D)** for bounded scope documented in respective closeouts.
+- **Track 2E — raw JSON channel closure (2026-05-12)** addresses the `T2-CG-011` **bag-of-dict** surfaces on `CensusState` persistence/planning edges using `JsonMap`, `ConversationMessage`, and `CensusGraphPatch`. Residual work: replace JSON bags with richer domain models subsystem-by-subsystem and drive the `scripts/track2_raw_dict_audit.py` baseline down over time.
+- **Public `tool.invoke({...})`** remains required regression evidence per [`track2d_tooling_governance.md`](../track2_progress_20260511/track2d_tooling_governance.md).
 
 ## Track 2 Evidence Index
 - Contract gaps (Track 2): `contract_gap_register.md`
 - Ownership map (Track 2): `ownership_decomposition_map.md`
 - Todo and policy sync: `track2_todo_status.md`
+- Loose dict inventory: `track2_loose_dict_inventory_20260408.md`
+- Latest Track 2D governance:
+  [`migration_evidence/track2_progress_20260511/track2d_closeout.md`](../track2_progress_20260511/track2d_closeout.md)
 
 ## Track 2 Constraints
 - No dependency upgrades in this track.
 - No provenance gate enforcement changes in this track (belongs to Track 3).
 - No runtime/API modernization in this track (belongs to Track 4).
-- If strict state migration requires a dev-only tooling exception (for example `mypy`), that exception must be recorded explicitly rather than treated as an implicit Track 2 dependency change.
+- If strict state migration requires a dev-only tooling exception (for example `mypy`), **it is explicitly recorded under Track 2D**: [`migration_evidence/track2_progress_20260511/track2d_tooling_governance.md`](../track2_progress_20260511/track2d_tooling_governance.md)

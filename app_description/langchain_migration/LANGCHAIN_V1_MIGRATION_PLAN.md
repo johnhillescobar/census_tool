@@ -4,6 +4,8 @@
 **Status**: Planning Document  
 **Purpose**: Step-by-step plan to migrate from LangChain v0.3.27 to LangChain v1.0
 
+> **Repository layout note (2026):** This plan was written against older paths. The agent now lives at `src/agents/census_query_agent.py` (not `src/utils/agents/`). LangGraph nodes live under `src/workflows/` (not `src/nodes/`). Update mentally when following file references below.
+
 ---
 
 ## Quick Reference Checklist

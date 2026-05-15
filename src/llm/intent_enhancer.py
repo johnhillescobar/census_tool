@@ -1,8 +1,10 @@
 import json
 import logging
 from typing import Any
+
 from dotenv import load_dotenv
 
+from src.domain.strict_json import JsonMap, as_json_map
 from .config import (
     LLM_CONFIG,
     INTENT_PROMPT_TEMPLATE,
@@ -154,17 +156,23 @@ def build_data_summary(
 def generate_llm_answer(
     user_question: str,
     data_summary: str,
-    geo_context: dict[str, Any],
-    intent: dict[str, Any],
+    geo_context: JsonMap,
+    intent: JsonMap,
 ) -> str | None:
     """Generate natural language answer using LLM"""
 
+    geo_context = as_json_map(geo_context)
+    intent = as_json_map(intent)
+
     # Extract answer_type from intent
-    answer_type = intent.get("answer_type", "single")
+    at_raw = intent.root.get("answer_type", "single")
+    answer_type = at_raw if isinstance(at_raw, str) else "single"
 
     # Format geographic context
-    geo_level = geo_context.get("level", "Unknown")
-    geo_name = geo_context.get("name", "Unknown")
+    gl_raw = geo_context.root.get("level", "Unknown")
+    geo_level = gl_raw if isinstance(gl_raw, str) else str(gl_raw)
+    gn_raw = geo_context.root.get("name", "Unknown")
+    geo_name = gn_raw if isinstance(gn_raw, str) else str(gn_raw)
     geo_text = f"{geo_level} level data for {geo_name}"
 
     # Build prompt with answer_type

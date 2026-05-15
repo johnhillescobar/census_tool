@@ -1,12 +1,11 @@
-from typing import Any
-
 from langchain_core.runnables import RunnableConfig
 
 from src.services.temporal_policy import resolve_temporal_intent
 from src.state.types import CensusState, FinalResponseState, WorkflowPlanState
+from src.workflows.graph_patch import CensusGraphPatch
 
 
-def temporal_node(state: CensusState, config: RunnableConfig) -> dict[str, Any]:
+def temporal_node(state: CensusState, config: RunnableConfig) -> dict[str, object]:
     """Workflow to resolve the temporal intent.
 
     Args:
@@ -16,30 +15,30 @@ def temporal_node(state: CensusState, config: RunnableConfig) -> dict[str, Any]:
         A TemporalResolution object.
     """
 
-    user_question = state.messages[-1]["content"]
+    user_question = state.messages[-1].content
     temporal_resolution = resolve_temporal_intent(user_question)
 
     if temporal_resolution.status == "clarification_required":
         prompt = temporal_resolution.clarification_prompt
         option_lines = [f"{o.option_id}: {o.label}" for o in prompt.options]
         clarification_text = f"{prompt.question_text}\n" + "\n".join(option_lines)
-        return {
-            "plan": WorkflowPlanState(
+        return CensusGraphPatch(
+            plan=WorkflowPlanState(
                 temporal=temporal_resolution,
                 requires_clarification=True,
             ),
-            "final": FinalResponseState(
+            final=FinalResponseState(
                 answer_text=clarification_text,
             ),
-            "logs": [
+            logs=[
                 f"temporal: clarification required ({temporal_resolution.reason_code})"
             ],
-        }
+        ).as_langgraph_update()
 
-    return {
-        "plan": WorkflowPlanState(
+    return CensusGraphPatch(
+        plan=WorkflowPlanState(
             temporal=temporal_resolution,
             requires_clarification=False,
         ),
-        "logs": ["temporal: resolved"],
-    }
+        logs=["temporal: resolved"],
+    ).as_langgraph_update()

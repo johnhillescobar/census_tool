@@ -5,7 +5,7 @@ Test script for memory_load_node
 import logging
 from langchain_core.runnables import RunnableConfig
 from src.workflows.memory import memory_load_node
-from src.state.types import CensusState
+from src.state.types import CensusState, WorkflowArtifactsState
 
 # Set up logging
 logging.basicConfig(
@@ -24,7 +24,7 @@ def test_memory_load_node():
         geo={},
         candidates={},
         plan=None,
-        artifacts={},
+        artifacts=WorkflowArtifactsState(),
         final=None,
         logs=[],
         error=None,
@@ -46,7 +46,9 @@ def test_memory_load_node():
     print("Result:")
     print(f"Profile: {result.get('profile', {})}")
     print(f"History: {len(result.get('history', []))}")
-    print(f"Cache Index: {len(result.get('cache_index', []))}")
+    ci = result.get("cache_index")
+    cache_len = len(ci) if isinstance(ci, dict) else (len(ci.root) if ci else 0)
+    print(f"Cache Index entries: {cache_len}")
     print(f"Logs: {result.get('logs', [])}")
 
     # Assertions for pytest

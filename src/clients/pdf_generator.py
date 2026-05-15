@@ -24,7 +24,12 @@ import logging
 from src.domain.census_tool_contract import (
     StrictCensusApiResponse,
 )
-from src.domain.rendered_output_contract import RenderedArtifact, FootnoteItem
+from src.domain.rendered_output_contract import (
+    FootnoteItem,
+    GeneratedFileArtifact,
+    RenderedArtifactFailure,
+    RenderedArtifactSuccess,
+)
 from src.services.census_render_adapter import response_to_tabular_payload
 from src.state.types import FinalResponseState, WorkflowArtifactsState
 
@@ -55,19 +60,30 @@ class PdfConversationEntry(BaseModel):
     result: PdfConversationResult | None = None
 
 
-def _coerce_rendered_artifacts(value: Any) -> list[RenderedArtifact]:
+def _coerce_rendered_artifacts(value: Any) -> list[GeneratedFileArtifact]:
     if not isinstance(value, list):
         return []
 
-    artifacts: list[RenderedArtifact] = []
+    artifacts: list[GeneratedFileArtifact] = []
 
     for item in value:
         try:
-            if isinstance(item, RenderedArtifact):
+            if isinstance(item, (RenderedArtifactSuccess, RenderedArtifactFailure)):
                 artifacts.append(item)
 
             elif isinstance(item, dict):
-                artifacts.append(RenderedArtifact.model_validate(item))
+                d = dict(item)
+                if (
+                    d.get("status") is None
+                    and d.get("kind") in ("chart", "table")
+                    and "path" in d
+                    and "error_code" not in d
+                ):
+                    d["status"] = "success"
+                if d.get("status") == "failure":
+                    artifacts.append(RenderedArtifactFailure.model_validate(d))
+                else:
+                    artifacts.append(RenderedArtifactSuccess.model_validate(d))
 
         except Exception as exc:
             logger.warning(
@@ -327,6 +343,18 @@ def generate_session_pdf(
         tables_processed = 0
 
         for artifact in generated_files:
+            if isinstance(artifact, RenderedArtifactFailure):
+                fail_title = artifact.title or artifact.kind
+                story.append(Paragraph("<b>📊 Render artifact (failed):</b>", styles["Normal"]))
+                story.append(
+                    Paragraph(
+                        f"⚠️ {fail_title} ({artifact.error_code}): {artifact.message}",
+                        meta_style,
+                    )
+                )
+                story.append(Spacer(1, 8))
+                continue
+
             artifact_path = Path(artifact.path)
 
             if artifact.kind == "chart":

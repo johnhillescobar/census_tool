@@ -9,6 +9,7 @@ from typing import Any, cast
 
 import main
 from app import create_census_graph
+from src.domain.strict_json import ConversationMessage, JsonMap
 from src.state.types import CensusState, WorkflowArtifactsState
 
 
@@ -57,17 +58,18 @@ def test_census_state_creation():
     """Test that CensusState can be created with messages field"""
     print("Testing CensusState creation...")
 
+    msg_text = "What's the population of New York City?"
     # 1. Create CensusState with messages field
     state = CensusState(
         messages=[
-            {"role": "user", "content": "What's the population of New York City?"}
+            ConversationMessage(role="user", content=msg_text),
         ],
-        original_query="What's the population of New York City?",
+        original_query=msg_text,
         intent=None,
         geo={},
         candidates={},
         plan=None,
-        artifacts={},
+        artifacts=WorkflowArtifactsState(),
         final=None,
         logs=[],
         error=None,
@@ -76,25 +78,28 @@ def test_census_state_creation():
         history=[],
         cache_index={},
     )
-    # 2. Verify it works using attribute access
-    assert state.messages == [
-        {"role": "user", "content": "What's the population of New York City?"}
-    ]
+    # 2. Verify it works using attribute access (typed envelopes)
+    assert len(state.messages) == 1
+    assert state.messages[0].role == "user"
+    assert state.messages[0].content == msg_text
     assert state.intent is None
-    assert state.geo == {}
-    assert state.candidates == {}
+    assert isinstance(state.geo, JsonMap)
+    assert state.geo.root == {}
+    assert isinstance(state.candidates, JsonMap)
     assert state.plan is None
     assert state.artifacts == WorkflowArtifactsState()
     assert state.final is None
     assert state.logs == []
 
-    # 3. Verify the field is accessible
-    # Test that we can read and write to the fields
-    state.intent = {"test": "data"}  # ← Test writing
-    assert state.intent["test"] == "data"  # ← Test reading
+    # 3. Read / write typed map channels + intent (JsonMap-backed)
+    state.intent = {"test": "data"}
+    assert state.intent is not None
+    assert state.intent.root["test"] == "data"
 
-    state.geo["level"] = "place"  # ← Test writing to nested field
-    assert state.geo["level"] == "place"  # ← Test reading from nested field
+    geo = JsonMap.model_validate(dict(state.geo.root))
+    geo.root["level"] = "place"
+    state.geo = geo
+    assert state.geo.root["level"] == "place"
 
     print("✅ CensusState creation test passed!")
 
@@ -141,7 +146,7 @@ def test_error_handling():
             geo={},
             candidates={},
             plan=None,
-            artifacts={},
+            artifacts=WorkflowArtifactsState(),
             final=None,
             logs=[],
             error=None,
@@ -197,13 +202,15 @@ def test_census_state_field_types():
     print("Testing CensusState field types...")
 
     state = CensusState(
-        messages=[{"role": "user", "content": "test"}],
+        messages=[
+            ConversationMessage(role="user", content="test"),
+        ],
         original_query="test",
         intent=None,
         geo={},
         candidates={},
         plan=None,
-        artifacts={},
+        artifacts=WorkflowArtifactsState(),
         final=None,
         logs=[],
         error=None,
@@ -215,7 +222,7 @@ def test_census_state_field_types():
 
     # Test field types
     assert isinstance(state.messages, list), "messages should be a list"
-    assert isinstance(state.geo, dict), "geo should be a dict"
+    assert isinstance(state.geo, JsonMap), "geo should be a JsonMap"
     assert isinstance(state.logs, list), "logs should be a list"
     assert state.intent is None, "intent should be None"
     assert state.plan is None, "plan should be None"
