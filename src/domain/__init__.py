@@ -49,6 +49,7 @@ from .agent_output_contract import (
     AgentPlanOutput,
     CensusDataPayload,
     is_placeholder_geo_id,
+    plan_uses_placeholder_geos,
     validate_comparison_rows_for_plan,
 )
 
@@ -92,5 +93,6 @@ __all__ = [
     "AgentPlanOutput",
     "CensusDataPayload",
     "is_placeholder_geo_id",
+    "plan_uses_placeholder_geos",
     "validate_comparison_rows_for_plan",
 ]

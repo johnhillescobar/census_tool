@@ -164,6 +164,42 @@ def test_build_comparison_input_rows_fail_closed_missing_national_benchmark():
         )
 
 
+def test_build_comparison_input_rows_resolves_placeholder_subject_geos():
+    plan = ComparisonPlan(
+        query_years=[2020],
+        dataset="acs/acs5",
+        metric="population",
+        subject_geo_level="county",
+        subject_geos=["subject:unknown"],
+        benchmark_geo_level="county",
+        benchmark_geos=["peer:1", "peer:2"],
+        comparison_op="difference",
+        normalization="none",
+        missing_year_policy="skip_with_note",
+        derived_metrics=["difference"],
+        join_keys=["year", "geo_id"],
+        requested_text="compare counties in California",
+    )
+    observations = [
+        ComparisonCensusObservation(
+            year=2020, geo_id="06001", metric="population", value=100.0
+        ),
+        ComparisonCensusObservation(
+            year=2020, geo_id="06037", metric="population", value=200.0
+        ),
+        ComparisonCensusObservation(
+            year=2020, geo_id="06073", metric="population", value=150.0
+        ),
+    ]
+
+    rows = build_comparison_input_rows(
+        ComparisonInputRowBuildRequest(plan=plan, observations=observations)
+    )
+
+    assert len(rows) == 3
+    assert {row.geo_id for row in rows} == {"06001", "06037", "06073"}
+
+
 def test_build_comparison_input_rows_deterministic_rerun():
     plan = _build_peer_group_plan()
     observations = [

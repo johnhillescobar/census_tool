@@ -47,7 +47,11 @@ def agent_reasoning_node(state: CensusState, config: RunnableConfig) -> dict[str
     else:
         plan_log = "agent: plan context attached (temporal only)"
 
-    comparison_plan = plan_context.comparison if plan_context is not None else None
+    comparison_plan = (
+        plan_context.comparison
+        if plan_context is not None
+        else (state.plan.comparison if state.plan is not None else None)
+    )
 
     agent = CensusQueryAgent()
     result = agent.solve(

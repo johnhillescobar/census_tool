@@ -87,3 +87,44 @@ def test_rejects_year_outside_plan():
     ]
     with pytest.raises(ValueError, match="row year is outside plan.query_years"):
         validate_comparison_rows_for_plan(rows, _build_plan())
+
+
+def _build_placeholder_plan() -> ComparisonPlan:
+    return ComparisonPlan(
+        query_years=[2020],
+        dataset="acs/acs5",
+        metric="population",
+        subject_geo_level="county",
+        subject_geos=["subject:unknown"],
+        benchmark_geo_level="county",
+        benchmark_geos=["peer:1", "peer:2"],
+        comparison_op="difference",
+        normalization="none",
+        missing_year_policy="skip_with_note",
+        derived_metrics=["difference"],
+        join_keys=["year", "geo_id"],
+        requested_text="compare counties",
+    )
+
+
+def test_accepts_resolved_geos_when_plan_uses_placeholders():
+    rows = [
+        ComparisonInputRow(
+            year=2020,
+            geo_id="06001",
+            metric="population",
+            value=100.0,
+            benchmark_value=90.0,
+        ),
+        ComparisonInputRow(
+            year=2020,
+            geo_id="06037",
+            metric="population",
+            value=200.0,
+            benchmark_value=150.0,
+        ),
+    ]
+
+    validated = validate_comparison_rows_for_plan(rows, _build_placeholder_plan())
+
+    assert len(validated) == 2

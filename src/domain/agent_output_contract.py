@@ -15,6 +15,13 @@ def is_placeholder_geo_id(geo_id: str) -> bool:
     return geo_id.startswith("subject:")
 
 
+def plan_uses_placeholder_geos(plan: ComparisonPlan) -> bool:
+    """Return True when the comparison plan still has unresolved geo placeholders."""
+    return any(is_placeholder_geo_id(geo_id) for geo_id in plan.subject_geos) or any(
+        is_placeholder_geo_id(geo_id) for geo_id in plan.benchmark_geos
+    )
+
+
 class CensusDataPayload(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -56,7 +63,10 @@ def validate_comparison_rows_for_plan(
             raise ValueError("row metric does not match plan.metric")
         if row.year not in plan.query_years:
             raise ValueError("row year is outside plan.query_years")
-        if row.geo_id not in plan.subject_geos:
+        if (
+            not plan_uses_placeholder_geos(plan)
+            and row.geo_id not in plan.subject_geos
+        ):
             raise ValueError("row geo_id is outside plan.subject_geos")
         if is_placeholder_geo_id(row.geo_id):
             raise ValueError(
