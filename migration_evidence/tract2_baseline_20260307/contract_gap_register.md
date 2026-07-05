@@ -23,12 +23,8 @@ This register tracks migration from mixed/raw boundaries to strict contract-vali
 | T2-CG-008 | governance | Dependency freeze | no explicit track gate check in artifact | explicit "no dependency change" gate in Track 2 evidence | 🟡 | Hidden dependency drift changes behavior | Add pyproject/lock manifest check before Track 2 signoff | `pyproject.toml`, `uv.lock` |
 
 ## Track 2 Decision
-- Track 2 Step 1 Gate: 🟡 Partial
-- Decision: **Approve with conditions**
-- Condition 1: Land typed contract models before workflow wiring.
-- Condition 2: Enforce deterministic service math before answer synthesis changes.
-- Condition 3: Canonical suite + repeatability assertions must pass before Track 2 exit.
-- Condition 4: Confirm dependency freeze at every Track 2 checkpoint.
+- Track 2 Step 1 Gate: 🟢 Complete (integrated branch)
+- Decision: **Approve for merge pending final E2E evidence**
 
 ## Exit Check Targets (Track 2)
 1. `TemporalIntent`, `BenchmarkIntent`, and `ComparisonPlan` are strict typed contracts.

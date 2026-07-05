@@ -1,12 +1,15 @@
 from unittest.mock import patch
 
+from src.domain.benchmark_contract import BenchmarkIntent, BenchmarkResolved
 from src.domain.comparison_artifacts import ComparisonInputRow
 from src.domain.comparison_plan import ComparisonPlan
+from src.domain.temporal_contract import TemporalIntent, TemporalResolved
 from src.state.types import CensusState
+from src.state.workflow_plan import WorkflowPlan
 from src.workflows.agent import agent_reasoning_node
 
 
-def _build_comparison_plan_dict() -> dict:
+def _build_comparison_plan() -> ComparisonPlan:
     return ComparisonPlan(
         query_years=[2020],
         dataset="acs/acs5",
@@ -21,13 +24,36 @@ def _build_comparison_plan_dict() -> dict:
         derived_metrics=["difference"],
         join_keys=["year", "geo_id"],
         requested_text="compare counties",
-    ).model_dump()
+    )
 
 
 def _build_state(*, with_comparison_plan: bool) -> CensusState:
-    plan = {"requires_clarification": False}
-    if with_comparison_plan:
-        plan["comparison"] = _build_comparison_plan_dict()
+    temporal = TemporalResolved(
+        time=TemporalIntent(
+            mode="point_in_time",
+            anchor_year=2020,
+            requested_text="Compare county population",
+        )
+    )
+    benchmark = BenchmarkResolved(
+        benchmark=BenchmarkIntent(
+            benchmark_type="peer_group",
+            metric="population",
+            subject_geo_level="county",
+            subject_geo=["10001", "10002", "10003"],
+            benchmark_geo_level="county",
+            benchmark_geos=["10001", "10002", "10003"],
+            comparison_op="difference",
+            normalization="none",
+            requested_text="compare counties",
+        )
+    )
+    plan = WorkflowPlan(
+        temporal=temporal,
+        benchmark=benchmark,
+        comparison=_build_comparison_plan() if with_comparison_plan else None,
+        requires_clarification=False,
+    )
 
     return CensusState(
         messages=[{"role": "user", "content": "Compare county population"}],
@@ -80,7 +106,7 @@ def test_agent_does_not_emit_comparison_input_rows_without_plan(mock_agent_cls):
 def test_agent_skips_when_clarification_required():
     state = CensusState(
         messages=[{"role": "user", "content": "Compare population"}],
-        plan={"requires_clarification": True},
+        plan=WorkflowPlan(requires_clarification=True),
     )
 
     result = agent_reasoning_node(state, config={})

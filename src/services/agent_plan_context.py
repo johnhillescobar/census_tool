@@ -1,9 +1,9 @@
 import logging
 
 from src.domain.agent_plan_context import AgentPlanContext
-from src.domain.benchmark_contract import BenchmarkClarificationRequired, BenchmarkResolved
+from src.domain.benchmark_contract import BenchmarkClarificationRequired
 from src.domain.comparison_plan import ComparisonPlan
-from src.domain.temporal_contract import TemporalClarificationRequired, TemporalResolved
+from src.domain.temporal_contract import TemporalClarificationRequired
 from src.state.workflow_plan import BenchmarkNotApplicable, WorkflowPlan
 
 logger = logging.getLogger(__name__)
