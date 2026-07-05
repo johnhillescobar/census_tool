@@ -18,6 +18,7 @@ from .conversation_summarizer import (
 )
 from .temporal_policy import resolve_temporal_intent
 from .benchmark_policy import resolve_benchmark_intent
+from .benchmark_geo_inference import infer_geo_context, build_state_geo_ids
 from .comparison_plan_policy import resolve_comparison_plan
 
 __all__ = [
@@ -35,5 +36,7 @@ __all__ = [
     "summarize_conversation",
     "resolve_temporal_intent",
     "resolve_benchmark_intent",
+    "infer_geo_context",
+    "build_state_geo_ids",
     "resolve_comparison_plan",
 ]

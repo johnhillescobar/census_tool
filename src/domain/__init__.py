@@ -42,6 +42,7 @@ from .comparison_plan import (
     CensusDataset,
     DerivedMetric,
 )
+from .benchmark_geo_inference import DetectedGeoContext
 
 __all__ = [
     "extract_years",
@@ -77,4 +78,5 @@ __all__ = [
     "ComparisonPlan",
     "CensusDataset",
     "DerivedMetric",
+    "DetectedGeoContext",
 ]

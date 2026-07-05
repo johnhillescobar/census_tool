@@ -1,6 +1,8 @@
-from src.services import resolve_benchmark_intent
-from src.domain.benchmark_contract import BenchmarkIntent
 import pytest
+
+from src.domain.benchmark_contract import BenchmarkIntent
+from src.services import resolve_benchmark_intent
+
 
 def test_conflict_requires_clarification():
     result = resolve_benchmark_intent(
@@ -115,3 +117,25 @@ def test_historical_baseline_rejected_path():
             normalization="none",
             requested_text="compare population counties",
         )
+
+
+def test_named_states_compare_resolves_without_clarification():
+    result = resolve_benchmark_intent("Compare California vs Texas population in 2020")
+    assert result.status == "resolved"
+    assert isinstance(result.benchmark.benchmark_type, str)
+
+
+def test_named_states_compare_uses_custom_set():
+    result = resolve_benchmark_intent("Compare California vs Texas population in 2020")
+    assert result.status == "resolved"
+    assert result.benchmark.benchmark_type == "custom_set"
+    assert result.benchmark.benchmark_geo_level == "state"
+    assert set(result.benchmark.benchmark_geos) == {"state:06", "state:48"}
+    assert set(result.benchmark.subject_geo) == {"state:06", "state:48"}
+
+
+def test_existing_county_keyword_still_resolves():
+    result = resolve_benchmark_intent("Compare population by county in California")
+    assert result.status == "resolved"
+    assert result.benchmark.benchmark_type == "peer_group"
+    assert result.benchmark.benchmark_geo_level == "county"

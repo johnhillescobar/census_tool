@@ -55,3 +55,10 @@ pythonpath = ["."]                  # Add to Python path
 python_files = ["test_*.py"]        # Test file patterns
 python_classes = ["Test*"]          # Test class patterns
 python_functions = ["test_*"]       # Test function patterns
+
+[tool.ruff]
+target-version = "py312"
+line-length = 127
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]
