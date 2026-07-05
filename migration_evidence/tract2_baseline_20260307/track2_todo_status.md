@@ -14,12 +14,12 @@ Source plan: `.cursor/plans/v2-track2-deterministic-planning.plan.md`
   - Deterministic services exist for temporal/benchmark resolution and comparison plan construction (`src/services/temporal_policy.py`, `src/services/benchmark_policy.py`, `src/services/comparison_plan_policy.py`).
   - Query expansion logic (`year x geo` matrix planning into `ComparisonPlan`) is implemented in `src/services/comparison_plan_policy.py`.
   - Derived comparison metric compute service is implemented in `src/services/comparison_metric_compute.py` and wired in `src/workflows/comparison_metrics.py`.
-  - Workflow wiring is partial: comparison node is wired, but typed handoff-only boundaries and workflow-level acceptance coverage are not complete.
+  - Workflow wiring is partial: typed handoff-only boundaries remain, but workflow-level acceptance coverage is now implemented.
   - Locked execution model: temporal/benchmark/comparison nodes are early clarification gates; reasoning node remains responsible for multi-step typed tool execution and synthesis directives.
 
-- `t2-canonical-suite`: in_progress
+- `t2-canonical-suite`: done
   - Service/contract tests covering clarification and resolved paths are present and passing.
-  - Full canonical acceptance coverage across workflow integration boundaries is still incomplete.
+  - Workflow-level deterministic acceptance coverage lives in `app_test_scripts/workflow_acceptance_plans.py` and `app_test_scripts/test_workflow_acceptance_plans.py` (Pydantic-typed plans, one unittest per canonical plan, ruff gate).
 
 - `t2-repeatability-tests`: done
   - Repeatability requirement is documented (same input -> same planning outputs).
@@ -32,8 +32,7 @@ Source plan: `.cursor/plans/v2-track2-deterministic-planning.plan.md`
 ## Remaining Track 2 Work
 
 1. Complete workflow integration for comparison planning with typed handoff-only boundaries (remove remaining dict-based planning artifacts in workflow path).
-2. Expand canonical suite to include workflow-level deterministic acceptance coverage.
-3. Upgrade `BenchmarkIntent.historical_baseline` from temporary fail-closed behavior to fully typed baseline contract fields and validators.
+2. Upgrade `BenchmarkIntent.historical_baseline` from temporary fail-closed behavior to fully typed baseline contract fields and validators.
 
 ## Locked Policy Decisions (Track 2)
 
@@ -54,6 +53,17 @@ Source plan: `.cursor/plans/v2-track2-deterministic-planning.plan.md`
 - Rank grouping policy:
   - Rank is valid only within homogeneous peer groups: same `year`, `metric`, `dataset`, and `geo level`.
   - If any required rank grouping input is missing, fail closed with `MISSING_RANK_GROUP_KEY`.
+
+## Verification Snapshot (2026-07-05)
+
+- Command run:
+  - `uv run pytest app_test_scripts/test_workflow_acceptance_plans.py -q`
+- Result:
+  - `11 passed`
+- Additional command run:
+  - `uv run ruff check src/domain/workflow_acceptance.py src/services/workflow_acceptance_runner.py app_test_scripts/workflow_acceptance_plans.py app_test_scripts/test_workflow_acceptance_plans.py`
+- Additional result:
+  - `All checks passed`
 
 ## Verification Snapshot (2026-03-20)
 
