@@ -1,12 +1,15 @@
 import re
 from typing import Literal, cast
 
+from pydantic import ValidationError
+
 from src.domain.benchmark_contract import (
     BenchmarkClarificationRequired,
     BenchmarkIntent,
-    BenchmarkResolved,
     BenchmarkResolution,
+    BenchmarkResolved,
 )
+from src.domain.benchmark_geo_inference import DetectedGeoContext
 from src.domain.clarification_templates import (
     BenchmarkAmbiguousTargetSlots,
     BenchmarkConflictBaselineVsPeerGroupSlots,
@@ -15,14 +18,12 @@ from src.domain.clarification_templates import (
     BenchmarkMissingMetricSlots,
     render_benchmark_clarification,
 )
-
+from src.services.benchmark_geo_inference import (
+    build_state_geo_ids,
+    infer_geo_context,
+)
 
 COMPARE_PATTERN = re.compile(r"\b(compare|vs|versus|against)\b", re.IGNORECASE)
-NATIONAL_PATTERN = re.compile(r"\b(us|u\.s\.|united states|national)\b", re.IGNORECASE)
-STATE_PATTERN = re.compile(r"\b(state|states|statewide)\b", re.IGNORECASE)
-COUNTY_PATTERN = re.compile(r"\b(county|counties)\b", re.IGNORECASE)
-PLACE_PATTERN = re.compile(r"\b(city|cities|place|places)\b", re.IGNORECASE)
-CBSA_PATTERN = re.compile(r"\b(cbsa|metro|metropolitan)\b", re.IGNORECASE)
 
 PEER_GROUP_PATTERN = re.compile(
     r"\b(peer group|peer|similar counties|similar states)\b", re.IGNORECASE
@@ -49,30 +50,44 @@ METRIC_HINTS = {
 
 def _detect_metric(text: str) -> str | None:
     """Detect the metric from the text."""
-
     text_1 = text.lower()
-
     for metric, hints in METRIC_HINTS.items():
         if any(hint in text_1 for hint in hints):
             return metric
-
     return None
 
 
-def _detect_geo_level(text: str) -> str | None:
-    """Detect geography level from user text."""
-    text_l = text.lower()
-    if NATIONAL_PATTERN.search(text_l):
-        return "nation"
-    if STATE_PATTERN.search(text_l):
-        return "state"
-    if COUNTY_PATTERN.search(text_l):
-        return "county"
-    if PLACE_PATTERN.search(text_l):
-        return "place"
-    if CBSA_PATTERN.search(text_l):
-        return "cbsa"
-    return None
+def _build_custom_set_state_benchmark(
+    ctx: DetectedGeoContext,
+    metric: str,
+    text: str,
+) -> BenchmarkIntent:
+    geo_ids = build_state_geo_ids(ctx.state_fips)
+    return BenchmarkIntent(
+        benchmark_type="custom_set",
+        subject_geo_level="state",
+        subject_geo=geo_ids,
+        benchmark_geo_level="state",
+        benchmark_geos=geo_ids,
+        metric=metric,
+        comparison_op="difference",
+        normalization="none",
+        requested_text=text,
+    )
+
+
+def _ambiguous_target_clarification(text: str) -> BenchmarkClarificationRequired:
+    clarification = render_benchmark_clarification(
+        BenchmarkAmbiguousTargetSlots(
+            reason_code="BENCHMARK_AMBIGUOUS_TARGET",
+            subject_text=text,
+        )
+    )
+    return BenchmarkClarificationRequired(
+        status="clarification_required",
+        reason_code="BENCHMARK_AMBIGUOUS_TARGET",
+        clarification_prompt=clarification,
+    )
 
 
 def _detect_baseline_anchor_year(text: str) -> int | None:
@@ -98,7 +113,8 @@ def resolve_benchmark_intent(user_text: str) -> BenchmarkResolution:
     has_compare = bool(COMPARE_PATTERN.search(text_1))
     has_peer_language = bool(PEER_GROUP_PATTERN.search(text_1))
     metric = _detect_metric(text_1)
-    geo_level = _detect_geo_level(text_1)
+    geo_ctx = infer_geo_context(text)
+    geo_level = geo_ctx.geo_level
 
     # Conflict clarification: baseline and peer group both requested
     if BASELINE_PATTERN.search(text_1) and PEER_GROUP_PATTERN.search(text_1):
@@ -123,7 +139,6 @@ def resolve_benchmark_intent(user_text: str) -> BenchmarkResolution:
                 metric="metric",
             )
         )
-
         return BenchmarkClarificationRequired(
             status="clarification_required",
             reason_code="BENCHMARK_MISSING_METRIC",
@@ -162,8 +177,6 @@ def resolve_benchmark_intent(user_text: str) -> BenchmarkResolution:
         return BenchmarkResolved(status="resolved", benchmark=benchmark)
 
     # Clarification: compare language without explicit geography
-    # - peer language -> ambiguous target
-    # - otherwise -> missing geography level
     if has_compare and geo_level is None:
         if has_peer_language:
             clarification = render_benchmark_clarification(
@@ -190,6 +203,14 @@ def resolve_benchmark_intent(user_text: str) -> BenchmarkResolution:
             reason_code="BENCHMARK_MISSING_GEO_LEVEL",
             clarification_prompt=clarification,
         )
+
+    # Multi-state named comparison -> custom_set at state level
+    if has_compare and len(geo_ctx.state_fips) >= 2 and geo_level == "state":
+        try:
+            benchmark = _build_custom_set_state_benchmark(geo_ctx, metric, text)
+            return BenchmarkResolved(status="resolved", benchmark=benchmark)
+        except ValidationError:
+            return _ambiguous_target_clarification(text)
 
     # Resolved path starts here (nation/state/peer_group...)
     if geo_level == "nation":
@@ -237,15 +258,4 @@ def resolve_benchmark_intent(user_text: str) -> BenchmarkResolution:
         )
         return BenchmarkResolved(status="resolved", benchmark=benchmark)
 
-    # Final safe fallback
-    clarification = render_benchmark_clarification(
-        BenchmarkAmbiguousTargetSlots(
-            reason_code="BENCHMARK_AMBIGUOUS_TARGET",
-            subject_text=text,
-        )
-    )
-    return BenchmarkClarificationRequired(
-        status="clarification_required",
-        reason_code="BENCHMARK_AMBIGUOUS_TARGET",
-        clarification_prompt=clarification,
-    )
+    return _ambiguous_target_clarification(text)

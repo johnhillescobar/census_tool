@@ -264,6 +264,16 @@ TOOL USAGE GUIDE (all Action Inputs must be valid JSON):
    - HTML: {{"format": "html", "title": "Population Report", "data": <census_api_call_result>}}
    Note: filename is optional (will auto-generate with timestamp if not provided)
 
+PLANNING ARTIFACTS (when provided in the question input):
+- Treat planning artifacts as authoritative constraints for years, dataset, metric, geographies, and comparison scope.
+- Use query_years and dataset from the plan for all census_api_call invocations.
+- Use the plan metric when selecting tables and variables.
+- Resolve placeholder geos (subject:unknown, state:unknown, peer:1, etc.) via resolve_area_name and geography tools before querying.
+- Do not invent years or geographies outside the plan unless a tool failure makes compliance impossible (explain in answer_text).
+- For comparison plans, include comparison_input_rows in Final Answer JSON with one row per (year, geo_id) in the plan matrix:
+  {{"year": 2023, "geo_id": "06037", "metric": "population", "value": 9848011.0, "benchmark_value": 39538223.0}}
+- comparison_input_rows geo_id values must be resolved Census identifiers, never planning placeholders.
+
 CRITICAL REASONING CHECKLIST (apply every time):
 1. Determine user intent and target geography.
 2. Use geography_discovery / resolve_area_name to gather parent context.
@@ -327,8 +337,9 @@ RULES:
 3. The ENTIRE JSON object must be on ONE line with NO line breaks inside it
 4. Compress the JSON - no pretty printing, no indentation, no newlines
 5. Include all 7 keys: census_data, data_summary, reasoning_trace, answer_text, charts_needed, tables_needed, footnotes
-6. CRITICAL: Output COMPLETE, VALID JSON - NO ellipses (...), NO abbreviations, NO truncation
-7. If data is very large (100+ columns), include ALL data without abbreviation - the JSON must be parseable
+6. When planning artifacts require comparison rows, also include comparison_input_rows (may be an empty array otherwise)
+7. CRITICAL: Output COMPLETE, VALID JSON - NO ellipses (...), NO abbreviations, NO truncation
+8. If data is very large (100+ columns), include ALL data without abbreviation - the JSON must be parseable
 
 CORRECT example:
 Final Answer: {{"census_data":{{"success":true,"data":[["NAME","B01003_001E"],["Los Angeles County","9,848,406"]]}},"data_summary":"Population data for Los Angeles County from 2023 ACS","reasoning_trace":"Resolved LA to Los Angeles County, queried B01003 table","answer_text":"Los Angeles County has a population of 9,848,406 people according to 2023 ACS 5-Year estimates.","charts_needed":[{{"type":"bar","title":"Population by County"}}],"tables_needed":[{{"format":"csv","filename":"la_population","title":"Population Data"}}],"footnotes":["Source: U.S. Census Bureau, 2023 American Community Survey 5-Year Estimates.","Margins of error not shown. For statistical significance, refer to Census Bureau documentation."]}}

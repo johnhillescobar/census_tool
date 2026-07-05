@@ -2,8 +2,12 @@ from typing import Any
 
 from langchain_core.runnables import RunnableConfig
 
-from src.services.comparison_metric_compute import (
+from src.domain.comparison_artifacts import (
     ComparisonInputRow,
+    ComparisonMetricArtifactRow,
+    ComparisonMetricsArtifact,
+)
+from src.services.comparison_metric_compute import (
     ComparisonMetricComputeRequest,
     compute_comparison_metrics,
 )
@@ -53,8 +57,16 @@ def comparison_metrics_node(state: CensusState, config: RunnableConfig) -> dict[
 
     request = ComparisonMetricComputeRequest(plan=comparison_plan, rows=rows)
     metric_rows = compute_comparison_metrics(request)
+    metrics_artifact = ComparisonMetricsArtifact(
+        rows=[
+            ComparisonMetricArtifactRow.model_validate(row.model_dump())
+            for row in metric_rows
+        ]
+    )
 
     return {
-        "artifacts": {"comparison_metrics": [row.model_dump() for row in metric_rows]},
-        "logs": [f"comparison_metrics: computed {len(metric_rows)} rows"],
+        "artifacts": {
+            "comparison_metrics": [row.model_dump() for row in metrics_artifact.rows]
+        },
+        "logs": [f"comparison_metrics: computed {len(metrics_artifact.rows)} rows"],
     }
