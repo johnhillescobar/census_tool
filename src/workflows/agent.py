@@ -1,21 +1,39 @@
 import logging
+from typing import Any
 
-from typing import Dict, Any
 from langchain_core.runnables import RunnableConfig
 
-from src.state.types import CensusState
 from src.agents.census_query_agent import CensusQueryAgent
+from src.domain.comparison_artifacts import ComparisonInputRowBuildRequest
+from src.domain.comparison_plan import ComparisonPlan
 from src.llm.intent_enhancer import generate_llm_answer
 from src.services.agent_plan_context import build_agent_plan_context
-
+from src.services.comparison_input_builder import (
+    build_comparison_input_rows,
+    extract_observations_from_census_data,
+)
+from src.state.types import CensusState
 
 logger = logging.getLogger(__name__)
 
 
-def agent_reasoning_node(state: CensusState, config: RunnableConfig) -> Dict[str, Any]:
+def _build_comparison_input_rows_from_result(
+    census_data: dict[str, Any],
+    comparison_plan: ComparisonPlan,
+) -> list[dict[str, Any]]:
+    observations = extract_observations_from_census_data(census_data, comparison_plan)
+    rows = build_comparison_input_rows(
+        ComparisonInputRowBuildRequest(
+            plan=comparison_plan,
+            observations=observations,
+        )
+    )
+    return [row.model_dump() for row in rows]
+
+
+def agent_reasoning_node(state: CensusState, config: RunnableConfig) -> dict[str, Any]:
     user_question = state.messages[-1]["content"]
 
-    # Agent expects intent dict - create basic one if not exists
     intent = state.intent or {"is_census": True, "topic": "general"}
 
     plan = state.plan or {}
@@ -30,6 +48,8 @@ def agent_reasoning_node(state: CensusState, config: RunnableConfig) -> Dict[str
     else:
         plan_log = "agent: plan context attached (temporal only)"
 
+    comparison_plan = plan_context.comparison if plan_context is not None else None
+
     agent = CensusQueryAgent()
     result = agent.solve(
         user_query=user_question,
@@ -37,10 +57,8 @@ def agent_reasoning_node(state: CensusState, config: RunnableConfig) -> Dict[str
         plan_context=plan_context,
     )
 
-    # Get answer_text from agent result
     answer_text = result.get("answer_text", "")
 
-    # Fallback: If answer_text is missing, empty, or too short, generate it from the census data
     if not answer_text or len(answer_text.strip()) < 20:
         census_data = result.get("census_data", {})
         data_summary = result.get("data_summary", "")
@@ -60,10 +78,9 @@ def agent_reasoning_node(state: CensusState, config: RunnableConfig) -> Dict[str
                 if generated_answer:
                     answer_text = generated_answer
                     logger.info("Successfully generated rich answer_text")
-            except Exception as e:
-                logger.warning(f"Failed to generate rich answer_text: {e}")
+            except Exception as exc:
+                logger.warning("Failed to generate rich answer_text: %s", exc)
 
-    # Generate footnotes if not provided by agent
     footnotes = result.get("footnotes", [])
     if not footnotes:
         from src.services.footnote_generator import generate_footnotes
@@ -75,27 +92,51 @@ def agent_reasoning_node(state: CensusState, config: RunnableConfig) -> Dict[str
                 data_summary=result.get("data_summary", ""),
                 reasoning_trace=result.get("reasoning_trace", ""),
             )
-            logger.info(f"Generated {len(footnotes)} footnotes")
-        except Exception as e:
-            logger.warning(f"Failed to generate footnotes: {e}")
-            # Provide minimal fallback footnotes
+            logger.info("Generated %s footnotes", len(footnotes))
+        except Exception as exc:
+            logger.warning("Failed to generate footnotes: %s", exc)
             footnotes = [
                 "Source: U.S. Census Bureau, American Community Survey.",
                 "This tool is for informational purposes only. Verify critical data at census.gov.",
             ]
 
-    comparison_input_rows = [
+    artifacts: dict[str, Any] = {
+        "census_data": result.get("census_data", {}),
+        "data_summary": result.get("data_summary", ""),
+        "reasoning_trace": result.get("reasoning_trace", ""),
+    }
+
+    agent_rows = [
         row.model_dump() if hasattr(row, "model_dump") else row
         for row in result.get("comparison_input_rows", [])
     ]
+    if agent_rows:
+        artifacts["comparison_input_rows"] = agent_rows
+    else:
+        census_data = result.get("census_data", {})
+        if (
+            comparison_plan is not None
+            and isinstance(census_data, dict)
+            and census_data.get("success")
+        ):
+            try:
+                comparison_input_rows = _build_comparison_input_rows_from_result(
+                    census_data,
+                    comparison_plan,
+                )
+                artifacts["comparison_input_rows"] = comparison_input_rows
+                logger.info(
+                    "agent: built %s comparison_input_rows from census_data",
+                    len(comparison_input_rows),
+                )
+            except Exception as exc:
+                logger.warning(
+                    "agent: failed to build comparison_input_rows, metrics node will skip: %s",
+                    exc,
+                )
 
     return {
-        "artifacts": {
-            "census_data": result.get("census_data", {}),
-            "data_summary": result.get("data_summary", ""),
-            "reasoning_trace": result.get("reasoning_trace", ""),
-            "comparison_input_rows": comparison_input_rows,
-        },
+        "artifacts": artifacts,
         "final": {
             "answer_text": answer_text,
             "charts_needed": result.get("charts_needed", []),

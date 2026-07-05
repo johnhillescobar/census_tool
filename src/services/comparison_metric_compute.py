@@ -2,7 +2,7 @@ from collections import defaultdict
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from src.domain.comparison_input_contract import ComparisonInputRow
+from src.domain.comparison_artifacts import ComparisonInputRow
 from src.domain.comparison_plan import ComparisonPlan, DerivedMetric
 
 SUPPORTED_DERIVED_METRICS = {

@@ -3,9 +3,13 @@ from typing import Any
 from langchain_core.runnables import RunnableConfig
 from pydantic import BaseModel, Field
 
+from src.domain.comparison_artifacts import (
+    ComparisonInputRow,
+    ComparisonMetricArtifactRow,
+    ComparisonMetricsArtifact,
+)
 from src.domain.comparison_plan import ComparisonPlan
 from src.services.comparison_metric_compute import (
-    ComparisonInputRow,
     ComparisonMetricComputeRequest,
     compute_comparison_metrics,
 )
@@ -74,10 +78,17 @@ def comparison_metrics_node(state: CensusState, config: RunnableConfig) -> dict[
 
     request = ComparisonMetricComputeRequest(plan=comparison_plan, rows=rows)
     metric_rows = compute_comparison_metrics(request)
+    metrics_artifact = ComparisonMetricsArtifact(
+        rows=[
+            ComparisonMetricArtifactRow.model_validate(row.model_dump())
+            for row in metric_rows
+        ]
+    )
 
     output = ComparisonMetricsNodeOutput(
-        artifacts={"comparison_metrics": [row.model_dump() for row in metric_rows]},
-        logs=[f"comparison_metrics: computed {len(metric_rows)} rows"],
+        artifacts={
+            "comparison_metrics": [row.model_dump() for row in metrics_artifact.rows]
+        },
+        logs=[f"comparison_metrics: computed {len(metrics_artifact.rows)} rows"],
     )
     return output.model_dump(exclude_none=True)
-
