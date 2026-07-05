@@ -346,6 +346,83 @@ class TestAgentPlanConsumption:
         parsed = agent._parse_solution({"output": json.dumps(payload)})
         assert parsed["comparison_input_rows"][0]["geo_id"] == "06"
 
+    def test_parse_solution_strips_extra_comparison_row_fields(self):
+        from src.domain.agent_plan_context import AgentPlanContext
+        from src.domain.benchmark_contract import BenchmarkIntent
+        from src.domain.comparison_plan import ComparisonPlan
+        from src.domain.temporal_contract import TemporalIntent
+
+        agent = CensusQueryAgent(allow_offline=True)
+        plan_context = AgentPlanContext(
+            temporal=TemporalIntent(
+                mode="latest_available",
+                requested_text="Compare population by county in California",
+            ),
+            benchmark=BenchmarkIntent(
+                benchmark_type="peer_group",
+                metric="population",
+                subject_geo_level="county",
+                subject_geo=["subject:unknown"],
+                benchmark_geo_level="county",
+                benchmark_geos=["peer:1", "peer:2"],
+                comparison_op="difference",
+                normalization="none",
+                requested_text="Compare population by county in California",
+            ),
+            comparison=ComparisonPlan(
+                query_years=[2023],
+                dataset="acs/acs5",
+                metric="population",
+                subject_geo_level="county",
+                subject_geos=["subject:unknown"],
+                benchmark_geo_level="county",
+                benchmark_geos=["peer:1", "peer:2"],
+                comparison_op="difference",
+                normalization="none",
+                missing_year_policy="skip_with_note",
+                derived_metrics=["difference"],
+                join_keys=["year", "geo_id"],
+                requested_text="Compare population by county in California",
+            ),
+            has_comparison_plan=True,
+        )
+        agent._active_plan_context = plan_context
+
+        payload = {
+            "census_data": {"success": True, "data": [["NAME"], ["Los Angeles County"]]},
+            "data_summary": "summary",
+            "reasoning_trace": "trace",
+            "answer_text": "Los Angeles County is the largest county in California.",
+            "charts_needed": [],
+            "tables_needed": [],
+            "footnotes": [],
+            "comparison_input_rows": [
+                {
+                    "year": 2023,
+                    "geo_id": "06037",
+                    "metric": "population",
+                    "value": 9845029.0,
+                    "benchmark_geo_id": "06073",
+                    "benchmark_value": 3266340.0,
+                    "derived_metric": "difference",
+                    "derived_value": 6578689.0,
+                }
+            ],
+        }
+
+        parsed = agent._parse_solution({"output": json.dumps(payload)})
+
+        assert parsed["answer_text"].startswith("Los Angeles County")
+        assert parsed["comparison_input_rows"] == [
+            {
+                "year": 2023,
+                "geo_id": "06037",
+                "metric": "population",
+                "value": 9845029.0,
+                "benchmark_value": 3266340.0,
+            }
+        ]
+
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

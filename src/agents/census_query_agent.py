@@ -46,6 +46,11 @@ load_dotenv()
 logger = logging.getLogger(__name__)
 
 
+COMPARISON_INPUT_ROW_FIELDS = frozenset(
+    {"year", "geo_id", "metric", "value", "benchmark_value"}
+)
+
+
 class AgentOutput(AgentPlanOutput):
     """Backward-compatible alias for the typed agent output contract."""
 
@@ -591,6 +596,23 @@ class CensusQueryAgent:
 
         if "comparison_input_rows" not in parsed:
             parsed["comparison_input_rows"] = []
+        else:
+            normalized_rows: list[Dict[str, Any]] = []
+            for row in parsed["comparison_input_rows"]:
+                if not isinstance(row, dict):
+                    continue
+                normalized_row = {
+                    key: row[key]
+                    for key in COMPARISON_INPUT_ROW_FIELDS
+                    if key in row
+                }
+                if normalized_row:
+                    normalized_rows.append(normalized_row)
+            if normalized_rows != parsed["comparison_input_rows"]:
+                logger.warning(
+                    "Normalized comparison_input_rows by stripping extra agent fields"
+                )
+            parsed["comparison_input_rows"] = normalized_rows
 
         return parsed
 
