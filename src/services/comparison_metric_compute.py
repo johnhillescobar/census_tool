@@ -1,6 +1,8 @@
 from collections import defaultdict
 
 from pydantic import BaseModel, ConfigDict, Field
+
+from src.domain.comparison_artifacts import ComparisonInputRow
 from src.domain.comparison_plan import ComparisonPlan, DerivedMetric
 
 SUPPORTED_DERIVED_METRICS = {
@@ -10,16 +12,6 @@ SUPPORTED_DERIVED_METRICS = {
     "percentile",
     "trend_gap",
 }
-
-
-class ComparisonInputRow(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
-    year: int
-    geo_id: str
-    metric: str
-    value: float
-    benchmark_value: float
 
 
 class ComparisonMetricComputeRequest(BaseModel):

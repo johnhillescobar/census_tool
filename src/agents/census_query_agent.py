@@ -1,11 +1,13 @@
-import os
-import logging
 import json
-from typing import Dict, List, Any, Optional, cast
+import logging
+import os
+from typing import Any, cast
+
 from dotenv import load_dotenv
+from langchain.agents import AgentExecutor
 from pydantic import BaseModel, ValidationError
 
-from langchain.agents import AgentExecutor
+from src.domain.comparison_plan import ComparisonPlan
 
 # Try to import the agent creation function for different LangChain versions
 try:
@@ -18,22 +20,21 @@ except ImportError:
         create_react_agent = None
 from langchain.prompts import PromptTemplate
 
-from src.llm.config import LLM_CONFIG, AGENT_PROMPT_TEMPLATE
+from src.llm.config import AGENT_PROMPT_TEMPLATE, LLM_CONFIG
 from src.llm.factory import create_llm
+
+# Import conversation summarizer
+from src.services.conversation_summarizer import ConversationSummarizer, summarize_intermediate_steps
+from src.tools.area_resolution_tool import AreaResolutionTool
+from src.tools.census_api_tool import CensusAPITool
+from src.tools.chart_tool import ChartTool
 from src.tools.geography_discovery_tool import GeographyDiscoveryTool
 from src.tools.geography_hierarchy_tool import GeographyHierarchyTool
 from src.tools.geography_validation_tool import GeographyValidationTool
-from src.tools.table_search_tool import TableSearchTool
-from src.tools.census_api_tool import CensusAPITool
-from src.tools.chart_tool import ChartTool
-from src.tools.table_tool import TableTool
 from src.tools.pattern_builder_tool import PatternBuilderTool
-from src.tools.area_resolution_tool import AreaResolutionTool
+from src.tools.table_search_tool import TableSearchTool
+from src.tools.table_tool import TableTool
 from src.tools.variable_validation_tool import VariableValidationTool
-
-# Import conversation summarizer
-from src.services.conversation_summarizer import ConversationSummarizer
-from src.services.conversation_summarizer import summarize_intermediate_steps
 
 load_dotenv()
 
@@ -42,8 +43,8 @@ logger = logging.getLogger(__name__)
 
 class CensusData(BaseModel):
     success: bool
-    data: List[List[Any]]
-    variables: Optional[Dict[str, str]] = None
+    data: list[list[Any]]
+    variables: dict[str, str] | None = None
 
 
 class AgentOutput(BaseModel):
@@ -51,9 +52,9 @@ class AgentOutput(BaseModel):
     data_summary: str
     reasoning_trace: str
     answer_text: str
-    charts_needed: List[Dict[str, str]] = []
-    tables_needed: List[Dict[str, str]] = []
-    footnotes: List[str] = []
+    charts_needed: list[dict[str, str]] = []
+    tables_needed: list[dict[str, str]] = []
+    footnotes: list[str] = []
 
 
 class CensusQueryAgent:
@@ -129,7 +130,26 @@ class CensusQueryAgent:
     def _build_prompt(self):
         return PromptTemplate.from_template(AGENT_PROMPT_TEMPLATE)
 
-    def solve(self, user_query: str, intent: Dict) -> Dict:
+    def _format_comparison_plan_context(self, comparison_plan: ComparisonPlan) -> str:
+        return (
+            "ComparisonPlan:\n"
+            f"- query_years: {comparison_plan.query_years}\n"
+            f"- dataset: {comparison_plan.dataset}\n"
+            f"- metric: {comparison_plan.metric}\n"
+            f"- subject_geo_level: {comparison_plan.subject_geo_level}\n"
+            f"- subject_geos: {comparison_plan.subject_geos}\n"
+            f"- benchmark_geo_level: {comparison_plan.benchmark_geo_level}\n"
+            f"- benchmark_geos: {comparison_plan.benchmark_geos}\n"
+            f"- derived_metrics: {comparison_plan.derived_metrics}\n"
+            "Fetch Census data for the full year x geo matrix in this plan."
+        )
+
+    def solve(
+        self,
+        user_query: str,
+        intent: dict,
+        comparison_plan: ComparisonPlan | None = None,
+    ) -> dict:
         """
         Reason through the query and return structured data
         """
@@ -155,10 +175,14 @@ class CensusQueryAgent:
                 "Agent executor is not initialized. Set OPENAI_API_KEY or enable offline mode."
             )
 
+        plan_context = ""
+        if comparison_plan is not None:
+            plan_context = f"\n{self._format_comparison_plan_context(comparison_plan)}"
+
         result = self.agent_executor.invoke(
             {
                 "input": f"""User query: {user_query}
-                Intent: {intent}"""
+                Intent: {intent}{plan_context}"""
             }
         )
 
@@ -174,7 +198,7 @@ class CensusQueryAgent:
 
         return self._parse_solution(result)
 
-    def _has_invalid_geography(self, result: Dict, parsed: Dict) -> bool:
+    def _has_invalid_geography(self, result: dict, parsed: dict) -> bool:
         """Check if agent tried to query invalid geography"""
         intermediate_steps = result.get("intermediate_steps", [])
 
@@ -217,7 +241,7 @@ class CensusQueryAgent:
 
         return False
 
-    def _build_invalid_geography_response(self, result: Dict, parsed: Dict) -> Dict:
+    def _build_invalid_geography_response(self, result: dict, parsed: dict) -> dict:
         """Build error response for invalid geography"""
         return {
             "census_data": {"success": False, "data": []},
@@ -232,7 +256,7 @@ class CensusQueryAgent:
             ],
         }
 
-    def _normalize_error_response(self, parsed: Dict, result: Dict) -> Dict:
+    def _normalize_error_response(self, parsed: dict, result: dict) -> dict:
         """
         Normalize error responses to ensure answer_text contains expected phrases.
         If success is False but answer_text doesn't match test expectations, update it.
@@ -261,7 +285,7 @@ class CensusQueryAgent:
 
         return parsed
 
-    def _parse_solution(self, result: Dict) -> Dict:
+    def _parse_solution(self, result: dict) -> dict:
         """
         Parse agent output - extract JSON after 'Final Answer:' prefix.
         Simplified to 2 methods: direct parse or prefix extraction.
@@ -322,7 +346,7 @@ class CensusQueryAgent:
             "footnotes": [],
         }
 
-    def _try_direct_json_parse(self, output: str) -> Optional[Dict]:
+    def _try_direct_json_parse(self, output: str) -> dict | None:
         """Attempt direct JSON parsing of entire output."""
         try:
             logger.error(
@@ -354,7 +378,7 @@ class CensusQueryAgent:
             )
         return None
 
-    def _build_empty_output_response(self, result: Dict) -> Dict[str, Any]:
+    def _build_empty_output_response(self, result: dict) -> dict[str, Any]:
         intermediate_steps = result.get("intermediate_steps", []) or []
         step_count = len(intermediate_steps)
 
@@ -381,7 +405,7 @@ class CensusQueryAgent:
             "Please rerun the question and I will try again."
         )
 
-        census_data_payload: Dict[str, Any] = {
+        census_data_payload: dict[str, Any] = {
             "success": False,
             "error": "empty_output",
         }
@@ -399,7 +423,7 @@ class CensusQueryAgent:
             "footnotes": [],
         }
 
-    def _did_reach_iteration_limit(self, result: Dict, output: str) -> bool:
+    def _did_reach_iteration_limit(self, result: dict, output: str) -> bool:
         if not output:
             return False
 
@@ -417,8 +441,8 @@ class CensusQueryAgent:
         return False
 
     def _build_iteration_limit_response(
-        self, result: Dict, output: str
-    ) -> Dict[str, Any]:
+        self, result: dict, output: str
+    ) -> dict[str, Any]:
         intermediate_steps = result.get("intermediate_steps", []) or []
         step_count = len(intermediate_steps)
 
@@ -445,7 +469,7 @@ class CensusQueryAgent:
             "Please rerun the question or adjust it and I will try again."
         )
 
-        census_data_payload: Dict[str, Any] = {
+        census_data_payload: dict[str, Any] = {
             "success": False,
             "error": "iteration_limit",
         }
@@ -463,7 +487,7 @@ class CensusQueryAgent:
             "footnotes": [],
         }
 
-    def _coerce_observation_to_dict(self, observation: Any) -> Optional[Dict[str, Any]]:
+    def _coerce_observation_to_dict(self, observation: Any) -> dict[str, Any] | None:
         if isinstance(observation, dict):
             return observation
         if isinstance(observation, str):
@@ -477,7 +501,7 @@ class CensusQueryAgent:
                     return None
         return None
 
-    def _extract_after_final_answer(self, output: str) -> Optional[Dict]:
+    def _extract_after_final_answer(self, output: str) -> dict | None:
         """Extract JSON after 'Final Answer:' prefix using state machine."""
         # Find "Final Answer:" marker
         marker = "Final Answer:"
@@ -525,8 +549,8 @@ class CensusQueryAgent:
         return None
 
     def _normalize_parsed_output_contract(
-        self, parsed: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, parsed: dict[str, Any]
+    ) -> dict[str, Any]:
         """
         Normalize common LLM contract drift before strict Pydantic validation.
 
@@ -541,7 +565,7 @@ class CensusQueryAgent:
 
         variables = census_data.get("variables")
         if isinstance(variables, list):
-            normalized_variables: Dict[str, str] = {}
+            normalized_variables: dict[str, str] = {}
             for item in variables:
                 if isinstance(item, str) and item.strip():
                     normalized_variables[item] = item
@@ -553,7 +577,7 @@ class CensusQueryAgent:
 
         return parsed
 
-    def _extract_json_with_state_machine(self, text: str) -> Optional[str]:
+    def _extract_json_with_state_machine(self, text: str) -> str | None:
         """
         Extract JSON object using state machine that handles:
         - Nested objects/arrays
