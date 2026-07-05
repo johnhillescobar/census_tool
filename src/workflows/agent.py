@@ -6,6 +6,7 @@ from langchain_core.runnables import RunnableConfig
 from src.state.types import CensusState
 from src.agents.census_query_agent import CensusQueryAgent
 from src.llm.intent_enhancer import generate_llm_answer
+from src.services.agent_plan_context import build_agent_plan_context
 
 
 logger = logging.getLogger(__name__)
@@ -21,8 +22,20 @@ def agent_reasoning_node(state: CensusState, config: RunnableConfig) -> Dict[str
     if plan.get("requires_clarification"):
         return {"logs": ["agent: skipped (clarification required)"]}
 
+    plan_context = build_agent_plan_context(state.plan)
+    if plan_context is None:
+        plan_log = "agent: no plan context attached"
+    elif plan_context.has_comparison_plan:
+        plan_log = "agent: plan context attached (comparison)"
+    else:
+        plan_log = "agent: plan context attached (temporal only)"
+
     agent = CensusQueryAgent()
-    result = agent.solve(user_query=user_question, intent=intent)
+    result = agent.solve(
+        user_query=user_question,
+        intent=intent,
+        plan_context=plan_context,
+    )
 
     # Get answer_text from agent result
     answer_text = result.get("answer_text", "")
@@ -71,11 +84,17 @@ def agent_reasoning_node(state: CensusState, config: RunnableConfig) -> Dict[str
                 "This tool is for informational purposes only. Verify critical data at census.gov.",
             ]
 
+    comparison_input_rows = [
+        row.model_dump() if hasattr(row, "model_dump") else row
+        for row in result.get("comparison_input_rows", [])
+    ]
+
     return {
         "artifacts": {
             "census_data": result.get("census_data", {}),
             "data_summary": result.get("data_summary", ""),
             "reasoning_trace": result.get("reasoning_trace", ""),
+            "comparison_input_rows": comparison_input_rows,
         },
         "final": {
             "answer_text": answer_text,
@@ -83,5 +102,5 @@ def agent_reasoning_node(state: CensusState, config: RunnableConfig) -> Dict[str
             "tables_needed": result.get("tables_needed", []),
             "footnotes": footnotes,
         },
-        "logs": ["agent: completed reasoning with data"],
+        "logs": [plan_log, "agent: completed reasoning with data"],
     }

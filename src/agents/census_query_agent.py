@@ -1,9 +1,9 @@
 import os
 import logging
 import json
-from typing import Dict, List, Any, Optional, cast
+from typing import Dict, Any, Optional, cast
 from dotenv import load_dotenv
-from pydantic import BaseModel, ValidationError
+from pydantic import ValidationError
 
 from langchain.agents import AgentExecutor
 
@@ -34,26 +34,20 @@ from src.tools.variable_validation_tool import VariableValidationTool
 # Import conversation summarizer
 from src.services.conversation_summarizer import ConversationSummarizer
 from src.services.conversation_summarizer import summarize_intermediate_steps
+from src.domain.agent_plan_context import AgentPlanContext
+from src.domain.agent_output_contract import (
+    AgentPlanOutput,
+    validate_comparison_rows_for_plan,
+)
+from src.services.agent_plan_context import format_plan_directives
 
 load_dotenv()
 
 logger = logging.getLogger(__name__)
 
 
-class CensusData(BaseModel):
-    success: bool
-    data: List[List[Any]]
-    variables: Optional[Dict[str, str]] = None
-
-
-class AgentOutput(BaseModel):
-    census_data: CensusData
-    data_summary: str
-    reasoning_trace: str
-    answer_text: str
-    charts_needed: List[Dict[str, str]] = []
-    tables_needed: List[Dict[str, str]] = []
-    footnotes: List[str] = []
+class AgentOutput(AgentPlanOutput):
+    """Backward-compatible alias for the typed agent output contract."""
 
 
 class CensusQueryAgent:
@@ -125,11 +119,40 @@ class CensusQueryAgent:
             handle_parsing_errors="Check your output format. You must output: 'Thought: I now know the final answer' followed by 'Final Answer: {valid JSON on single line}'",
             callbacks=[self.summarizer],
         )
+        self._active_plan_context: AgentPlanContext | None = None
 
     def _build_prompt(self):
         return PromptTemplate.from_template(AGENT_PROMPT_TEMPLATE)
 
-    def solve(self, user_query: str, intent: Dict) -> Dict:
+    def _build_executor_input(
+        self,
+        user_query: str,
+        intent: Dict,
+        plan_context: AgentPlanContext | None,
+    ) -> str:
+        sections = []
+        if plan_context is not None:
+            sections.extend(
+                [
+                    "Planning artifacts (MUST follow these constraints):",
+                    format_plan_directives(plan_context),
+                    "",
+                ]
+            )
+        sections.extend(
+            [
+                f"User query: {user_query}",
+                f"Intent: {intent}",
+            ]
+        )
+        return "\n".join(sections)
+
+    def solve(
+        self,
+        user_query: str,
+        intent: Dict,
+        plan_context: AgentPlanContext | None = None,
+    ) -> Dict:
         """
         Reason through the query and return structured data
         """
@@ -148,6 +171,7 @@ class CensusQueryAgent:
                     "Agent execution disabled due to missing OPENAI_API_KEY.",
                     "Set OPENAI_API_KEY before running automated workflows or tests.",
                 ],
+                "comparison_input_rows": [],
             }
 
         if self.agent_executor is None:
@@ -155,10 +179,14 @@ class CensusQueryAgent:
                 "Agent executor is not initialized. Set OPENAI_API_KEY or enable offline mode."
             )
 
+        self._active_plan_context = plan_context
         result = self.agent_executor.invoke(
             {
-                "input": f"""User query: {user_query}
-                Intent: {intent}"""
+                "input": self._build_executor_input(
+                    user_query=user_query,
+                    intent=intent,
+                    plan_context=plan_context,
+                )
             }
         )
 
@@ -173,6 +201,20 @@ class CensusQueryAgent:
             )
 
         return self._parse_solution(result)
+
+    def _validate_agent_output(self, parsed: Dict[str, Any]) -> Dict[str, Any]:
+        validated = AgentPlanOutput(**parsed)
+        if (
+            self._active_plan_context is not None
+            and self._active_plan_context.has_comparison_plan
+            and self._active_plan_context.comparison is not None
+            and validated.comparison_input_rows
+        ):
+            validate_comparison_rows_for_plan(
+                validated.comparison_input_rows,
+                self._active_plan_context.comparison,
+            )
+        return validated.model_dump()
 
     def _has_invalid_geography(self, result: Dict, parsed: Dict) -> bool:
         """Check if agent tried to query invalid geography"""
@@ -230,6 +272,7 @@ class CensusQueryAgent:
                 "The requested geography is not available in Census datasets.",
                 "U.S. Census covers U.S. geographies only.",
             ],
+            "comparison_input_rows": [],
         }
 
     def _normalize_error_response(self, parsed: Dict, result: Dict) -> Dict:
@@ -279,35 +322,27 @@ class CensusQueryAgent:
             # Validate that geography resolution succeeded
             if self._has_invalid_geography(result, parsed):
                 return self._build_invalid_geography_response(result, parsed)
-            # Also check if parsed output indicates failure but answer_text doesn't match expectations
             parsed = self._normalize_error_response(parsed, result)
-            return parsed
+            return self._validate_agent_output(parsed)
 
-        # Method 2: Extract after "Final Answer:" prefix
         parsed = self._extract_after_final_answer(output)
         if parsed:
-            # Validate that geography resolution succeeded
             if self._has_invalid_geography(result, parsed):
                 return self._build_invalid_geography_response(result, parsed)
-            # Also check if parsed output indicates failure but answer_text doesn't match expectations
             parsed = self._normalize_error_response(parsed, result)
-            return parsed
+            return self._validate_agent_output(parsed)
 
-        # Method 3: Check if output is valid JSON without "Final Answer:" prefix (fallback)
         if self._is_valid_json_without_prefix(output):
             logger.warning(
                 "Agent returned bare JSON without 'Final Answer:' prefix, attempting direct parse"
             )
             parsed = self._try_direct_json_parse(output)
             if parsed:
-                # Validate that geography resolution succeeded
                 if self._has_invalid_geography(result, parsed):
                     return self._build_invalid_geography_response(result, parsed)
-                # Also check if parsed output indicates failure but answer_text doesn't match expectations
                 parsed = self._normalize_error_response(parsed, result)
-                return parsed
+                return self._validate_agent_output(parsed)
 
-        # Fallback: Return canonical failure shape so census_data always has success key
         logger.warning("All parsing methods failed")
         logger.debug(f"Raw output sample: {output[:500]}")
 
@@ -320,6 +355,7 @@ class CensusQueryAgent:
             "charts_needed": [],
             "tables_needed": [],
             "footnotes": [],
+            "comparison_input_rows": [],
         }
 
     def _try_direct_json_parse(self, output: str) -> Optional[Dict]:
@@ -397,6 +433,7 @@ class CensusQueryAgent:
             "charts_needed": [],
             "tables_needed": [],
             "footnotes": [],
+            "comparison_input_rows": [],
         }
 
     def _did_reach_iteration_limit(self, result: Dict, output: str) -> bool:
@@ -461,6 +498,7 @@ class CensusQueryAgent:
             "charts_needed": [],
             "tables_needed": [],
             "footnotes": [],
+            "comparison_input_rows": [],
         }
 
     def _coerce_observation_to_dict(self, observation: Any) -> Optional[Dict[str, Any]]:
@@ -550,6 +588,9 @@ class CensusQueryAgent:
             logger.warning(
                 "Normalized census_data.variables from list to dict for contract compatibility"
             )
+
+        if "comparison_input_rows" not in parsed:
+            parsed["comparison_input_rows"] = []
 
         return parsed
 
