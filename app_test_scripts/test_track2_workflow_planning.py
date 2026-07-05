@@ -76,6 +76,19 @@ def test_benchmark_skip_when_no_compare_intent():
     assert _route_after_benchmark(state.model_copy(update={"plan": result["plan"]})) == "agent"
 
 
+def test_benchmark_does_not_skip_leading_compare_typo():
+    temporal_result = temporal_node(
+        _state("ompare population by county in California"), CONFIG
+    )
+    state = _state(
+        "ompare population by county in California",
+        plan=temporal_result["plan"],
+    )
+    result = benchmark_node(state, CONFIG)
+
+    assert not isinstance(result["plan"].benchmark, BenchmarkNotApplicable)
+
+
 def test_benchmark_clarification_envelope():
     temporal_result = temporal_node(_state("compare state vs national"), CONFIG)
     state = _state("compare state vs national", plan=temporal_result["plan"])

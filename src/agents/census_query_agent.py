@@ -49,6 +49,7 @@ logger = logging.getLogger(__name__)
 COMPARISON_INPUT_ROW_FIELDS = frozenset(
     {"year", "geo_id", "metric", "value", "benchmark_value"}
 )
+CENSUS_DATA_FIELDS = frozenset({"success", "data", "variables", "url"})
 
 
 class AgentOutput(AgentPlanOutput):
@@ -577,6 +578,8 @@ class CensusQueryAgent:
         - census_data.variables may arrive as a list (["NAME", "B01003_001E"]).
           Convert it to dict shape expected by CensusData:
           {"NAME": "NAME", "B01003_001E": "B01003_001E"}.
+        - census_data may include API metadata (dataset, year, geo_for, geo_in).
+          Strip to the canonical payload fields and synthesize url when possible.
         """
         census_data = parsed.get("census_data")
         if not isinstance(census_data, dict):
@@ -593,6 +596,28 @@ class CensusQueryAgent:
             logger.warning(
                 "Normalized census_data.variables from list to dict for contract compatibility"
             )
+
+        stripped_census_data = {
+            key: census_data[key] for key in CENSUS_DATA_FIELDS if key in census_data
+        }
+        if "success" not in stripped_census_data:
+            stripped_census_data["success"] = census_data.get("success", False)
+        if "data" not in stripped_census_data:
+            stripped_census_data["data"] = census_data.get("data", [])
+        if (
+            "url" not in stripped_census_data
+            and census_data.get("year") is not None
+            and census_data.get("dataset")
+        ):
+            stripped_census_data["url"] = (
+                f"https://api.census.gov/data/{census_data['year']}/{census_data['dataset']}"
+            )
+        if stripped_census_data != census_data:
+            logger.warning(
+                "Normalized census_data by stripping extra agent/API metadata fields"
+            )
+            parsed["census_data"] = stripped_census_data
+            census_data = stripped_census_data
 
         if "comparison_input_rows" not in parsed:
             parsed["comparison_input_rows"] = []

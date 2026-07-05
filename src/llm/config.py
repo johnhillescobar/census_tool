@@ -1,6 +1,6 @@
 LLM_CONFIG = {
     "provider": "openai",  # openai | anthropic | google
-    "model": "gpt-5.2",  # gpt-4o | gpt-4o-mini | gpt-4.1 | claude-sonnet-4-5-20250929 | gemini-2.5-flash
+    "model": "gpt-5.5",  # gpt-5.5 | gpt-5.2 | gpt-4o | gpt-4o-mini | gpt-4.1
     "temperature": 0.1,
     "temperature_text": 0.5,
     "max_tokens": 50000,  # gpt-4o-mini max is 16384
@@ -15,6 +15,8 @@ SUPPORTED_MODELS = {
         "gpt-4o-mini",
         "gpt-4.1",
         "gpt-5",
+        "gpt-5.2",
+        "gpt-5.5",
         "gpt-5-mini",
         "o1",
         "o1-preview",
@@ -273,6 +275,9 @@ PLANNING ARTIFACTS (when provided in the question input):
 - For comparison plans, include comparison_input_rows in Final Answer JSON with one row per (year, geo_id) in the plan matrix:
   {{"year": 2023, "geo_id": "06037", "metric": "population", "value": 9848011.0, "benchmark_value": 39538223.0}}
 - comparison_input_rows geo_id values must be resolved Census identifiers, never planning placeholders.
+- comparison_input_rows MUST contain ONLY these five keys per row: year, geo_id, metric, value, benchmark_value.
+- Do NOT add benchmark_geo_id, derived_metric, derived_value, or any other keys to comparison_input_rows (downstream code computes derived metrics).
+- When the query compares all counties/places in an area, emit one comparison_input_rows entry for every geography row in census_data (not just highlighted examples).
 
 CRITICAL REASONING CHECKLIST (apply every time):
 1. Determine user intent and target geography.
@@ -331,6 +336,11 @@ When you have the final data, you MUST output EXACTLY this format on ONE line:
 Thought: I now know the final answer
 Final Answer: {{"census_data": {{"success": true, "data": [...actual data...]}}, "data_summary": "brief summary text", "reasoning_trace": "your steps", "answer_text": "natural language answer", "charts_needed": [...chart specifications...], "tables_needed": [...table specifications...], "footnotes": ["footnote 1", "footnote 2", ...]}}
 
+FINAL ANSWER JSON SCHEMA (strict — extra keys cause parse failure):
+- census_data: ONLY {{"success": bool, "data": [[...]]}} or optionally add "url" string. Do NOT copy tool metadata (dataset, year, geo_for, geo_in) into census_data.
+- comparison_input_rows: array of objects with ONLY year, geo_id, metric, value, benchmark_value (use [] when no comparison plan).
+- All other top-level keys unchanged: data_summary, reasoning_trace, answer_text, charts_needed, tables_needed, footnotes.
+
 RULES:
 1. Write "Thought: I now know the final answer" on its own line
 2. Write "Final Answer: " followed immediately by the complete JSON on the SAME line
@@ -342,7 +352,7 @@ RULES:
 8. If data is very large (100+ columns), include ALL data without abbreviation - the JSON must be parseable
 
 CORRECT example:
-Final Answer: {{"census_data":{{"success":true,"data":[["NAME","B01003_001E"],["Los Angeles County","9,848,406"]]}},"data_summary":"Population data for Los Angeles County from 2023 ACS","reasoning_trace":"Resolved LA to Los Angeles County, queried B01003 table","answer_text":"Los Angeles County has a population of 9,848,406 people according to 2023 ACS 5-Year estimates.","charts_needed":[{{"type":"bar","title":"Population by County"}}],"tables_needed":[{{"format":"csv","filename":"la_population","title":"Population Data"}}],"footnotes":["Source: U.S. Census Bureau, 2023 American Community Survey 5-Year Estimates.","Margins of error not shown. For statistical significance, refer to Census Bureau documentation."]}}
+Final Answer: {{"census_data":{{"success":true,"data":[["NAME","B01003_001E"],["Los Angeles County","9848406"]]}},"data_summary":"Population data for Los Angeles County from 2023 ACS","reasoning_trace":"Resolved LA to Los Angeles County, queried B01003 table","answer_text":"Los Angeles County has a population of 9,848,406 people according to 2023 ACS 5-Year estimates.","charts_needed":[{{"type":"bar","title":"Population by County"}}],"tables_needed":[{{"format":"csv","filename":"la_population","title":"Population Data"}}],"footnotes":["Source: U.S. Census Bureau, 2023 American Community Survey 5-Year Estimates.","Margins of error not shown. For statistical significance, refer to Census Bureau documentation."],"comparison_input_rows":[]}}
 
 
 WRONG examples (DO NOT DO THIS):

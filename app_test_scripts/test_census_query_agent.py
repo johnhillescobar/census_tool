@@ -423,6 +423,38 @@ class TestAgentPlanConsumption:
             }
         ]
 
+    def test_parse_solution_strips_extra_census_data_fields(self):
+        agent = CensusQueryAgent(allow_offline=True)
+        payload = {
+            "census_data": {
+                "success": True,
+                "dataset": "acs/acs5",
+                "year": 2023,
+                "geo_for": {"county": "*"},
+                "geo_in": {"state": "06"},
+                "data": [["NAME", "B01003_001E"], ["Los Angeles County, California", "9829544"]],
+            },
+            "data_summary": "summary",
+            "reasoning_trace": "trace",
+            "answer_text": "Los Angeles County is the largest county in California.",
+            "charts_needed": [],
+            "tables_needed": [],
+            "footnotes": [],
+            "comparison_input_rows": [],
+        }
+
+        parsed = agent._parse_solution({"output": json.dumps(payload)})
+
+        assert parsed["answer_text"].startswith("Los Angeles County")
+        assert parsed["census_data"]["success"] is True
+        assert parsed["census_data"]["data"] == [
+            ["NAME", "B01003_001E"],
+            ["Los Angeles County, California", "9829544"],
+        ]
+        assert parsed["census_data"]["url"] == "https://api.census.gov/data/2023/acs/acs5"
+        assert "dataset" not in parsed["census_data"]
+        assert "geo_for" not in parsed["census_data"]
+
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

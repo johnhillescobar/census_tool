@@ -7,7 +7,7 @@ from src.services.benchmark_policy import resolve_benchmark_intent
 from src.state.types import CensusState
 from src.state.workflow_plan import BenchmarkNotApplicable, WorkflowPlan
 
-COMPARE_PATTERN = re.compile(r"\b(compare|vs|versus|against)\b", re.IGNORECASE)
+COMPARE_PATTERN = re.compile(r"\b(compare|ompare|vs|versus|against)\b", re.IGNORECASE)
 
 
 def benchmark_node(state: CensusState, config: RunnableConfig) -> dict[str, Any]:

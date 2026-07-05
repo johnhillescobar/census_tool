@@ -28,6 +28,7 @@ class CensusDataPayload(BaseModel):
     success: bool
     data: list[list[Any]] = Field(default_factory=list)
     variables: dict[str, str] | None = None
+    url: str | None = None
 
 
 class AgentPlanOutput(BaseModel):
