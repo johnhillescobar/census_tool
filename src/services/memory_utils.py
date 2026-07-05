@@ -5,10 +5,12 @@ Memory management utility functions for the Census app
 import logging
 from pathlib import Path
 from typing import Any, Dict, List
+
 import pandas as pd
 
 from src.clients import load_json_file, save_json_file
 from src.domain.time_utils import is_older_than
+from src.state.workflow_plan import WorkflowPlan
 from config import RETENTION_DAYS
 
 logger = logging.getLogger(__name__)
@@ -57,12 +59,42 @@ def prune_cache_by_age(cache_index: Dict, retention_days: int) -> Dict:
     return pruned_cache
 
 
+def _summarize_plan(plan: WorkflowPlan | Dict[str, Any] | None) -> str:
+    """Build a short summary string for Track 2 workflow plans."""
+    if plan is None:
+        return ""
+
+    if isinstance(plan, WorkflowPlan):
+        parts: list[str] = []
+        temporal_intent = plan.resolved_temporal_intent()
+        if temporal_intent:
+            parts.append(f"temporal={temporal_intent.mode}")
+        benchmark_intent = plan.resolved_benchmark_intent()
+        if benchmark_intent:
+            parts.append(f"benchmark={benchmark_intent.benchmark_type}")
+            if benchmark_intent.baseline_anchor_year is not None:
+                parts.append(f"baseline={benchmark_intent.baseline_anchor_year}")
+        if plan.comparison:
+            parts.append(f"years={plan.comparison.query_years}")
+        if plan.requires_clarification:
+            parts.append("clarification_required")
+        return "; ".join(parts)
+
+    if plan.get("queries"):
+        query_count = len(plan["queries"])
+        years = [query.year for query in plan["queries"]]
+        datasets = [query.dataset for query in plan["queries"]]
+        return f"{query_count} queries for years {years} using {datasets}"
+
+    return ""
+
+
 def build_history_record(
     messages: List[Dict],
     final: Dict[str, Any],
     intent: Dict[str, Any],
     geo: Dict[str, Any],
-    plan: Dict[str, Any],
+    plan: WorkflowPlan | Dict[str, Any] | None,
     user_id: str,
 ) -> Dict[str, Any]:
     """Build a history record for a conversation"""
@@ -74,13 +106,7 @@ def build_history_record(
         if isinstance(last_message, dict) and "content" in last_message:
             user_question = last_message["content"]
 
-    # Build plan summary
-    plan_summary = ""
-    if plan and plan.get("queries"):
-        query_count = len(plan["queries"])
-        years = [query.year for query in plan["queries"]]
-        datasets = [query.dataset for query in plan["queries"]]
-        plan_summary = f"{query_count} queries for years {years} using {datasets}"
+    plan_summary = _summarize_plan(plan)
 
     return {
         "timestamp": pd.Timestamp.now().isoformat(),

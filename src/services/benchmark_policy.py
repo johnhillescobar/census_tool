@@ -10,6 +10,7 @@ from src.domain.benchmark_contract import (
 from src.domain.clarification_templates import (
     BenchmarkAmbiguousTargetSlots,
     BenchmarkConflictBaselineVsPeerGroupSlots,
+    BenchmarkMissingBaselineAnchorSlots,
     BenchmarkMissingGeoLevelSlots,
     BenchmarkMissingMetricSlots,
     render_benchmark_clarification,
@@ -29,6 +30,10 @@ PEER_GROUP_PATTERN = re.compile(
 BASELINE_PATTERN = re.compile(
     r"\b(baseline|vs\s+\d{4}|compared to \d{4}|historical)\b", re.IGNORECASE
 )
+BASELINE_YEAR_PATTERN = re.compile(
+    r"(?:vs|compared to)\s+(?P<year>\d{4})", re.IGNORECASE
+)
+STANDALONE_YEAR_PATTERN = re.compile(r"\b(19|20)\d{2}\b")
 
 
 # Metric hints; expand later
@@ -67,6 +72,20 @@ def _detect_geo_level(text: str) -> str | None:
         return "place"
     if CBSA_PATTERN.search(text_l):
         return "cbsa"
+    return None
+
+
+def _detect_baseline_anchor_year(text: str) -> int | None:
+    """Extract baseline anchor year from user text when present."""
+    match = BASELINE_YEAR_PATTERN.search(text)
+    if match:
+        return int(match.group("year"))
+
+    if BASELINE_PATTERN.search(text):
+        years = [int(y.group()) for y in STANDALONE_YEAR_PATTERN.finditer(text)]
+        if len(years) == 1:
+            return years[0]
+
     return None
 
 
@@ -110,6 +129,37 @@ def resolve_benchmark_intent(user_text: str) -> BenchmarkResolution:
             reason_code="BENCHMARK_MISSING_METRIC",
             clarification_prompt=clarification,
         )
+
+    # Historical baseline path (before geo-level routing)
+    if BASELINE_PATTERN.search(text_1) and not has_peer_language:
+        anchor_year = _detect_baseline_anchor_year(text)
+        if anchor_year is None:
+            clarification = render_benchmark_clarification(
+                BenchmarkMissingBaselineAnchorSlots(
+                    reason_code="BENCHMARK_MISSING_BASELINE_ANCHOR",
+                    subject_text=text,
+                )
+            )
+            return BenchmarkClarificationRequired(
+                status="clarification_required",
+                reason_code="BENCHMARK_MISSING_BASELINE_ANCHOR",
+                clarification_prompt=clarification,
+            )
+
+        benchmark = BenchmarkIntent(
+            benchmark_type="historical_baseline",
+            subject_geo_level=geo_level or "county",
+            subject_geo=["subject:unknown"],
+            benchmark_geo_level=None,
+            benchmark_geos=[],
+            metric=metric,
+            comparison_op="difference",
+            normalization="none",
+            baseline_anchor_year=anchor_year,
+            baseline_window=1,
+            requested_text=text,
+        )
+        return BenchmarkResolved(status="resolved", benchmark=benchmark)
 
     # Clarification: compare language without explicit geography
     # - peer language -> ambiguous target

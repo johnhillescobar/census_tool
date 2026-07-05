@@ -50,6 +50,13 @@ class BenchmarkConflictBaselineVsPeerGroupSlots(BaseModel):
     subject_text: str
 
 
+class BenchmarkMissingBaselineAnchorSlots(BaseModel):
+    reason_code: Literal["BENCHMARK_MISSING_BASELINE_ANCHOR"] = (
+        "BENCHMARK_MISSING_BASELINE_ANCHOR"
+    )
+    subject_text: str
+
+
 # Create OptionTemplate for the clarification prompt
 
 
@@ -183,6 +190,21 @@ TEMPLATES: dict[str, ClarificationTemplate] = {
             OptionTemplate(option_id="peer_group", label_template="Use the peer group"),
         ],
     ),
+    "BENCHMARK_MISSING_BASELINE_ANCHOR": ClarificationTemplate(
+        template_id="benchmark.missing_baseline_anchor.v1",
+        reason_code="BENCHMARK_MISSING_BASELINE_ANCHOR",
+        question_template=(
+            "Your request references a historical baseline but does not specify an anchor year."
+            " Please choose one so I can run the query deterministically."
+        ),
+        option_templates=[
+            OptionTemplate(
+                option_id="baseline_anchor_year",
+                label_template="Specify a baseline anchor year",
+            ),
+            OptionTemplate(option_id="cancel", label_template="Cancel"),
+        ],
+    ),
 }
 
 # Define the slots for the clarification template for temporal
@@ -202,6 +224,7 @@ BenchmarkClarificationSlots = Annotated[
         BenchmarkMissingMetricSlots,
         BenchmarkMissingGeoLevelSlots,
         BenchmarkConflictBaselineVsPeerGroupSlots,
+        BenchmarkMissingBaselineAnchorSlots,
     ],
     Field(discriminator="reason_code"),
 ]

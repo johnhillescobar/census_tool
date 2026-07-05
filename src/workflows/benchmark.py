@@ -2,52 +2,30 @@ from typing import Any
 import re
 
 from langchain_core.runnables import RunnableConfig
-from pydantic import BaseModel, Field
 
 from src.services.benchmark_policy import resolve_benchmark_intent
 from src.state.types import CensusState
+from src.state.workflow_plan import BenchmarkNotApplicable, WorkflowPlan
 
 COMPARE_PATTERN = re.compile(r"\b(compare|vs|versus|against)\b", re.IGNORECASE)
 
 
-class BenchmarkPlan(BaseModel):
-    temporal: dict[str, Any] | None = None
-    benchmark: dict[str, Any]
-    requires_clarification: bool
-
-
-class FinalPayload(BaseModel):
-    answer_text: str
-    charts_needed: list[dict[str, Any]] = Field(default_factory=list)
-    tables_needed: list[dict[str, Any]] = Field(default_factory=list)
-    footnotes: list[str] = Field(default_factory=list)
-
-
-class BenchmarkNodeOutput(BaseModel):
-    plan: BenchmarkPlan
-    final: FinalPayload | None = None
-    logs: list[str] = Field(default_factory=list)
-
-
 def benchmark_node(state: CensusState, config: RunnableConfig) -> dict[str, Any]:
     user_question = state.messages[-1]["content"]
-    existing_plan = state.plan or {}
-    temporal_plan = existing_plan.get("temporal")
+    existing_plan = state.plan
+    temporal = existing_plan.temporal if existing_plan else None
 
-    # Non-comparison requests should not be forced through benchmark clarification.
     if not COMPARE_PATTERN.search(user_question or ""):
-        output = BenchmarkNodeOutput(
-            plan=BenchmarkPlan(
-                temporal=temporal_plan,
-                benchmark={
-                    "status": "not_applicable",
-                    "reason": "no_comparison_intent",
-                },
+        return {
+            "plan": WorkflowPlan(
+                temporal=temporal,
+                benchmark=BenchmarkNotApplicable(
+                    reason="no_comparison_intent",
+                ),
                 requires_clarification=False,
             ),
-            logs=["benchmark: skipped (no comparison intent)"],
-        )
-        return output.model_dump(exclude_none=True)
+            "logs": ["benchmark: skipped (no comparison intent)"],
+        }
 
     benchmark_resolution = resolve_benchmark_intent(user_question)
 
@@ -55,27 +33,25 @@ def benchmark_node(state: CensusState, config: RunnableConfig) -> dict[str, Any]
         prompt = benchmark_resolution.clarification_prompt
         option_lines = [f"{o.option_id}: {o.label}" for o in prompt.options]
         clarification_text = f"{prompt.question_text}\n" + "\n".join(option_lines)
-        output = BenchmarkNodeOutput(
-            plan=BenchmarkPlan(
-                temporal=temporal_plan,
-                benchmark=benchmark_resolution.model_dump(),
+        return {
+            "plan": WorkflowPlan(
+                temporal=temporal,
+                benchmark=benchmark_resolution,
                 requires_clarification=True,
             ),
-            final=FinalPayload(
-                answer_text=clarification_text,
-            ),
-            logs=[
+            "final": {
+                "answer_text": clarification_text,
+            },
+            "logs": [
                 f"benchmark: clarification required ({benchmark_resolution.reason_code})"
             ],
-        )
-        return output.model_dump(exclude_none=True)
+        }
 
-    output = BenchmarkNodeOutput(
-        plan=BenchmarkPlan(
-            temporal=temporal_plan,
-            benchmark=benchmark_resolution.model_dump(),
+    return {
+        "plan": WorkflowPlan(
+            temporal=temporal,
+            benchmark=benchmark_resolution,
             requires_clarification=False,
         ),
-        logs=["benchmark: resolved"],
-    )
-    return output.model_dump(exclude_none=True)
+        "logs": ["benchmark: resolved"],
+    }

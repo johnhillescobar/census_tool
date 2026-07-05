@@ -25,6 +25,19 @@ def _expand_query_years(temporal_intent: TemporalIntent) -> list[int]:
     raise ValueError(f"Unsupported temporal mode: {temporal_intent.mode}")
 
 
+def _expand_baseline_years(benchmark_intent: BenchmarkIntent) -> list[int]:
+    if benchmark_intent.benchmark_type != "historical_baseline":
+        return []
+
+    anchor = benchmark_intent.baseline_anchor_year
+    if anchor is None:
+        raise ValueError("baseline_anchor_year is required for historical_baseline.")
+
+    window = benchmark_intent.baseline_window if benchmark_intent.baseline_window is not None else 1
+    start = anchor - window + 1
+    return list(range(start, anchor + 1))
+
+
 def _expand_requested_text(
     temporal_intent: TemporalIntent, benchmark_intent: BenchmarkIntent
 ) -> str:
@@ -43,8 +56,18 @@ def resolve_comparison_plan(
 ) -> ComparisonPlan:
     """Build the comparison plan from the benchmark intent and temporal intent."""
 
-    query_years = _expand_query_years(temporal_intent)
+    temporal_years = _expand_query_years(temporal_intent)
+    baseline_years = _expand_baseline_years(benchmark_intent)
+    query_years = sorted(set(temporal_years + baseline_years))
     requested_text = _expand_requested_text(temporal_intent, benchmark_intent)
+
+    if benchmark_intent.benchmark_type == "historical_baseline":
+        benchmark_geo_level = None
+        benchmark_geos: list[str] = []
+    else:
+        benchmark_geo_level = benchmark_intent.benchmark_geo_level
+        benchmark_geos = benchmark_intent.benchmark_geos
+
     comparison_plan = ComparisonPlan.model_validate(
         {
             "query_years": query_years,
@@ -54,8 +77,8 @@ def resolve_comparison_plan(
             "metric": benchmark_intent.metric,
             "subject_geo_level": benchmark_intent.subject_geo_level,
             "subject_geos": benchmark_intent.subject_geo,
-            "benchmark_geo_level": benchmark_intent.benchmark_geo_level,
-            "benchmark_geos": benchmark_intent.benchmark_geos,
+            "benchmark_geo_level": benchmark_geo_level,
+            "benchmark_geos": benchmark_geos,
             "comparison_op": benchmark_intent.comparison_op,
             "normalization": benchmark_intent.normalization,
             "missing_year_policy": temporal_intent.missing_year_policy,

@@ -82,3 +82,31 @@ def test_deterministic_rerun_same_input_same_output():
     second_result = resolve_comparison_plan(benchmark_intent, temporal_intent)
 
     assert first_result.model_dump() == second_result.model_dump()
+
+
+def _build_historical_baseline_intent() -> BenchmarkIntent:
+    return BenchmarkIntent(
+        benchmark_type="historical_baseline",
+        metric="population",
+        subject_geo_level="county",
+        subject_geo=["10001"],
+        benchmark_geo_level=None,
+        benchmark_geos=[],
+        comparison_op="difference",
+        normalization="none",
+        baseline_anchor_year=2019,
+        baseline_window=1,
+        requested_text="compare population vs 2019 baseline",
+    )
+
+
+def test_historical_baseline_merges_temporal_and_baseline_years():
+    result = resolve_comparison_plan(
+        _build_historical_baseline_intent(),
+        _build_temporal_intent("latest_available", None, None, None),
+    )
+    assert result.query_years == [2019, 2023]
+    assert result.benchmark_geo_level is None
+    assert result.benchmark_geos == []
+    assert result.metric == "population"
+    assert result.derived_metrics == ["difference"]

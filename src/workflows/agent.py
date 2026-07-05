@@ -17,8 +17,7 @@ def agent_reasoning_node(state: CensusState, config: RunnableConfig) -> Dict[str
     # Agent expects intent dict - create basic one if not exists
     intent = state.intent or {"is_census": True, "topic": "general"}
 
-    plan = state.plan or {}
-    if plan.get("requires_clarification"):
+    if state.plan and state.plan.requires_clarification:
         return {"logs": ["agent: skipped (clarification required)"]}
 
     agent = CensusQueryAgent()

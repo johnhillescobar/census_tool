@@ -2,6 +2,8 @@ from pydantic import BaseModel, Field
 from typing import Annotated, List, Dict, Optional, Any
 import operator
 
+from src.state.workflow_plan import WorkflowPlan
+
 
 def _merge_dict(existing: Dict[str, Any], new: Dict[str, Any]) -> Dict[str, Any]:
     """Reducer for dict state channels: merge new into existing (last writer wins per key)."""
@@ -33,7 +35,7 @@ class CensusState(BaseModel):
     candidates: Dict[str, Any] = Field(
         default_factory=dict, description="Candidate variables; reducer: overwrite"
     )
-    plan: Optional[Dict[str, Any]] = Field(
+    plan: WorkflowPlan | None = Field(
         None, description="Query plan; reducer: overwrite"
     )
     artifacts: Annotated[Dict[str, Any], _merge_dict] = Field(
