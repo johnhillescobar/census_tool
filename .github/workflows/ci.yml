@@ -62,7 +62,7 @@ jobs:
 
       - name: Lint with ruff
         run: |
-          uv run ruff check \
+          ruff check \
             src/domain/benchmark_geo_inference.py \
             src/domain/workflow_acceptance.py \
             src/services/benchmark_geo_inference.py \
