@@ -31,49 +31,44 @@ Canonical principle: deterministic contracts and workflow/service steps are reli
 
 ## 📋 Project Status
 
-**Current Status**: ✅ **FULLY OPERATIONAL** - All core features working and tested
+**Current Status**: 🟡 **Track 2 operational** — deterministic planning + agent execution wired and covered by contract tests; live LLM/API integration tests require API keys.
 
 ### Verified Working Components
-- ✅ **Agent-First Architecture** - LangGraph workflow with 4-node linear flow (memory_load → agent → output → memory_write)
-- ✅ **CensusQueryAgent** - Multi-step ReAct agent with 8 specialized tools for Census API interaction
-- ✅ **Agent Tools Suite** - All 8 tools operational:
-  - GeographyDiscoveryTool - Dynamic area enumeration for 144+ geography patterns
-  - AreaResolutionTool - Name-to-FIPS code resolution
-  - TableSearchTool - ChromaDB semantic search for Census tables
-  - TableValidationTool - Geography-table compatibility checking
-  - PatternBuilderTool - Census API URL pattern construction
-  - CensusAPITool - API execution with complex pattern support
-  - ChartTool - Plotly chart generation (bar, line charts)
-  - TableTool - Data export (CSV, Excel, HTML)
-- ✅ **Output Generation** - Automatic chart/table creation via output_node
-- ✅ **Memory System** - SQLite checkpoints, user profiles, conversation history
-- ✅ **Dual Interface** - CLI (main.py) and Web (streamlit_app.py) both functional
-- ✅ **PDF Export** - Session reports with embedded charts and tables (Streamlit only)
-- ✅ **Test Coverage** - 9/9 main app tests passing, 6/6 e2e workflow tests passing
+- ✅ **Track 2 LangGraph workflow** — 8 nodes with conditional routing (`memory_load → temporal → benchmark → comparison → agent → comparison_metrics → output → memory_write`)
+- ✅ **Typed planning contracts** — `TemporalIntent`, `BenchmarkIntent`, `ComparisonPlan` in `src/domain/` with fail-to-clarification behavior
+- ✅ **CensusQueryAgent** — ReAct agent with 11 registered tools (see [ARCHITECTURE.md](app_description/ARCHITECTURE.md))
+- ✅ **Deterministic comparison metrics** — `comparison_metrics_node` + `comparison_metric_compute` service
+- ✅ **Typed rendered outputs** — `RenderedArtifactSuccess` / `RenderedArtifactFailure` in `final.generated_files`
+- ✅ **Presentation routing** — deterministic UI kind selection via `presentation_routing` service
+- ✅ **Memory System** — SQLite checkpoints, user profiles, conversation history
+- ✅ **Dual Interface** — CLI (`main.py`) and Web (`streamlit_app.py`)
+- ✅ **PDF Export** — Session reports with embedded charts and tables (Streamlit only)
+- 🟢 **Test Coverage** — 281 tests collected; **279 passed, 2 skipped** in full suite (~9 min); 244+ pass in fast unit subset without live LLM tests
 
 ### Architecture Evidence
-- **Graph compiles**: `app.py` creates valid LangGraph workflow
-- **Agent integration**: `src/workflows/agent.py` calls `CensusQueryAgent.solve()`
-- **Tool registration**: Tools are registered in `src/agents/census_query_agent.py`
-- **Output processing**: `src/workflows/output.py` generates charts/tables from agent results
+- **Graph compiles**: `app.py` → `create_census_graph()` (see `graph.png`)
+- **Planning nodes**: `src/workflows/temporal.py`, `benchmark.py`, `comparison.py`
+- **Agent integration**: `src/workflows/agent.py` calls `CensusQueryAgent.solve()` with optional `AgentPlanContext`
+- **Output processing**: `src/workflows/output.py` uses typed artifact contracts
 
-> **Technical Details**: See [ARCHITECTURE.md](app_description/ARCHITECTURE.md) for complete specifications. Note: ARCHITECTURE.md describes the design; this README reflects actual working implementation.
+> **Technical Details**: See [ARCHITECTURE.md](app_description/ARCHITECTURE.md) — single source of truth for the current implementation.
 
 ## 🏗️ Architecture
 
-The application uses an **agent-first architecture** with a simplified linear workflow that replaces the old deterministic graph approach:
+The application uses a **reasoning-node-first architecture**: deterministic planning nodes prepare typed contracts, the agent executes Census retrieval, and downstream nodes render outputs.
 
 ```
-User Question → Agent Reasons (multi-step) → Tools Execute → Agent Validates → Output Tools → Result
+User Question → Temporal/Benchmark/Comparison planning → Agent (tool loops) → Comparison metrics → Output → Result
 ```
 
 ### LangGraph Workflow
-**Current Agent-Based Flow:**
+**Current flow** (8 nodes, conditional routing for clarification and benchmark bypass):
+
 ```
-memory_load → agent → output → memory_write
+memory_load → temporal → benchmark → comparison → agent → comparison_metrics → output → memory_write
 ```
 
-This replaces the old complex branching graph with a simple linear flow where the agent handles all reasoning internally using specialized tools.
+Planning nodes fail closed to clarification when input is ambiguous. When no comparison is requested, benchmark routing skips directly to the agent. See [ARCHITECTURE.md](app_description/ARCHITECTURE.md) for the routing diagram.
 
 ### Key Components
 
@@ -82,27 +77,40 @@ This replaces the old complex branching graph with a simple linear flow where th
 - **Agent Tools Suite** - Specialized tools for Census API interaction, geography discovery, and table search
 
 #### Processing Nodes (`src/workflows/`)
-**Active Nodes** (used in current workflow):
-- **`memory.py`** - `memory_load_node` and `memory_write_node` for user profiles and conversation history
-- **`agent.py`** - `agent_reasoning_node` that calls CensusQueryAgent for multi-step reasoning
-- **`output.py`** - `output_node` that generates charts/tables from agent results
-
-**Deprecated Nodes** (not used in current agent-first architecture):
-- `intent.py`, `geo.py`, `retrieve.py`, `data.py`, `answer.py` - Replaced by agent reasoning
+**Active nodes** (wired in `app.py`):
+- **`memory.py`** — `memory_load_node`, `memory_write_node`
+- **`temporal.py`** — resolve temporal intent; clarification gate
+- **`benchmark.py`** — resolve benchmark intent or mark not applicable
+- **`comparison.py`** — build `ComparisonPlan` from temporal + benchmark
+- **`agent.py`** — `agent_reasoning_node` (calls `CensusQueryAgent` with plan context)
+- **`comparison_metrics.py`** — deterministic derived metrics from comparison rows
+- **`output.py`** — chart/table rendering with typed `generated_files` artifacts
+- **`graph_patch.py`** — `CensusGraphPatch` for typed LangGraph state updates
 
 #### Agent Tools (`src/tools/`)
-All 8 tools are registered in CensusQueryAgent and actively used:
-- **`geography_discovery_tool.py`** - GeographyDiscoveryTool: Enumerate areas, list geography levels
-- **`area_resolution_tool.py`** - AreaResolutionTool: Convert friendly names to FIPS codes
-- **`table_search_tool.py`** - TableSearchTool: ChromaDB semantic search for Census tables
-- **`table_validation_tool.py`** - TableValidationTool: Validate table-geography compatibility
-- **`pattern_builder_tool.py`** - PatternBuilderTool: Build Census API URL patterns
-- **`census_api_tool.py`** - CensusAPITool: Execute Census API calls with complex patterns
-- **`chart_tool.py`** - ChartTool: Generate Plotly charts (bar, line) - used by output_node
-- **`table_tool.py`** - TableTool: Export data (CSV, Excel, HTML) - used by output_node
+11 tools registered in `CensusQueryAgent` (see `src/agents/census_query_agent.py`):
+- **`geography_discovery_tool.py`** — GeographyDiscoveryTool
+- **`geography_validation_tool.py`** — GeographyValidationTool
+- **`geography_hierarchy_tool.py`** — GeographyHierarchyTool
+- **`area_resolution_tool.py`** — AreaResolutionTool
+- **`table_search_tool.py`** — TableSearchTool (ChromaDB)
+- **`variable_validation_tool.py`** — VariableValidationTool
+- **`pattern_builder_tool.py`** — PatternBuilderTool
+- **`census_api_tool.py`** — CensusAPITool
+- **`strict_census_api_tool.py`** — StrictCensusApiTool (typed responses)
+- **`chart_tool.py`** — ChartTool (also used by `output_node`)
+- **`table_tool.py`** — TableTool (CSV, Excel, HTML)
+
+`TableValidationTool` exists in `src/tools/` but is **not** registered on the agent.
 
 #### State Management (`src/state/`)
-- **`types.py`** - TypedDict definitions for CensusState with agent workflow integration
+- **`types.py`** — Pydantic `CensusState` with LangGraph reducers; typed `FinalResponseState` / `WorkflowArtifactsState` views
+- **`workflow_plan.py`** — `WorkflowPlan` aggregate (`temporal`, `benchmark`, `comparison`, `requires_clarification`)
+
+#### Domain & Services (`src/domain/`, `src/services/`)
+- **Typed contracts** — `TemporalIntent`, `BenchmarkIntent`, `ComparisonPlan`, agent output, rendered artifacts
+- **Policy services** — `temporal_policy`, `benchmark_policy`, `comparison_plan_policy`, `comparison_metric_compute`
+- **Presentation** — `presentation_routing` for deterministic UI kind selection
 
 > **Detailed Architecture**: See [ARCHITECTURE.md](app_description/ARCHITECTURE.md) for complete component specifications, agent tool descriptions, and implementation details.
 
@@ -391,36 +399,40 @@ Enter your thread ID: main
 
 ## 🧪 Testing
 
-The project includes comprehensive test coverage with **all tests passing**:
+The project includes broad contract and integration coverage:
 
 ```bash
-# Run all tests
+# Run all tests (281 collected)
 uv run pytest app_test_scripts/ -v
 
-# Run specific test modules
-uv run pytest app_test_scripts/test_main_app.py -v        # 9/9 passing
-uv run pytest app_test_scripts/test_e2e_workflows.py -v   # 6/6 passing
-uv run pytest app_test_scripts/test_memory.py -v
-uv run pytest app_test_scripts/test_displays.py -v
+# Fast unit/contract subset (excludes live LLM integration tests)
+uv run pytest app_test_scripts/ -q \
+  --ignore=app_test_scripts/test_integration_agent_api.py \
+  --ignore=app_test_scripts/test_census_query_agent.py \
+  --ignore=app_test_scripts/test_e2e_workflows.py
 ```
 
-### Test Coverage (Verified Working)
-- ✅ **Main App Integration** - Graph compilation, state creation, user input processing (9/9 tests)
-- ✅ **End-to-End Workflows** - Population queries, income trends, county comparisons, error handling (6/6 tests)
-- ✅ **Memory Management** - Profile updates, cache management, retention policies
-- ✅ **Display Functions** - Result formatting and visualization
-- ✅ **PDF Generation** - Session export with charts and tables
-- ✅ **Dynamic Geography** - Geography enumeration and resolution
-- ✅ **Cache Performance** - Data caching and retrieval optimization
+### Test Coverage Areas
+- **Graph & routing** — Track 2 workflow invoke, benchmark routing, graph patch contracts
+- **Typed contracts** — temporal, benchmark, comparison, agent output, rendered output
+- **Agent node wiring** — plan context, comparison rows, reasoning node behavior
+- **Main app integration** — graph compilation, state creation (`test_main_app.py`)
+- **Memory & caching** — profiles, retention, cache performance
+- **PDF generation** — Streamlit session export
+- **Live integration** — `test_census_query_agent.py`, `test_e2e_workflows.py` (require API keys)
 
 ### Test Evidence
 ```bash
-# Verify current status
-uv run pytest app_test_scripts/test_main_app.py -v
-# Output: 9 passed in 3.48s
+uv run pytest app_test_scripts/ --collect-only -q
+# Output: 281 tests collected
 
-uv run pytest app_test_scripts/test_e2e_workflows.py -v
-# Output: 6 passed in 0.03s
+uv run pytest app_test_scripts/ -q
+# Output: 279 passed, 2 skipped (~9 min full run)
+
+uv run pytest app_test_scripts/ -q --ignore=app_test_scripts/test_integration_agent_api.py \
+  --ignore=app_test_scripts/test_census_query_agent.py \
+  --ignore=app_test_scripts/test_e2e_workflows.py
+# Output: 244 passed, 2 skipped (~23s unit/contract subset)
 ```
 
 ## ⚙️ Configuration
@@ -541,65 +553,39 @@ LANGCHAIN_PROJECT=census-tool
 ```
 census_tool/
 ├── src/
-│   ├── domain/          # Domain logic and deterministic helpers
-│   │   ├── geography_registry.py, geo_utils.py
-│   │   ├── text_utils.py, time_utils.py, census_groups.py
-│   ├── clients/         # External I/O adapters and integrations
-│   │   ├── census_api_utils.py, chroma_utils.py
-│   │   ├── file_utils.py, session_logger.py, telemetry.py, pdf_generator.py
-│   ├── services/        # Business orchestration helpers
-│   │   ├── dataset_geography_validator.py, variable_validator.py
-│   │   ├── enumeration_detector.py, memory_utils.py
-│   │   ├── dataframe_utils.py, conversation_summarizer.py, footnote_generator.py
-│   ├── agents/          # Agent implementation
+│   ├── domain/          # Typed contracts (TemporalIntent, ComparisonPlan, …)
+│   │   ├── temporal_contract.py, benchmark_contract.py, comparison_plan.py
+│   │   ├── agent_output_contract.py, rendered_output_contract.py
+│   │   ├── geography_registry.py, geo_utils.py, text_utils.py
+│   ├── services/        # Deterministic policy + compute
+│   │   ├── temporal_policy.py, benchmark_policy.py, comparison_plan_policy.py
+│   │   ├── comparison_metric_compute.py, presentation_routing.py
+│   │   ├── memory_utils.py, variable_validator.py, footnote_generator.py
+│   ├── clients/         # External I/O adapters
+│   │   ├── census_api_utils.py, chroma_utils.py, file_utils.py
+│   │   ├── session_logger.py, telemetry.py, pdf_generator.py
+│   ├── agents/          # CensusQueryAgent (11 tools)
 │   │   └── census_query_agent.py
-│   ├── workflows/       # LangGraph processing nodes
-│   │   ├── agent.py     # ✅ ACTIVE: agent_reasoning_node (calls CensusQueryAgent)
-│   │   ├── output.py    # ✅ ACTIVE: output_node (generates charts/tables)
-│   │   ├── memory.py    # ✅ ACTIVE: memory_load/write nodes
+│   ├── workflows/       # LangGraph nodes (8 active)
+│   │   ├── memory.py, temporal.py, benchmark.py, comparison.py
+│   │   ├── agent.py, comparison_metrics.py, output.py, graph_patch.py
 │   ├── api/             # Presentation adapters
-│   │   ├── displays.py
-│   ├── state/           # State management
-│   │   └── types.py
-│   ├── tools/           # ✅ Agent tools (all 8 actively used)
-│   │   ├── geography_discovery_tool.py  # GeographyDiscoveryTool
-│   │   ├── area_resolution_tool.py      # AreaResolutionTool
-│   │   ├── table_search_tool.py         # TableSearchTool
-│   │   ├── table_validation_tool.py     # TableValidationTool
-│   │   ├── pattern_builder_tool.py      # PatternBuilderTool
-│   │   ├── census_api_tool.py           # CensusAPITool
-│   │   ├── chart_tool.py                # ChartTool
-│   │   └── table_tool.py                # TableTool
-│   ├── llm/             # LLM integration
-│   │   ├── config.py              # LLM settings and prompts
-│   │   ├── factory_legacy.py      # Legacy LLM creation - fallback if factory fails
-│   │   ├── factory.py             # Centralized LLM factory supporting multiple providers
-│   │   ├── intent_enhancer.py     # Intent parsing and answer generation
-│   │   ├── category_detector.py   # Census data category detection
-│   │   └── geography_resolver.py  # LLM-based geography resolution
+│   │   └── displays.py
+│   ├── state/           # CensusState + WorkflowPlan
+│   │   ├── types.py, workflow_plan.py
+│   ├── tools/           # Agent tools (11 registered; TableValidationTool unused)
+│   ├── llm/             # Factory, config, prompts
 │   └── locations/       # Geography reference data
-│       ├── states_abbrev.csv, counties.py, locations.csv
-├── app_test_scripts/    # ✅ Test suite (all passing)
-│   ├── test_main_app.py (9/9), test_e2e_workflows.py (6/6)
-│   ├── test_memory.py, test_displays.py, test_pdf_generation.py
-│   └── test_cache_performance.py
-├── app_description/     # Technical documentation
-│   └── ARCHITECTURE.md  # Design specifications
+├── app_test_scripts/    # 281 tests (contract, routing, integration)
+├── docs/                # track-2_framework.md, typed_contracts.md
+├── app_description/     # ARCHITECTURE.md, output format specs
+├── migration_evidence/  # Track baselines and gap registers
 ├── index/               # ChromaDB index builder
-│   ├── build_index.py   # Build table index (run once)
-│   └── build_index_table.py
-├── data/                # ✅ Cached Census data (runtime, auto-created)
-├── memory/              # ✅ User profiles and history (runtime, auto-created)
-├── chroma/              # ✅ ChromaDB persistent storage (auto-created)
-├── main.py              # ✅ CLI application entry point
-├── streamlit_app.py     # ✅ Web interface entry point
-├── launcher.py          # ✅ Interface selector (CLI or Web)
-├── app.py               # ✅ LangGraph workflow definition (4 nodes)
-├── config.py            # ✅ Configuration constants
-└── pyproject.toml       # ✅ Dependencies (managed by uv)
+├── data/, memory/, chroma/   # Runtime (auto-created)
+├── app.py               # LangGraph workflow (8 nodes)
+├── main.py, streamlit_app.py, launcher.py
+└── pyproject.toml
 ```
-
-**Legend**: ✅ Active/Working | ⚠️ Deprecated but present | 🔴 Missing/Broken
 
 ## PDF Export Feature
 
@@ -694,10 +680,14 @@ The agent-based architecture supports dynamic geography discovery and pattern bu
 - **API Endpoint** - RESTful API for programmatic access to agent capabilities
 
 ### Already Implemented
-- ✅ **PDF Report Generation** - Working in Streamlit interface (`src/clients/pdf_generator.py`)
-- ✅ **Chart Generation** - Plotly charts via ChartTool
-- ✅ **Table Export** - CSV, Excel, HTML via TableTool
-- ✅ **Data Caching** - 90-day retention with automatic cleanup
+- ✅ **Track 2 deterministic planning** — temporal/benchmark/comparison nodes + typed contracts
+- ✅ **Comparison metrics** — deterministic derived metrics node
+- ✅ **Typed rendered outputs** — success/failure artifacts for charts and tables
+- ✅ **Presentation routing** — deterministic UI kind from state
+- ✅ **PDF Report Generation** — Streamlit session export (`src/clients/pdf_generator.py`)
+- ✅ **Chart Generation** — Plotly charts via ChartTool and output_node
+- ✅ **Table Export** — CSV, Excel, HTML via TableTool
+- ✅ **Data Caching** — 90-day retention with automatic cleanup
 
 > **Extensibility**: The agent-first architecture supports new features through additional tools registered in CensusQueryAgent.
 

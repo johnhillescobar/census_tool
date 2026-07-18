@@ -1,8 +1,8 @@
 # 🏛️ Census Data Assistant - Usage Guide
 
-**Status**: ✅ Fully operational with agent-first architecture
+**Status**: 🟡 Track 2 workflow operational — deterministic planning + agent execution; live LLM tests require API keys
 
-> **📋 Technical Documentation**: For detailed architecture information, see **[ARCHITECTURE.md](app_description/ARCHITECTURE.md)** - the design specification. This guide reflects the actual working implementation.
+> **📋 Technical Documentation**: See **[ARCHITECTURE.md](app_description/ARCHITECTURE.md)** for the current 8-node workflow, typed contracts, and component map.
 
 ## 🚀 Quick Start
 
@@ -112,43 +112,41 @@ Then open http://localhost:8501 in your browser.
 
 ## 🔧 Technical Details
 
-### Architecture (Verified Working)
-Both interfaces use the same agent-first architecture:
-- **`app.py`** - LangGraph workflow: `memory_load → agent → output → memory_write`
-- **`src/nodes/agent.py`** - `agent_reasoning_node` calls CensusQueryAgent.solve()
-- **`src/nodes/output.py`** - `output_node` generates charts/tables from agent results
-- **`src/utils/agents/census_query_agent.py`** - ReAct agent with 8 specialized tools
-- **`src/tools/`** - All 8 agent tools actively registered and used:
-  - GeographyDiscoveryTool, AreaResolutionTool, TableSearchTool, TableValidationTool
-  - PatternBuilderTool, CensusAPITool, ChartTool, TableTool
-- **`config.py`** - Configuration settings (retention, API limits, performance)
-- **SQLite checkpoints** - Conversation persistence (`checkpoints.db`)
+### Architecture (current implementation)
+Both interfaces use the same LangGraph workflow:
+- **`app.py`** — 8-node graph: `memory_load → temporal → benchmark → comparison → agent → comparison_metrics → output → memory_write`
+- **`src/workflows/temporal.py`, `benchmark.py`, `comparison.py`** — deterministic planning; may return clarification prompts
+- **`src/workflows/agent.py`** — `agent_reasoning_node` calls `CensusQueryAgent.solve()` with optional plan context
+- **`src/workflows/comparison_metrics.py`** — deterministic derived metrics when a comparison plan is active
+- **`src/workflows/output.py`** — chart/table rendering with typed `generated_files` artifacts
+- **`src/agents/census_query_agent.py`** — ReAct agent with 11 registered tools
+- **`src/services/presentation_routing.py`** — deterministic UI routing (single value, time series, clarification, …)
+- **`config.py`** — retention, API limits, performance settings
+- **SQLite checkpoints** — conversation persistence (`checkpoints.db`)
 
-### Agent-Based Data Flow (Actual Implementation)
-1. **User input** → `memory_load_node` loads user profile/history
-2. **Agent reasoning** → `agent_reasoning_node`:
-   - Calls `CensusQueryAgent.solve(user_query, intent)`
-   - Agent uses ReAct pattern with multi-step tool execution
-   - Tools: Geography discovery → Table search → Validation → API execution
-   - Returns: `census_data`, `answer_text`, `charts_needed`, `tables_needed`, `footnotes`
-3. **Output generation** → `output_node`:
-   - Generates charts using ChartTool (if `charts_needed` specified)
-   - Generates tables using TableTool (if `tables_needed` specified)
-   - Combines with agent's `answer_text` and `footnotes`
-4. **Memory write** → `memory_write_node` saves conversation state
-5. **Display** → CLI (`displays.py`) or Web (Streamlit components)
+### Data Flow (actual implementation)
+1. **User input** → `memory_load_node` loads profile/history
+2. **Planning** → `temporal` / `benchmark` / `comparison` nodes build `WorkflowPlan` on `state.plan`
+   - Ambiguous input → clarification answer routed to `output` (agent skipped)
+3. **Agent reasoning** → `agent_reasoning_node`:
+   - Calls `CensusQueryAgent.solve()` with optional `AgentPlanContext`
+   - Agent uses ReAct tool loops (geography, table search, Census API, …)
+   - Returns validated `AgentPlanOutput` fields in `artifacts` / `final`
+4. **Comparison metrics** → `comparison_metrics_node` computes derived metrics when rows exist
+5. **Output generation** → `output_node` renders charts/tables into typed `generated_files`
+6. **Memory write** → `memory_write_node` persists state
+7. **Display** → CLI (`src/api/displays.py`) or Streamlit components
 
 ### Test Evidence
 ```bash
-# Verify architecture works end-to-end
-uv run pytest app_test_scripts/test_main_app.py -v
-# Output: 9 passed in 3.48s
+uv run pytest app_test_scripts/ --collect-only -q
+# 281 tests collected
 
-uv run pytest app_test_scripts/test_e2e_workflows.py -v
-# Output: 6 passed in 0.03s
+uv run pytest app_test_scripts/test_track2_graph_invoke.py app_test_scripts/test_main_app.py -q
+# Representative graph + app wiring tests
 ```
 
-> **Detailed Flow**: See [ARCHITECTURE.md](app_description/ARCHITECTURE.md) for design specifications. Note: ARCHITECTURE.md describes the intended design; this guide reflects actual working code.
+> **Detailed spec**: [ARCHITECTURE.md](app_description/ARCHITECTURE.md)
 
 ### Caching
 - 90-day retention policy
@@ -195,11 +193,14 @@ uv run pytest app_test_scripts/test_e2e_workflows.py -v
 
 ## 🔮 Future Enhancements
 
-- **PDF Report Generation** - Comprehensive reports with embedded charts and tables
-- **Geographic mapping** - Interactive maps showing geographic data
-- **Advanced Analytics** - Statistical analysis and trend detection
-- **Export to Parquet** - High-performance data formats
-- **API endpoint** - Programmatic access to agent capabilities
+- **Provenance gate** (Track 3) — source attribution and validation layer
+- **Geographic mapping** — interactive maps for spatial data
+- **Advanced analytics** — statistical analysis beyond comparison metrics
+- **Export to Parquet** — high-performance data formats
+- **API endpoint** — programmatic access (Track 4)
 
-> **Current Architecture**: The agent-first architecture supports these enhancements through additional tools and agent capabilities. See [ARCHITECTURE.md](app_description/ARCHITECTURE.md) for implementation details.
+### Already available
+- **PDF session export** — Streamlit sidebar (`src/clients/pdf_generator.py`)
+- **Deterministic comparison planning** — Track 2 nodes and contracts
+- **Typed chart/table artifacts** — success/failure records in `final.generated_files`
 
