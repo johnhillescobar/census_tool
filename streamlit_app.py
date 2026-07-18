@@ -17,8 +17,7 @@ import streamlit as st
 from app import create_census_graph
 from src.clients import SessionLogger, generate_session_pdf
 from src.services.graph_session import (
-    build_delta_turn_state,
-    build_fresh_thread_state,
+    build_turn_state,
     new_thread_id,
     runnable_config,
 )
@@ -310,10 +309,7 @@ def process_question(user_input: str) -> dict[str, Any]:
 
         turn_count = st.session_state.turn_count
 
-        if turn_count == 0:
-            initial_state = build_fresh_thread_state(user_input)
-        else:
-            initial_state = build_delta_turn_state(user_input)
+        initial_state = build_turn_state(user_input, is_first_turn=turn_count == 0)
         st.session_state.turn_count = turn_count + 1
 
         config = runnable_config(

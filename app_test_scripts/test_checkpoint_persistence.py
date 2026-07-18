@@ -16,7 +16,7 @@ from src.services.graph_session import (
 )
 
 _TURN1_STUB = {
-    "answer_text": "Turn one answer.",
+    "answer_text": "Turn one answer from the stubbed agent.",
     "census_data": {
         "success": True,
         "data": [["year", "value"], [2020, 100]],
@@ -38,7 +38,7 @@ _TURN1_STUB = {
 }
 
 _TURN2_STUB = {
-    "answer_text": "Turn two answer.",
+    "answer_text": "Turn two answer from the stubbed agent.",
     "census_data": {"success": True, "data": [["year", "value"], [2021, 200]]},
     "data_summary": "Turn two summary.",
     "reasoning_trace": "turn2",
@@ -109,6 +109,22 @@ def test_delta_turn_clears_stale_artifacts(checkpoint_db):
         final_state = graph.invoke(build_delta_turn_state("second question"), config)
 
     assert not final_state["artifacts"].get("comparison_input_rows")
+
+
+def test_delta_turn_replaces_stale_final_answer(checkpoint_db):
+    thread_id = str(uuid.uuid4())
+    config = runnable_config(user_id="checkpoint-test", thread_id=thread_id)
+
+    with patch("src.workflows.agent.CensusQueryAgent") as mock_agent_cls:
+        mock_agent_cls.return_value.solve.return_value = _TURN1_STUB
+        graph = create_census_graph()
+        turn1 = graph.invoke(build_fresh_thread_state("first question"), config)
+        assert turn1.get("final", {}).get("answer_text") == "Turn one answer from the stubbed agent."
+
+        mock_agent_cls.return_value.solve.return_value = _TURN2_STUB
+        final_state = graph.invoke(build_delta_turn_state("second question"), config)
+
+    assert final_state.get("final", {}).get("answer_text") == "Turn two answer from the stubbed agent."
 
 
 def test_new_conversation_thread_starts_fresh(checkpoint_db):

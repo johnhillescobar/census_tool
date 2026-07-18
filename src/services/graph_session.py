@@ -59,3 +59,10 @@ def build_fresh_thread_state(user_message: str) -> CensusState:
         cache_index={},
         logs=[],
     )
+
+
+def build_turn_state(user_message: str, *, is_first_turn: bool) -> CensusState:
+    """Select fresh-thread or delta-turn input for a checkpointed invoke."""
+    if is_first_turn:
+        return build_fresh_thread_state(user_message)
+    return build_delta_turn_state(user_message)

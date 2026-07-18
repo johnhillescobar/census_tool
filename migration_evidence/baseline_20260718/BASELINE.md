@@ -101,11 +101,22 @@ Result: **316 passed**, 13 deselected (integration), **full-repo ruff clean** (s
 ## B2 — Durable SQLite threads and delta invokes
 
 - `checkpoints.db` retained by default; deleted only when `CENSUS_RESET_CHECKPOINTS=1`.
-- `src/services/graph_session.py`: UUID thread IDs, `build_fresh_thread_state`, `build_delta_turn_state`, turn-reset artifacts.
-- `main.py` / `streamlit_app.py`: UUID-scoped threads, delta invokes on turn 2+, Streamlit “New conversation”.
-- `CensusState.artifacts` reducer clears merged artifacts at turn boundary via `__turn_reset__`.
+- `src/services/graph_session.py`: UUID thread IDs, `build_fresh_thread_state`, `build_delta_turn_state`, `build_turn_state`, turn-reset artifacts.
+- `main.py` / `streamlit_app.py`: UUID-scoped threads, delta invokes on turn 2+, Streamlit “New conversation” (rotates UUID, resets `turn_count`, clears UI history).
+- `CensusState.artifacts` reducer clears merged artifacts at turn boundary via `__turn_reset__`; `plan` / `final` / `error` use overwrite reducers cleared in delta state.
+- JSON user memory unchanged (`memory_load` / `memory_write`).
 
-Tests: `app_test_scripts/test_graph_session.py`, `app_test_scripts/test_checkpoint_persistence.py`.
+Tests: `app_test_scripts/test_graph_session.py` (4), `app_test_scripts/test_checkpoint_persistence.py` (5) against temp SQLite via `CENSUS_CHECKPOINT_DB`.
+
+Evidence (2026-07-18):
+
+```bash
+uv run ruff check src app_test_scripts
+uv run pytest app_test_scripts/test_graph_session.py app_test_scripts/test_checkpoint_persistence.py -q
+uv run pytest app_test_scripts/ -m "not integration" -q
+```
+
+Result: **322 passed**, 13 deselected; B2 checkpoint tests **9 passed**.
 
 ## A1–A2 — Runtime seam and modern backend
 
