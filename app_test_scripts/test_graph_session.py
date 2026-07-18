@@ -1,9 +1,15 @@
 """B2 graph session and turn-reset tests."""
 
+from unittest.mock import MagicMock
+
 from src.services.graph_session import (
     build_delta_turn_state,
     build_fresh_thread_state,
     build_turn_state,
+    build_turn_state_for_thread,
+    resolve_thread_id,
+    runnable_config,
+    thread_has_checkpoint,
     turn_reset_artifacts,
 )
 from src.state.types import TURN_RESET_KEY, _artifacts_reducer
@@ -41,3 +47,33 @@ def test_build_turn_state_selects_fresh_or_delta():
     assert fresh.profile == {}
     assert TURN_RESET_KEY in delta.artifacts
     assert delta.plan is None
+
+
+def test_resolve_thread_id_forces_new_thread():
+    provided = "00000000-0000-0000-0000-000000000001"
+    resolved = resolve_thread_id(thread_id=provided, new_thread=True)
+    assert resolved != provided
+
+
+def test_thread_has_checkpoint_uses_graph_messages():
+    graph = MagicMock()
+    config = runnable_config(user_id="demo", thread_id="thread-a")
+    graph.get_state.return_value = MagicMock(values={})
+    assert thread_has_checkpoint(graph, config) is False
+
+    graph.get_state.return_value = MagicMock(
+        values={"messages": [{"role": "user", "content": "hello"}]}
+    )
+    assert thread_has_checkpoint(graph, config) is True
+
+
+def test_build_turn_state_for_thread_uses_checkpoint_not_session_counter():
+    graph = MagicMock()
+    config = runnable_config(user_id="demo", thread_id="thread-a")
+    graph.get_state.return_value = MagicMock(
+        values={"messages": [{"role": "user", "content": "prior turn"}]}
+    )
+
+    state = build_turn_state_for_thread(graph, "resume question", config=config)
+    assert TURN_RESET_KEY in state.artifacts
+    assert state.plan is None

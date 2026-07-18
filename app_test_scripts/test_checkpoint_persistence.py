@@ -12,8 +12,10 @@ from src.domain.comparison_artifacts import ComparisonInputRow
 from src.services.graph_session import (
     build_delta_turn_state,
     build_fresh_thread_state,
+    build_turn_state_for_thread,
     runnable_config,
 )
+from src.state.types import TURN_RESET_KEY
 
 _TURN1_STUB = {
     "answer_text": "Turn one answer from the stubbed agent.",
@@ -146,3 +148,22 @@ def test_new_conversation_thread_starts_fresh(checkpoint_db):
 
     assert len(final_state["messages"]) == 1
     assert final_state["messages"][0]["content"] == "new conversation"
+
+
+def test_resumed_thread_id_uses_delta_turn_state(checkpoint_db):
+    thread_id = str(uuid.uuid4())
+    config = runnable_config(user_id="checkpoint-test", thread_id=thread_id)
+
+    with patch("src.workflows.agent.CensusQueryAgent") as mock_agent_cls:
+        mock_agent_cls.return_value.solve.return_value = _TURN1_STUB
+        graph = create_census_graph()
+        graph.invoke(build_fresh_thread_state("first question"), config)
+
+        resumed_state = build_turn_state_for_thread(
+            graph,
+            "second question",
+            config=config,
+        )
+
+    assert TURN_RESET_KEY in resumed_state.artifacts
+    assert resumed_state.plan is None
