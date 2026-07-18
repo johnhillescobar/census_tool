@@ -2,6 +2,8 @@
 
 from unittest.mock import MagicMock
 
+import pytest
+
 from src.services.graph_session import (
     build_delta_turn_state,
     build_fresh_thread_state,
@@ -53,6 +55,13 @@ def test_resolve_thread_id_forces_new_thread():
     provided = "00000000-0000-0000-0000-000000000001"
     resolved = resolve_thread_id(thread_id=provided, new_thread=True)
     assert resolved != provided
+
+
+@pytest.mark.parametrize("blank_thread_id", ["", "   "])
+def test_resolve_thread_id_generates_uuid_for_blank_thread_id(blank_thread_id):
+    resolved = resolve_thread_id(thread_id=blank_thread_id, new_thread=False)
+    assert resolved
+    assert resolved != blank_thread_id
 
 
 def test_thread_has_checkpoint_uses_graph_messages():
