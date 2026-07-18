@@ -267,7 +267,7 @@ def _collect_state_fips(text: str, candidates: list[str]) -> list[str]:
 
 def _collect_mapped_levels(candidates: list[str]) -> list[GeographyLevel]:
     levels: list[GeographyLevel] = []
-    seen: set[str] = set()
+    seen: set[GeographyLevel] = set()
     for candidate in candidates:
         level = lookup_mapped_level(candidate)
         if level and level not in seen:
