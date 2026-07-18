@@ -32,6 +32,25 @@ GeneratedFileArtifact = Annotated[
     Field(discriminator="status"),
 ]
 
+_CHART_SUCCESS_PREFIXES = (
+    "Chart created successfully: ",
+    "Chart saved as HTML: ",
+)
+_TABLE_SUCCESS_PREFIX = "Table created successfully: "
+
+
+def _mime_type_for_path(path: str, *, kind: Literal["chart", "table"]) -> str:
+    lower = path.lower()
+    if lower.endswith(".html"):
+        return "text/html"
+    if lower.endswith(".xlsx"):
+        return "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    if lower.endswith(".csv"):
+        return "text/csv"
+    if lower.endswith(".png"):
+        return "image/png"
+    return "image/png" if kind == "chart" else "text/csv"
+
 
 def artifact_from_tool_result(
     result: str,
@@ -39,19 +58,16 @@ def artifact_from_tool_result(
     kind: Literal["chart", "table"],
     title: str | None = None,
 ) -> GeneratedFileArtifact:
-    success_prefix = (
-        "Chart created successfully: "
-        if kind == "chart"
-        else "Table created successfully: "
-    )
-    if result.startswith(success_prefix):
-        path = result.split(success_prefix, 1)[1]
-        return RenderedArtifactSuccess(
-            kind=kind,
-            path=path,
-            mime_type="image/png" if kind == "chart" else "text/csv",
-            title=title,
-        )
+    prefixes = _CHART_SUCCESS_PREFIXES if kind == "chart" else (_TABLE_SUCCESS_PREFIX,)
+    for prefix in prefixes:
+        if result.startswith(prefix):
+            path = result.split(prefix, 1)[1]
+            return RenderedArtifactSuccess(
+                kind=kind,
+                path=path,
+                mime_type=_mime_type_for_path(path, kind=kind),
+                title=title,
+            )
     return RenderedArtifactFailure(
         kind=kind,
         error_code="RENDER_EXCEPTION",

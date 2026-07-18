@@ -5,6 +5,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from src.domain.agent_output_contract import CensusDataPayload
 from src.domain.comparison_artifacts import ComparisonInputRow, ComparisonMetricArtifactRow
+from src.domain.rendered_output_contract import RenderedArtifactFailure, RenderedArtifactSuccess
 from src.state.workflow_plan import WorkflowPlan
 
 
@@ -28,7 +29,9 @@ class FinalResponseState(BaseModel):
     charts_needed: list[dict[str, Any]] = Field(default_factory=list)
     tables_needed: list[dict[str, Any]] = Field(default_factory=list)
     footnotes: list[str] = Field(default_factory=list)
-    generated_files: list[str] = Field(default_factory=list)
+    generated_files: list[RenderedArtifactSuccess | RenderedArtifactFailure] = Field(
+        default_factory=list
+    )
 
 
 class WorkflowArtifactsState(BaseModel):

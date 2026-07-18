@@ -25,6 +25,41 @@ def test_artifact_from_tool_result_parses_chart_success() -> None:
     assert artifact.title == "Example"
 
 
+def test_artifact_from_tool_result_parses_chart_html_success() -> None:
+    artifact = artifact_from_tool_result(
+        "Chart saved as HTML: data/charts/chart_bar_123.html",
+        kind="chart",
+        title="Fallback",
+    )
+
+    assert isinstance(artifact, RenderedArtifactSuccess)
+    assert artifact.path == "data/charts/chart_bar_123.html"
+    assert artifact.mime_type == "text/html"
+    assert artifact.title == "Fallback"
+
+
+def test_artifact_from_tool_result_table_xlsx_mime_type() -> None:
+    artifact = artifact_from_tool_result(
+        "Table created successfully: data/tables/report.xlsx",
+        kind="table",
+    )
+
+    assert isinstance(artifact, RenderedArtifactSuccess)
+    assert artifact.mime_type == (
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+
+
+def test_artifact_from_tool_result_table_html_mime_type() -> None:
+    artifact = artifact_from_tool_result(
+        "Table created successfully: data/tables/report.html",
+        kind="table",
+    )
+
+    assert isinstance(artifact, RenderedArtifactSuccess)
+    assert artifact.mime_type == "text/html"
+
+
 def test_artifact_from_tool_result_preserves_failure() -> None:
     artifact = artifact_from_tool_result("boom", kind="table")
 

@@ -16,6 +16,12 @@ from src.tools.table_tool import TableTool
 logger = logging.getLogger(__name__)
 
 
+def _spec_title(spec: object, default: str | None = None) -> str | None:
+    if isinstance(spec, dict):
+        return spec.get("title", default)
+    return default
+
+
 def format_chart_title(
     y_column: str,
     x_column: str,
@@ -353,7 +359,7 @@ def output_node(state: CensusState, config: RunnableConfig) -> dict[str, Any]:
                         kind="chart",
                         error_code="RENDER_EXCEPTION",
                         message=str(e),
-                        title=chart_spec.get("title"),
+                        title=_spec_title(chart_spec),
                     ).model_dump()
                 )
 
@@ -387,7 +393,7 @@ def output_node(state: CensusState, config: RunnableConfig) -> dict[str, Any]:
                         kind="table",
                         error_code="RENDER_EXCEPTION",
                         message=str(e),
-                        title=table_spec.get("title"),
+                        title=_spec_title(table_spec, "Census Data"),
                     ).model_dump()
                 )
 
