@@ -61,18 +61,14 @@ def test_thread_has_checkpoint_uses_graph_messages():
     graph.get_state.return_value = MagicMock(values={})
     assert thread_has_checkpoint(graph, config) is False
 
-    graph.get_state.return_value = MagicMock(
-        values={"messages": [{"role": "user", "content": "hello"}]}
-    )
+    graph.get_state.return_value = MagicMock(values={"messages": [{"role": "user", "content": "hello"}]})
     assert thread_has_checkpoint(graph, config) is True
 
 
 def test_build_turn_state_for_thread_uses_checkpoint_not_session_counter():
     graph = MagicMock()
     config = runnable_config(user_id="demo", thread_id="thread-a")
-    graph.get_state.return_value = MagicMock(
-        values={"messages": [{"role": "user", "content": "prior turn"}]}
-    )
+    graph.get_state.return_value = MagicMock(values={"messages": [{"role": "user", "content": "prior turn"}]})
 
     state = build_turn_state_for_thread(graph, "resume question", config=config)
     assert TURN_RESET_KEY in state.artifacts
