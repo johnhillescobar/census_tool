@@ -69,6 +69,7 @@ class CensusQueryAgent:
         max_execution_time: int = 180,
     ):
         self.offline_mode = False
+        self._active_plan_context: AgentPlanContext | None = None
 
         missing_api_key = not os.getenv("OPENAI_API_KEY")
         if allow_offline and missing_api_key:
@@ -125,7 +126,6 @@ class CensusQueryAgent:
             handle_parsing_errors="Check your output format. You must output: 'Thought: I now know the final answer' followed by 'Final Answer: {valid JSON on single line}'",
             callbacks=[self.summarizer],
         )
-        self._active_plan_context: AgentPlanContext | None = None
 
     def _build_prompt(self):
         return PromptTemplate.from_template(AGENT_PROMPT_TEMPLATE)

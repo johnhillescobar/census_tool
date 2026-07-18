@@ -1,4 +1,5 @@
 import subprocess
+import sys
 import unittest
 
 from app_test_scripts.workflow_acceptance_plans import CANONICAL_WORKFLOW_ACCEPTANCE_PLANS
@@ -75,7 +76,7 @@ class TestWorkflowAcceptanceRuff(unittest.TestCase):
 
     def test_workflow_acceptance_files_pass_ruff(self) -> None:
         completed = subprocess.run(
-            ["uv", "run", "ruff", "check", *self.RUFF_PATHS],
+            [sys.executable, "-m", "ruff", "check", *self.RUFF_PATHS],
             capture_output=True,
             text=True,
             check=False,

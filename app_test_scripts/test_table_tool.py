@@ -6,6 +6,7 @@ import pytest
 pytest.importorskip("langchain_core.tools")
 
 import pandas as pd
+from pandas.api.types import is_string_dtype
 
 from src.tools.table_tool import TableTool
 from src.services.dataframe_utils import _create_dataframe_from_json
@@ -48,7 +49,7 @@ def test_create_dataframe_from_json_strips_formatting(sample_census_payload):
     assert df["C27012_001E"].iloc[0] == 2911005
     assert df["C27012_003E"].iloc[1] == 188248
     # state column should remain string to preserve zero padding
-    assert df["state"].dtype == object
+    assert is_string_dtype(df["state"])
     assert df["state"].iloc[0] == "01"
 
 
@@ -88,7 +89,7 @@ def test_preserves_identifier_columns():
         }
     }
     df = _create_dataframe_from_json(data)
-    assert df["Area Name"].dtype == object
+    assert is_string_dtype(df["Area Name"])
     assert df["Area Name"].iloc[0] == "Aberdeen, SD Micro Area"
-    assert df["GeoID"].dtype == object
+    assert is_string_dtype(df["GeoID"])
     assert df["GeoID"].iloc[0] == "310M700US10100"
