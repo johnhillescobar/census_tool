@@ -42,6 +42,31 @@ def test_missing_geography_defaults_to_us_national():
     assert resolution.geography.source == "missing_geo_default"
 
 
+def test_profile_default_geo_used_when_geography_missing():
+    resolution = resolve_geography_intent(
+        "Show me median income trends from 2015 to 2020",
+        profile_default_geo={
+            "level": "state",
+            "filters": {"for": "state:48"},
+            "note": "Texas",
+        },
+    )
+    assert resolution.status == "resolved"
+    assert resolution.geography.geo_for == {"state": "48"}
+    assert resolution.geography.source == "profile_default"
+
+
+def test_lowercase_state_abbreviation_resolves_without_english_word_false_positive():
+    resolution = resolve_geography_intent("population of ca")
+    assert resolution.status == "resolved"
+    assert resolution.geography.geo_for == {"state": "06"}
+
+    in_me = resolve_geography_intent("show me population trends in 2020")
+    assert in_me.status == "resolved"
+    assert in_me.geography.geo_for == {"us": "1"}
+    assert in_me.geography.source == "missing_geo_default"
+
+
 def test_explicit_nyc_does_not_use_us_fallback():
     resolution = resolve_geography_intent("population of nyc")
     assert resolution.status == "resolved"

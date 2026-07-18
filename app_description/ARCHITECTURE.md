@@ -224,7 +224,7 @@ uv run pytest app_test_scripts/ -q \
 
 ```
 census_tool/
-├── app.py                          # LangGraph definition (8 nodes)
+├── app.py                          # LangGraph definition (9 nodes)
 ├── main.py, streamlit_app.py, launcher.py
 ├── config.py
 ├── src/

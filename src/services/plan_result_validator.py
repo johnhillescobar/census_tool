@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from src.domain.agent_plan_context import AgentPlanContext
-from src.domain.execution_spec import ExecutionSpec, build_execution_spec
+from src.domain.execution_spec import build_execution_spec
 
 
 def _strip_presentation(result: dict[str, Any]) -> dict[str, Any]:

@@ -467,7 +467,7 @@ uv run pytest app_test_scripts/test_*.py -v
 1. `app.py` — Graph structure and routing functions
 2. `src/state/types.py` + `workflow_plan.py` — State and plan schema
 3. `src/domain/` — Typed contracts consumed by services and nodes
-4. `src/workflows/temporal.py`, `benchmark.py`, `comparison.py` — Planning nodes
+4. `src/workflows/geography.py`, `temporal.py`, `benchmark.py`, `comparison.py` — Planning nodes
 5. `src/agents/census_query_agent.py` — Agent and tool registration
 6. `src/workflows/agent.py` — Agent node (plan context wiring)
 7. `src/workflows/output.py` — Output generation and rendered artifacts

@@ -20,7 +20,6 @@ from src.services.benchmark_geo_inference import (
     extract_geo_candidates,
     infer_geo_context,
     lookup_mapped_level,
-    lookup_state_fips,
 )
 
 AMBIGUOUS_PLACE_PATTERN = re.compile(
@@ -49,6 +48,55 @@ def _clarification(reason_code: str, question: str, options: list[tuple[str, str
                 for option_id, label in options
             ],
         ),
+    )
+
+
+def _profile_default_to_intent(
+    profile_default_geo: dict,
+    *,
+    requested_text: str,
+) -> GeographyIntent | None:
+    """Convert a saved profile default_geo dict into a typed GeographyIntent."""
+    if not profile_default_geo or not profile_default_geo.get("level"):
+        return None
+
+    level = profile_default_geo.get("level")
+    if level not in {"nation", "state", "county", "place", "cbsa"}:
+        return None
+
+    geo_for = dict(profile_default_geo.get("geo_for") or {})
+    geo_in = dict(profile_default_geo.get("geo_in") or {})
+    filters = profile_default_geo.get("filters") or {}
+    if not geo_for and isinstance(filters, dict):
+        for_clause = filters.get("for")
+        in_clause = filters.get("in")
+        if isinstance(for_clause, str):
+            for segment in for_clause.split():
+                token, _, value = segment.partition(":")
+                if token and value:
+                    geo_for[token] = value
+        if isinstance(in_clause, str):
+            for segment in in_clause.split():
+                token, _, value = segment.partition(":")
+                if token and value:
+                    geo_in[token] = value
+
+    if not geo_for:
+        return None
+
+    display_name = (
+        profile_default_geo.get("display_name")
+        or profile_default_geo.get("note")
+        or profile_default_geo.get("name")
+        or str(level)
+    )
+    return GeographyIntent(
+        level=level,  # type: ignore[arg-type]
+        geo_for=geo_for,
+        geo_in=geo_in,
+        display_name=str(display_name),
+        source="profile_default",
+        requested_text=requested_text,
     )
 
 
@@ -150,6 +198,14 @@ def resolve_geography_intent(
             "That place name is ambiguous. Please specify the state or county context.",
             [("clarify", "Add state or county"), ("cancel", "Cancel")],
         )
+
+    if profile_default_geo:
+        profile_intent = _profile_default_to_intent(
+            profile_default_geo,
+            requested_text=requested_text,
+        )
+        if profile_intent is not None:
+            return GeographyResolved(geography=profile_intent)
 
     # Locked policy: missing geography defaults to United States national scope.
     default_geo = US_NATIONAL_GEO.model_copy(update={"requested_text": requested_text})
