@@ -1,9 +1,14 @@
-import logging
 import json
+import logging
+from typing import Any
+
 import pandas as pd
-from typing import Dict, Any
 from langchain_core.runnables import RunnableConfig
 
+from src.domain.rendered_output_contract import (
+    RenderedArtifactFailure,
+    artifact_from_tool_result,
+)
 from src.state.types import CensusState
 from src.tools.chart_tool import ChartTool
 from src.tools.table_tool import TableTool
@@ -118,7 +123,7 @@ def _detect_geography_column(
     return None
 
 
-def get_chart_params(census_data: Dict[str, Any], chart_type: str) -> Dict[str, str]:
+def get_chart_params(census_data: dict[str, Any], chart_type: str) -> dict[str, str]:
     """
     Dynamically determine chart parameters from actual data structure.
     Adapts to ANY column names the agent provides.
@@ -260,7 +265,7 @@ def get_chart_params(census_data: Dict[str, Any], chart_type: str) -> Dict[str, 
         return {"x_column": "Location", "y_column": "Value", "title": "Chart"}
 
 
-def output_node(state: CensusState, config: RunnableConfig) -> Dict[str, Any]:
+def output_node(state: CensusState, config: RunnableConfig) -> dict[str, Any]:
     """
     Generate charts and tables from census data
     """
@@ -334,10 +339,23 @@ def output_node(state: CensusState, config: RunnableConfig) -> Dict[str, Any]:
                     chart_input["color_column"] = chart_params["color_column"]
 
                 result = chart_tool._run(json.dumps(chart_input))
-
-                generated_files.append(result)
+                generated_files.append(
+                    artifact_from_tool_result(
+                        result,
+                        kind="chart",
+                        title=chart_params["title"],
+                    ).model_dump()
+                )
             except Exception as e:
                 logger.error(f"Failed to create chart: {e}")
+                generated_files.append(
+                    RenderedArtifactFailure(
+                        kind="chart",
+                        error_code="RENDER_EXCEPTION",
+                        message=str(e),
+                        title=chart_spec.get("title"),
+                    ).model_dump()
+                )
 
     # Create tables if needed
     if tables_needed and census_data:  # Note: 'if', not 'elif'
@@ -355,9 +373,23 @@ def output_node(state: CensusState, config: RunnableConfig) -> Dict[str, Any]:
                     )
                 )
 
-                generated_files.append(result)
+                generated_files.append(
+                    artifact_from_tool_result(
+                        result,
+                        kind="table",
+                        title=table_spec.get("title", "Census Data"),
+                    ).model_dump()
+                )
             except Exception as e:
                 logger.error(f"Failed to create table: {e}")
+                generated_files.append(
+                    RenderedArtifactFailure(
+                        kind="table",
+                        error_code="RENDER_EXCEPTION",
+                        message=str(e),
+                        title=table_spec.get("title"),
+                    ).model_dump()
+                )
 
     # Get existing final from state (preserve answer_text, charts_needed, etc.)
     existing_final = state.final or {}
