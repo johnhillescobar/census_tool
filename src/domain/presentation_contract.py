@@ -18,6 +18,4 @@ class PresentationRouting(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     kind: PresentationKind
-    reason: str = Field(
-        default="", description="Short deterministic explanation for logs/tests."
-    )
+    reason: str = Field(default="", description="Short deterministic explanation for logs/tests.")

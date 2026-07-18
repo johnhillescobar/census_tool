@@ -6,6 +6,7 @@ import re
 
 import us
 
+from src.domain.geo_utils import GEOGRAPHY_MAPPINGS, resolve_geography_hint
 from src.domain.geography_contract import (
     ClarificationOption,
     ClarificationPrompt,
@@ -14,7 +15,6 @@ from src.domain.geography_contract import (
     GeographyResolution,
     GeographyResolved,
 )
-from src.domain.geo_utils import GEOGRAPHY_MAPPINGS, resolve_geography_hint
 from src.services.benchmark_geo_inference import (
     NATIONAL_PATTERN,
     extract_geo_candidates,
@@ -22,9 +22,7 @@ from src.services.benchmark_geo_inference import (
     lookup_mapped_level,
 )
 
-AMBIGUOUS_PLACE_PATTERN = re.compile(
-    r"\b(springfield|portland|arlington|franklin|washington)\b", re.IGNORECASE
-)
+AMBIGUOUS_PLACE_PATTERN = re.compile(r"\b(springfield|portland|arlington|franklin|washington)\b", re.IGNORECASE)
 INVALID_GEO_PATTERN = re.compile(r"\bmars\b", re.IGNORECASE)
 
 US_NATIONAL_GEO = GeographyIntent(
@@ -43,10 +41,7 @@ def _clarification(reason_code: str, question: str, options: list[tuple[str, str
             template_id=f"geography.{reason_code.lower()}.v1",
             reason_code=reason_code,
             question_text=question,
-            options=[
-                ClarificationOption(option_id=option_id, label=label)
-                for option_id, label in options
-            ],
+            options=[ClarificationOption(option_id=option_id, label=label) for option_id, label in options],
         ),
     )
 
@@ -158,9 +153,7 @@ def resolve_geography_intent(
         mapped = lookup_mapped_level(candidate)
         if mapped and candidate.lower() in GEOGRAPHY_MAPPINGS:
             mapping = GEOGRAPHY_MAPPINGS[candidate.lower()]
-            resolved_candidates.append(
-                _mapping_to_intent(mapping, source="explicit", requested_text=requested_text)
-            )
+            resolved_candidates.append(_mapping_to_intent(mapping, source="explicit", requested_text=requested_text))
             continue
         explicit = _resolve_explicit_candidate(candidate, requested_text=requested_text)
         if explicit is not None:

@@ -3,6 +3,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
+from app_test_scripts.test_runtime_helpers import mock_agent_backend
 from src.agents.census_query_agent import CensusQueryAgent
 from src.state.types import CensusState
 from src.workflows.output import is_census_data_renderable, output_node
@@ -13,13 +14,12 @@ def offline_agent(monkeypatch):
     monkeypatch.setenv("OPENAI_API_KEY", "test-key")
     agent = CensusQueryAgent(allow_offline=False)
     agent.agent_executor = MagicMock()
+    agent.backend = MagicMock()
     return agent
 
 
 def test_clarification_answer_is_not_overwritten(offline_agent):
-    clarification = (
-        "Which geography do you want for the median household income trend from 2015–2020?"
-    )
+    clarification = "Which geography do you want for the median household income trend from 2015–2020?"
     mock_result = {
         "output": json.dumps(
             {
@@ -34,7 +34,7 @@ def test_clarification_answer_is_not_overwritten(offline_agent):
         ),
         "intermediate_steps": [],
     }
-    offline_agent.agent_executor.invoke.return_value = mock_result
+    mock_agent_backend(offline_agent, mock_result)
     result = offline_agent.solve(
         "Show me median income trends from 2015 to 2020",
         {"is_census": True, "topic": "general"},
@@ -66,7 +66,7 @@ def test_invalid_geography_still_normalizes(offline_agent):
             )
         ],
     }
-    offline_agent.agent_executor.invoke.return_value = mock_result
+    mock_agent_backend(offline_agent, mock_result)
     result = offline_agent.solve(
         "What's the population of Mars?",
         {"is_census": True, "topic": "general"},
@@ -77,9 +77,7 @@ def test_invalid_geography_still_normalizes(offline_agent):
 def test_renderability_guard_blocks_empty_success_false_payload():
     assert is_census_data_renderable({"success": False, "data": []}) is False
     assert is_census_data_renderable({"success": True, "data": []}) is False
-    assert is_census_data_renderable(
-        {"success": True, "data": [["Year", "Value"], ["2015", "100"]]}
-    )
+    assert is_census_data_renderable({"success": True, "data": [["Year", "Value"], ["2015", "100"]]})
 
 
 def test_output_node_skips_chart_on_failed_census_data():

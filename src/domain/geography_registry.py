@@ -9,15 +9,15 @@ import pickle
 import urllib.parse
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
 
 import requests
 import us
 from rapidfuzz import fuzz, process
 
+from src.clients import record_event
 from src.clients.census_api_utils import build_geo_filters
 from src.clients.chroma_utils import validate_and_fix_geo_params
-from src.clients import record_event
 
 logger = logging.getLogger(__name__)
 
@@ -37,9 +37,7 @@ def _fetch_census_json(url: str, *, timeout: int = 30) -> list[Any]:
     if hasattr(response, "text"):
         text = response.text.strip()
         if text.startswith("<"):
-            raise ValueError(
-                "Census API returned HTML instead of JSON; verify CENSUS_API_KEY is set"
-            )
+            raise ValueError("Census API returned HTML instead of JSON; verify CENSUS_API_KEY is set")
     data = response.json()
     if not isinstance(data, list):
         raise ValueError("Census API response must be a JSON array")
@@ -70,7 +68,7 @@ class GeographyRegistry:
         # Load token mappings
         self.token_map = self._load_token_mappings()
 
-    def _load_token_mappings(self) -> Dict[str, str]:
+    def _load_token_mappings(self) -> dict[str, str]:
         """Friendly name → API token mappings"""
         return {
             # Common terms
@@ -177,9 +175,9 @@ class GeographyRegistry:
         dataset: str,
         year: int,
         geo_token: str,
-        parent_geo: Optional[Dict[str, Any]] = None,
+        parent_geo: dict[str, Any] | None = None,
         force_refresh: bool = False,
-    ) -> Dict[str, Dict[str, Any]]:
+    ) -> dict[str, dict[str, Any]]:
         """
         Enumerate all areas at a geography level
 
@@ -215,36 +213,22 @@ class GeographyRegistry:
             geo_in=parent_geo,
         )
 
-        parent_key = (
-            ",".join(f"{token}={value}" for token, value in ordered_in)
-            if ordered_in
-            else "none"
-        )
+        parent_key = ",".join(f"{token}={value}" for token, value in ordered_in) if ordered_in else "none"
 
         cache_key = f"{dataset}:{year}:{for_token}:{parent_key}"
 
         # Cache disk cache
-        safe_filename = (
-            cache_key.replace(":", "_")
-            .replace("/", "_")
-            .replace(" ", "_")
-            .replace("(", "")
-            .replace(")", "")
-        )
+        safe_filename = cache_key.replace(":", "_").replace("/", "_").replace(" ", "_").replace("(", "").replace(")", "")
         cache_file = self.cache_dir / f"{safe_filename}.pkl"
 
         if not force_refresh and cache_file.exists():
             # Check if cache is recent (less than 30 days old)
-            if (
-                datetime.now() - datetime.fromtimestamp(cache_file.stat().st_mtime)
-            ) < timedelta(days=30):
+            if (datetime.now() - datetime.fromtimestamp(cache_file.stat().st_mtime)) < timedelta(days=30):
                 try:
                     with open(cache_file, "rb") as f:
                         areas = pickle.load(f)
                     self.areas_cache[cache_key] = areas
-                    logger.info(
-                        f"Loaded {len(areas)} areas from disk cache: {geo_token}"
-                    )
+                    logger.info(f"Loaded {len(areas)} areas from disk cache: {geo_token}")
                     record_event(
                         "enumerate_areas",
                         {
@@ -385,9 +369,9 @@ class GeographyRegistry:
         dataset: str,
         year: int,
         geo_token: str = "american indian area/alaska native area/hawaiian home land",
-        state_code: Optional[str] = None,
+        state_code: str | None = None,
         force_refresh: bool = False,
-    ) -> Dict[str, Dict[str, Any]]:
+    ) -> dict[str, dict[str, Any]]:
         """
         Enumerate tribal areas with support for special code suffixes
 
@@ -409,26 +393,16 @@ class GeographyRegistry:
 
         # Use standard enumerate_areas but with 7-day cache TTL
         cache_key = f"{dataset}:{year}:{geo_token}:{state_code or 'all'}"
-        safe_filename = (
-            cache_key.replace(":", "_")
-            .replace("/", "_")
-            .replace(" ", "_")
-            .replace("(", "")
-            .replace(")", "")
-        )
+        safe_filename = cache_key.replace(":", "_").replace("/", "_").replace(" ", "_").replace("(", "").replace(")", "")
         cache_file = self.cache_dir / f"{safe_filename}.pkl"
 
         if not force_refresh and cache_file.exists():
             # Check if cache is recent (less than 7 days old for tribal areas)
-            if (
-                datetime.now() - datetime.fromtimestamp(cache_file.stat().st_mtime)
-            ) < timedelta(days=7):
+            if (datetime.now() - datetime.fromtimestamp(cache_file.stat().st_mtime)) < timedelta(days=7):
                 try:
                     with open(cache_file, "rb") as f:
                         areas = pickle.load(f)
-                    logger.info(
-                        f"Loaded {len(areas)} tribal areas from disk cache: {geo_token}"
-                    )
+                    logger.info(f"Loaded {len(areas)} tribal areas from disk cache: {geo_token}")
                     return areas
                 except Exception as e:
                     logger.error(f"Error loading cache file {cache_file}: {e}")
@@ -528,8 +502,8 @@ class GeographyRegistry:
         dataset: str,
         year: int,
         geo_token: str = "american indian area/alaska native area/hawaiian home land",
-        state_code: Optional[str] = None,
-    ) -> Optional[Dict[str, Any]]:
+        state_code: str | None = None,
+    ) -> dict[str, Any] | None:
         """
         Resolve tribal area name to Census code with fuzzy matching
 
@@ -580,9 +554,7 @@ class GeographyRegistry:
             confidence = best_score / 100.0
             metadata = areas[best_match]
 
-            logger.info(
-                f"Matched '{name}' to '{best_match}' (confidence: {confidence:.2f})"
-            )
+            logger.info(f"Matched '{name}' to '{best_match}' (confidence: {confidence:.2f})")
 
             record_event(
                 "resolve_tribal_area",
@@ -609,7 +581,7 @@ class GeographyRegistry:
         dataset: str,
         year: int,
         geo_token: str,
-        state_code: Optional[str] = None,
+        state_code: str | None = None,
     ) -> None:
         """
         Pre-cache tribal areas for faster lookups
@@ -621,9 +593,7 @@ class GeographyRegistry:
             state_code: Optional state FIPS code
         """
         logger.info(f"Pre-caching tribal areas: {geo_token} for {dataset}/{year}")
-        self.enumerate_tribal_areas(
-            dataset, year, geo_token, state_code, force_refresh=True
-        )
+        self.enumerate_tribal_areas(dataset, year, geo_token, state_code, force_refresh=True)
 
     def enumerate_statistical_areas(
         self,
@@ -631,7 +601,7 @@ class GeographyRegistry:
         dataset: str,
         year: int,
         force_refresh: bool = False,
-    ) -> Dict[str, Dict[str, Any]]:
+    ) -> dict[str, dict[str, Any]]:
         """
         Enumerate statistical areas (CBSAs, CSAs, urban areas)
 
@@ -649,26 +619,16 @@ class GeographyRegistry:
             {'New York-Newark-Jersey City, NY-NJ-PA Metro Area': {'code': '35620', ...}, ...}
         """
         cache_key = f"{dataset}:{year}:{area_type}"
-        safe_filename = (
-            cache_key.replace(":", "_")
-            .replace("/", "_")
-            .replace(" ", "_")
-            .replace("(", "")
-            .replace(")", "")
-        )
+        safe_filename = cache_key.replace(":", "_").replace("/", "_").replace(" ", "_").replace("(", "").replace(")", "")
         cache_file = self.cache_dir / f"{safe_filename}.pkl"
 
         if not force_refresh and cache_file.exists():
             # Check if cache is recent (less than 30 days old for statistical areas)
-            if (
-                datetime.now() - datetime.fromtimestamp(cache_file.stat().st_mtime)
-            ) < timedelta(days=30):
+            if (datetime.now() - datetime.fromtimestamp(cache_file.stat().st_mtime)) < timedelta(days=30):
                 try:
                     with open(cache_file, "rb") as f:
                         areas = pickle.load(f)
-                    logger.info(
-                        f"Loaded {len(areas)} statistical areas from disk cache: {area_type}"
-                    )
+                    logger.info(f"Loaded {len(areas)} statistical areas from disk cache: {area_type}")
                     return areas
                 except Exception as e:
                     logger.error(f"Error loading cache file {cache_file}: {e}")
@@ -713,9 +673,7 @@ class GeographyRegistry:
                         "full_name": name,
                     }
 
-                logger.info(
-                    f"Enumerated {len(areas)} statistical areas for {area_type}"
-                )
+                logger.info(f"Enumerated {len(areas)} statistical areas for {area_type}")
 
                 # Save to disk with 30-day TTL
                 try:
@@ -753,7 +711,7 @@ class GeographyRegistry:
         area_type: str,
         dataset: str,
         year: int,
-    ) -> Optional[Dict[str, Any]]:
+    ) -> dict[str, Any] | None:
         """
         Resolve statistical area name to Census code with fuzzy matching
 
@@ -797,9 +755,7 @@ class GeographyRegistry:
             confidence = score / 100.0
             metadata = areas[matched_name]
 
-            logger.info(
-                f"Matched '{name}' to '{matched_name}' (confidence: {confidence:.2f})"
-            )
+            logger.info(f"Matched '{name}' to '{matched_name}' (confidence: {confidence:.2f})")
 
             record_event(
                 "resolve_statistical_area",
@@ -845,7 +801,7 @@ class GeographyRegistry:
         parent_code: str,
         dataset: str,
         year: int,
-    ) -> Dict[str, Dict[str, Any]]:
+    ) -> dict[str, dict[str, Any]]:
         """
         Resolve "(or part)" geography under a parent statistical area
 
@@ -909,9 +865,7 @@ class GeographyRegistry:
                 logger.info(f"Resolved {len(areas)} {child_token} areas")
                 return areas
             else:
-                logger.warning(
-                    f"No {child_token} areas found under {parent_token}={parent_code}"
-                )
+                logger.warning(f"No {child_token} areas found under {parent_token}={parent_code}")
                 return {}
 
         except requests.exceptions.RequestException as e:
@@ -957,7 +911,7 @@ class GeographyRegistry:
 
         return name
 
-    def _build_aliases(self) -> Dict[str, str]:
+    def _build_aliases(self) -> dict[str, str]:
         raw_aliases = {
             "nyc": "new york city, new york",
             "new york city": "new york city, new york",
@@ -966,9 +920,7 @@ class GeographyRegistry:
             "los angeles": "los angeles county, california",
             "sf": "san francisco county, california",
         }
-        return {
-            alias: self._normalize_name(target) for alias, target in raw_aliases.items()
-        }
+        return {alias: self._normalize_name(target) for alias, target in raw_aliases.items()}
 
     def _composite_aliases(self):
         return {
@@ -981,7 +933,7 @@ class GeographyRegistry:
             ]
         }
 
-    def _infer_parent_geo(self, friendly_name: str) -> Dict[str, str]:
+    def _infer_parent_geo(self, friendly_name: str) -> dict[str, str]:
         if "," not in friendly_name:
             return {}
         parts = [part.strip() for part in friendly_name.split(",")]
@@ -993,7 +945,7 @@ class GeographyRegistry:
             return {"state": state.fips}
         return {}
 
-    def _resolve_state_by_name(self, friendly_name: str) -> Optional[Dict[str, Any]]:
+    def _resolve_state_by_name(self, friendly_name: str) -> dict[str, Any] | None:
         state = us.states.lookup(friendly_name.strip())
         if not state or not state.fips:
             return None
@@ -1012,8 +964,8 @@ class GeographyRegistry:
         geo_token: str,
         dataset: str,
         year: int,
-        parent_geo: Optional[Dict[str, Any]] = None,
-    ) -> Optional[Dict[str, Any]]:
+        parent_geo: dict[str, Any] | None = None,
+    ) -> dict[str, Any] | None:
         """
         Find Census code for a friendly geography name
 
@@ -1057,14 +1009,10 @@ class GeographyRegistry:
 
         if geo_token in tribal_tokens:
             state_code = parent_geo.get("state") if parent_geo else None
-            return self.resolve_tribal_area(
-                friendly_name, dataset, year, geo_token, state_code
-            )
+            return self.resolve_tribal_area(friendly_name, dataset, year, geo_token, state_code)
 
         if geo_token in statistical_area_tokens:
-            return self.resolve_statistical_area(
-                friendly_name, geo_token, dataset, year
-            )
+            return self.resolve_statistical_area(friendly_name, geo_token, dataset, year)
 
         if geo_token == "state":
             state_match = self._resolve_state_by_name(friendly_name)
@@ -1133,10 +1081,7 @@ class GeographyRegistry:
                 )
                 return composite_result
 
-        candidates = [
-            (full_name, metadata, self._normalize_name(full_name))
-            for full_name, metadata in areas.items()
-        ]
+        candidates = [(full_name, metadata, self._normalize_name(full_name)) for full_name, metadata in areas.items()]
 
         # Exact match
         for full_name, metadata, norm in candidates:
@@ -1172,9 +1117,7 @@ class GeographyRegistry:
 
         if match and score >= 80:
             full_name = match
-            metadata = next(
-                (md for name, md, _ in candidates if name == full_name), None
-            )
+            metadata = next((md for name, md, _ in candidates if name == full_name), None)
             if metadata is None:
                 logger.warning(
                     "Fuzzy match %s not found in candidates for %s/%s",
@@ -1216,9 +1159,7 @@ class GeographyRegistry:
             )
             return result
 
-        logger.warning(
-            f"No match found for {friendly_name} in {geo_token} for {dataset}/{year}"
-        )
+        logger.warning(f"No match found for {friendly_name} in {geo_token} for {dataset}/{year}")
         record_event(
             "geography_match",
             {

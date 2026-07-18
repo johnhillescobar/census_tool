@@ -1,6 +1,6 @@
-from pydantic import BaseModel, Field
-from typing import Optional, Dict
 from enum import Enum
+
+from pydantic import BaseModel, Field
 
 
 class GeographyLevel(str, Enum):
@@ -26,9 +26,7 @@ class GeographyLevel(str, Enum):
 class AreaResolutionInput(BaseModel):
     """Resolve single area name to Census code"""
 
-    name: str = Field(
-        ..., description="Area name like 'California' or 'Los Angeles County'"
-    )
+    name: str = Field(..., description="Area name like 'California' or 'Los Angeles County'")
     geography_type: GeographyLevel = Field(
         default=GeographyLevel.STATE,
         description="Geography or summary level to enumerate",
@@ -41,7 +39,7 @@ class AreaResolutionInput(BaseModel):
         default=2023,
         description="Census year which is the year of the data you want to analyze",
     )
-    parent: Optional[Dict[str, str]] = Field(
+    parent: dict[str, str] | None = Field(
         default=None,
         description="Parent geography or summary level like {'state': '06'} for example if you want to enumerate all counties in California, you would need to know the state code for California which is 06",
     )
@@ -59,7 +57,7 @@ class GeographyEnumerationInput(BaseModel):
         default=2023,
         description="Census year which is the year of the data you want to analyze",
     )
-    parent: Optional[Dict[str, str]] = Field(
+    parent: dict[str, str] | None = Field(
         default=None,
         description="Parent geography constraint like {'state': '06'} for example if you want to enumerate all counties in California, you would need to know the state code for California which is 06",
     )

@@ -1,10 +1,11 @@
-import logging
-from langchain_core.tools import BaseTool
 import json
+import logging
+
+from langchain_core.tools import BaseTool
 from pydantic import ConfigDict
 
-from src.tools.json_parse import parse_first_json
 from src.clients.census_api_utils import build_geo_filters
+from src.tools.json_parse import parse_first_json
 
 logger = logging.getLogger(__name__)
 
@@ -72,11 +73,7 @@ class PatternBuilderTool(BaseTool):
         # Determine variable format based on table category and use_groups parameter
         if custom_variables:
             # User/agent specified exact variables - use them
-            variables = (
-                custom_variables
-                if isinstance(custom_variables, list)
-                else [custom_variables]
-            )
+            variables = custom_variables if isinstance(custom_variables, list) else [custom_variables]
         elif use_groups is True:
             # Explicit group request
             variables = [f"group({table_code})"]
@@ -143,7 +140,6 @@ class PatternBuilderTool(BaseTool):
                 "geo_for": for_param,
                 "geo_in": in_param,
                 "table_category": table_category,
-                "use_groups": use_groups
-                or table_category in ["subject", "profile", "cprofile", "spp"],
+                "use_groups": use_groups or table_category in ["subject", "profile", "cprofile", "spp"],
             }
         )

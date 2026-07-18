@@ -6,8 +6,8 @@ Choose between CLI and Web interfaces for the Census Data Assistant.
 Both interfaces use the same underlying LangGraph workflow.
 """
 
-import sys
 import subprocess
+import sys
 
 
 def show_menu():

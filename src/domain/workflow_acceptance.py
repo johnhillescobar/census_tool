@@ -20,9 +20,7 @@ class WorkflowAcceptanceExpectation(BaseModel):
     requires_clarification: bool
     stop_after: WorkflowPipelineStage
     temporal_status: Literal["resolved", "clarification_required"] | None = None
-    benchmark_status: (
-        Literal["resolved", "clarification_required", "not_applicable"] | None
-    ) = None
+    benchmark_status: Literal["resolved", "clarification_required", "not_applicable"] | None = None
     comparison_present: bool = False
     comparison_metrics_computed: bool = False
     expected_log_substrings: list[str] = Field(default_factory=list)
@@ -41,13 +39,9 @@ class WorkflowAcceptanceExpectation(BaseModel):
             WorkflowPipelineStage.COMPARISON_METRICS,
         }:
             if self.temporal_status != "resolved":
-                raise ValueError(
-                    "temporal_status must be resolved when pipeline continues past temporal"
-                )
+                raise ValueError("temporal_status must be resolved when pipeline continues past temporal")
         if self.comparison_metrics_computed and not self.comparison_present:
-            raise ValueError(
-                "comparison_present must be True when comparison_metrics_computed is True"
-            )
+            raise ValueError("comparison_present must be True when comparison_metrics_computed is True")
         return self
 
 
@@ -63,9 +57,7 @@ class WorkflowAcceptancePlan(BaseModel):
     @model_validator(mode="after")
     def validate_metrics_inputs(self) -> "WorkflowAcceptancePlan":
         if self.expectation.comparison_metrics_computed and not self.comparison_input_rows:
-            raise ValueError(
-                "comparison_input_rows are required when comparison_metrics_computed is expected"
-            )
+            raise ValueError("comparison_input_rows are required when comparison_metrics_computed is expected")
         return self
 
 

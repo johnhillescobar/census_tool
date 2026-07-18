@@ -1,12 +1,12 @@
-import logging
 import json
+import logging
+
 from langchain_core.tools import BaseTool
 from pydantic import ConfigDict
 
 from src.domain.geography_registry import GeographyRegistry
 from src.tools.geography_schemas import GeographyLevel
 from src.tools.json_parse import parse_first_json
-
 
 logger = logging.getLogger(__name__)
 

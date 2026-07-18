@@ -3,23 +3,21 @@ LLM-based category detection for Census tables
 Uses LLM reasoning instead of keyword matching
 """
 
-import os
 import json
 import logging
+import os
 import traceback
-from typing import Dict, Any, Optional, List
-from pydantic import BaseModel, Field, ValidationError
+from typing import Any
 
 from dotenv import load_dotenv
+from pydantic import BaseModel, Field, ValidationError
 
 # Load .env from project root (parent of src/)
-project_root = os.path.dirname(
-    os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-)
+project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 env_path = os.path.join(project_root, ".env")
 load_dotenv(dotenv_path=env_path)
 
-from src.llm.config import LLM_CONFIG, CATEGORY_DETECTION_PROMPT_TEMPLATE  # noqa: E402
+from src.llm.config import CATEGORY_DETECTION_PROMPT_TEMPLATE, LLM_CONFIG  # noqa: E402
 from src.llm.factory import create_llm  # noqa: E402
 
 logger = logging.getLogger(__name__)
@@ -31,19 +29,15 @@ class TextResponse(BaseModel):
 
     type: str = Field(default="text")
     text: str
-    annotations: List[Any] = Field(default_factory=list)
-    id: Optional[str] = None
+    annotations: list[Any] = Field(default_factory=list)
+    id: str | None = None
 
 
 class CategoryDetectionResult(BaseModel):
     """Structured output for category detection"""
 
-    preferred_category: Optional[str] = Field(
-        None, description="One of: detail, subject, profile, cprofile, spp, or null"
-    )
-    confidence: Optional[float] = Field(
-        None, ge=0.0, le=1.0, description="Confidence score between 0.0 and 1.0"
-    )
+    preferred_category: str | None = Field(None, description="One of: detail, subject, profile, cprofile, spp, or null")
+    confidence: float | None = Field(None, ge=0.0, le=1.0, description="Confidence score between 0.0 and 1.0")
     reasoning: str = Field(..., description="Explanation for the category choice")
 
 
@@ -59,15 +53,13 @@ else:
     # Check for common issues
     api_key_clean = api_key.strip()
     if api_key != api_key_clean:
-        logger.warning(
-            f"API key has whitespace! Original length: {len(api_key)}, Cleaned length: {len(api_key_clean)}"
-        )
+        logger.warning(f"API key has whitespace! Original length: {len(api_key)}, Cleaned length: {len(api_key_clean)}")
         # Update environment variable with cleaned version
         os.environ["OPENAI_API_KEY"] = api_key_clean
     logger.info("OPENAI_API_KEY loaded")
 
 
-def _extract_text_from_responses_api(response_list: List[Dict[str, Any]]) -> str:
+def _extract_text_from_responses_api(response_list: list[dict[str, Any]]) -> str:
     """
     Extract text content from Responses API format using Pydantic models.
 
@@ -157,7 +149,7 @@ def _extract_json_from_response(content: str) -> str:
     return json_text.strip()
 
 
-def _log_response_debug(frame_locals: Dict[str, Any], label: str) -> None:
+def _log_response_debug(frame_locals: dict[str, Any], label: str) -> None:
     """Log response/json_text/json_dict only if present in frame (avoids NameError in handlers)."""
     if "response" in frame_locals:
         r = frame_locals["response"]
@@ -173,7 +165,7 @@ def _log_response_debug(frame_locals: Dict[str, Any], label: str) -> None:
         logger.error(f"[{label}] Parsed JSON dict was: {frame_locals['json_dict']}")
 
 
-def detect_category_with_llm(user_question: str) -> Dict[str, Any]:
+def detect_category_with_llm(user_question: str) -> dict[str, Any]:
     """
     Use LLM to intelligently determine which Census category fits the query
 
@@ -276,11 +268,11 @@ def detect_category_with_llm(user_question: str) -> Dict[str, Any]:
 
 
 def boost_category_results(
-    results: Dict[str, Any],
-    preferred_category: Optional[str],
+    results: dict[str, Any],
+    preferred_category: str | None,
     confidence: float,
     boosts_amount: float = 0.05,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Boost results matching the preferred category
 
@@ -304,9 +296,7 @@ def boost_category_results(
 
     # Scale boost by confidence
     actual_boost = boosts_amount * confidence
-    logger.info(
-        f"Applying boost of {actual_boost:.3f} to category '{preferred_category}' (confidence: {confidence:.2f})"
-    )
+    logger.info(f"Applying boost of {actual_boost:.3f} to category '{preferred_category}' (confidence: {confidence:.2f})")
 
     # Make a copy
     boosted_results = {
@@ -321,9 +311,7 @@ def boost_category_results(
 
         if category == preferred_category:
             original_distance = results["distances"][0][i]
-            boosted_results["distances"][0][i] = max(
-                0.0, original_distance - actual_boost
-            )
+            boosted_results["distances"][0][i] = max(0.0, original_distance - actual_boost)
             boost_count += 1
 
             logger.debug(
@@ -334,7 +322,7 @@ def boost_category_results(
     return boosted_results
 
 
-def rerank_by_distance(results: Dict[str, Any]) -> Dict[str, Any]:
+def rerank_by_distance(results: dict[str, Any]) -> dict[str, Any]:
     """
     Re-sort results by distance (lower = better)
 
@@ -359,9 +347,7 @@ def rerank_by_distance(results: Dict[str, Any]) -> Dict[str, Any]:
     combined.sort(key=lambda x: x[1])
 
     # Unpack ALL fields including documents
-    ids, distances, metadatas, documents = (
-        zip(*combined) if combined else ([], [], [], [])
-    )
+    ids, distances, metadatas, documents = zip(*combined) if combined else ([], [], [], [])
 
     return {
         "ids": [list(ids)],

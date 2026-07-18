@@ -16,9 +16,7 @@ def test_table_validation_tool_supported(monkeypatch):
             "available_levels": ["state", "county"],
         }
 
-    monkeypatch.setattr(
-        "src.tools.table_validation_tool.geography_supported", fake_supported
-    )
+    monkeypatch.setattr("src.tools.table_validation_tool.geography_supported", fake_supported)
 
     payload = {
         "table_code": "B01003",

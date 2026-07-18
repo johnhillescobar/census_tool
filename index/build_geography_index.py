@@ -4,18 +4,17 @@ Build the census_geography_hierarchies Chroma collection from Census example tab
 
 from __future__ import annotations
 
-import sys
-import os
 import argparse
+import json
 import logging
+import os
+import sys
 from collections import defaultdict
+from collections.abc import Iterable
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from time import monotonic
-from typing import Dict, Iterable, List, Tuple
-from dotenv import load_dotenv
-import json
 
 import chromadb
 import requests
@@ -23,15 +22,15 @@ from bs4 import BeautifulSoup, Tag
 from chromadb.api import ClientAPI
 from chromadb.config import Settings
 from chromadb.utils.embedding_functions import OpenAIEmbeddingFunction
-
+from dotenv import load_dotenv
 
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from config import (
+    CHROMA_EMBEDDING_MODEL,
     CHROMA_GEOGRAPHY_HIERARCHY_COLLECTION_NAME,
     CHROMA_PERSIST_DIRECTORY,
-    CHROMA_EMBEDDING_MODEL,
     DEFAULT_DATASETS,
 )
 
@@ -48,14 +47,14 @@ class ExampleRow:
     geography_hierarchy: str
     geography_level: str
     example_url: str
-    notes: List[str]
+    notes: list[str]
 
 
 WORKSPACE_ROOT = Path(__file__).resolve().parents[1]
 
 
 def build_logger(log_dir: Path) -> logging.Logger:
-    ts = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
+    ts = datetime.now(UTC).strftime("%Y%m%d-%H%M%S")
     absolute_dir = (WORKSPACE_ROOT / log_dir).resolve()
     absolute_dir.mkdir(parents=True, exist_ok=True)
     log_path = absolute_dir / f"{ts}-hierarchy-index.txt"
@@ -73,8 +72,8 @@ def build_logger(log_dir: Path) -> logging.Logger:
 
 
 def iter_source_pages(
-    datasets: Iterable[Tuple[str, Iterable[int]]],
-) -> Iterable[Tuple[str, str, int, str]]:
+    datasets: Iterable[tuple[str, Iterable[int]]],
+) -> Iterable[tuple[str, str, int, str]]:
     category_map = {
         "acs/acs5": "detail",
         "acs/acs5/subject": "subject",
@@ -105,28 +104,19 @@ def extract_cell_text(cell: Tag, base_url: str) -> str:
     return cell.get_text(" ", strip=True)
 
 
-def parse_table(
-    category: str, dataset: str, year: int, table: Tag, base_url: str
-) -> List[ExampleRow]:
+def parse_table(category: str, dataset: str, year: int, table: Tag, base_url: str) -> list[ExampleRow]:
     rows = table.find_all("tr")
     if not rows:
         return []
 
-    headers = [
-        cell.get_text(" ", strip=True).lower()
-        for cell in rows[0].find_all(["th", "td"])
-    ]
-    notes: List[str] = []
-    parsed_rows: List[ExampleRow] = []
+    headers = [cell.get_text(" ", strip=True).lower() for cell in rows[0].find_all(["th", "td"])]
+    notes: list[str] = []
+    parsed_rows: list[ExampleRow] = []
 
     current_hierarchy = ""
     current_level = ""
     for row in rows[1:]:
-        cells = [
-            extract_cell_text(cell, base_url)
-            for cell in row.find_all(["th", "td"])
-            if cell.get_text(strip=True)
-        ]
+        cells = [extract_cell_text(cell, base_url) for cell in row.find_all(["th", "td"]) if cell.get_text(strip=True)]
         if not cells:
             continue
         if len(cells) == 1 and len(headers) > 1:
@@ -158,9 +148,7 @@ def parse_table(
     return parsed_rows
 
 
-def fetch_examples(
-    category: str, dataset: str, year: int, url: str, logger: logging.Logger
-) -> List[ExampleRow]:
+def fetch_examples(category: str, dataset: str, year: int, url: str, logger: logging.Logger) -> list[ExampleRow]:
     start = monotonic()
     logger.info("FETCH_START category=%s year=%s url=%s", category, year, url)
     response = requests.get(url, timeout=30)
@@ -171,7 +159,7 @@ def fetch_examples(
     if not tables:
         raise RuntimeError("no table elements found")
 
-    rows: List[ExampleRow] = []
+    rows: list[ExampleRow] = []
     for table in tables:
         rows.extend(parse_table(category, dataset, year, table, url))
 
@@ -185,10 +173,8 @@ def fetch_examples(
     return rows
 
 
-def summarize_by_hierarchy(rows: List[ExampleRow]) -> Dict[Tuple[str, int, str], Dict]:
-    grouped: Dict[Tuple[str, int, str], Dict] = defaultdict(
-        lambda: {"examples": [], "levels": set(), "notes": set()}
-    )
+def summarize_by_hierarchy(rows: list[ExampleRow]) -> dict[tuple[str, int, str], dict]:
+    grouped: dict[tuple[str, int, str], dict] = defaultdict(lambda: {"examples": [], "levels": set(), "notes": set()})
 
     for row in rows:
         key = (row.dataset, row.year, row.geography_hierarchy)
@@ -203,9 +189,7 @@ def summarize_by_hierarchy(rows: List[ExampleRow]) -> Dict[Tuple[str, int, str],
     return grouped
 
 
-def build_document(
-    hierarchy: str, ordering: List[str], level_code: str, example_url: str
-) -> str:
+def build_document(hierarchy: str, ordering: list[str], level_code: str, example_url: str) -> str:
     ordering_clause = " → ".join(ordering) if ordering else "n/a"
     return (
         f"Geography hierarchy: {hierarchy}. "
@@ -215,9 +199,7 @@ def build_document(
     )
 
 
-def build_metadata(
-    dataset: str, year: int, hierarchy: str, level_code: str, examples: List[str]
-) -> Dict[str, object]:
+def build_metadata(dataset: str, year: int, hierarchy: str, level_code: str, examples: list[str]) -> dict[str, object]:
     parts = [part.strip() for part in hierarchy.split("›") if part.strip()]
     for_level = parts[-1] if parts else ""
     ordering_list = json.dumps(parts[:-1])
@@ -230,7 +212,7 @@ def build_metadata(
         "for_level": for_level,
         "ordering_list": ordering_list,
         "example_urls": json.dumps(examples),
-        "retrieved_at": datetime.now(timezone.utc).isoformat(),
+        "retrieved_at": datetime.now(UTC).isoformat(),
     }
 
 
@@ -247,14 +229,12 @@ class _DummyEmbeddingFunction:
 def _create_embedding_function():
     api_key = os.getenv("CHROMA_OPENAI_API_KEY") or os.getenv("OPENAI_API_KEY")
     if not api_key:
-        LOGGER.warning(
-            "CHROMA_OPENAI_API_KEY not set. Using dummy embedding function during offline execution."
-        )
+        LOGGER.warning("CHROMA_OPENAI_API_KEY not set. Using dummy embedding function during offline execution.")
         return _DummyEmbeddingFunction(CHROMA_EMBEDDING_MODEL)
     return OpenAIEmbeddingFunction(model_name=CHROMA_EMBEDDING_MODEL)
 
 
-def upsert_documents(client: ClientAPI, docs: Dict[Tuple[str, int, str], Dict]) -> None:
+def upsert_documents(client: ClientAPI, docs: dict[tuple[str, int, str], dict]) -> None:
     embedding_function = _create_embedding_function()
     collection = client.get_or_create_collection(
         CHROMA_GEOGRAPHY_HIERARCHY_COLLECTION_NAME,
@@ -262,9 +242,9 @@ def upsert_documents(client: ClientAPI, docs: Dict[Tuple[str, int, str], Dict]) 
         embedding_function=embedding_function,
     )
 
-    ids: List[str] = []
-    documents: List[str] = []
-    metadatas: List[Dict[str, object]] = []
+    ids: list[str] = []
+    documents: list[str] = []
+    metadatas: list[dict[str, object]] = []
 
     for (dataset, year, hierarchy), payload in docs.items():
         doc_id = f"{dataset}:{year}:{hierarchy}"
@@ -295,13 +275,9 @@ def upsert_documents(client: ClientAPI, docs: Dict[Tuple[str, int, str], Dict]) 
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(
-        description="Build census geography hierarchy vector database."
-    )
+    parser = argparse.ArgumentParser(description="Build census geography hierarchy vector database.")
     parser.add_argument("--log-dir", type=Path, default=Path("logs/chroma_logs"))
-    parser.add_argument(
-        "--persist-dir", type=Path, default=Path(CHROMA_PERSIST_DIRECTORY)
-    )
+    parser.add_argument("--persist-dir", type=Path, default=Path(CHROMA_PERSIST_DIRECTORY))
     args = parser.parse_args()
 
     logger = build_logger(args.log_dir)
@@ -311,7 +287,7 @@ def main() -> None:
         settings=Settings(anonymized_telemetry=False),
     )
 
-    all_rows: List[ExampleRow] = []
+    all_rows: list[ExampleRow] = []
     for category, dataset, year, url in iter_source_pages(DEFAULT_DATASETS):
         try:
             rows = fetch_examples(category, dataset, year, url, logger)

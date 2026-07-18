@@ -2,9 +2,12 @@
 Test that agent doesn't loop forever when validation fails.
 """
 
-from unittest.mock import MagicMock, patch
+import json
 import os
+from unittest.mock import MagicMock, patch
+
 from src.agents.census_query_agent import CensusQueryAgent
+from src.agents.runtime.contracts import AgentExecutionResult
 
 
 def test_agent_returns_error_on_iteration_limit():
@@ -18,7 +21,17 @@ def test_agent_returns_error_on_iteration_limit():
             # Mock the agent_executor to simulate invalid geography scenario
             # This simulates what happens when resolve_area_name fails
             mock_result = {
-                "output": '{"census_data":{"success":false,"data":[]},"data_summary":"No Census data exists for Mars","reasoning_trace":"Recognized Mars is not a U.S. geography","answer_text":"Mars has a population of 0; there are no permanent human residents.","charts_needed":[],"tables_needed":[],"footnotes":[]}',
+                "output": json.dumps(
+                    {
+                        "census_data": {"success": False, "data": []},
+                        "data_summary": "No Census data exists for Mars",
+                        "reasoning_trace": "Recognized Mars is not a U.S. geography",
+                        "answer_text": ("Mars has a population of 0; there are no permanent human residents."),
+                        "charts_needed": [],
+                        "tables_needed": [],
+                        "footnotes": [],
+                    }
+                ),
                 "intermediate_steps": [
                     (
                         MagicMock(
@@ -30,8 +43,12 @@ def test_agent_returns_error_on_iteration_limit():
                 ],
             }
 
-            agent.agent_executor = MagicMock()
-            agent.agent_executor.invoke = MagicMock(return_value=mock_result)
+            backend = MagicMock()
+            backend.invoke.return_value = AgentExecutionResult(
+                output=mock_result["output"],
+                intermediate_steps=mock_result["intermediate_steps"],
+            )
+            agent.backend = backend
 
             result = agent.solve(
                 "What's the population of Mars?",  # Invalid geography
@@ -40,7 +57,4 @@ def test_agent_returns_error_on_iteration_limit():
 
             # Should get error response, not loop forever
             assert result["census_data"]["success"] is False
-            assert (
-                "unable to complete" in result["answer_text"].lower()
-                or "not available" in result["answer_text"].lower()
-            )
+            assert "unable to complete" in result["answer_text"].lower() or "not available" in result["answer_text"].lower()

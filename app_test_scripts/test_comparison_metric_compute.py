@@ -75,11 +75,7 @@ def _build_rows_two_years() -> list[ComparisonInputRow]:
 
 def _row_by_key(results, year: int, geo_id: str, derived_metric: str):
     for row in results:
-        if (
-            row.year == year
-            and row.geo_id == geo_id
-            and row.derived_metric == derived_metric
-        ):
+        if row.year == year and row.geo_id == geo_id and row.derived_metric == derived_metric:
             return row
     raise AssertionError(f"missing row for ({year}, {geo_id}, {derived_metric})")
 
@@ -104,9 +100,7 @@ def test_compute_all_metrics_happy_path_and_deterministic_order():
     assert len(results) == 30
 
     # deterministic output ordering
-    ordered = sorted(
-        results, key=lambda r: (r.year, r.geo_id, r.metric, r.derived_metric)
-    )
+    ordered = sorted(results, key=lambda r: (r.year, r.geo_id, r.metric, r.derived_metric))
     assert [r.model_dump() for r in results] == [r.model_dump() for r in ordered]
 
     # difference and pct_difference
@@ -125,15 +119,9 @@ def test_compute_all_metrics_happy_path_and_deterministic_order():
     assert _row_by_key(results, 2020, "10003", "rank").value == 2
 
     # percentile in 2020: 100 => 100, 80 => 66.666...
-    assert _row_by_key(results, 2020, "10001", "percentile").value == pytest.approx(
-        100.0, rel=1e-9
-    )
-    assert _row_by_key(results, 2020, "10002", "percentile").value == pytest.approx(
-        66.6666666667, rel=1e-6
-    )
-    assert _row_by_key(results, 2020, "10003", "percentile").value == pytest.approx(
-        66.6666666667, rel=1e-6
-    )
+    assert _row_by_key(results, 2020, "10001", "percentile").value == pytest.approx(100.0, rel=1e-9)
+    assert _row_by_key(results, 2020, "10002", "percentile").value == pytest.approx(66.6666666667, rel=1e-6)
+    assert _row_by_key(results, 2020, "10003", "percentile").value == pytest.approx(66.6666666667, rel=1e-6)
 
     # trend_gap per geo/metric: (last_gap - first_gap)
     # geo 10001 gap: (120-95) - (100-90) = 25 - 10 = 15
@@ -267,5 +255,3 @@ def test_accepts_resolved_geos_when_plan_uses_placeholders():
 
     assert len(metrics) == 1
     assert metrics[0].geo_id == "06001"
-
-

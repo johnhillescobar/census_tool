@@ -1,13 +1,12 @@
 import json
 import logging
-from typing import Dict, List, Optional
 
 from langchain_core.tools import BaseTool
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
-from src.tools.json_parse import parse_first_json
-from src.clients.chroma_utils import get_hierarchy_ordering, initialize_chroma_client
 from config import CHROMA_GEOGRAPHY_HIERARCHY_COLLECTION_NAME
+from src.clients.chroma_utils import get_hierarchy_ordering, initialize_chroma_client
+from src.tools.json_parse import parse_first_json
 
 logger = logging.getLogger(__name__)
 
@@ -22,12 +21,8 @@ class GeographyHierarchyInput(BaseModel):
     dataset: str = Field(..., description="Dataset path, e.g. acs/acs5")
     year: int = Field(..., description="Census year")
     for_level: str = Field(..., description="Target geography level (e.g. county)")
-    parent_hint: Optional[List[str]] = Field(
-        default=None, description="Optional expected parent ordering list"
-    )
-    include_metadata: bool = Field(
-        default=False, description="Return raw metadata payload when True"
-    )
+    parent_hint: list[str] | None = Field(default=None, description="Optional expected parent ordering list")
+    include_metadata: bool = Field(default=False, description="Return raw metadata payload when True")
 
 
 class GeographyHierarchyTool(BaseTool):
@@ -53,11 +48,7 @@ class GeographyHierarchyTool(BaseTool):
 
     def _run(self, tool_input: str) -> str:
         try:
-            params = (
-                parse_first_json(tool_input)
-                if isinstance(tool_input, str)
-                else tool_input
-            )
+            params = parse_first_json(tool_input) if isinstance(tool_input, str) else tool_input
         except json.JSONDecodeError as exc:
             return f"Error: Invalid JSON input - {exc}"
 
@@ -69,18 +60,17 @@ class GeographyHierarchyTool(BaseTool):
         if payload.action != "get_hierarchy_ordering":
             return f"Error: Unsupported action '{payload.action}'"
 
-        ordered_parents = get_hierarchy_ordering(
-            payload.dataset, payload.year, payload.for_level
-        )
+        ordered_parents = get_hierarchy_ordering(payload.dataset, payload.year, payload.for_level)
 
-        warnings: List[str] = []
+        warnings: list[str] = []
         metadata = None
         example_url = None
         geography_hierarchy = None
 
         if not ordered_parents:
             warnings.append(
-                f"No hierarchy ordering found for dataset {payload.dataset}, year {payload.year}, for_level {payload.for_level}."
+                "No hierarchy ordering found for dataset "
+                f"{payload.dataset}, year {payload.year}, for_level {payload.for_level}."
             )
         else:
             # fetch extra metadata from collection for example URL / hierarchy string
@@ -89,9 +79,7 @@ class GeographyHierarchyTool(BaseTool):
                 warnings.append("Unable to connect to Chroma for metadata lookup.")
             else:
                 try:
-                    collection = client.get_collection(
-                        CHROMA_GEOGRAPHY_HIERARCHY_COLLECTION_NAME
-                    )
+                    collection = client.get_collection(CHROMA_GEOGRAPHY_HIERARCHY_COLLECTION_NAME)
                     result = collection.get(
                         where={
                             "$and": [
@@ -113,14 +101,12 @@ class GeographyHierarchyTool(BaseTool):
         if payload.parent_hint:
             hint = [hint.strip() for hint in payload.parent_hint]
             if ordered_parents and hint != ordered_parents:
-                warnings.append(
-                    f"parent_hint {hint} differs from stored ordering {ordered_parents}."
-                )
+                warnings.append(f"parent_hint {hint} differs from stored ordering {ordered_parents}.")
             elif not ordered_parents:
                 ordered_parents = hint  # fallback
                 warnings.append("Using parent_hint as fallback ordering.")
 
-        response: Dict[str, any] = {
+        response: dict[str, any] = {
             "ordered_parents": ordered_parents,
             "geography_hierarchy": geography_hierarchy,
             "example_url": example_url,

@@ -6,9 +6,9 @@ from __future__ import annotations
 
 import json
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 TELEMETRY_LOG_DIR = Path("logs")
 TELEMETRY_LOG_PATH = TELEMETRY_LOG_DIR / "telemetry.log"
@@ -22,12 +22,12 @@ if not _logger.handlers:
     _logger.setLevel(logging.INFO)
 
 
-def record_event(event_type: str, payload: Dict[str, Any]) -> None:
+def record_event(event_type: str, payload: dict[str, Any]) -> None:
     """
     Write a telemetry event as JSON line.
     """
     event = {
-        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
         "event_type": event_type,
         **payload,
     }

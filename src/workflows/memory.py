@@ -1,26 +1,25 @@
-from typing import Dict, Any
-from pathlib import Path
-import pandas as pd
 import logging
+from pathlib import Path
+from typing import Any
 
+import pandas as pd
 from langchain_core.runnables import RunnableConfig
 
-from src.state.types import CensusState, geo_intent_to_dict
+from config import RETENTION_DAYS
 from src.clients import load_json_file, save_json_file
 from src.services import (
-    prune_history_by_age,
-    prune_cache_by_age,
     build_history_record,
-    update_profile,
     enforce_retention_policies,
+    prune_cache_by_age,
+    prune_history_by_age,
+    update_profile,
 )
-
-from config import RETENTION_DAYS
+from src.state.types import CensusState, geo_intent_to_dict
 
 logger = logging.getLogger(__name__)
 
 
-def memory_load_node(state: CensusState, config: RunnableConfig) -> Dict[str, Any]:
+def memory_load_node(state: CensusState, config: RunnableConfig) -> dict[str, Any]:
     """Load user profile, history, and cache index"""
 
     # Get user_id from config
@@ -69,12 +68,13 @@ def memory_load_node(state: CensusState, config: RunnableConfig) -> Dict[str, An
     pruned_cache_index = prune_cache_by_age(cache_index, RETENTION_DAYS)
 
     if len(cache_index) != len(pruned_cache_index):
-        logger.info(
-            f"Pruned {len(cache_index) - len(pruned_cache_index)} old cache items"
-        )
+        logger.info(f"Pruned {len(cache_index) - len(pruned_cache_index)} old cache items")
         save_json_file(cache_index_file, pruned_cache_index)
 
-    log_entry = f"memory_load: loaded profile for user_{user_id}, {len(pruned_history)} history entries, {len(pruned_cache_index)} cache entries"
+    log_entry = (
+        f"memory_load: loaded profile for user_{user_id}, "
+        f"{len(pruned_history)} history entries, {len(pruned_cache_index)} cache entries"
+    )
 
     return {
         "profile": profile,
@@ -84,7 +84,7 @@ def memory_load_node(state: CensusState, config: RunnableConfig) -> Dict[str, An
     }
 
 
-def memory_write_node(state: CensusState, config: RunnableConfig) -> Dict[str, Any]:
+def memory_write_node(state: CensusState, config: RunnableConfig) -> dict[str, Any]:
     """Write user profile, history, and cache index"""
 
     # Get user_id from config
@@ -116,9 +116,7 @@ def memory_write_node(state: CensusState, config: RunnableConfig) -> Dict[str, A
     try:
         # 1. Build history record for this conversation
         if messages and final:
-            history_record = build_history_record(
-                messages, final, intent, geo, plan, user_id
-            )
+            history_record = build_history_record(messages, final, intent, geo, plan, user_id)
             history.append(history_record)
 
         # 2. Update profile with latest intent and geo

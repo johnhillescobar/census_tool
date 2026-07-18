@@ -152,9 +152,7 @@ def extract_observations_from_census_data(
 
 
 def _is_single_benchmark(plan: ComparisonPlan) -> bool:
-    return len(plan.benchmark_geos) == 1 and not any(
-        is_placeholder_geo_id(geo_id) for geo_id in plan.benchmark_geos
-    )
+    return len(plan.benchmark_geos) == 1 and not any(is_placeholder_geo_id(geo_id) for geo_id in plan.benchmark_geos)
 
 
 def _is_peer_group(plan: ComparisonPlan) -> bool:
@@ -229,11 +227,7 @@ def _lookup_observation(
     metric: str,
 ) -> ComparisonCensusObservation | None:
     for observation in observations:
-        if (
-            observation.year == year
-            and observation.geo_id == geo_id
-            and observation.metric == metric
-        ):
+        if observation.year == year and observation.geo_id == geo_id and observation.metric == metric:
             return observation
     return None
 
@@ -255,9 +249,7 @@ def _peer_group_benchmark_value(
         and observation.geo_id != subject_geo_id
     ]
     if not peer_values:
-        raise ValueError(
-            f"missing peer-group benchmark observations for geo_id {subject_geo_id}"
-        )
+        raise ValueError(f"missing peer-group benchmark observations for geo_id {subject_geo_id}")
     return mean(peer_values)
 
 
@@ -274,18 +266,12 @@ def build_comparison_input_rows(
     """
 
     plan = request.plan
-    observations = sorted(
-        request.observations, key=lambda item: (item.year, item.geo_id)
-    )
+    observations = sorted(request.observations, key=lambda item: (item.year, item.geo_id))
 
     allowed_years = set(plan.query_years)
     subject_geos = _effective_subject_geos(plan, observations)
     allowed_subject_geos = set(subject_geos)
-    allowed_benchmark_geos = (
-        set(subject_geos)
-        if _is_peer_group(plan)
-        else set(plan.benchmark_geos)
-    )
+    allowed_benchmark_geos = set(subject_geos) if _is_peer_group(plan) else set(plan.benchmark_geos)
 
     output_rows: list[ComparisonInputRow] = []
 
@@ -298,9 +284,7 @@ def build_comparison_input_rows(
                 metric=plan.metric,
             )
             if subject_observation is None:
-                raise ValueError(
-                    f"missing subject observation for geo_id {subject_geo_id} year {year}"
-                )
+                raise ValueError(f"missing subject observation for geo_id {subject_geo_id} year {year}")
 
             if year not in allowed_years:
                 raise ValueError("observation year is outside plan.query_years")
@@ -337,9 +321,7 @@ def build_comparison_input_rows(
                         None,
                     )
                 if benchmark_observation is None:
-                    raise ValueError(
-                        f"missing benchmark observation for geo_id {benchmark_geo_id} year {year}"
-                    )
+                    raise ValueError(f"missing benchmark observation for geo_id {benchmark_geo_id} year {year}")
                 benchmark_value = benchmark_observation.value
             else:
                 benchmark_geo_id = _resolve_benchmark_geo_id(
@@ -355,9 +337,7 @@ def build_comparison_input_rows(
                     metric=plan.metric,
                 )
                 if benchmark_observation is None:
-                    raise ValueError(
-                        f"missing benchmark observation for geo_id {benchmark_geo_id} year {year}"
-                    )
+                    raise ValueError(f"missing benchmark observation for geo_id {benchmark_geo_id} year {year}")
                 benchmark_value = benchmark_observation.value
 
             output_rows.append(

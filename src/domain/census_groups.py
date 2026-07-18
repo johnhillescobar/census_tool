@@ -3,11 +3,11 @@ Census Groups API - Fetch table/group metadata instead of individual variables
 This is the foundation for table-level search
 """
 
-import requests
 import logging
 import sys
 from pathlib import Path
-from typing import Dict, List, Optional
+
+import requests
 
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
@@ -26,7 +26,7 @@ class CensusGroupsAPI:
     def __init__(self):
         self.base_url = "https://api.census.gov/data"
 
-    def fetch_groups_list(self, dataset: str, year: int) -> List[Dict]:
+    def fetch_groups_list(self, dataset: str, year: int) -> list[dict]:
         """
         Fetch list of all available groups/tables for a dataset
 
@@ -53,9 +53,7 @@ class CensusGroupsAPI:
             logger.error(f"Failed to fetch groups from {url}: {e}")
             return []
 
-    def fetch_group_details(
-        self, dataset: str, year: int, group_code: str
-    ) -> Optional[Dict]:
+    def fetch_group_details(self, dataset: str, year: int, group_code: str) -> dict | None:
         """
         Fetch detailed metadata for a specific group/table
 
@@ -78,16 +76,14 @@ class CensusGroupsAPI:
             response.raise_for_status()
             data = response.json()
 
-            # The response has a "name", "description", "variables" key. Here, variables is a URL pointing to the variables for the group.
+            # Response keys: name, description, variables (URL to group variables).
             return data
 
         except requests.exceptions.RequestException as e:
             logger.error(f"Failed to fetch group details from {url}: {e}")
             return None
 
-    def aggregate_groups_across_years(
-        self, dataset: str, years: List[int]
-    ) -> List[Dict]:
+    def aggregate_groups_across_years(self, dataset: str, years: list[int]) -> list[dict]:
         """
         Aggregate table/group information across multiple years
 
@@ -143,18 +139,14 @@ class CensusGroupsAPI:
 
         # Sort years in each group (convert set to sorted list)
         for group_code in aggregated:
-            aggregated[group_code]["years_available"] = sorted(
-                list(aggregated[group_code]["years_available"])
-            )
+            aggregated[group_code]["years_available"] = sorted(list(aggregated[group_code]["years_available"]))
 
             # Infer data types from table code/name
-            aggregated[group_code]["data_types"] = self._infer_data_types(
-                group_code, aggregated[group_code]["table_name"]
-            )
+            aggregated[group_code]["data_types"] = self._infer_data_types(group_code, aggregated[group_code]["table_name"])
 
         return aggregated
 
-    def _infer_data_types(self, table_code: str, table_name: str) -> List[str]:
+    def _infer_data_types(self, table_code: str, table_name: str) -> list[str]:
         """
         Infer what type of data this table contains based on code and name
 
@@ -165,52 +157,34 @@ class CensusGroupsAPI:
         table_name_lower = table_name.lower()
 
         # Population-related
-        if any(
-            term in table_name_lower
-            for term in ["population", "people", "residents", "inhabitants"]
-        ):
+        if any(term in table_name_lower for term in ["population", "people", "residents", "inhabitants"]):
             data_types.append("population")
             data_types.append("demographics")
 
         # Income-related
-        if any(
-            term in table_name_lower
-            for term in ["income", "earnings", "poverty", "economic"]
-        ):
+        if any(term in table_name_lower for term in ["income", "earnings", "poverty", "economic"]):
             data_types.append("income")
             data_types.append("economics")
 
         # Housing-related
-        if any(
-            term in table_name_lower
-            for term in ["housing", "tenure", "occupancy", "units"]
-        ):
+        if any(term in table_name_lower for term in ["housing", "tenure", "occupancy", "units"]):
             data_types.append("housing")
 
         # Employment-related
-        if any(
-            term in table_name_lower
-            for term in ["employment", "unemployment", "labor force", "working"]
-        ):
+        if any(term in table_name_lower for term in ["employment", "unemployment", "labor force", "working"]):
             data_types.append("employment")
 
         # Education-related
-        if any(
-            term in table_name_lower
-            for term in ["education", "schooling", "college", "degree", "academic"]
-        ):
+        if any(term in table_name_lower for term in ["education", "schooling", "college", "degree", "academic"]):
             data_types.append("education")
 
         # Race-related
-        if any(
-            term in table_name_lower
-            for term in ["race", "ethnicity", "demographic", "characteristics"]
-        ):
+        if any(term in table_name_lower for term in ["race", "ethnicity", "demographic", "characteristics"]):
             data_types.append("race_ethnicity")
 
         return data_types if data_types else ["general"]
 
-    def aggregate_all_categories(self, year: int = 2023) -> Dict:
+    def aggregate_all_categories(self, year: int = 2023) -> dict:
         """
         Fetch and aggregate groups from ALL 5 Census categories
 
@@ -254,12 +228,8 @@ class CensusGroupsAPI:
                     "category": category_name,  # ← NEW: Tag with category
                     "dataset": dataset,
                     "years_available": [year],
-                    "uses_groups": category_info[
-                        "uses_groups"
-                    ],  # ← NEW: Does it use group() function?
-                    "data_types": self._infer_data_types(
-                        group_code, group.get("description", "")
-                    ),
+                    "uses_groups": category_info["uses_groups"],  # ← NEW: Does it use group() function?
+                    "data_types": self._infer_data_types(group_code, group.get("description", "")),
                 }
 
         logger.info(f"Total tables across all categories: {len(all_tables)}")
@@ -314,9 +284,7 @@ def test_census_groups_api():
     # Show examples from each category
     print("\nExamples from each category:")
     for category in ["detail", "subject", "profile", "cprofile", "spp"]:
-        example = next(
-            (t for t in all_tables.values() if t["category"] == category), None
-        )
+        example = next((t for t in all_tables.values() if t["category"] == category), None)
         if example:
             print(f"  {category}: {example['table_code']} - {example['table_name']}")
 

@@ -2,15 +2,15 @@
 Test script for memory_utils.py - testing the fixes you made
 """
 
-from unittest.mock import patch
 from datetime import datetime, timedelta
 from pathlib import Path
+from unittest.mock import patch
 
 from src.services.memory_utils import (
     build_history_record,
-    update_profile,
-    prune_history_by_age,
     enforce_retention_policies,
+    prune_history_by_age,
+    update_profile,
 )
 
 
@@ -19,9 +19,7 @@ def test_build_history_record():
     print("Testing build_history_record...")
 
     # Test case 1: Basic functionality with valid inputs
-    messages = [
-        {"role": "user", "content": "What is the population of the United States?"}
-    ]
+    messages = [{"role": "user", "content": "What is the population of the United States?"}]
     final = {"type": "number", "value": "8.4 million"}
     intent = {"type": "population_query", "location": "NYC"}
     geo = {"level": "place", "name": "New York City"}
@@ -56,24 +54,14 @@ def test_build_history_record():
     assert isinstance(result, dict), "Result should be a dictionary"
     assert "timestamp" in result, "Result should contain timestamp"
     assert result["user_id"] == "test_user", "User ID should match"
-    assert result["question"] == "What is the population of the United States?", (
-        "Question should be extracted"
-    )
+    assert result["question"] == "What is the population of the United States?", "Question should be extracted"
     assert result["intent"] == intent, "Intent should be preserved"
     assert result["geo"] == geo, "Geo should be preserved"
     # The actual function returns years as integers and datasets as actual dataset names
-    assert "2 queries for years" in result["plan_summary"], (
-        "Plan summary should contain query count"
-    )
-    assert "2020" in result["plan_summary"] or "[2020" in result["plan_summary"], (
-        "Plan summary should contain year 2020"
-    )
-    assert "2019" in result["plan_summary"] or ", 2019" in result["plan_summary"], (
-        "Plan summary should contain year 2019"
-    )
-    assert "acs/acs5" in result["plan_summary"], (
-        "Plan summary should contain dataset name"
-    )
+    assert "2 queries for years" in result["plan_summary"], "Plan summary should contain query count"
+    assert "2020" in result["plan_summary"] or "[2020" in result["plan_summary"], "Plan summary should contain year 2020"
+    assert "2019" in result["plan_summary"] or ", 2019" in result["plan_summary"], "Plan summary should contain year 2019"
+    assert "acs/acs5" in result["plan_summary"], "Plan summary should contain dataset name"
     assert result["answer_type"] == "number", "Answer type should be extracted"
     assert result["success"], "Success should be True when no error"
 
@@ -102,19 +90,13 @@ def test_update_profile():
     assert isinstance(result, dict), "Result should be a dictionary"
     assert result["default_geo"] == geo, "Default geo should be updated"
     assert result["last_geo"] == "NYC", "Last geo should be updated"
-    assert result["preferred_dataset"] == "population", (
-        "Preferred dataset should be updated"
-    )
+    assert result["preferred_dataset"] == "population", "Preferred dataset should be updated"
     assert "var_aliases" in result, "Variable aliases should be present"
-    assert result["var_aliases"]["population"] == "B01003_001E", (
-        "Variable alias should be set"
-    )
+    assert result["var_aliases"]["population"] == "B01003_001E", "Variable alias should be set"
     assert "usage_stats" in result, "Usage stats should be present"
     assert result["usage_stats"]["total_queries"] == 1, "Total queries should be 1"
     assert result["usage_stats"]["success_queries"] == 1, "Success queries should be 1"
-    assert result["usage_stats"]["last_query_date"] is not None, (
-        "Last query date should be set"
-    )
+    assert result["usage_stats"]["last_query_date"] is not None, "Last query date should be set"
 
     print("✅ Basic profile update test passed!")
 
@@ -145,9 +127,7 @@ def test_prune_history_by_age():
     assert isinstance(result, list), "Result should be a list"
     assert len(result) == 2, "Result should contain 2 entries"
     assert result[0]["question"] == "New question", "New question should be kept"
-    assert result[1]["question"] == "Current question", (
-        "Current question should be kept"
-    )
+    assert result[1]["question"] == "Current question", "Current question should be kept"
 
     print("✅ prune_history_by_age test passed!")
 
@@ -158,9 +138,7 @@ def test_prune_history_by_age():
     print("✅ Empty history test passed!")
 
     # Test case 3: All entries are old
-    old_history = [
-        {"timestamp": old_date, "question": "Very old question", "user_id": "user1"}
-    ]
+    old_history = [{"timestamp": old_date, "question": "Very old question", "user_id": "user1"}]
     result = prune_history_by_age(old_history, 5)
     assert result == [], "All old entries should be removed"
 
@@ -206,9 +184,7 @@ def test_enforce_retention_policies():
         mock_prune_cache.return_value = {"cache2": test_cache_index["cache2"]}
 
         # Mock prune_history_by_age to return a different length (to trigger save)
-        with patch(
-            "src.services.memory_utils.prune_history_by_age"
-        ) as mock_prune_history:
+        with patch("src.services.memory_utils.prune_history_by_age") as mock_prune_history:
             mock_prune_history.return_value = [test_profile["history"][1]]
 
         # Call the function
@@ -231,9 +207,7 @@ def test_enforce_retention_policies():
 
         # Should not raise exception
         try:
-            enforce_retention_policies(
-                Path("/tmp/missing.json"), Path("/tmp/missing.json"), "test_user"
-            )
+            enforce_retention_policies(Path("/tmp/missing.json"), Path("/tmp/missing.json"), "test_user")
             print("✅ Error handling test passed!")
         except Exception:
             assert False, "Function should handle errors gracefully"

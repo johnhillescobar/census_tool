@@ -1,7 +1,8 @@
 # app_test_scripts/test_geography_index.py
 import json
+
+from config import CHROMA_EMBEDDING_MODEL, CHROMA_GEOGRAPHY_HIERARCHY_COLLECTION_NAME
 from index.build_geography_index import build_metadata, upsert_documents
-from config import CHROMA_GEOGRAPHY_HIERARCHY_COLLECTION_NAME, CHROMA_EMBEDDING_MODEL
 
 
 class FakeCollection:
@@ -23,9 +24,7 @@ class FakeClient:
 
 
 def test_build_metadata_serializes_ordering_list():
-    meta = build_metadata(
-        "acs/acs5", 2023, "state › county › tract", "140", ["https://example"]
-    )
+    meta = build_metadata("acs/acs5", 2023, "state › county › tract", "140", ["https://example"])
     assert isinstance(meta["ordering_list"], str)
     assert json.loads(meta["ordering_list"]) == ["state", "county"]
 

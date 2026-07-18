@@ -36,9 +36,7 @@ def test_enumerate_areas_orders_parents(monkeypatch, tmp_path):
             ],
         )
 
-    monkeypatch.setattr(
-        "src.domain.geography_registry.validate_and_fix_geo_params", fake_validate
-    )
+    monkeypatch.setattr("src.domain.geography_registry.validate_and_fix_geo_params", fake_validate)
 
     captured["url"] = None
 
@@ -58,20 +56,13 @@ def test_enumerate_areas_orders_parents(monkeypatch, tmp_path):
         "metropolitan statistical area/micropolitan statistical area": "35620",
     }
 
-    areas = registry.enumerate_areas(
-        "acs/acs5", 2023, "county", parent_geo=parent_geo, force_refresh=True
-    )
+    areas = registry.enumerate_areas("acs/acs5", 2023, "county", parent_geo=parent_geo, force_refresh=True)
 
     assert "Example County, Sample" in areas
     assert captured["payload"]["area_count"] == 1
     assert "for=county:*" in captured["url"]
-    assert (
-        "metropolitan%20statistical%20area/micropolitan%20statistical%20area:35620"
-        in captured["url"]
-    )
-    assert captured["payload"]["parent_levels"][0][0] == (
-        "metropolitan statistical area/micropolitan statistical area"
-    )
+    assert "metropolitan%20statistical%20area/micropolitan%20statistical%20area:35620" in captured["url"]
+    assert captured["payload"]["parent_levels"][0][0] == ("metropolitan statistical area/micropolitan statistical area")
 
 
 def test_find_area_code_resolves_state_without_enumeration(monkeypatch, tmp_path):
@@ -82,9 +73,7 @@ def test_find_area_code_resolves_state_without_enumeration(monkeypatch, tmp_path
 
     monkeypatch.setattr(registry, "enumerate_areas", fail_enumerate)
 
-    result = registry.find_area_code(
-        "California", "state", "acs/acs5", 2023, parent_geo=None
-    )
+    result = registry.find_area_code("California", "state", "acs/acs5", 2023, parent_geo=None)
 
     assert result is not None
     assert result["code"] == "06"
@@ -95,9 +84,7 @@ def test_append_census_api_key_adds_key_query_param(monkeypatch):
     from src.domain.geography_registry import _append_census_api_key
 
     monkeypatch.setenv("CENSUS_API_KEY", "test-key")
-    url = _append_census_api_key(
-        "https://api.census.gov/data/2023/acs/acs5?get=NAME,GEO_ID&for=state:*"
-    )
+    url = _append_census_api_key("https://api.census.gov/data/2023/acs/acs5?get=NAME,GEO_ID&for=state:*")
     assert url.endswith("key=test-key")
 
 
@@ -126,9 +113,7 @@ def test_enumerate_areas_appends_census_api_key(monkeypatch, tmp_path):
     )
 
     registry = GeographyRegistry(cache_dir=str(tmp_path))
-    areas = registry.enumerate_areas(
-        "acs/acs5", 2023, "state", parent_geo=None, force_refresh=True
-    )
+    areas = registry.enumerate_areas("acs/acs5", 2023, "state", parent_geo=None, force_refresh=True)
 
     assert "California" in areas
     assert "key=test-key" in captured["url"]

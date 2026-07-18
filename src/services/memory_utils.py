@@ -4,19 +4,19 @@ Memory management utility functions for the Census app
 
 import logging
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 
 import pandas as pd
 
+from config import RETENTION_DAYS
 from src.clients import load_json_file, save_json_file
 from src.domain.time_utils import is_older_than
 from src.state.workflow_plan import WorkflowPlan
-from config import RETENTION_DAYS
 
 logger = logging.getLogger(__name__)
 
 
-def prune_history_by_age(history: List[Dict], retention_days: int) -> List[Dict]:
+def prune_history_by_age(history: list[dict], retention_days: int) -> list[dict]:
     """Remove history entries older than retention_days"""
     if not history:
         return []
@@ -33,7 +33,7 @@ def prune_history_by_age(history: List[Dict], retention_days: int) -> List[Dict]
     return pruned
 
 
-def prune_cache_by_age(cache_index: Dict, retention_days: int) -> Dict:
+def prune_cache_by_age(cache_index: dict, retention_days: int) -> dict:
     """Remove cache entries older than retention_days and delete files"""
     if not cache_index:
         return {}
@@ -59,7 +59,7 @@ def prune_cache_by_age(cache_index: Dict, retention_days: int) -> Dict:
     return pruned_cache
 
 
-def _summarize_plan(plan: WorkflowPlan | Dict[str, Any] | None) -> str:
+def _summarize_plan(plan: WorkflowPlan | dict[str, Any] | None) -> str:
     """Build a short summary string for Track 2 workflow plans."""
     if plan is None:
         return ""
@@ -90,13 +90,13 @@ def _summarize_plan(plan: WorkflowPlan | Dict[str, Any] | None) -> str:
 
 
 def build_history_record(
-    messages: List[Dict],
-    final: Dict[str, Any],
-    intent: Dict[str, Any],
-    geo: Dict[str, Any],
-    plan: WorkflowPlan | Dict[str, Any] | None,
+    messages: list[dict],
+    final: dict[str, Any],
+    intent: dict[str, Any],
+    geo: dict[str, Any],
+    plan: WorkflowPlan | dict[str, Any] | None,
     user_id: str,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Build a history record for a conversation"""
 
     # Get user question from last message
@@ -121,11 +121,11 @@ def build_history_record(
 
 
 def update_profile(
-    profile: Dict[str, Any],
-    intent: Dict[str, Any],
-    geo: Dict[str, Any],
-    final: Dict[str, Any],
-) -> Dict[str, Any]:
+    profile: dict[str, Any],
+    intent: dict[str, Any],
+    geo: dict[str, Any],
+    final: dict[str, Any],
+) -> dict[str, Any]:
     """Update the profile with new information"""
 
     updated_profile = profile.copy()
@@ -173,9 +173,7 @@ def update_profile(
     return updated_profile
 
 
-def enforce_retention_policies(
-    profile_file: Path, cache_index_file: Path, user_id: str
-):
+def enforce_retention_policies(profile_file: Path, cache_index_file: Path, user_id: str):
     """Enforce retention policies on profile and cache index"""
 
     try:
@@ -187,9 +185,7 @@ def enforce_retention_policies(
         pruned_history = prune_history_by_age(history, RETENTION_DAYS)
 
         if len(history) != len(pruned_history):
-            logger.info(
-                f"Pruned {len(history) - len(pruned_history)} old history entries"
-            )
+            logger.info(f"Pruned {len(history) - len(pruned_history)} old history entries")
             profile["history"] = pruned_history
             save_json_file(profile_file, profile)
 
@@ -198,9 +194,7 @@ def enforce_retention_policies(
         pruned_cache_index = prune_cache_by_age(cache_index, RETENTION_DAYS)
 
         if len(cache_index) != len(pruned_cache_index):
-            logger.info(
-                f"Pruned {len(cache_index) - len(pruned_cache_index)} old cache entries"
-            )
+            logger.info(f"Pruned {len(cache_index) - len(pruned_cache_index)} old cache entries")
             save_json_file(cache_index_file, pruned_cache_index)
 
     except Exception as e:

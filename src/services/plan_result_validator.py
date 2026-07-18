@@ -57,13 +57,10 @@ def validate_agent_result_against_plan(
         if "year" not in year_column:
             return {
                 **result,
-                "data_summary": result.get("data_summary", "")
-                + " [plan note: missing Year column in series output]",
+                "data_summary": result.get("data_summary", "") + " [plan note: missing Year column in series output]",
             }
 
     if not answer_text:
-        result["answer_text"] = (
-            f"Results for {spec.geography.display_name} using the resolved planning constraints."
-        )
+        result["answer_text"] = f"Results for {spec.geography.display_name} using the resolved planning constraints."
 
     return result

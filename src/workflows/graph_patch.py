@@ -22,9 +22,7 @@ class CensusGraphPatch(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    logs: list[str] | None = Field(
-        default=None, description="Appended via list reducer when present."
-    )
+    logs: list[str] | None = Field(default=None, description="Appended via list reducer when present.")
     error: str | None = Field(default=None, description="Error channel overwrite.")
     plan: WorkflowPlan | None = None
     final: FinalResponseState | None = None

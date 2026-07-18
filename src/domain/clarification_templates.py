@@ -1,19 +1,19 @@
-from typing import Annotated, Literal, Union
+from typing import Annotated, Literal
+
 from pydantic import BaseModel, Field
-from src.domain.temporal_contract import ClarificationPrompt, ClarificationOption
+
 from src.domain.benchmark_contract import (
-    BenchmarkClarificationPrompt,
     BenchmarkClarificationOption,
+    BenchmarkClarificationPrompt,
 )
+from src.domain.temporal_contract import ClarificationOption, ClarificationPrompt
 
 
 # Define the slots for the temporal clarification template
 class TemporalExplicitVsRollingSlots(BaseModel):
     """Slots for the temporal explicit vs rolling clarification template."""
 
-    reason_code: Literal["TEMPORAL_CONFLICT_EXPLICIT_VS_ROLLING"] = (
-        "TEMPORAL_CONFLICT_EXPLICIT_VS_ROLLING"
-    )
+    reason_code: Literal["TEMPORAL_CONFLICT_EXPLICIT_VS_ROLLING"] = "TEMPORAL_CONFLICT_EXPLICIT_VS_ROLLING"
     year_a: int
     year_b: int
     window_text: str
@@ -44,16 +44,12 @@ class BenchmarkMissingGeoLevelSlots(BaseModel):
 
 
 class BenchmarkConflictBaselineVsPeerGroupSlots(BaseModel):
-    reason_code: Literal["BENCHMARK_CONFLICT_BASELINE_VS_PEER_GROUP"] = (
-        "BENCHMARK_CONFLICT_BASELINE_VS_PEER_GROUP"
-    )
+    reason_code: Literal["BENCHMARK_CONFLICT_BASELINE_VS_PEER_GROUP"] = "BENCHMARK_CONFLICT_BASELINE_VS_PEER_GROUP"
     subject_text: str
 
 
 class BenchmarkMissingBaselineAnchorSlots(BaseModel):
-    reason_code: Literal["BENCHMARK_MISSING_BASELINE_ANCHOR"] = (
-        "BENCHMARK_MISSING_BASELINE_ANCHOR"
-    )
+    reason_code: Literal["BENCHMARK_MISSING_BASELINE_ANCHOR"] = "BENCHMARK_MISSING_BASELINE_ANCHOR"
     subject_text: str
 
 
@@ -105,9 +101,7 @@ TEMPLATES: dict[str, ClarificationTemplate] = {
             "Please choose one so I can run the query deterministically."
         ),
         option_templates=[
-            OptionTemplate(
-                option_id="explicit_years", label_template="Use explicit years only"
-            ),
+            OptionTemplate(option_id="explicit_years", label_template="Use explicit years only"),
             OptionTemplate(
                 option_id="rolling_or_latest",
                 label_template="Use rolling/latest interpretation",
@@ -133,23 +127,16 @@ TEMPLATES: dict[str, ClarificationTemplate] = {
         template_id="benchmark.missing_metric.v1",
         reason_code="BENCHMARK_MISSING_METRIC",
         question_template=(
-            "I found a missing metric in your request. Please choose one so"
-            " I can run the query deterministically."
+            "I found a missing metric in your request. Please choose one so I can run the query deterministically."
         ),
         option_templates=[
-            OptionTemplate(
-                option_id="population", label_template="Population {metric}"
-            ),
+            OptionTemplate(option_id="population", label_template="Population {metric}"),
             OptionTemplate(
                 option_id="median_income",
                 label_template="Median household income {metric}",
             ),
-            OptionTemplate(
-                option_id="poverty_rate", label_template="Poverty rate {metric}"
-            ),
-            OptionTemplate(
-                option_id="unemployment", label_template="Unemployment {metric}"
-            ),
+            OptionTemplate(option_id="poverty_rate", label_template="Poverty rate {metric}"),
+            OptionTemplate(option_id="unemployment", label_template="Unemployment {metric}"),
             OptionTemplate(option_id="education", label_template="Education {metric}"),
             OptionTemplate(option_id="hispanic", label_template="Hispanic {metric}"),
             OptionTemplate(option_id="race", label_template="Race {metric}"),
@@ -157,9 +144,7 @@ TEMPLATES: dict[str, ClarificationTemplate] = {
             OptionTemplate(option_id="housing", label_template="Housing {metric}"),
             OptionTemplate(option_id="rent", label_template="Rent {metric}"),
             OptionTemplate(option_id="mortgage", label_template="Mortgage {metric}"),
-            OptionTemplate(
-                option_id="labor_force", label_template="Labor force {metric}"
-            ),
+            OptionTemplate(option_id="labor_force", label_template="Labor force {metric}"),
             OptionTemplate(option_id="household", label_template="Household {metric}"),
             OptionTemplate(option_id="other", label_template="Other {metric}"),
             OptionTemplate(option_id="cancel", label_template="Cancel"),
@@ -209,23 +194,18 @@ TEMPLATES: dict[str, ClarificationTemplate] = {
 
 # Define the slots for the clarification template for temporal
 ClarificationSlots = Annotated[
-    Union[
-        TemporalExplicitVsRollingSlots,
-        TemporalAmbiguousGenericSlots,
-    ],
+    TemporalExplicitVsRollingSlots | TemporalAmbiguousGenericSlots,
     Field(discriminator="reason_code"),
 ]
 
 
 # Define the slots for the clarification template for benchmark
 BenchmarkClarificationSlots = Annotated[
-    Union[
-        BenchmarkAmbiguousTargetSlots,
-        BenchmarkMissingMetricSlots,
-        BenchmarkMissingGeoLevelSlots,
-        BenchmarkConflictBaselineVsPeerGroupSlots,
-        BenchmarkMissingBaselineAnchorSlots,
-    ],
+    BenchmarkAmbiguousTargetSlots
+    | BenchmarkMissingMetricSlots
+    | BenchmarkMissingGeoLevelSlots
+    | BenchmarkConflictBaselineVsPeerGroupSlots
+    | BenchmarkMissingBaselineAnchorSlots,
     Field(discriminator="reason_code"),
 ]
 

@@ -5,15 +5,10 @@ from src.services import resolve_benchmark_intent
 
 
 def test_conflict_requires_clarification():
-    result = resolve_benchmark_intent(
-        "compare population baseline vs 2019 and peer group counties"
-    )
+    result = resolve_benchmark_intent("compare population baseline vs 2019 and peer group counties")
     assert result.status == "clarification_required"
     assert result.reason_code == "BENCHMARK_CONFLICT_BASELINE_VS_PEER_GROUP"
-    assert (
-        result.clarification_prompt.template_id
-        == "benchmark.conflict_baseline_vs_peer_group.v1"
-    )
+    assert result.clarification_prompt.template_id == "benchmark.conflict_baseline_vs_peer_group.v1"
     assert [o.option_id for o in result.clarification_prompt.options] == [
         "baseline",
         "peer_group",
@@ -88,9 +83,7 @@ def test_resolved_peer_group_benchmark():
 
 
 def test_peer_language_with_explicit_geo_resolves():
-    result = resolve_benchmark_intent(
-        "compare unemployment for counties with peer group"
-    )
+    result = resolve_benchmark_intent("compare unemployment for counties with peer group")
     assert result.status == "resolved"
     assert result.benchmark.benchmark_type == "peer_group"
     assert result.benchmark.benchmark_geo_level == "county"

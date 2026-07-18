@@ -3,8 +3,10 @@ Integration tests for expanded geography support
 Tests the full workflow from agent to API with tribal and statistical areas
 """
 
-import pytest
 import json
+
+import pytest
+
 from src.tools.census_api_tool import CensusAPITool
 from src.tools.geography_validation_tool import GeographyValidationTool
 
@@ -63,12 +65,8 @@ def test_tribal_area_query_integration(monkeypatch):
         }
 
     monkeypatch.setattr("src.tools.census_api_tool.fetch_census_data", fake_fetch)
-    monkeypatch.setattr(
-        "src.tools.census_api_tool.build_geo_filters", fake_build_filters
-    )
-    monkeypatch.setattr(
-        "src.clients.census_api_utils.validate_and_fix_geo_params", fake_validate
-    )
+    monkeypatch.setattr("src.tools.census_api_tool.build_geo_filters", fake_build_filters)
+    monkeypatch.setattr("src.clients.census_api_utils.validate_and_fix_geo_params", fake_validate)
     monkeypatch.setattr("src.tools.census_api_tool.record_event", lambda *args: None)
 
     input_json = json.dumps(
@@ -76,9 +74,7 @@ def test_tribal_area_query_integration(monkeypatch):
             "year": 2023,
             "dataset": "acs/acs5",
             "variables": ["NAME", "B01003_001E"],
-            "geo_for": {
-                "american indian area/alaska native area (reservation or statistical entity only)": "5620R"
-            },
+            "geo_for": {"american indian area/alaska native area (reservation or statistical entity only)": "5620R"},
             "geo_in": {},
         }
     )
@@ -124,17 +120,11 @@ def test_metro_area_query_integration(monkeypatch):
         )
 
     def fake_build_filters(**kwargs):
-        return {
-            "for": "metropolitan%20statistical%20area/micropolitan%20statistical%20area:35620"
-        }
+        return {"for": "metropolitan%20statistical%20area/micropolitan%20statistical%20area:35620"}
 
     monkeypatch.setattr("src.tools.census_api_tool.fetch_census_data", fake_fetch)
-    monkeypatch.setattr(
-        "src.tools.census_api_tool.build_geo_filters", fake_build_filters
-    )
-    monkeypatch.setattr(
-        "src.clients.census_api_utils.validate_and_fix_geo_params", fake_validate
-    )
+    monkeypatch.setattr("src.tools.census_api_tool.build_geo_filters", fake_build_filters)
+    monkeypatch.setattr("src.clients.census_api_utils.validate_and_fix_geo_params", fake_validate)
     monkeypatch.setattr("src.tools.census_api_tool.record_event", lambda *args: None)
 
     input_json = json.dumps(
@@ -142,9 +132,7 @@ def test_metro_area_query_integration(monkeypatch):
             "year": 2023,
             "dataset": "acs/acs5",
             "variables": ["NAME", "B01003_001E"],
-            "geo_for": {
-                "metropolitan statistical area/micropolitan statistical area": "35620"
-            },
+            "geo_for": {"metropolitan statistical area/micropolitan statistical area": "35620"},
             "geo_in": {},
         }
     )
@@ -186,12 +174,8 @@ def test_auto_repair_bad_ordering_integration(monkeypatch):
         return {"for": "county:*", "in": "state:06"}
 
     monkeypatch.setattr("src.tools.census_api_tool.fetch_census_data", fake_fetch)
-    monkeypatch.setattr(
-        "src.tools.census_api_tool.build_geo_filters", fake_build_filters
-    )
-    monkeypatch.setattr(
-        "src.clients.census_api_utils.validate_and_fix_geo_params", fake_validate
-    )
+    monkeypatch.setattr("src.tools.census_api_tool.build_geo_filters", fake_build_filters)
+    monkeypatch.setattr("src.clients.census_api_utils.validate_and_fix_geo_params", fake_validate)
     monkeypatch.setattr("src.tools.census_api_tool.record_event", lambda *args: None)
 
     # Provide bad ordering: multiple items in geo_for
@@ -231,9 +215,7 @@ def test_missing_parent_detection_integration(monkeypatch):
             "Missing required parent geography: state. For 'county', you must specify: ['state']",
         )
 
-    monkeypatch.setattr(
-        "src.tools.geography_validation_tool.validate_and_fix_geo_params", fake_validate
-    )
+    monkeypatch.setattr("src.tools.geography_validation_tool.validate_and_fix_geo_params", fake_validate)
     monkeypatch.setattr(
         "src.tools.geography_validation_tool.validate_geography_hierarchy",
         fake_validate_hierarchy,
@@ -297,12 +279,8 @@ def test_part_geography_query_integration(monkeypatch):
         }
 
     monkeypatch.setattr("src.tools.census_api_tool.fetch_census_data", fake_fetch)
-    monkeypatch.setattr(
-        "src.tools.census_api_tool.build_geo_filters", fake_build_filters
-    )
-    monkeypatch.setattr(
-        "src.clients.census_api_utils.validate_and_fix_geo_params", fake_validate
-    )
+    monkeypatch.setattr("src.tools.census_api_tool.build_geo_filters", fake_build_filters)
+    monkeypatch.setattr("src.clients.census_api_utils.validate_and_fix_geo_params", fake_validate)
     monkeypatch.setattr("src.tools.census_api_tool.record_event", lambda *args: None)
 
     input_json = json.dumps(
@@ -311,9 +289,7 @@ def test_part_geography_query_integration(monkeypatch):
             "dataset": "acs/acs5",
             "variables": ["NAME", "B01003_001E"],
             "geo_for": {"county (or part)": "*"},
-            "geo_in": {
-                "metropolitan statistical area/micropolitan statistical area": "35620"
-            },
+            "geo_in": {"metropolitan statistical area/micropolitan statistical area": "35620"},
         }
     )
 
@@ -321,9 +297,7 @@ def test_part_geography_query_integration(monkeypatch):
     result_dict = json.loads(result)
 
     assert result_dict["success"] is True
-    assert "Bronx County" in str(result_dict["data"]) or "Kings County" in str(
-        result_dict["data"]
-    )
+    assert "Bronx County" in str(result_dict["data"]) or "Kings County" in str(result_dict["data"])
 
 
 # ============================================================================
@@ -343,9 +317,7 @@ def test_validation_before_api_call_workflow(monkeypatch):
     def fake_validate_hierarchy(dataset, year, for_token, provided_parents):
         return (True, [], "")
 
-    monkeypatch.setattr(
-        "src.tools.geography_validation_tool.validate_and_fix_geo_params", fake_validate
-    )
+    monkeypatch.setattr("src.tools.geography_validation_tool.validate_and_fix_geo_params", fake_validate)
     monkeypatch.setattr(
         "src.tools.geography_validation_tool.validate_geography_hierarchy",
         fake_validate_hierarchy,
@@ -382,12 +354,8 @@ def test_validation_before_api_call_workflow(monkeypatch):
         return {"for": "county:*", "in": "state:06"}
 
     monkeypatch.setattr("src.tools.census_api_tool.fetch_census_data", fake_fetch)
-    monkeypatch.setattr(
-        "src.tools.census_api_tool.build_geo_filters", fake_build_filters
-    )
-    monkeypatch.setattr(
-        "src.clients.census_api_utils.validate_and_fix_geo_params", fake_validate
-    )
+    monkeypatch.setattr("src.tools.census_api_tool.build_geo_filters", fake_build_filters)
+    monkeypatch.setattr("src.clients.census_api_utils.validate_and_fix_geo_params", fake_validate)
     monkeypatch.setattr("src.tools.census_api_tool.record_event", lambda *args: None)
 
     api_input = json.dumps(

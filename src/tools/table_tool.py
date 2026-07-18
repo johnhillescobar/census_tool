@@ -1,11 +1,12 @@
-import logging
 import json
-import pandas as pd
-from pathlib import Path
-from typing import Dict, Optional, Any, Literal
-from langchain_core.tools import BaseTool
-from pydantic import BaseModel, Field, ConfigDict
+import logging
 from datetime import datetime
+from pathlib import Path
+from typing import Any, Literal
+
+import pandas as pd
+from langchain_core.tools import BaseTool
+from pydantic import BaseModel, ConfigDict, Field
 
 from src.services.dataframe_utils import _create_dataframe_from_json
 from src.tools.json_parse import parse_first_json
@@ -20,15 +21,9 @@ class TableToolInput(BaseModel):
         default="csv",
         description="Output format: 'csv' for simple export, 'excel' for Excel files, 'html' for web tables",
     )
-    filename: Optional[str] = Field(
-        default=None, description="Optional custom filename (without extension)"
-    )
-    title: Optional[str] = Field(
-        default="Census Data Table", description="Table title/description"
-    )
-    data: Dict[str, Any] = Field(
-        ..., description="Census data dict from census_api_call tool"
-    )
+    filename: str | None = Field(default=None, description="Optional custom filename (without extension)")
+    title: str | None = Field(default="Census Data Table", description="Table title/description")
+    data: dict[str, Any] = Field(..., description="Census data dict from census_api_call tool")
 
 
 class TableTool(BaseTool):

@@ -1,0 +1,51 @@
+{
+  "user_id": "phase0c-query2",
+  "default_geo": {
+    "level": "nation",
+    "geo_for": {
+      "us": "1"
+    },
+    "geo_in": {},
+    "display_name": "United States",
+    "source": "missing_geo_default",
+    "requested_text": "Show me median income trends from 2015 to 2020"
+  },
+  "preferred_dataset": "Unknown",
+  "default_year_range": [
+    2012,
+    2023
+  ],
+  "preferred_level": "place",
+  "var_aliases": {},
+  "last_geo": "United States",
+  "usage_stats": {
+    "total_queries": 1,
+    "success_queries": 1,
+    "last_query_date": "2026-07-18T07:37:16.669667"
+  },
+  "history": [
+    {
+      "timestamp": "2026-07-18T07:37:16.669667",
+      "user_id": "phase0c-query2",
+      "question": "Show me median income trends from 2015 to 2020",
+      "intent": {
+        "is_census": true,
+        "topic": "general"
+      },
+      "geo": {
+        "level": "nation",
+        "geo_for": {
+          "us": "1"
+        },
+        "geo_in": {},
+        "display_name": "United States",
+        "source": "missing_geo_default",
+        "requested_text": "Show me median income trends from 2015 to 2020"
+      },
+      "plan_summary": "temporal=range",
+      "answer_type": "Unknown",
+      "success": true
+    }
+  ],
+  "last_updated": "2026-07-18T07:37:16.669667"
+}

@@ -1,12 +1,11 @@
 from src.domain.agent_plan_context import AgentPlanContext
 from src.domain.execution_spec import build_execution_spec
-from src.domain.geography_contract import GeographyIntent
+from src.domain.geography_contract import GeographyIntent, GeographyResolved
 from src.domain.temporal_contract import TemporalIntent
 from src.services.agent_plan_context import build_agent_plan_context
 from src.services.geography_policy import resolve_geography_intent
 from src.services.plan_result_validator import validate_agent_result_against_plan
-from src.state.workflow_plan import WorkflowPlan, TemporalResolved
-from src.domain.geography_contract import GeographyResolved
+from src.state.workflow_plan import TemporalResolved, WorkflowPlan
 from src.workflows.output import is_census_data_renderable
 
 
@@ -34,9 +33,7 @@ def _us_default_context() -> AgentPlanContext:
 
 
 def test_missing_geography_defaults_to_us_national():
-    resolution = resolve_geography_intent(
-        "Show me median income trends from 2015 to 2020"
-    )
+    resolution = resolve_geography_intent("Show me median income trends from 2015 to 2020")
     assert resolution.status == "resolved"
     assert resolution.geography.geo_for == {"us": "1"}
     assert resolution.geography.source == "missing_geo_default"

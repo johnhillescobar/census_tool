@@ -57,9 +57,7 @@ def test_request_rejects_duplicate_variables_after_normalization() -> None:
 
 
 def test_request_rejects_empty_geo_in_chained_entry() -> None:
-    with pytest.raises(
-        ValueError, match="geo_in_chained entries must be non-empty dicts"
-    ):
+    with pytest.raises(ValueError, match="geo_in_chained entries must be non-empty dicts"):
         StrictCensusApiRequest(
             year=2023,
             dataset="acs/acs5",
@@ -102,9 +100,7 @@ def test_success_response_rejects_error_code() -> None:
             success=True,
             request=_valid_request(),
             headers=["NAME", "state"],
-            records=[
-                StrictCensusApiRecord(values={"NAME": "California", "state": "06"})
-            ],
+            records=[StrictCensusApiRecord(values={"NAME": "California", "state": "06"})],
             row_count=1,
             error="API_HTTP_ERROR",
             error_message=None,
@@ -156,9 +152,7 @@ def test_no_strict_census_payload_custom_message() -> None:
 
 
 def test_no_strict_census_payload_rejects_non_null_request() -> None:
-    with pytest.raises(
-        ValueError, match="request must be None when error is NO_STRICT_CENSUS_PAYLOAD"
-    ):
+    with pytest.raises(ValueError, match="request must be None when error is NO_STRICT_CENSUS_PAYLOAD"):
         StrictCensusApiResponse(
             success=False,
             request=_valid_request(),

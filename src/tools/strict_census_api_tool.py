@@ -2,7 +2,7 @@ import json
 import logging
 from typing import Any
 
-from langchain.callbacks.manager import (
+from langchain_core.callbacks.manager import (
     AsyncCallbackManagerForToolRun,
     CallbackManagerForToolRun,
 )
@@ -31,9 +31,7 @@ class StrictCensusApiTool(BaseTool):
     )
     args_schema: type[BaseModel] = StrictCensusApiRequest
 
-    def _parse_input(
-        self, tool_input: str | dict[str, Any], tool_call_id: str | None
-    ) -> str | dict[str, Any]:
+    def _parse_input(self, tool_input: str | dict[str, Any], tool_call_id: str | None) -> str | dict[str, Any]:
         if isinstance(tool_input, str):
             try:
                 parsed = json.loads(tool_input)
@@ -163,10 +161,7 @@ class StrictCensusApiTool(BaseTool):
                 error_message="Census API returned no data rows",
             )
 
-        records = [
-            StrictCensusApiRecord(values=dict(zip(raw_table.headers, row)))
-            for row in raw_table.rows
-        ]
+        records = [StrictCensusApiRecord(values=dict(zip(raw_table.headers, row))) for row in raw_table.rows]
 
         response = StrictCensusApiResponse(
             success=True,

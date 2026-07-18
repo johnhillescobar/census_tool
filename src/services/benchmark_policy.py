@@ -25,15 +25,9 @@ from src.services.benchmark_geo_inference import (
 
 COMPARE_PATTERN = re.compile(r"\b(compare|vs|versus|against)\b", re.IGNORECASE)
 
-PEER_GROUP_PATTERN = re.compile(
-    r"\b(peer group|peer|similar counties|similar states)\b", re.IGNORECASE
-)
-BASELINE_PATTERN = re.compile(
-    r"\b(baseline|vs\s+\d{4}|compared to \d{4}|historical)\b", re.IGNORECASE
-)
-BASELINE_YEAR_PATTERN = re.compile(
-    r"(?:vs|compared to)\s+(?P<year>\d{4})", re.IGNORECASE
-)
+PEER_GROUP_PATTERN = re.compile(r"\b(peer group|peer|similar counties|similar states)\b", re.IGNORECASE)
+BASELINE_PATTERN = re.compile(r"\b(baseline|vs\s+\d{4}|compared to \d{4}|historical)\b", re.IGNORECASE)
+BASELINE_YEAR_PATTERN = re.compile(r"(?:vs|compared to)\s+(?P<year>\d{4})", re.IGNORECASE)
 STANDALONE_YEAR_PATTERN = re.compile(r"\b(19|20)\d{2}\b")
 
 
@@ -242,9 +236,7 @@ def resolve_benchmark_intent(user_text: str) -> BenchmarkResolution:
         return BenchmarkResolved(status="resolved", benchmark=benchmark)
 
     if geo_level in {"county", "place", "cbsa", "metro_division"}:
-        peer_geo_level = cast(
-            Literal["county", "place", "cbsa", "metro_division"], geo_level
-        )
+        peer_geo_level = cast(Literal["county", "place", "cbsa", "metro_division"], geo_level)
         benchmark = BenchmarkIntent(
             benchmark_type="peer_group",
             subject_geo_level=peer_geo_level,

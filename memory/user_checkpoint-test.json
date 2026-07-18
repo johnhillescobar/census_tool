@@ -1,0 +1,391 @@
+{
+  "user_id": "checkpoint-test",
+  "default_geo": {
+    "level": "nation",
+    "geo_for": {
+      "us": "1"
+    },
+    "geo_in": {},
+    "display_name": "Default geography: 'United States (default)'",
+    "source": "explicit",
+    "requested_text": "new conversation"
+  },
+  "preferred_dataset": "acs/acs5",
+  "default_year_range": [
+    2012,
+    2023
+  ],
+  "preferred_level": "place",
+  "var_aliases": {},
+  "last_geo": "Default geography: 'United States (default)'",
+  "usage_stats": {
+    "total_queries": 20,
+    "success_queries": 20,
+    "last_query_date": "2026-07-18T09:15:18.675365"
+  },
+  "history": [
+    {
+      "timestamp": "2026-07-18T09:00:19.013207",
+      "user_id": "checkpoint-test",
+      "question": "first question",
+      "intent": {},
+      "geo": {
+        "level": "nation",
+        "geo_for": {
+          "us": "1"
+        },
+        "geo_in": {},
+        "display_name": "Default geography: 'United States (default)'",
+        "source": "explicit",
+        "requested_text": "first question"
+      },
+      "plan_summary": "temporal=latest_available",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2026-07-18T09:00:24.688519",
+      "user_id": "checkpoint-test",
+      "question": "second question",
+      "intent": {},
+      "geo": {
+        "level": "nation",
+        "geo_for": {
+          "us": "1"
+        },
+        "geo_in": {},
+        "display_name": "Default geography: 'United States (default)'",
+        "source": "explicit",
+        "requested_text": "second question"
+      },
+      "plan_summary": "temporal=latest_available",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2026-07-18T09:00:25.722050",
+      "user_id": "checkpoint-test",
+      "question": "thread A question",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "clarification_required",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2026-07-18T09:00:31.342626",
+      "user_id": "checkpoint-test",
+      "question": "thread B question",
+      "intent": {},
+      "geo": {
+        "level": "nation",
+        "geo_for": {
+          "us": "1"
+        },
+        "geo_in": {},
+        "display_name": "Default geography: 'United States (default)'",
+        "source": "explicit",
+        "requested_text": "thread B question"
+      },
+      "plan_summary": "temporal=latest_available",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2026-07-18T09:00:36.243257",
+      "user_id": "checkpoint-test",
+      "question": "first question",
+      "intent": {},
+      "geo": {
+        "level": "nation",
+        "geo_for": {
+          "us": "1"
+        },
+        "geo_in": {},
+        "display_name": "Default geography: 'United States (default)'",
+        "source": "explicit",
+        "requested_text": "first question"
+      },
+      "plan_summary": "temporal=latest_available",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2026-07-18T09:00:41.375804",
+      "user_id": "checkpoint-test",
+      "question": "second question",
+      "intent": {},
+      "geo": {
+        "level": "nation",
+        "geo_for": {
+          "us": "1"
+        },
+        "geo_in": {},
+        "display_name": "Default geography: 'United States (default)'",
+        "source": "explicit",
+        "requested_text": "second question"
+      },
+      "plan_summary": "temporal=latest_available",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2026-07-18T09:00:46.813058",
+      "user_id": "checkpoint-test",
+      "question": "old conversation",
+      "intent": {},
+      "geo": {
+        "level": "nation",
+        "geo_for": {
+          "us": "1"
+        },
+        "geo_in": {},
+        "display_name": "Default geography: 'United States (default)'",
+        "source": "explicit",
+        "requested_text": "old conversation"
+      },
+      "plan_summary": "temporal=latest_available",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2026-07-18T09:00:50.390346",
+      "user_id": "checkpoint-test",
+      "question": "new conversation",
+      "intent": {},
+      "geo": {
+        "level": "nation",
+        "geo_for": {
+          "us": "1"
+        },
+        "geo_in": {},
+        "display_name": "Default geography: 'United States (default)'",
+        "source": "explicit",
+        "requested_text": "new conversation"
+      },
+      "plan_summary": "temporal=latest_available",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2026-07-18T09:02:03.377460",
+      "user_id": "checkpoint-test",
+      "question": "first question",
+      "intent": {},
+      "geo": {
+        "level": "nation",
+        "geo_for": {
+          "us": "1"
+        },
+        "geo_in": {},
+        "display_name": "Default geography: 'United States (default)'",
+        "source": "explicit",
+        "requested_text": "first question"
+      },
+      "plan_summary": "temporal=latest_available",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2026-07-18T09:02:05.683758",
+      "user_id": "checkpoint-test",
+      "question": "second question",
+      "intent": {},
+      "geo": {
+        "level": "nation",
+        "geo_for": {
+          "us": "1"
+        },
+        "geo_in": {},
+        "display_name": "Default geography: 'United States (default)'",
+        "source": "explicit",
+        "requested_text": "second question"
+      },
+      "plan_summary": "temporal=latest_available",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2026-07-18T09:02:50.738031",
+      "user_id": "checkpoint-test",
+      "question": "first question",
+      "intent": {},
+      "geo": {
+        "level": "nation",
+        "geo_for": {
+          "us": "1"
+        },
+        "geo_in": {},
+        "display_name": "Default geography: 'United States (default)'",
+        "source": "explicit",
+        "requested_text": "first question"
+      },
+      "plan_summary": "temporal=latest_available",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2026-07-18T09:02:54.977477",
+      "user_id": "checkpoint-test",
+      "question": "second question",
+      "intent": {},
+      "geo": {
+        "level": "nation",
+        "geo_for": {
+          "us": "1"
+        },
+        "geo_in": {},
+        "display_name": "Default geography: 'United States (default)'",
+        "source": "explicit",
+        "requested_text": "second question"
+      },
+      "plan_summary": "temporal=latest_available",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2026-07-18T09:14:55.870025",
+      "user_id": "checkpoint-test",
+      "question": "first question",
+      "intent": {},
+      "geo": {
+        "level": "nation",
+        "geo_for": {
+          "us": "1"
+        },
+        "geo_in": {},
+        "display_name": "Default geography: 'United States (default)'",
+        "source": "explicit",
+        "requested_text": "first question"
+      },
+      "plan_summary": "temporal=latest_available",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2026-07-18T09:14:59.694310",
+      "user_id": "checkpoint-test",
+      "question": "second question",
+      "intent": {},
+      "geo": {
+        "level": "nation",
+        "geo_for": {
+          "us": "1"
+        },
+        "geo_in": {},
+        "display_name": "Default geography: 'United States (default)'",
+        "source": "explicit",
+        "requested_text": "second question"
+      },
+      "plan_summary": "temporal=latest_available",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2026-07-18T09:15:00.130576",
+      "user_id": "checkpoint-test",
+      "question": "thread A question",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "clarification_required",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2026-07-18T09:15:03.571820",
+      "user_id": "checkpoint-test",
+      "question": "thread B question",
+      "intent": {},
+      "geo": {
+        "level": "nation",
+        "geo_for": {
+          "us": "1"
+        },
+        "geo_in": {},
+        "display_name": "Default geography: 'United States (default)'",
+        "source": "explicit",
+        "requested_text": "thread B question"
+      },
+      "plan_summary": "temporal=latest_available",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2026-07-18T09:15:07.779271",
+      "user_id": "checkpoint-test",
+      "question": "first question",
+      "intent": {},
+      "geo": {
+        "level": "nation",
+        "geo_for": {
+          "us": "1"
+        },
+        "geo_in": {},
+        "display_name": "Default geography: 'United States (default)'",
+        "source": "explicit",
+        "requested_text": "first question"
+      },
+      "plan_summary": "temporal=latest_available",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2026-07-18T09:15:09.967495",
+      "user_id": "checkpoint-test",
+      "question": "second question",
+      "intent": {},
+      "geo": {
+        "level": "nation",
+        "geo_for": {
+          "us": "1"
+        },
+        "geo_in": {},
+        "display_name": "Default geography: 'United States (default)'",
+        "source": "explicit",
+        "requested_text": "second question"
+      },
+      "plan_summary": "temporal=latest_available",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2026-07-18T09:15:14.435619",
+      "user_id": "checkpoint-test",
+      "question": "old conversation",
+      "intent": {},
+      "geo": {
+        "level": "nation",
+        "geo_for": {
+          "us": "1"
+        },
+        "geo_in": {},
+        "display_name": "Default geography: 'United States (default)'",
+        "source": "explicit",
+        "requested_text": "old conversation"
+      },
+      "plan_summary": "temporal=latest_available",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2026-07-18T09:15:18.675365",
+      "user_id": "checkpoint-test",
+      "question": "new conversation",
+      "intent": {},
+      "geo": {
+        "level": "nation",
+        "geo_for": {
+          "us": "1"
+        },
+        "geo_in": {},
+        "display_name": "Default geography: 'United States (default)'",
+        "source": "explicit",
+        "requested_text": "new conversation"
+      },
+      "plan_summary": "temporal=latest_available",
+      "answer_type": "Unknown",
+      "success": true
+    }
+  ],
+  "last_updated": "2026-07-18T09:15:18.675365"
+}

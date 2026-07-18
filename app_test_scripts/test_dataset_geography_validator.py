@@ -19,9 +19,7 @@ def test_geography_supported_uses_cache(monkeypatch):
 
 
 def test_fetch_levels_handles_network_error(monkeypatch):
-    monkeypatch.setattr(
-        "requests.get", lambda url, timeout: (_ for _ in ()).throw(ValueError("boom"))
-    )
+    monkeypatch.setattr("requests.get", lambda url, timeout: (_ for _ in ()).throw(ValueError("boom")))
     monkeypatch.setattr(
         "src.services.dataset_geography_validator._load_disk_cache",
         lambda dataset, year: {"state"},

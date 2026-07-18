@@ -51,9 +51,7 @@ class AgentPlanOutput(BaseModel):
     def validate_no_placeholder_rows(self) -> "AgentPlanOutput":
         for row in self.comparison_input_rows:
             if is_placeholder_geo_id(row.geo_id):
-                raise ValueError(
-                    f"comparison_input_rows contains unresolved placeholder geo_id: {row.geo_id}"
-                )
+                raise ValueError(f"comparison_input_rows contains unresolved placeholder geo_id: {row.geo_id}")
         return self
 
 
@@ -63,18 +61,12 @@ def strict_census_response_to_legacy_payload(
     """Adapt a validated strict Census response to the current workflow payload."""
     data = [
         response.headers,
-        *[
-            [record.values.get(header, "") for header in response.headers]
-            for record in response.records
-        ],
+        *[[record.values.get(header, "") for header in response.headers] for record in response.records],
     ]
     variables = {header: header for header in response.headers}
     url = None
     if response.request is not None:
-        url = (
-            f"https://api.census.gov/data/"
-            f"{response.request.year}/{response.request.dataset}"
-        )
+        url = f"https://api.census.gov/data/{response.request.year}/{response.request.dataset}"
     return CensusDataPayload(
         success=response.success,
         data=data,
@@ -104,9 +96,7 @@ def agent_output_to_legacy_dict(output: AgentPlanOutput) -> dict[str, Any]:
         "charts_needed": output.charts_needed,
         "tables_needed": output.tables_needed,
         "footnotes": output.footnotes,
-        "comparison_input_rows": [
-            row.model_dump() for row in output.comparison_input_rows
-        ],
+        "comparison_input_rows": [row.model_dump() for row in output.comparison_input_rows],
     }
 
 
@@ -121,14 +111,9 @@ def validate_comparison_rows_for_plan(
             raise ValueError("row metric does not match plan.metric")
         if row.year not in plan.query_years:
             raise ValueError("row year is outside plan.query_years")
-        if (
-            not plan_uses_placeholder_geos(plan)
-            and row.geo_id not in plan.subject_geos
-        ):
+        if not plan_uses_placeholder_geos(plan) and row.geo_id not in plan.subject_geos:
             raise ValueError("row geo_id is outside plan.subject_geos")
         if is_placeholder_geo_id(row.geo_id):
-            raise ValueError(
-                f"comparison_input_rows contains unresolved placeholder geo_id: {row.geo_id}"
-            )
+            raise ValueError(f"comparison_input_rows contains unresolved placeholder geo_id: {row.geo_id}")
         validated.append(row)
     return validated

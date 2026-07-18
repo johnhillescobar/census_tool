@@ -5,9 +5,10 @@ Tests verify that get_chart_params() correctly detects multi-series scenarios
 and that ChartTool creates multi-series charts with proper color grouping.
 """
 
-import pytest
 import pandas as pd
-from src.workflows.output import get_chart_params, _detect_geography_column
+import pytest
+
+from src.workflows.output import _detect_geography_column, get_chart_params
 
 
 class TestGeographyColumnDetection:
@@ -44,18 +45,14 @@ class TestGeographyColumnDetection:
 
     def test_priority_order_name_third(self):
         """Test that NAME has priority when state/county not present"""
-        df = pd.DataFrame(
-            {"Year": [2020, 2021], "NAME": ["Illinois", "Texas"], "Value": [100, 200]}
-        )
+        df = pd.DataFrame({"Year": [2020, 2021], "NAME": ["Illinois", "Texas"], "Value": [100, 200]})
         headers = list(df.columns)
         result = _detect_geography_column(df, headers)
         assert result == "NAME"
 
     def test_excludes_x_column(self):
         """Test that x_column is excluded from geography detection"""
-        df = pd.DataFrame(
-            {"Year": [2020, 2021], "NAME": ["Illinois", "Texas"], "Value": [100, 200]}
-        )
+        df = pd.DataFrame({"Year": [2020, 2021], "NAME": ["Illinois", "Texas"], "Value": [100, 200]})
         headers = list(df.columns)
         # If NAME is the x_column, it should not be returned
         result = _detect_geography_column(df, headers, x_column="NAME")

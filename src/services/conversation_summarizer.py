@@ -5,9 +5,10 @@ Monitors token count in agent conversation history and summarizes
 old tool outputs when approaching the model's context limit.
 """
 
-import logging
 import json
-from typing import List, Dict, Any
+import logging
+from typing import Any
+
 from langchain_core.callbacks import BaseCallbackHandler
 
 logger = logging.getLogger(__name__)
@@ -64,7 +65,7 @@ class ConversationSummarizer(BaseCallbackHandler):
         """
         self.token_threshold = token_threshold
         self.keep_recent = keep_recent
-        self.current_messages: List[str] = []
+        self.current_messages: list[str] = []
         self.summarized = False
 
     def on_agent_action(self, action, **kwargs) -> None:
@@ -94,9 +95,7 @@ class ConversationSummarizer(BaseCallbackHandler):
             self.summarized = True
 
 
-def summarize_intermediate_steps(
-    intermediate_steps: List[tuple], keep_recent: int = 5
-) -> List[tuple]:
+def summarize_intermediate_steps(intermediate_steps: list[tuple], keep_recent: int = 5) -> list[tuple]:
     """
     Summarize old intermediate steps, keeping only recent ones in full detail.
 
@@ -126,17 +125,14 @@ def summarize_intermediate_steps(
         # Keep the action but replace observation with summary
         summarized_old.append((action, summary))
 
-    logger.info(
-        f"Summarized {len(old_steps)} old tool calls, "
-        f"kept {len(recent_steps)} recent calls in full detail"
-    )
+    logger.info(f"Summarized {len(old_steps)} old tool calls, kept {len(recent_steps)} recent calls in full detail")
 
     return summarized_old + recent_steps
 
 
 def trim_messages_by_tokens(
-    messages: List[Dict[str, Any]], max_tokens: int = 100000, keep_system: bool = True
-) -> List[Dict[str, Any]]:
+    messages: list[dict[str, Any]], max_tokens: int = 100000, keep_system: bool = True
+) -> list[dict[str, Any]]:
     """
     Trim message list to stay under token limit.
 
@@ -158,10 +154,7 @@ def trim_messages_by_tokens(
     if current_tokens <= max_tokens:
         return messages
 
-    logger.warning(
-        f"Message list exceeds {max_tokens} tokens ({current_tokens} estimated). "
-        "Trimming old messages."
-    )
+    logger.warning(f"Message list exceeds {max_tokens} tokens ({current_tokens} estimated). Trimming old messages.")
 
     # Keep system message and recent messages
     result = []
@@ -172,9 +165,7 @@ def trim_messages_by_tokens(
         remaining_messages = messages
 
     # Add messages from the end until we hit the limit
-    accumulated_tokens = (
-        estimate_tokens(str(result[0].get("content", ""))) if result else 0
-    )
+    accumulated_tokens = estimate_tokens(str(result[0].get("content", ""))) if result else 0
 
     for msg in reversed(remaining_messages):
         msg_tokens = estimate_tokens(str(msg.get("content", "")))
@@ -183,9 +174,6 @@ def trim_messages_by_tokens(
         result.insert(1 if keep_system else 0, msg)
         accumulated_tokens += msg_tokens
 
-    logger.info(
-        f"Trimmed from {len(messages)} to {len(result)} messages "
-        f"({current_tokens} → ~{accumulated_tokens} tokens)"
-    )
+    logger.info(f"Trimmed from {len(messages)} to {len(result)} messages ({current_tokens} → ~{accumulated_tokens} tokens)")
 
     return result
