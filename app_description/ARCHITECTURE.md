@@ -132,7 +132,7 @@ Supporting services: `memory_utils`, `variable_validator`, `dataset_geography_va
 
 **Location**: `src/agents/census_query_agent.py`
 
-Uses LangChain `create_react_agent` + `AgentExecutor` with structured output validation via `AgentPlanOutput`.
+Uses LangChain `create_agent` via `ModernBackend` with structured output validation via `AgentPlanOutput`. Legacy `{output, intermediate_steps}` shape is preserved through `message_to_executor`.
 
 ### Registered tools (11)
 

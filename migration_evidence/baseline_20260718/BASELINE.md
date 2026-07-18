@@ -85,8 +85,8 @@ See `app_test_scripts/test_golden_agent_fixtures.py` for locked parser/plan cont
 
 ## B1 — LangChain/LangGraph dependency upgrade
 
-- Upgraded to LangChain 1.x / LangGraph 1.x family in `pyproject.toml` with `langchain-classic` for rollback.
-- Import seam: `langchain_classic.agents` / `langchain_classic.prompts` in `CensusQueryAgent`; `langchain_core.callbacks.manager` in `strict_census_api_tool.py`.
+- Upgraded to LangChain 1.x / LangGraph 1.x family in `pyproject.toml`. Classic `langchain-classic` rollback removed after A4 cutover.
+- `langchain_core.callbacks.manager` import retained in `strict_census_api_tool.py` where needed.
 - Added `tf-keras` for transitive `sentence_transformers` / Keras 3 compatibility on Windows.
 
 Evidence (2026-07-18):
@@ -120,27 +120,37 @@ Result: **322 passed**, 13 deselected; B2 checkpoint tests **9 passed**.
 
 ## A1–A2 — Runtime seam and modern backend
 
-- `src/agents/runtime/`: `AgentExecutionResult`, `ClassicBackend`, `ModernBackend` (`create_agent` + call-limit middleware), `factory.py`.
-- `CensusQueryAgent.solve()` invokes `self.backend.invoke()`; classic `AgentExecutor` built only when `AGENT_RUNTIME=classic`.
+- `src/agents/runtime/`: `AgentExecutionResult`, `ModernBackend` (`create_agent` + call-limit middleware), `factory.py`.
+- `CensusQueryAgent.solve()` invokes `self.backend.invoke()`; workflow node remains runtime-unaware.
 - `src/agents/adapters/message_to_executor.py` maps message traces to legacy `{output, intermediate_steps}`.
 
-Tests: `test_agent_runtime_factory.py`, `test_message_to_executor.py`, `test_runtime_helpers.py`.
+Tests: `test_census_query_agent_runtime.py`, `test_modern_backend.py`, `test_agent_runtime_factory.py`, `test_message_to_executor.py`.
 
-## A3 — Dual-runtime parity
+## A3 — Modern runtime contract parity
 
-- Offline adapter + shared-parser parity: `test_agent_runtime_parity.py`.
-- Credentialed smoke for both runtimes: `test_agent_runtime_integration.py` (skipped without API keys).
+- Offline adapter + shared-parser parity fixtures: `test_agent_runtime_parity.py` (success, clarification, invalid geography).
+- Credentialed modern smoke: `test_agent_runtime_integration.py` (skipped without API keys).
 
-## A4 — Cutover default
+## A4 — Cutover (classic removed)
 
-- Default runtime: `AGENT_RUNTIME=modern` when unset (`src/agents/runtime/factory.py`).
-- Rollback: set `AGENT_RUNTIME=classic` (requires `langchain-classic`; time-boxed one release).
-- Offline pytest autouse keeps `classic` unless `@pytest.mark.modern_runtime`.
+- `AGENT_RUNTIME=classic` rejected with explicit error; default/unset uses modern only.
+- Removed `langchain-classic`, `ClassicBackend`, `AgentExecutor`, and ReAct prompt wiring from `CensusQueryAgent`.
+- Offline pytest autouse clears `AGENT_RUNTIME` so tests run on modern.
 
 ## Phase 5 — FastAPI/SSE adapter
 
-- `src/api/fastapi_app.py`: `/health`, `/query`, `/query/stream` (SSE over graph invoke).
+- `src/api/contracts.py`: typed `QueryRequest`, `QueryResponse`, `HealthResponse`.
+- `src/api/fastapi_app.py`: `/health`, `/query`, `/query/stream` (SSE over graph invoke; checkpoint-aware thread handling).
 - CLI entry: `uv run census-api` (`[project.scripts]`).
 - Production release remains gated on Track 3 provenance completion.
 
-Tests: `app_test_scripts/test_fastapi_app.py`.
+Tests: `app_test_scripts/test_fastapi_app.py` (health, query, SSE, new_thread, resumed thread delta state).
+
+Evidence (2026-07-18, post A4):
+
+```bash
+uv run ruff check src app_test_scripts
+uv run pytest app_test_scripts/ -m "not integration" -q
+```
+
+Result: **334 passed**, 12 deselected (integration).

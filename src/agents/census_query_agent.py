@@ -1,24 +1,12 @@
 import json
 import logging
 import os
-from typing import Any, cast
+from typing import Any
 
 from dotenv import load_dotenv
-from langchain_classic.agents import AgentExecutor
 from pydantic import ValidationError
 
-# Try to import the agent creation function for different LangChain versions
-try:
-    from langchain_classic.agents import create_react_agent
-except ImportError:
-    try:
-        from langchain_classic.agents import create_tool_calling_agent as create_react_agent
-    except ImportError:
-        # Last resort: create a fallback
-        create_react_agent = None
-from langchain_classic.prompts import PromptTemplate
-
-from src.agents.runtime.factory import build_agent_backend, resolve_agent_runtime
+from src.agents.runtime.factory import build_agent_backend
 from src.domain.agent_output_contract import (
     AgentPlanOutput,
     agent_output_to_legacy_dict,
@@ -26,12 +14,9 @@ from src.domain.agent_output_contract import (
 )
 from src.domain.agent_plan_context import AgentPlanContext
 from src.domain.census_tool_contract import StrictCensusApiResponse
-from src.llm.config import AGENT_PROMPT_TEMPLATE, LLM_CONFIG
+from src.llm.config import LLM_CONFIG
 from src.llm.factory import create_llm
 from src.services.agent_plan_context import format_plan_directives
-
-# Import conversation summarizer
-from src.services.conversation_summarizer import ConversationSummarizer
 from src.tools.area_resolution_tool import AreaResolutionTool
 from src.tools.census_api_tool import CensusAPITool
 from src.tools.chart_tool import ChartTool
@@ -60,15 +45,13 @@ class AgentOutput(AgentPlanOutput):
 
 class CensusQueryAgent:
     """
-    Reasoning agent for Census queries
-    Uses ReAct pattern with Census tools
+    Reasoning agent for Census queries.
+    Uses the modern create_agent runtime with Census tools.
     """
 
     def __init__(
         self,
         allow_offline: bool = True,
-        max_iterations: int = 30,
-        max_execution_time: int = 180,
     ):
         self.offline_mode = False
         self._active_plan_context: AgentPlanContext | None = None
@@ -82,9 +65,6 @@ class CensusQueryAgent:
             )
             self.llm = None
             self.tools = []
-            self.agent = None
-            self.summarizer = None
-            self.agent_executor = None
             self.backend = None
             return
 
@@ -105,44 +85,11 @@ class CensusQueryAgent:
             VariableValidationTool(),
         ]
 
-        self.runtime = resolve_agent_runtime()
-        self.agent = None
-        self.summarizer = None
-        self.agent_executor = None
-
-        if self.runtime == "classic":
-            if create_react_agent is None:
-                raise ImportError(
-                    "No compatible agent creation function available. Please update LangChain or use a different version."
-                )
-
-            self.agent = create_react_agent(llm=self.llm, tools=self.tools, prompt=cast(Any, self._build_prompt()))
-
-            self.summarizer = ConversationSummarizer(
-                token_threshold=100000,
-                keep_recent=5,
-            )
-
-            self.agent_executor = AgentExecutor(
-                agent=self.agent,
-                tools=self.tools,
-                verbose=True,
-                max_iterations=max_iterations,
-                max_execution_time=max_execution_time,
-                handle_parsing_errors="Check your output format. You must output: 'Thought: I now know the final answer' followed by 'Final Answer: {valid JSON on single line}'",
-                callbacks=[self.summarizer],
-            )
-
         self.backend = build_agent_backend(
-            runtime=self.runtime,
-            agent_executor=self.agent_executor,
             llm=self.llm,
             tools=self.tools,
             system_prompt=self._build_modern_system_prompt(),
         )
-
-    def _build_prompt(self):
-        return PromptTemplate.from_template(AGENT_PROMPT_TEMPLATE)
 
     def _build_modern_system_prompt(self) -> str:
         tool_names = ", ".join(tool.name for tool in self.tools)
