@@ -14,16 +14,9 @@ def test_graph_invoke_comparison_path_with_stubbed_agent():
         "census_data": {
             "success": True,
             "data": [
-                {
-                    "year": 2020,
-                    "geo_id": "state:06",
-                    "population": 39500000,
-                },
-                {
-                    "year": 2020,
-                    "geo_id": "state:48",
-                    "population": 29100000,
-                },
+                ["year", "geo_id", "population"],
+                [2020, "state:06", 39500000],
+                [2020, "state:48", 29100000],
             ],
         },
         "data_summary": "Population data for California and Texas in 2020.",

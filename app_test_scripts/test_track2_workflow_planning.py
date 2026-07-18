@@ -169,7 +169,7 @@ def test_comparison_metrics_node_computes_rows():
                 "comparison_input_rows": [
                     {
                         "year": 2023,
-                        "geo_id": "subject:unknown",
+                        "geo_id": "06001",
                         "metric": "population",
                         "value": 100.0,
                         "benchmark_value": 90.0,
