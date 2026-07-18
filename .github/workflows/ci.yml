@@ -50,8 +50,8 @@ jobs:
 
       - name: Lint with flake8
         run: |
-          uv run flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-          uv run flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+          uv run flake8 src app_test_scripts app.py main.py streamlit_app.py launcher.py cat_det.py --count --select=E9,F63,F7,F82 --show-source --statistics
+          uv run flake8 src app_test_scripts app.py main.py streamlit_app.py launcher.py cat_det.py --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
 
       - name: Lint with ruff
         run: |

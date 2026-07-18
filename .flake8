@@ -1,0 +1,15 @@
+[flake8]
+max-line-length = 127
+max-complexity = 10
+exclude =
+    .venv,
+    .git,
+    __pycache__,
+    .pytest_cache,
+    .ruff_cache,
+    chroma,
+    memory,
+    logs,
+    migration_evidence,
+    index,
+    docs
