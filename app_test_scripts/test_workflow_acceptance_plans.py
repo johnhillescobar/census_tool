@@ -45,20 +45,26 @@ class TestWorkflowAcceptancePlans(unittest.TestCase):
     def test_resolved_peer_group_comparison(self) -> None:
         plan = _plan_by_id("resolved_peer_group_comparison")
         result = assert_workflow_acceptance_plan(plan)
-        self.assertIsNotNone(result.comparison_plan)
-        self.assertEqual(result.comparison_plan.metric, "population")
+        comparison_plan = result.comparison_plan
+        self.assertIsNotNone(comparison_plan)
+        assert comparison_plan is not None
+        self.assertEqual(comparison_plan.metric, "population")
 
     def test_named_state_custom_set_comparison(self) -> None:
         plan = _plan_by_id("named_state_custom_set_comparison")
         result = assert_workflow_acceptance_plan(plan)
-        self.assertIsNotNone(result.comparison_plan)
-        self.assertIn("state:06", result.comparison_plan.subject_geos)
+        comparison_plan = result.comparison_plan
+        self.assertIsNotNone(comparison_plan)
+        assert comparison_plan is not None
+        self.assertIn("state:06", comparison_plan.subject_geos)
 
     def test_national_benchmark_comparison(self) -> None:
         plan = _plan_by_id("national_benchmark_comparison")
         result = assert_workflow_acceptance_plan(plan)
-        self.assertIsNotNone(result.comparison_plan)
-        self.assertEqual(result.comparison_plan.benchmark_geo_level, "nation")
+        comparison_plan = result.comparison_plan
+        self.assertIsNotNone(comparison_plan)
+        assert comparison_plan is not None
+        self.assertEqual(comparison_plan.benchmark_geo_level, "nation")
 
     def test_comparison_metrics_end_to_end(self) -> None:
         plan = _plan_by_id("comparison_metrics_end_to_end")
