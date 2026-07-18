@@ -28,3 +28,14 @@ def test_build_modern_backend_without_llm_raises(monkeypatch):
             tools=[],
             system_prompt="test",
         )
+
+
+def test_build_agent_backend_rejects_unknown_runtime():
+    with pytest.raises(ValueError, match="Unknown runtime"):
+        build_agent_backend(
+            runtime="invalid",
+            agent_executor=None,
+            llm=None,
+            tools=[],
+            system_prompt="test",
+        )

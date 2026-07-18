@@ -9,7 +9,6 @@ from langchain.agents.middleware import ModelCallLimitMiddleware, ToolCallLimitM
 from langchain_core.language_models import BaseChatModel
 from langchain_core.tools import BaseTool
 
-from src.agents.adapters.message_to_executor import message_trace_to_executor_result
 from src.agents.runtime.contracts import AgentExecutionResult, AgentRuntimeBackend
 
 
@@ -35,6 +34,8 @@ class ModernBackend(AgentRuntimeBackend):
         )
 
     def invoke(self, executor_input: str) -> AgentExecutionResult:
+        from src.agents.adapters.message_to_executor import message_trace_to_executor_result
+
         result = self._agent.invoke({"messages": [{"role": "user", "content": executor_input}]})
         messages = cast(list[Any], result.get("messages") or [])
         return message_trace_to_executor_result(messages)
