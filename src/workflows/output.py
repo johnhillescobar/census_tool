@@ -271,6 +271,18 @@ def get_chart_params(census_data: dict[str, Any], chart_type: str) -> dict[str, 
         return {"x_column": "Location", "y_column": "Value", "title": "Chart"}
 
 
+def is_census_data_renderable(census_data: dict[str, Any]) -> bool:
+    """Return True only when chart/table tools can operate on census_data."""
+    if not isinstance(census_data, dict):
+        return False
+    if census_data.get("success") is not True:
+        return False
+    data = census_data.get("data")
+    if not isinstance(data, list) or len(data) < 2:
+        return False
+    return True
+
+
 def output_node(state: CensusState, config: RunnableConfig) -> dict[str, Any]:
     """
     Generate charts and tables from census data
@@ -284,7 +296,7 @@ def output_node(state: CensusState, config: RunnableConfig) -> dict[str, Any]:
     generated_files = []
 
     # Create charts if needed
-    if charts_needed and census_data:
+    if charts_needed and is_census_data_renderable(census_data):
         chart_tool = ChartTool()
         for chart_spec in charts_needed:
             try:
@@ -364,7 +376,7 @@ def output_node(state: CensusState, config: RunnableConfig) -> dict[str, Any]:
                 )
 
     # Create tables if needed
-    if tables_needed and census_data:  # Note: 'if', not 'elif'
+    if tables_needed and is_census_data_renderable(census_data):
         table_tool = TableTool()
         for table_spec in tables_needed:
             try:

@@ -66,6 +66,43 @@ NOISE_WORDS = frozenset(
 
 YEAR_PATTERN = re.compile(r"\b(19\d{2}|20\d{2})\b")
 
+# Two-letter abbreviations that are common English words; lowercase matches are ignored.
+AMBIGUOUS_STATE_ABBREVIATIONS = frozenset(
+    {
+        "al",
+        "co",
+        "de",
+        "hi",
+        "id",
+        "in",
+        "la",
+        "ma",
+        "md",
+        "me",
+        "mt",
+        "nd",
+        "ok",
+        "or",
+        "pa",
+        "sd",
+        "ut",
+        "va",
+        "wa",
+    }
+)
+
+def _state_abbreviation_in_text(abbr: str, text: str) -> bool:
+    """Match state abbreviations case-insensitively without English-word false positives."""
+    if len(abbr) != 2:
+        return False
+    for match in re.finditer(rf"\b{re.escape(abbr)}\b", text, re.IGNORECASE):
+        token = match.group(0)
+        if token.islower() and token.lower() in AMBIGUOUS_STATE_ABBREVIATIONS:
+            continue
+        return True
+    return False
+
+
 GEO_SUFFIXES = (
     "county",
     "counties",
@@ -108,8 +145,14 @@ def extract_geo_candidates(text: str) -> list[str]:
     # Also scan full text for known multi-word state names (e.g. "New York")
     for state in us.states.STATES:
         for name in (state.name, state.abbr):
-            if name and re.search(rf"\b{re.escape(name)}\b", text, re.IGNORECASE):
-                candidates.append(name)
+            if not name:
+                continue
+            if len(name) == 2 and name == state.abbr:
+                if not _state_abbreviation_in_text(name, text):
+                    continue
+            elif not re.search(rf"\b{re.escape(name)}\b", text, re.IGNORECASE):
+                continue
+            candidates.append(name)
 
     deduped: list[str] = []
     seen: set[str] = set()
@@ -202,7 +245,11 @@ def _collect_state_fips(text: str, candidates: list[str]) -> list[str]:
         for token in name.split():
             if token.lower() in NOISE_WORDS:
                 continue
-            if len(token) == 2 and token.islower():
+            if (
+                len(token) == 2
+                and token.islower()
+                and token.lower() in AMBIGUOUS_STATE_ABBREVIATIONS
+            ):
                 continue
             fips = lookup_state_fips(token)
             if fips and fips not in seen:
@@ -220,7 +267,7 @@ def _collect_state_fips(text: str, candidates: list[str]) -> list[str]:
 
 def _collect_mapped_levels(candidates: list[str]) -> list[GeographyLevel]:
     levels: list[GeographyLevel] = []
-    seen: set[str] = set()
+    seen: set[GeographyLevel] = set()
     for candidate in candidates:
         level = lookup_mapped_level(candidate)
         if level and level not in seen:

@@ -1,10 +1,11 @@
 import operator
 from typing import Annotated, Any
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from src.domain.agent_output_contract import CensusDataPayload
 from src.domain.comparison_artifacts import ComparisonInputRow, ComparisonMetricArtifactRow
+from src.domain.geography_contract import GeographyIntent
 from src.domain.rendered_output_contract import RenderedArtifactFailure, RenderedArtifactSuccess
 from src.state.workflow_plan import WorkflowPlan
 
@@ -56,6 +57,31 @@ def artifacts_state_to_update(artifacts: WorkflowArtifactsState) -> dict[str, An
     return artifacts.model_dump(exclude_none=True, exclude_defaults=True)
 
 
+def coerce_geography_intent(
+    value: GeographyIntent | dict[str, Any] | None,
+) -> GeographyIntent | None:
+    """Normalize checkpoint/memory payloads into typed resolved geography."""
+    if value is None:
+        return None
+    if isinstance(value, GeographyIntent):
+        return value
+    if isinstance(value, dict):
+        if not value:
+            return None
+        return GeographyIntent.model_validate(value)
+    raise TypeError(
+        "Geography intent must be GeographyIntent, dict, or None, "
+        f"got {type(value).__name__}"
+    )
+
+
+def geo_intent_to_dict(geo: GeographyIntent | None) -> dict[str, Any]:
+    """Project typed geography to JSON for memory and LLM boundaries."""
+    if geo is None:
+        return {}
+    return geo.model_dump(exclude_none=True)
+
+
 # Define the state schema (Annotated reducers are used by LangGraph for append/merge semantics)
 class CensusState(BaseModel):
     # Core conversation data
@@ -69,9 +95,22 @@ class CensusState(BaseModel):
     intent: dict[str, Any] | None = Field(
         None, description="Intent analysis; reducer: overwrite"
     )
-    geo: dict[str, Any] = Field(
-        default_factory=dict, description="Geo resolution; reducer: overwrite"
+    geo: GeographyIntent | None = Field(
+        default=None,
+        description="Resolved geography projection; reducer: overwrite",
     )
+
+    @field_validator("geo", mode="before")
+    @classmethod
+    def _coerce_geo(cls, value: object) -> GeographyIntent | None:
+        if value is None or isinstance(value, GeographyIntent):
+            return value  # type: ignore[return-value]
+        if isinstance(value, dict):
+            return coerce_geography_intent(value)
+        raise TypeError(
+            "CensusState.geo must be GeographyIntent, dict, or None, "
+            f"got {type(value).__name__}"
+        )
     candidates: dict[str, Any] = Field(
         default_factory=dict, description="Candidate variables; reducer: overwrite"
     )

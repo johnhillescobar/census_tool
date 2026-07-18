@@ -6,6 +6,7 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from src.domain.geography_contract import GeographyIntent
 from src.domain.strict_json import JsonMap
 from src.state.types import (
     FinalResponseState,
@@ -28,6 +29,7 @@ class CensusGraphPatch(BaseModel):
     plan: WorkflowPlan | None = None
     final: FinalResponseState | None = None
     artifacts: WorkflowArtifactsState | None = None
+    geo: GeographyIntent | None = None
     profile: JsonMap | None = None
     history: list[JsonMap] | None = None
     cache_index: JsonMap | None = None
@@ -43,6 +45,8 @@ class CensusGraphPatch(BaseModel):
                 patch[name] = final_state_to_update(value)
             elif name == "artifacts":
                 patch[name] = artifacts_state_to_update(value)
+            elif name == "geo":
+                patch[name] = value
             elif isinstance(value, JsonMap):
                 patch[name] = value.root
             elif isinstance(value, list) and value and isinstance(value[0], JsonMap):

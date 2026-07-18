@@ -1,7 +1,7 @@
 import pytest
-from pydantic import ValidationError
 
 from src.domain.agent_plan_context import AgentPlanContext
+from src.domain.geography_contract import GeographyIntent, GeographyResolved
 from src.domain.benchmark_contract import BenchmarkIntent, BenchmarkResolved
 from src.domain.comparison_plan import ComparisonPlan
 from src.domain.temporal_contract import TemporalIntent, TemporalResolved
@@ -41,8 +41,20 @@ def _build_comparison_plan() -> ComparisonPlan:
     return resolve_comparison_plan(_build_benchmark_intent(), _build_temporal_intent())
 
 
+def _build_geography_intent() -> GeographyIntent:
+    return GeographyIntent(
+        level="state",
+        geo_for={"state": "06"},
+        geo_in={},
+        display_name="California",
+        source="explicit",
+        requested_text="population of california",
+    )
+
+
 def _build_full_state_plan() -> WorkflowPlan:
     return WorkflowPlan(
+        geography=GeographyResolved(geography=_build_geography_intent()),
         temporal=TemporalResolved(time=_build_temporal_intent()),
         benchmark=BenchmarkResolved(benchmark=_build_benchmark_intent()),
         comparison=_build_comparison_plan(),
@@ -59,17 +71,20 @@ def test_valid_temporal_only_context():
         requested_text="population of california",
     )
     context = AgentPlanContext(
+        geography=_build_geography_intent(),
         temporal=temporal,
         benchmark=None,
         comparison=None,
         has_comparison_plan=False,
     )
+    assert context.temporal is not None
     assert context.temporal.mode == "latest_available"
     assert context.has_comparison_plan is False
 
 
 def test_valid_full_comparison_context():
     context = AgentPlanContext(
+        geography=_build_geography_intent(),
         temporal=_build_temporal_intent(),
         benchmark=_build_benchmark_intent(),
         comparison=_build_comparison_plan(),
@@ -80,8 +95,9 @@ def test_valid_full_comparison_context():
 
 
 def test_comparison_flag_requires_comparison_plan():
-    with pytest.raises(ValidationError, match="comparison must be provided"):
+    with pytest.raises(ValueError, match="comparison must be provided"):
         AgentPlanContext(
+            geography=_build_geography_intent(),
             temporal=_build_temporal_intent(),
             benchmark=_build_benchmark_intent(),
             comparison=None,
@@ -93,6 +109,7 @@ def test_build_from_resolved_state_plan():
     context = build_agent_plan_context(_build_full_state_plan())
     assert context is not None
     assert context.has_comparison_plan is True
+    assert context.comparison is not None
     assert context.comparison.query_years == [2020, 2021, 2022]
 
 
@@ -105,6 +122,7 @@ def test_build_temporal_only_not_applicable():
         requested_text="population of california",
     )
     plan = WorkflowPlan(
+        geography=GeographyResolved(geography=_build_geography_intent()),
         temporal=TemporalResolved(time=temporal),
         benchmark=BenchmarkNotApplicable(reason="no_comparison_intent"),
         requires_clarification=False,
@@ -112,6 +130,7 @@ def test_build_temporal_only_not_applicable():
     context = build_agent_plan_context(plan)
     assert context is not None
     assert context.has_comparison_plan is False
+    assert context.temporal is not None
     assert context.temporal.mode == "latest_available"
     assert context.benchmark is None
 
@@ -122,7 +141,9 @@ def test_build_invalid_plan_returns_none():
 
 
 def test_format_plan_directives_deterministic():
-    context = build_agent_plan_context(_build_full_state_plan())
+    built = build_agent_plan_context(_build_full_state_plan())
+    assert built is not None
+    context: AgentPlanContext = built
     first = format_plan_directives(context)
     second = format_plan_directives(context)
     assert first == second
@@ -131,11 +152,14 @@ def test_format_plan_directives_deterministic():
 
 
 def test_rejects_extra_fields():
-    with pytest.raises(ValidationError):
-        AgentPlanContext(
-            temporal=_build_temporal_intent(),
-            benchmark=None,
-            comparison=None,
-            has_comparison_plan=False,
-            unexpected_field=True,
+    with pytest.raises(ValueError):
+        AgentPlanContext.model_validate(
+            {
+                "geography": _build_geography_intent(),
+                "temporal": _build_temporal_intent(),
+                "benchmark": None,
+                "comparison": None,
+                "has_comparison_plan": False,
+                "unexpected_field": True,
+            }
         )

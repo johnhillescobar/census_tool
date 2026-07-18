@@ -333,28 +333,39 @@ class CensusQueryAgent:
             "comparison_input_rows": [],
         }
 
+    def _is_clarification_answer(self, answer_text: str) -> bool:
+        text = (answer_text or "").strip().lower()
+        if not text:
+            return False
+        if text.endswith("?"):
+            return True
+        clarification_markers = (
+            "which geography",
+            "what geography",
+            "please specify",
+            "please choose",
+            "please confirm",
+        )
+        return any(marker in text for marker in clarification_markers)
+
     def _normalize_error_response(self, parsed: dict, result: dict) -> dict:
         """
-        Normalize error responses to ensure answer_text contains expected phrases.
-        If success is False but answer_text doesn't match test expectations, update it.
+        Normalize invalid-geography failures only.
+        Preserve clarification questions and other non-geography failures.
         """
         census_data = parsed.get("census_data", {})
         if isinstance(census_data, dict) and census_data.get("success") is False:
-            answer_text = parsed.get("answer_text", "").lower()
-            # Check if answer_text contains expected error phrases
-            has_expected_phrases = (
-                "unable to complete" in answer_text or "not available" in answer_text
-            )
+            answer_text = parsed.get("answer_text", "")
+            if self._is_clarification_answer(answer_text):
+                return parsed
 
-            if not has_expected_phrases:
-                # Normalize to expected format
-                logger.info("Normalizing error response to match test expectations")
+            if self._has_invalid_geography(result, parsed):
+                logger.info("Normalizing invalid geography response")
                 parsed["answer_text"] = (
                     "I was unable to complete this query. "
                     "The geography you requested is not available in the U.S. Census data. "
                     "Please try a valid U.S. geography (state, county, city, etc.)."
                 )
-                # Ensure census_data structure is correct
                 if not isinstance(census_data, dict):
                     parsed["census_data"] = {"success": False, "data": []}
                 elif "data" not in census_data:

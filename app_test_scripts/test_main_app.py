@@ -9,6 +9,7 @@ from typing import Any, cast
 
 import main
 from app import create_census_graph
+from src.domain.geography_contract import GeographyIntent
 from src.state.types import CensusState
 
 
@@ -64,7 +65,7 @@ def test_census_state_creation():
         ],
         original_query="What's the population of New York City?",
         intent=None,
-        geo={},
+        geo=None,
         candidates={},
         plan=None,
         artifacts={},
@@ -81,7 +82,7 @@ def test_census_state_creation():
         {"role": "user", "content": "What's the population of New York City?"}
     ]
     assert state.intent is None
-    assert state.geo == {}
+    assert state.geo is None
     assert state.candidates == {}
     assert state.plan is None
     assert state.artifacts == {}
@@ -93,8 +94,14 @@ def test_census_state_creation():
     state.intent = {"test": "data"}  # ← Test writing
     assert state.intent["test"] == "data"  # ← Test reading
 
-    state.geo["level"] = "place"  # ← Test writing to nested field
-    assert state.geo["level"] == "place"  # ← Test reading from nested field
+    state.geo = GeographyIntent(
+        level="place",
+        geo_for={"place": "51000"},
+        geo_in={"state": "36"},
+        display_name="New York City",
+        source="explicit",
+    )
+    assert state.geo.level == "place"
 
     print("✅ CensusState creation test passed!")
 
@@ -138,7 +145,7 @@ def test_error_handling():
             ),  # Intentional wrong type for error-handling test
             original_query=None,
             intent=None,
-            geo={},
+            geo=None,
             candidates={},
             plan=None,
             artifacts={},
@@ -200,7 +207,7 @@ def test_census_state_field_types():
         messages=[{"role": "user", "content": "test"}],
         original_query="test",
         intent=None,
-        geo={},
+        geo=None,
         candidates={},
         plan=None,
         artifacts={},
@@ -215,7 +222,9 @@ def test_census_state_field_types():
 
     # Test field types
     assert isinstance(state.messages, list), "messages should be a list"
-    assert isinstance(state.geo, dict), "geo should be a dict"
+    assert state.geo is None or isinstance(state.geo, GeographyIntent), (
+        "geo should be None or GeographyIntent"
+    )
     assert isinstance(state.logs, list), "logs should be a list"
     assert state.intent is None, "intent should be None"
     assert state.plan is None, "plan should be None"

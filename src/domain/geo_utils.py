@@ -65,12 +65,11 @@ GEOGRAPHY_MAPPINGS: Dict[str, Dict[str, Any]] = {
     "united_states": _mapping_entry("nation", "us:1", note="United States"),
 }
 
-# Default geography (NYC)
+# Default geography when no hint is provided (policy: United States national)
 DEFAULT_GEO: Dict[str, Any] = _mapping_entry(
-    "place",
-    "place:51000",
-    geo_in="state:36",
-    note="New York City (default)",
+    "nation",
+    "us:1",
+    note="United States (default)",
 )
 
 

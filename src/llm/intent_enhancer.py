@@ -77,7 +77,7 @@ def generate_intelligent_clarification(
     user_question: str,
     clarification_needed: List[str],
     intent: Dict[str, Any],
-    available_options: Dict[str, Any] = None,
+    available_options: Dict[str, Any] | None = None,
 ) -> str:
     """Generate an intelligent clarification question" using LLM"""
 
@@ -156,15 +156,15 @@ def generate_llm_answer(
     data_summary: str,
     geo_context: Dict[str, Any],
     intent: Dict[str, Any],
-) -> str:
-    """Generate natural language answer using LLM"""
+) -> str | None:
+    """Generate natural language answer using LLM; returns None on failure."""
 
     # Extract answer_type from intent
     answer_type = intent.get("answer_type", "single")
 
     # Format geographic context
     geo_level = geo_context.get("level", "Unknown")
-    geo_name = geo_context.get("name", "Unknown")
+    geo_name = geo_context.get("display_name") or geo_context.get("name", "Unknown")
     geo_text = f"{geo_level} level data for {geo_name}"
 
     # Build prompt with answer_type

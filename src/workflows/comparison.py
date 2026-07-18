@@ -11,6 +11,7 @@ from src.state.workflow_plan import BenchmarkNotApplicable, WorkflowPlan
 
 def comparison_node(state: CensusState, config: RunnableConfig) -> dict[str, Any]:
     existing_plan = state.plan
+    geography = existing_plan.geography if existing_plan else None
     if existing_plan is None:
         return {
             "plan": WorkflowPlan(requires_clarification=True),
@@ -23,6 +24,7 @@ def comparison_node(state: CensusState, config: RunnableConfig) -> dict[str, Any
     if existing_plan.requires_clarification:
         return {
             "plan": WorkflowPlan(
+                geography=geography,
                 temporal=temporal,
                 benchmark=benchmark,
                 requires_clarification=True,
@@ -33,6 +35,7 @@ def comparison_node(state: CensusState, config: RunnableConfig) -> dict[str, Any
     if temporal is None or benchmark is None:
         return {
             "plan": WorkflowPlan(
+                geography=geography,
                 temporal=temporal,
                 benchmark=benchmark,
                 requires_clarification=True,
@@ -43,6 +46,7 @@ def comparison_node(state: CensusState, config: RunnableConfig) -> dict[str, Any
     if isinstance(benchmark, BenchmarkNotApplicable):
         return {
             "plan": WorkflowPlan(
+                geography=geography,
                 temporal=temporal,
                 benchmark=benchmark,
                 requires_clarification=False,
@@ -55,6 +59,7 @@ def comparison_node(state: CensusState, config: RunnableConfig) -> dict[str, Any
     ):
         return {
             "plan": WorkflowPlan(
+                geography=geography,
                 temporal=temporal,
                 benchmark=benchmark,
                 requires_clarification=True,
@@ -66,6 +71,7 @@ def comparison_node(state: CensusState, config: RunnableConfig) -> dict[str, Any
 
     return {
         "plan": WorkflowPlan(
+            geography=geography,
             temporal=temporal,
             benchmark=benchmark,
             comparison=comparison,

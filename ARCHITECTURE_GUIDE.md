@@ -2,7 +2,7 @@
 
 **Purpose**: This document provides new programmers with essential knowledge about the Census Tool architecture, coding patterns, and required skills to successfully contribute to this project.
 
-**Last Updated**: Based on codebase review as of current date
+**Last Updated**: July 17, 2026 (aligned with Track 2 workflow in repo)
 
 ---
 
@@ -33,35 +33,55 @@ User Question → Agent Reasons (multi-step) → Tools Execute → Agent Validat
 
 ### System Flow
 
-The application follows a **simplified linear workflow** with 4 nodes:
+The application uses a **9-node LangGraph workflow** with conditional routing:
 
 ```
-memory_load → agent → output → memory_write
+memory_load → geography → temporal → benchmark → comparison → agent → comparison_metrics → output → memory_write
 ```
 
-1. **memory_load**: Loads user profile and conversation history from SQLite checkpoints
-2. **agent**: Calls CensusQueryAgent which reasons through the query using specialized tools
-3. **output**: Generates charts/tables from agent results using output tools
-4. **memory_write**: Saves conversation state back to SQLite
+Planning nodes (`geography`, `temporal`, `benchmark`, `comparison`) produce typed artifacts on `state.plan` and may short-circuit to `output` with a clarification prompt when `requires_clarification` is true. When no comparison is requested, `benchmark` routes directly to `agent`.
+
+1. **memory_load**: Loads user profile and conversation history from JSON (`memory/user_{id}.json`)
+2. **geography**: Resolves `GeographyIntent` via `geography_policy`; writes typed `state.geo`
+3. **temporal**: Resolves `TemporalIntent` via `temporal_policy` service
+4. **benchmark**: Resolves `BenchmarkIntent` or marks benchmark not applicable
+5. **comparison**: Builds `ComparisonPlan` from resolved temporal + benchmark
+6. **agent**: Calls `CensusQueryAgent` with optional `AgentPlanContext` from the plan; validates agent output via `plan_result_validator`
+7. **comparison_metrics**: Deterministic derived metrics from `comparison_input_rows`
+8. **output**: Generates charts/tables only when `is_census_data_renderable()`; writes typed `generated_files` artifacts
+9. **memory_write**: Persists user profile/history to JSON (`memory/user_{id}.json`); LangGraph thread checkpoints remain in SQLite
 
 ### Component Hierarchy
 
 ```
-app.py (LangGraph workflow)
+app.py (LangGraph workflow — 9 nodes)
   └── src/workflows/
       ├── memory.py (memory_load_node, memory_write_node)
+      ├── geography.py, temporal.py, benchmark.py, comparison.py (planning nodes)
       ├── agent.py (agent_reasoning_node)
-      └── output.py (output_node)
+      ├── comparison_metrics.py (deterministic metrics)
+      ├── output.py (output_node)
+      └── graph_patch.py (CensusGraphPatch)
           └── src/agents/census_query_agent.py (CensusQueryAgent)
-              └── src/tools/ (10 specialized tools)
-                  ├── GeographyDiscoveryTool
-                  ├── AreaResolutionTool
-                  ├── TableSearchTool
-                  ├── CensusAPITool
-                  ├── ChartTool
-                  ├── TableTool
-                  └── ... (4 more tools)
+              └── src/tools/ (11 registered tools)
+                  ├── GeographyDiscoveryTool, GeographyValidationTool
+                  ├── TableSearchTool, VariableValidationTool
+                  ├── CensusAPITool, StrictCensusApiTool
+                  ├── PatternBuilderTool, AreaResolutionTool
+                  ├── ChartTool, TableTool
+                  └── GeographyHierarchyTool
+      └── src/services/ (deterministic policy + compute)
+          ├── geography_policy, temporal_policy, benchmark_policy, comparison_plan_policy
+          ├── plan_result_validator, agent_plan_context
+          └── comparison_metric_compute, presentation_routing
+      └── src/domain/ (typed Pydantic contracts)
+          ├── geography_contract, execution_spec, agent_plan_context
 ```
+
+**Memory vs checkpoints (do not conflate):**
+- **Thread checkpoints:** SQLite `checkpoints.db` via LangGraph `SqliteSaver` (conversation state per `thread_id`)
+- **User memory:** JSON files `memory/user_{id}.json` (profile, cross-thread history)
+- **Track 3 provenance (`EvidenceBundle`):** not complete; production API release remains gated
 
 ---
 
@@ -79,8 +99,9 @@ The CensusQueryAgent uses the **ReAct pattern** (Reasoning + Acting):
 
 **Key Characteristics**:
 - Multi-step reasoning (up to 30 iterations)
-- Tool-based execution (10 specialized Census tools)
-- Structured output format (census_data, answer_text, charts_needed, tables_needed)
+- Tool-based execution (11 registered Census tools)
+- Structured output via `AgentPlanOutput` Pydantic validation
+- Optional `AgentPlanContext` from workflow plan injected into prompt
 - Error recovery and fallback handling
 
 **Example Flow**:
@@ -130,27 +151,24 @@ self.tools = [
 ]
 ```
 
-### 3. State Management Pattern (TypedDict)
+### 3. State Management Pattern (Pydantic + LangGraph reducers)
 
-**Location**: `src/state/types.py`
+**Location**: `src/state/types.py`, `src/state/workflow_plan.py`
 
-The workflow uses a **TypedDict** (`CensusState`) for state management:
+The workflow uses a **Pydantic** `CensusState` with `Annotated` reducers for LangGraph merge semantics:
 
 ```python
 class CensusState(BaseModel):
-    messages: List[Dict[str, Any]]  # Chat history
-    artifacts: Dict[str, Any]       # Agent results (census_data, reasoning_trace)
-    final: Dict[str, Any]           # Output specs (charts_needed, answer_text)
-    profile: Dict[str, Any]         # User preferences
-    # ... more fields
+    messages: Annotated[list[dict[str, Any]], operator.add]
+    plan: WorkflowPlan | None          # temporal/benchmark/comparison + clarification flag
+    artifacts: Annotated[dict[str, Any], _merge_dict]
+    final: dict[str, Any] | None       # answer, charts_needed, generated_files, …
+    profile: Annotated[dict[str, Any], _merge_dict]
+    logs: Annotated[list[str], operator.add]
+    # ...
 ```
 
-**State Reducers**: Defined in `app.py` - specify how state merges:
-- `append_reducer`: For lists (messages, logs, history)
-- `overwrite_reducer`: For single values (intent, geo, plan)
-- `merge_reducer`: For dictionaries (artifacts, profile, cache_index)
-
-**Key Rule**: Nodes return partial state dictionaries that get merged using reducers.
+Typed views (`FinalResponseState`, `WorkflowArtifactsState`) project to dict-shaped channels for LangGraph compatibility. Nodes may return updates via `CensusGraphPatch.as_langgraph_update()`.
 
 ### 4. Node Pattern (LangGraph Nodes)
 
@@ -446,11 +464,13 @@ uv run pytest app_test_scripts/test_*.py -v
 ### 3. Key Files to Understand
 
 **Before Making Changes**:
-1. `app.py` - Graph structure
-2. `src/agents/census_query_agent.py` - Agent implementation
-3. `src/state/types.py` - State schema
-4. `src/workflows/agent.py` - Agent node (calls CensusQueryAgent)
-5. `src/workflows/output.py` - Output generation
+1. `app.py` — Graph structure and routing functions
+2. `src/state/types.py` + `workflow_plan.py` — State and plan schema
+3. `src/domain/` — Typed contracts consumed by services and nodes
+4. `src/workflows/geography.py`, `temporal.py`, `benchmark.py`, `comparison.py` — Planning nodes
+5. `src/agents/census_query_agent.py` — Agent and tool registration
+6. `src/workflows/agent.py` — Agent node (plan context wiring)
+7. `src/workflows/output.py` — Output generation and rendered artifacts
 
 **When Adding Tools**:
 1. `src/tools/` - See existing tool examples
@@ -613,11 +633,11 @@ Before submitting code:
 
 ## Summary
 
-**Core Architecture**: Agent-first with 4-node linear workflow
-**Key Pattern**: Tools → Agent → Output
-**State Management**: TypedDict with reducers
-**Testing**: pytest with integration tests
-**Skills Needed**: Python, LangChain, OOP, APIs, Testing
+**Core Architecture**: Track 2 planning nodes + agent execution + deterministic metrics/output  
+**Key Pattern**: Typed contracts → services → workflow nodes → agent tool loops → rendered artifacts  
+**State Management**: Pydantic `CensusState` with LangGraph reducers; `WorkflowPlan` on `state.plan`  
+**Testing**: 281 tests collected; pytest contract and routing suites in `app_test_scripts/`  
+**Skills Needed**: Python, LangChain/LangGraph, Pydantic, APIs, Testing
 
 **Golden Rule**: Follow existing patterns. When in doubt, look at similar code in the codebase.
 

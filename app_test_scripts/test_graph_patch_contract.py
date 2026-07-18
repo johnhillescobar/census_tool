@@ -1,4 +1,5 @@
 from src.domain.comparison_artifacts import ComparisonMetricArtifactRow
+from src.domain.geography_contract import GeographyIntent
 from src.domain.strict_json import ConversationMessage, JsonMap, merge_json_maps
 from src.state.types import FinalResponseState, WorkflowArtifactsState
 from src.state.workflow_plan import WorkflowPlan
@@ -49,3 +50,16 @@ def test_graph_patch_projects_typed_final_and_artifacts_to_langgraph_update() ->
     }
     assert update["artifacts"]["comparison_metrics"][0]["value"] == 2.0
     assert update["logs"] == ["ok"]
+
+
+def test_graph_patch_projects_typed_geo() -> None:
+    geo = GeographyIntent(
+        level="nation",
+        geo_for={"us": "1"},
+        geo_in={},
+        display_name="United States",
+        source="missing_geo_default",
+    )
+    update = CensusGraphPatch(geo=geo).as_langgraph_update()
+    assert isinstance(update["geo"], GeographyIntent)
+    assert update["geo"].display_name == "United States"

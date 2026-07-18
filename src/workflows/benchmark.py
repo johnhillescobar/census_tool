@@ -15,10 +15,25 @@ def benchmark_node(state: CensusState, config: RunnableConfig) -> dict[str, Any]
     user_question = state.messages[-1]["content"]
     existing_plan = state.plan
     temporal = existing_plan.temporal if existing_plan else None
+    geography = existing_plan.geography if existing_plan else None
+    upstream_clarification = bool(
+        existing_plan and existing_plan.requires_clarification
+    )
+
+    if upstream_clarification:
+        return CensusGraphPatch(
+            plan=WorkflowPlan(
+                geography=geography,
+                temporal=temporal,
+                requires_clarification=True,
+            ),
+            logs=["benchmark: skipped (clarification required)"],
+        ).as_langgraph_update()
 
     if not COMPARE_PATTERN.search(user_question or ""):
         return CensusGraphPatch(
             plan=WorkflowPlan(
+                geography=geography,
                 temporal=temporal,
                 benchmark=BenchmarkNotApplicable(
                     reason="no_comparison_intent",
@@ -36,6 +51,7 @@ def benchmark_node(state: CensusState, config: RunnableConfig) -> dict[str, Any]
         clarification_text = f"{prompt.question_text}\n" + "\n".join(option_lines)
         return CensusGraphPatch(
             plan=WorkflowPlan(
+                geography=geography,
                 temporal=temporal,
                 benchmark=benchmark_resolution,
                 requires_clarification=True,
@@ -48,6 +64,7 @@ def benchmark_node(state: CensusState, config: RunnableConfig) -> dict[str, Any]
 
     return CensusGraphPatch(
         plan=WorkflowPlan(
+            geography=geography,
             temporal=temporal,
             benchmark=benchmark_resolution,
             requires_clarification=False,

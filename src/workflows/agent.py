@@ -12,7 +12,8 @@ from src.services.comparison_input_builder import (
     build_comparison_input_rows,
     extract_observations_from_census_data,
 )
-from src.state.types import CensusState
+from src.services.plan_result_validator import validate_agent_result_against_plan
+from src.state.types import CensusState, geo_intent_to_dict
 
 logger = logging.getLogger(__name__)
 
@@ -60,12 +61,14 @@ def agent_reasoning_node(state: CensusState, config: RunnableConfig) -> dict[str
         plan_context=plan_context,
     )
 
+    result = validate_agent_result_against_plan(result, plan_context)
+
     answer_text = result.get("answer_text", "")
 
     if not answer_text or len(answer_text.strip()) < 20:
         census_data = result.get("census_data", {})
         data_summary = result.get("data_summary", "")
-        geo_context = state.geo or {}
+        geo_context = geo_intent_to_dict(state.geo)
 
         if census_data and data_summary:
             logger.info(

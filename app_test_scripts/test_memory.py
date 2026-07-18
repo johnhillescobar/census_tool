@@ -21,7 +21,7 @@ def test_memory_load_node():
         messages=[],
         original_query=None,
         intent=None,
-        geo={},
+        geo=None,
         candidates={},
         plan=None,
         artifacts={},
