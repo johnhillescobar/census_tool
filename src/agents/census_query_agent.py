@@ -6,7 +6,7 @@ from typing import Any
 from dotenv import load_dotenv
 from pydantic import ValidationError
 
-from src.agents.runtime.factory import build_agent_backend
+from src.agents.runtime.factory import build_agent_backend, resolve_agent_runtime
 from src.domain.agent_output_contract import (
     AgentPlanOutput,
     agent_output_to_legacy_dict,
@@ -55,6 +55,7 @@ class CensusQueryAgent:
     ):
         self.offline_mode = False
         self._active_plan_context: AgentPlanContext | None = None
+        self.runtime = resolve_agent_runtime()
 
         missing_api_key = not os.getenv("OPENAI_API_KEY")
         if allow_offline and missing_api_key:
