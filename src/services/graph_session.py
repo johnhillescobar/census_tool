@@ -59,3 +59,43 @@ def build_fresh_thread_state(user_message: str) -> CensusState:
         cache_index={},
         logs=[],
     )
+
+
+def build_turn_state(user_message: str, *, is_first_turn: bool) -> CensusState:
+    """Select fresh-thread or delta-turn input for a checkpointed invoke."""
+    if is_first_turn:
+        return build_fresh_thread_state(user_message)
+    return build_delta_turn_state(user_message)
+
+
+def thread_has_checkpoint(graph: Any, config: RunnableConfig) -> bool:
+    """Return True when thread_id already has persisted graph messages."""
+    try:
+        snapshot = graph.get_state(config)
+    except Exception:
+        return False
+    if snapshot is None:
+        return False
+    values = snapshot.values or {}
+    messages = values.get("messages") or []
+    return bool(messages)
+
+
+def resolve_thread_id(*, thread_id: str | None, new_thread: bool) -> str:
+    """Choose the checkpoint key for this request."""
+    if new_thread:
+        return new_thread_id()
+    if thread_id is None:
+        return new_thread_id()
+    return thread_id
+
+
+def build_turn_state_for_thread(
+    graph: Any,
+    user_message: str,
+    *,
+    config: RunnableConfig,
+) -> CensusState:
+    """Build invoke input from checkpoint history, not local session counters."""
+    is_first_turn = not thread_has_checkpoint(graph, config)
+    return build_turn_state(user_message, is_first_turn=is_first_turn)
