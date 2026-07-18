@@ -57,6 +57,23 @@ def test_geography_node_routes_to_temporal_when_resolved():
     assert routed == "temporal"
 
 
+def test_geography_node_uses_profile_default_when_geography_missing():
+    state = _state("Show me median income trends from 2015 to 2020").model_copy(
+        update={
+            "profile": {
+                "default_geo": {
+                    "level": "state",
+                    "filters": {"for": "state:48"},
+                    "note": "Texas",
+                }
+            }
+        }
+    )
+    result = geography_node(state, CONFIG)
+    assert result["geo"].geo_for == {"state": "48"}
+    assert result["geo"].source == "profile_default"
+
+
 def test_geography_then_temporal_preserves_geography():
     question = "Show me median income trends from 2015 to 2020"
     state = _state(question)
