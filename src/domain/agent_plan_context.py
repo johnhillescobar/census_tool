@@ -2,12 +2,16 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from .benchmark_contract import BenchmarkIntent
 from .comparison_plan import ComparisonPlan
+from .geography_contract import GeographyIntent
 from .temporal_contract import TemporalIntent
 
 
 class AgentPlanContext(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
+    geography: GeographyIntent | None = Field(
+        default=None, description="Resolved geography from planning nodes."
+    )
     temporal: TemporalIntent | None = Field(
         default=None, description="Resolved temporal intent from planning nodes."
     )

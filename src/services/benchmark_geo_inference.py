@@ -108,8 +108,15 @@ def extract_geo_candidates(text: str) -> list[str]:
     # Also scan full text for known multi-word state names (e.g. "New York")
     for state in us.states.STATES:
         for name in (state.name, state.abbr):
-            if name and re.search(rf"\b{re.escape(name)}\b", text, re.IGNORECASE):
-                candidates.append(name)
+            if not name:
+                continue
+            if len(name) == 2 and name == state.abbr:
+                # Avoid matching common English words like "in" or "me".
+                if not re.search(rf"\b{re.escape(name)}\b", text):
+                    continue
+            elif not re.search(rf"\b{re.escape(name)}\b", text, re.IGNORECASE):
+                continue
+            candidates.append(name)
 
     deduped: list[str] = []
     seen: set[str] = set()

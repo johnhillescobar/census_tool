@@ -11,7 +11,22 @@ from src.workflows.graph_patch import CensusGraphPatch
 def temporal_node(state: CensusState, config: RunnableConfig) -> dict[str, Any]:
     """Workflow to resolve the temporal intent."""
     user_question = state.messages[-1]["content"]
+    existing_plan = state.plan
+    geography = existing_plan.geography if existing_plan else None
+    upstream_clarification = bool(
+        existing_plan and existing_plan.requires_clarification
+    )
     temporal_resolution = resolve_temporal_intent(user_question)
+
+    if upstream_clarification:
+        return CensusGraphPatch(
+            plan=WorkflowPlan(
+                geography=geography,
+                temporal=existing_plan.temporal if existing_plan else None,
+                requires_clarification=True,
+            ),
+            logs=["temporal: skipped (clarification required)"],
+        ).as_langgraph_update()
 
     if temporal_resolution.status == "clarification_required":
         prompt = temporal_resolution.clarification_prompt
@@ -19,6 +34,7 @@ def temporal_node(state: CensusState, config: RunnableConfig) -> dict[str, Any]:
         clarification_text = f"{prompt.question_text}\n" + "\n".join(option_lines)
         return CensusGraphPatch(
             plan=WorkflowPlan(
+                geography=geography,
                 temporal=temporal_resolution,
                 requires_clarification=True,
             ),
@@ -30,6 +46,7 @@ def temporal_node(state: CensusState, config: RunnableConfig) -> dict[str, Any]:
 
     return CensusGraphPatch(
         plan=WorkflowPlan(
+            geography=geography,
             temporal=temporal_resolution,
             requires_clarification=False,
         ),

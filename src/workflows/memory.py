@@ -5,7 +5,7 @@ import logging
 
 from langchain_core.runnables import RunnableConfig
 
-from src.state.types import CensusState
+from src.state.types import CensusState, geo_intent_to_dict
 from src.clients import load_json_file, save_json_file
 from src.services import (
     prune_history_by_age,
@@ -105,7 +105,7 @@ def memory_write_node(state: CensusState, config: RunnableConfig) -> Dict[str, A
     cache_index = state.cache_index or {}
     messages = state.messages or []
     intent = state.intent or {}
-    geo = state.geo or {}
+    geo = geo_intent_to_dict(state.geo)
     plan = state.plan or {}
     final = state.final or {}
 

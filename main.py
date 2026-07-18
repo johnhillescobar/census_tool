@@ -97,7 +97,7 @@ def main():
                         messages=[{"role": "user", "content": user_input}],
                         original_query=None,  # Will be set by intent_node
                         intent=None,
-                        geo={},
+                        geo=None,
                         candidates={},
                         plan=None,
                         artifacts={},

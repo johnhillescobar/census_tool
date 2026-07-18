@@ -307,7 +307,7 @@ def process_question(user_input: str) -> Dict[str, Any]:
             messages=[{"role": "user", "content": user_input}],
             original_query=user_input,
             intent=None,
-            geo={},
+            geo=None,
             candidates={},
             plan=None,
             artifacts={},
@@ -451,12 +451,13 @@ def main():
                 st.session_state.example_question = example
 
     # Text input
-    user_input = st.text_input(
+    _raw_input = st.text_input(
         "Your question:",
         value=st.session_state.get("example_question", ""),
         placeholder="Ask me about Census data...",
         help="Type your question about Census data here",
     )
+    user_input: str = "" if _raw_input is None else _raw_input
 
     # Debug info
     st.write(f"Debug: user_input = '{user_input}'")

@@ -5,14 +5,15 @@ from pydantic import BaseModel, Field
 from src.domain.benchmark_contract import (
     BenchmarkIntent,
     BenchmarkResolution,
+    BenchmarkResolved,
 )
 from src.domain.comparison_plan import ComparisonPlan
+from src.domain.geography_contract import GeographyIntent, GeographyResolution
 from src.domain.temporal_contract import (
     TemporalIntent,
     TemporalResolution,
     TemporalResolved,
 )
-from src.domain.benchmark_contract import BenchmarkResolved
 
 
 class BenchmarkNotApplicable(BaseModel):
@@ -27,6 +28,7 @@ BenchmarkPlanState = Annotated[
 
 
 class WorkflowPlan(BaseModel):
+    geography: GeographyResolution | None = None
     temporal: TemporalResolution | None = None
     benchmark: BenchmarkPlanState | None = None
     comparison: ComparisonPlan | None = None
@@ -38,6 +40,13 @@ class WorkflowPlan(BaseModel):
     def resolved_temporal_intent(self) -> TemporalIntent | None:
         if isinstance(self.temporal, TemporalResolved):
             return self.temporal.time
+        return None
+
+    def resolved_geography_intent(self) -> GeographyIntent | None:
+        from src.domain.geography_contract import GeographyResolved
+
+        if isinstance(self.geography, GeographyResolved):
+            return self.geography.geography
         return None
 
     def resolved_benchmark_intent(self) -> BenchmarkIntent | None:
