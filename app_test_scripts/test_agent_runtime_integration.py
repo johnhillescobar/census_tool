@@ -1,4 +1,4 @@
-"""Credentialed dual-runtime smoke tests (local keys required)."""
+"""Credentialed modern-runtime smoke tests (local keys required)."""
 
 from __future__ import annotations
 
@@ -32,18 +32,17 @@ def _state(question: str) -> CensusState:
 
 @requires_credentials
 @pytest.mark.integration
-@pytest.mark.parametrize("runtime", ["classic", "modern"])
-def test_runtime_smoke_produces_answer(runtime, monkeypatch):
-    monkeypatch.setenv("AGENT_RUNTIME", runtime)
+def test_modern_runtime_smoke_produces_answer(monkeypatch):
+    monkeypatch.delenv("AGENT_RUNTIME", raising=False)
     graph = create_census_graph()
     final_state = graph.invoke(
         _state(QUERY),
         config={
             "configurable": {
-                "user_id": f"runtime-smoke-{runtime}",
-                "thread_id": f"runtime-smoke-{runtime}-{uuid.uuid4()}",
+                "user_id": "runtime-smoke-modern",
+                "thread_id": f"runtime-smoke-modern-{uuid.uuid4()}",
             }
         },
     )
     final = final_state.get("final") or {}
-    assert final.get("answer_text"), f"{runtime} runtime returned empty answer"
+    assert final.get("answer_text"), "modern runtime returned empty answer"

@@ -85,7 +85,7 @@ def resolve_thread_id(*, thread_id: str | None, new_thread: bool) -> str:
     """Choose the checkpoint key for this request."""
     if new_thread:
         return new_thread_id()
-    if thread_id is None:
+    if thread_id is None or not thread_id.strip():
         return new_thread_id()
     return thread_id
 

@@ -4,13 +4,12 @@ from __future__ import annotations
 
 import json
 import os
-from typing import Any
 
 from fastapi import FastAPI
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel, Field
 
 from app import create_census_graph
+from src.api.contracts import HealthResponse, QueryRequest, QueryResponse
 from src.services.graph_session import (
     build_turn_state_for_thread,
     resolve_thread_id,
@@ -28,21 +27,9 @@ def get_graph():
     return _graph
 
 
-class QueryRequest(BaseModel):
-    user_id: str = "demo"
-    thread_id: str | None = None
-    question: str
-    new_thread: bool = False
-
-
-class QueryResponse(BaseModel):
-    thread_id: str
-    result: dict[str, Any] = Field(default_factory=dict)
-
-
-@app.get("/health")
-def health() -> dict[str, str]:
-    return {"status": "ok"}
+@app.get("/health", response_model=HealthResponse)
+def health() -> HealthResponse:
+    return HealthResponse(status="ok")
 
 
 @app.post("/query", response_model=QueryResponse)
