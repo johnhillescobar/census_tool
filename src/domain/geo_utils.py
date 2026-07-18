@@ -2,18 +2,18 @@
 Geography resolution utility functions for the Census app
 """
 
-from typing import Dict, Any, Optional
 import logging
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
 
-def _parse_filter_clause(clause: Optional[str]) -> Dict[str, str]:
+def _parse_filter_clause(clause: str | None) -> dict[str, str]:
     """Convert a space-delimited geography clause into a dictionary."""
     if not clause:
         return {}
     parts = clause.split()
-    parsed: Dict[str, str] = {}
+    parsed: dict[str, str] = {}
     for segment in parts:
         token, _, value = segment.partition(":")
         if token and value:
@@ -21,10 +21,8 @@ def _parse_filter_clause(clause: Optional[str]) -> Dict[str, str]:
     return parsed
 
 
-def _mapping_entry(
-    level: str, geo_for: str, *, geo_in: Optional[str] = None, note: str = ""
-) -> Dict[str, Any]:
-    filters: Dict[str, str] = {"for": geo_for}
+def _mapping_entry(level: str, geo_for: str, *, geo_in: str | None = None, note: str = "") -> dict[str, Any]:
+    filters: dict[str, str] = {"for": geo_for}
     if geo_in:
         filters["in"] = geo_in
     entry = {
@@ -38,14 +36,10 @@ def _mapping_entry(
 
 
 # Geography mappings from hints to Census API filters
-GEOGRAPHY_MAPPINGS: Dict[str, Dict[str, Any]] = {
+GEOGRAPHY_MAPPINGS: dict[str, dict[str, Any]] = {
     # Place level (city/town)
-    "nyc": _mapping_entry(
-        "place", "place:51000", geo_in="state:36", note="New York City"
-    ),
-    "new_york_city": _mapping_entry(
-        "place", "place:51000", geo_in="state:36", note="New York City"
-    ),
+    "nyc": _mapping_entry("place", "place:51000", geo_in="state:36", note="New York City"),
+    "new_york_city": _mapping_entry("place", "place:51000", geo_in="state:36", note="New York City"),
     # State level
     "california": _mapping_entry("state", "state:06", note="California"),
     "ca": _mapping_entry("state", "state:06", note="California"),
@@ -55,9 +49,7 @@ GEOGRAPHY_MAPPINGS: Dict[str, Dict[str, Any]] = {
     "fl": _mapping_entry("state", "state:12", note="Florida"),
     "illinois": _mapping_entry("state", "state:17", note="Illinois"),
     "il": _mapping_entry("state", "state:17", note="Illinois"),
-    "chicago": _mapping_entry(
-        "place", "place:14000", geo_in="state:17", note="Chicago"
-    ),
+    "chicago": _mapping_entry("place", "place:14000", geo_in="state:17", note="Chicago"),
     # Nation level
     "nation": _mapping_entry("nation", "us:1", note="United States"),
     "national": _mapping_entry("nation", "us:1", note="United States"),
@@ -66,16 +58,14 @@ GEOGRAPHY_MAPPINGS: Dict[str, Dict[str, Any]] = {
 }
 
 # Default geography when no hint is provided (policy: United States national)
-DEFAULT_GEO: Dict[str, Any] = _mapping_entry(
+DEFAULT_GEO: dict[str, Any] = _mapping_entry(
     "nation",
     "us:1",
     note="United States (default)",
 )
 
 
-def resolve_geography_hint(
-    geo_hint: str, profile_default_geo: Optional[Dict[str, Any]] = None
-) -> Dict[str, Any]:
+def resolve_geography_hint(geo_hint: str, profile_default_geo: dict[str, Any] | None = None) -> dict[str, Any]:
     """
     Resolve geography hint into Census API filters
 
@@ -131,9 +121,7 @@ def resolve_geography_hint(
     for state_hint, mapping in GEOGRAPHY_MAPPINGS.items():
         if state_hint.lower() in hint_lower:
             result = mapping.copy()
-            result["note"] = (
-                f"State-level request for '{geo_hint}' to {mapping['note']}"
-            )
+            result["note"] = f"State-level request for '{geo_hint}' to {mapping['note']}"
             logger.info(f"Resolved hint '{geo_hint}' to {result}")
             return result
 

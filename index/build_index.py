@@ -3,37 +3,35 @@ Chroma Index Builder for Census Variables
 Fetches variables.json from Census API for each dataset/year and builds a searchable index
 """
 
-import time
-import requests
-from pathlib import Path
-from typing import Dict, List, Tuple
-from collections import defaultdict
-import chromadb
-from chromadb.utils.embedding_functions import OpenAIEmbeddingFunction
-from chromadb.config import Settings
-from dotenv import load_dotenv
 import logging
 
 # Import configuration
 import sys
+import time
+from collections import defaultdict
+from pathlib import Path
+
+import chromadb
+import requests
+from chromadb.config import Settings
+from chromadb.utils.embedding_functions import OpenAIEmbeddingFunction
+from dotenv import load_dotenv
 
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from config import (
-    CHROMA_PERSIST_DIRECTORY,
+    CENSUS_API_BACKOFF_FACTOR,
+    CENSUS_API_MAX_RETRIES,
+    CENSUS_API_TIMEOUT,
     CHROMA_COLLECTION_NAME,
     CHROMA_EMBEDDING_MODEL,
+    CHROMA_PERSIST_DIRECTORY,
     DEFAULT_DATASETS,
-    CENSUS_API_TIMEOUT,
-    CENSUS_API_MAX_RETRIES,
-    CENSUS_API_BACKOFF_FACTOR,
 )
 
 # Set up logging
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
 load_dotenv()
@@ -46,9 +44,7 @@ class CensusIndexBuilder:
         self.base_url = "https://api.census.gov/data"
         self.client = None
         self.collection = None
-        self.embedding_function = OpenAIEmbeddingFunction(
-            model_name=CHROMA_EMBEDDING_MODEL
-        )
+        self.embedding_function = OpenAIEmbeddingFunction(model_name=CHROMA_EMBEDDING_MODEL)
 
     def initialize_chroma(self):
         """Initialize Chroma client and collection"""
@@ -58,9 +54,7 @@ class CensusIndexBuilder:
         Path(CHROMA_PERSIST_DIRECTORY).mkdir(parents=True, exist_ok=True)
 
         # Initialize Chroma client with persistent storage
-        self.client = chromadb.PersistentClient(
-            path=CHROMA_PERSIST_DIRECTORY, settings=Settings(anonymized_telemetry=False)
-        )
+        self.client = chromadb.PersistentClient(path=CHROMA_PERSIST_DIRECTORY, settings=Settings(anonymized_telemetry=False))
 
         # Get or create collection
         try:
@@ -74,7 +68,7 @@ class CensusIndexBuilder:
             )
             logger.info(f"Created new collection: {CHROMA_COLLECTION_NAME}")
 
-    def fetch_variables_json(self, dataset: str, year: int) -> Dict:
+    def fetch_variables_json(self, dataset: str, year: int) -> dict:
         """Fetch variables.json for a specific dataset and year"""
         url = f"{self.base_url}/{year}/{dataset}/variables.json"
 
@@ -91,14 +85,10 @@ class CensusIndexBuilder:
                     logger.info(f"Waiting {wait_time}s before retry...")
                     time.sleep(wait_time)
                 else:
-                    logger.error(
-                        f"Failed to fetch {url} after {CENSUS_API_MAX_RETRIES} attempts"
-                    )
+                    logger.error(f"Failed to fetch {url} after {CENSUS_API_MAX_RETRIES} attempts")
                     raise
 
-    def aggregate_variables(
-        self, datasets: List[Tuple[str, List[int]]]
-    ) -> Dict[str, Dict]:
+    def aggregate_variables(self, datasets: list[tuple[str, list[int]]]) -> dict[str, dict]:
         """Aggregate variables across years for each dataset"""
         logger.info("Starting variable aggregation...")
 
@@ -147,7 +137,7 @@ class CensusIndexBuilder:
         logger.info(f"Aggregated {len(aggregated)} unique variables")
         return dict(aggregated)
 
-    def build_document_text(self, var_info: Dict) -> str:
+    def build_document_text(self, var_info: dict) -> str:
         """Build searchable document text from variable metadata"""
         parts = [
             var_info.get("label", ""),
@@ -164,7 +154,7 @@ class CensusIndexBuilder:
 
         return " ".join(filter(None, parts))
 
-    def upsert_to_chroma(self, aggregated_vars: Dict[str, Dict], batch_size: int = 100):
+    def upsert_to_chroma(self, aggregated_vars: dict[str, dict], batch_size: int = 100):
         """Upsert aggregated variables to Chroma collection"""
         logger.info(f"Upserting {len(aggregated_vars)} variables to Chroma...")
 
@@ -184,9 +174,7 @@ class CensusIndexBuilder:
                 "concept": var_info.get("concept", ""),
                 "universe": var_info.get("universe", ""),
                 "dataset": var_info.get("dataset", ""),
-                "years_available": ",".join(
-                    map(str, var_info.get("years_available", []))
-                ),
+                "years_available": ",".join(map(str, var_info.get("years_available", []))),
             }
 
             ids.append(key)
@@ -198,9 +186,7 @@ class CensusIndexBuilder:
                 logger.info(f"Upserting batch {i // batch_size + 1} ({len(ids)} items)")
 
                 try:
-                    self.collection.upsert(
-                        ids=ids, documents=documents, metadatas=metadatas
-                    )
+                    self.collection.upsert(ids=ids, documents=documents, metadatas=metadatas)
                     logger.info(f"Successfully upserted batch {i // batch_size + 1}")
                 except Exception as e:
                     logger.error(f"Error upserting batch: {e}")
@@ -210,7 +196,7 @@ class CensusIndexBuilder:
                 documents = []
                 metadatas = []
 
-    def build_index(self, datasets: List[Tuple[str, List[int]]] = None):
+    def build_index(self, datasets: list[tuple[str, list[int]]] = None):
         """Main method to build the complete index"""
         if datasets is None:
             datasets = DEFAULT_DATASETS
@@ -258,14 +244,10 @@ def main():
 
         # Optional: Test retrieval
         logger.info("Testing retrieval...")
-        test_results = builder.collection.query(
-            query_texts=["population total"], n_results=3
-        )
+        test_results = builder.collection.query(query_texts=["population total"], n_results=3)
 
         logger.info("Test query 'population total' results:")
-        for i, (var, label) in enumerate(
-            zip(test_results["metadatas"][0], test_results["documents"][0])
-        ):
+        for i, (var, label) in enumerate(zip(test_results["metadatas"][0], test_results["documents"][0])):
             logger.info(f"  {i + 1}. {var['var']}: {var['label']}")
 
     except Exception as e:

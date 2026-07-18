@@ -2,11 +2,12 @@
 Text parsing utility functions for the Census app
 """
 
-import re
-from typing import Dict, Any, List
-import pandas as pd
 import logging
+import re
 from pathlib import Path
+from typing import Any
+
+import pandas as pd
 
 from config import PREVIEW_ROWS
 
@@ -118,7 +119,7 @@ YEAR_PATTERN = r"\b(19|20)\d{2}\b"
 YEAR_RANGE_PATTERN = r"\b(19|20)\d{2}\s*(?:to|-|through)\s*(19|20)\d{2}\b"
 
 
-def extract_years(text: str) -> Dict[str, Any]:
+def extract_years(text: str) -> dict[str, Any]:
     """Extract year information from text"""
     text_lower = text.lower()
 
@@ -147,7 +148,7 @@ def extract_years(text: str) -> Dict[str, Any]:
     return {}
 
 
-def extract_measures(text: str) -> List[str]:
+def extract_measures(text: str) -> list[str]:
     """Extract measure keywords from text"""
     text_lower = text.lower()
     measures = []
@@ -167,10 +168,7 @@ def extract_geo_hint(text: str) -> str:
         print("geo:", geo)
         print("hints:", hints)
         if any(
-            hint in text_lower
-            or text_lower.startswith(f"{hint}")
-            or text_lower.endswith(f"{hint}")
-            or text_lower == hint
+            hint in text_lower or text_lower.startswith(f"{hint}") or text_lower.endswith(f"{hint}") or text_lower == hint
             for hint in hints
         ):
             return geo
@@ -241,9 +239,7 @@ def extract_dataset_from_key(key: str) -> str:
         return "Census Dataset"
 
 
-def save_consolidated_table(
-    data, table_type: str, geo: Dict[str, Any], intent: Dict[str, Any]
-) -> str:
+def save_consolidated_table(data, table_type: str, geo: dict[str, Any], intent: dict[str, Any]) -> str:
     """Save a consolidated table to data directory"""
 
     data_dir = Path("data")
@@ -278,7 +274,7 @@ def extract_variable_from_key(key: str) -> str:
     return var_match.group(1) if var_match else "Unknown"
 
 
-def build_retrieval_query(intent: Dict[str, Any], profile: Dict[str, Any]) -> str:
+def build_retrieval_query(intent: dict[str, Any], profile: dict[str, Any]) -> str:
     """Build Chroma query string from intent and profile"""
     query_parts = []
 
@@ -297,17 +293,13 @@ def build_retrieval_query(intent: Dict[str, Any], profile: Dict[str, Any]) -> st
     if answer_type == "series":
         query_parts.extend(["over time", "yearly", "trend", "temporal"])
     elif answer_type == "table":
-        query_parts.extend(
-            ["breakdown", "by geography", "comparison", "cross-tabulation"]
-        )
+        query_parts.extend(["breakdown", "by geography", "comparison", "cross-tabulation"])
 
     # 3. Add time hints
     if "year" in time_info:
         query_parts.append(f"year {time_info['year']}")
     elif "start_year" in time_info and "end_year" in time_info:
-        query_parts.append(
-            f"years {time_info['start_year']} to {time_info['end_year']}"
-        )
+        query_parts.append(f"years {time_info['start_year']} to {time_info['end_year']}")
 
     # 4. Add dataset hint
     preferred_dataset = profile.get("preferred_dataset", "acs/acs5")
@@ -327,7 +319,7 @@ def build_retrieval_query(intent: Dict[str, Any], profile: Dict[str, Any]) -> st
     return query_string
 
 
-def add_measure_synonyms(measures: List[str]) -> List[str]:
+def add_measure_synonyms(measures: list[str]) -> list[str]:
     """Add synonyms to measures (e.g., latino for hispanic)"""
     expanded_measures = measures.copy()
 
@@ -357,11 +349,11 @@ def add_measure_synonyms(measures: List[str]) -> List[str]:
 
 
 def format_single_value_answer(
-    datasets: Dict[str, str],
-    previews: Dict[str, Any],
-    geo: Dict[str, Any],
-    intent: Dict[str, Any],
-) -> Dict[str, Any]:
+    datasets: dict[str, str],
+    previews: dict[str, Any],
+    geo: dict[str, Any],
+    intent: dict[str, Any],
+) -> dict[str, Any]:
     """Format a single value answer"""
 
     # Get the first dataset (should be only one for single value)
@@ -380,11 +372,7 @@ def format_single_value_answer(
     # Extract value from preview (first row, second column typically)
     try:
         value = preview[1][1] if len(preview) > 1 and len(preview[1]) > 1 else "N/A"
-        geo_name = (
-            preview[1][0]
-            if len(preview) > 1 and len(preview[0]) > 0
-            else geo.get("display_name", "Unknown")
-        )
+        geo_name = preview[1][0] if len(preview) > 1 and len(preview[0]) > 0 else geo.get("display_name", "Unknown")
 
         # Format the value
         if isinstance(value, (int, float)) and value != "N/A":
@@ -416,11 +404,11 @@ def format_single_value_answer(
 
 
 def format_series_answer(
-    datasets: Dict[str, Any],
-    previews: Dict[str, Any],
-    geo: Dict[str, Any],
-    intent: Dict[str, Any],
-) -> Dict[str, Any]:
+    datasets: dict[str, Any],
+    previews: dict[str, Any],
+    geo: dict[str, Any],
+    intent: dict[str, Any],
+) -> dict[str, Any]:
     """Format a series answer"""
 
     consolidated_data = []
@@ -438,9 +426,7 @@ def format_series_answer(
                 value = df[value_column].iloc[0] if len(df) > 0 else None
                 if value is not None and hasattr(value, "item"):  # numpy scalar
                     value = value.item()
-                geo_value = (
-                    df.iloc[0][0] if len(df) > 0 else geo.get("display_name", "Unknown")
-                )
+                geo_value = df.iloc[0][0] if len(df) > 0 else geo.get("display_name", "Unknown")
                 if hasattr(geo_value, "item"):  # numpy scalar
                     geo_value = geo_value.item()
                 consolidated_data.append(
@@ -472,21 +458,15 @@ def format_series_answer(
         if isinstance(item["value"], (int, float)) and item["value"] is not None:
             item["formatted_value"] = format_number_with_commas(item["value"])
         else:
-            item["formatted_value"] = (
-                str(item["value"]) if item["value"] is not None else "N/A"
-            )
+            item["formatted_value"] = str(item["value"]) if item["value"] is not None else "N/A"
 
     # Save consolidated table
-    consolidated_file = save_consolidated_table(
-        consolidated_data, "series", geo, intent
-    )
+    consolidated_file = save_consolidated_table(consolidated_data, "series", geo, intent)
 
     return {
         "type": "series",
         "data": consolidated_data,
-        "geo": consolidated_data[0]["geo"]
-        if consolidated_data
-        else geo.get("display_name", "Unknown"),
+        "geo": consolidated_data[0]["geo"] if consolidated_data else geo.get("display_name", "Unknown"),
         "variable": extract_variable_from_key(list(datasets.keys())[0]),
         "file_path": consolidated_file,
         "preview": consolidated_data[:PREVIEW_ROWS],
@@ -494,11 +474,11 @@ def format_series_answer(
 
 
 def format_table_answer(
-    datasets: Dict[str, str],
-    previews: Dict[str, Any],
-    geo: Dict[str, Any],
-    intent: Dict[str, Any],
-) -> Dict[str, Any]:
+    datasets: dict[str, str],
+    previews: dict[str, Any],
+    geo: dict[str, Any],
+    intent: dict[str, Any],
+) -> dict[str, Any]:
     """Format a table/breakdown answer"""
 
     # For table answers, we might have multiple variables or geographies
@@ -547,10 +527,10 @@ def format_table_answer(
 
 
 def generate_footnotes(
-    datasets: Dict[str, Any],
-    geo: Dict[str, Any],
-    intent: Dict[str, Any],
-) -> List[str]:
+    datasets: dict[str, Any],
+    geo: dict[str, Any],
+    intent: dict[str, Any],
+) -> list[str]:
     """Generate footnotes for a table answer"""
 
     footnotes = []

@@ -71,20 +71,12 @@ def test_extract_observations_from_census_data_happy_path():
 def test_build_comparison_input_rows_peer_group_mean_pairing():
     plan = _build_peer_group_plan()
     observations = [
-        ComparisonCensusObservation(
-            year=2020, geo_id="10001", metric="population", value=100.0
-        ),
-        ComparisonCensusObservation(
-            year=2020, geo_id="10002", metric="population", value=80.0
-        ),
-        ComparisonCensusObservation(
-            year=2020, geo_id="10003", metric="population", value=60.0
-        ),
+        ComparisonCensusObservation(year=2020, geo_id="10001", metric="population", value=100.0),
+        ComparisonCensusObservation(year=2020, geo_id="10002", metric="population", value=80.0),
+        ComparisonCensusObservation(year=2020, geo_id="10003", metric="population", value=60.0),
     ]
 
-    rows = build_comparison_input_rows(
-        ComparisonInputRowBuildRequest(plan=plan, observations=observations)
-    )
+    rows = build_comparison_input_rows(ComparisonInputRowBuildRequest(plan=plan, observations=observations))
 
     assert len(rows) == 3
     by_geo = {row.geo_id: row for row in rows}
@@ -96,20 +88,12 @@ def test_build_comparison_input_rows_peer_group_mean_pairing():
 def test_build_comparison_input_rows_national_benchmark_pairing():
     plan = _build_national_plan()
     observations = [
-        ComparisonCensusObservation(
-            year=2020, geo_id="06", metric="population", value=39500000.0
-        ),
-        ComparisonCensusObservation(
-            year=2020, geo_id="48", metric="population", value=29100000.0
-        ),
-        ComparisonCensusObservation(
-            year=2020, geo_id="us:1", metric="population", value=331000000.0
-        ),
+        ComparisonCensusObservation(year=2020, geo_id="06", metric="population", value=39500000.0),
+        ComparisonCensusObservation(year=2020, geo_id="48", metric="population", value=29100000.0),
+        ComparisonCensusObservation(year=2020, geo_id="us:1", metric="population", value=331000000.0),
     ]
 
-    rows = build_comparison_input_rows(
-        ComparisonInputRowBuildRequest(plan=plan, observations=observations)
-    )
+    rows = build_comparison_input_rows(ComparisonInputRowBuildRequest(plan=plan, observations=observations))
 
     assert len(rows) == 2
     for row in rows:
@@ -138,30 +122,18 @@ def test_build_comparison_input_rows_fail_closed_missing_subject_observation():
         join_keys=["year", "geo_id"],
         requested_text="compare counties",
     )
-    observations = [
-        ComparisonCensusObservation(
-            year=2020, geo_id="10001", metric="population", value=100.0
-        )
-    ]
+    observations = [ComparisonCensusObservation(year=2020, geo_id="10001", metric="population", value=100.0)]
 
     with pytest.raises(ValueError, match="missing subject observation"):
-        build_comparison_input_rows(
-            ComparisonInputRowBuildRequest(plan=plan, observations=observations)
-        )
+        build_comparison_input_rows(ComparisonInputRowBuildRequest(plan=plan, observations=observations))
 
 
 def test_build_comparison_input_rows_fail_closed_missing_national_benchmark():
     plan = _build_national_plan()
-    observations = [
-        ComparisonCensusObservation(
-            year=2020, geo_id="06", metric="population", value=39500000.0
-        )
-    ]
+    observations = [ComparisonCensusObservation(year=2020, geo_id="06", metric="population", value=39500000.0)]
 
     with pytest.raises(ValueError, match="missing benchmark observation"):
-        build_comparison_input_rows(
-            ComparisonInputRowBuildRequest(plan=plan, observations=observations)
-        )
+        build_comparison_input_rows(ComparisonInputRowBuildRequest(plan=plan, observations=observations))
 
 
 def test_build_comparison_input_rows_resolves_placeholder_subject_geos():
@@ -181,20 +153,12 @@ def test_build_comparison_input_rows_resolves_placeholder_subject_geos():
         requested_text="compare counties in California",
     )
     observations = [
-        ComparisonCensusObservation(
-            year=2020, geo_id="06001", metric="population", value=100.0
-        ),
-        ComparisonCensusObservation(
-            year=2020, geo_id="06037", metric="population", value=200.0
-        ),
-        ComparisonCensusObservation(
-            year=2020, geo_id="06073", metric="population", value=150.0
-        ),
+        ComparisonCensusObservation(year=2020, geo_id="06001", metric="population", value=100.0),
+        ComparisonCensusObservation(year=2020, geo_id="06037", metric="population", value=200.0),
+        ComparisonCensusObservation(year=2020, geo_id="06073", metric="population", value=150.0),
     ]
 
-    rows = build_comparison_input_rows(
-        ComparisonInputRowBuildRequest(plan=plan, observations=observations)
-    )
+    rows = build_comparison_input_rows(ComparisonInputRowBuildRequest(plan=plan, observations=observations))
 
     assert len(rows) == 3
     assert {row.geo_id for row in rows} == {"06001", "06037", "06073"}
@@ -203,15 +167,9 @@ def test_build_comparison_input_rows_resolves_placeholder_subject_geos():
 def test_build_comparison_input_rows_deterministic_rerun():
     plan = _build_peer_group_plan()
     observations = [
-        ComparisonCensusObservation(
-            year=2020, geo_id="10003", metric="population", value=60.0
-        ),
-        ComparisonCensusObservation(
-            year=2020, geo_id="10001", metric="population", value=100.0
-        ),
-        ComparisonCensusObservation(
-            year=2020, geo_id="10002", metric="population", value=80.0
-        ),
+        ComparisonCensusObservation(year=2020, geo_id="10003", metric="population", value=60.0),
+        ComparisonCensusObservation(year=2020, geo_id="10001", metric="population", value=100.0),
+        ComparisonCensusObservation(year=2020, geo_id="10002", metric="population", value=80.0),
     ]
     request = ComparisonInputRowBuildRequest(plan=plan, observations=observations)
 

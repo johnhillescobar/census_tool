@@ -8,14 +8,13 @@ Generates dynamic footnotes based on census data metadata, including:
 - Table codes used
 """
 
-import re
-from typing import Dict, List
 import logging
+import re
 
 logger = logging.getLogger(__name__)
 
 
-def extract_year_from_data(census_data: Dict) -> str:
+def extract_year_from_data(census_data: dict) -> str:
     """Extract year from census data or URL"""
     try:
         # Try to get from URL
@@ -33,11 +32,7 @@ def extract_year_from_data(census_data: Dict) -> str:
             if "YEAR" in headers or "Year" in headers:
                 # Get from first data row
                 if len(data) > 1:
-                    year_idx = (
-                        headers.index("YEAR")
-                        if "YEAR" in headers
-                        else headers.index("Year")
-                    )
+                    year_idx = headers.index("YEAR") if "YEAR" in headers else headers.index("Year")
                     return str(data[1][year_idx])
 
         # Default to most recent common year
@@ -47,7 +42,7 @@ def extract_year_from_data(census_data: Dict) -> str:
         return "2023"
 
 
-def extract_dataset_from_data(census_data: Dict) -> str:
+def extract_dataset_from_data(census_data: dict) -> str:
     """Extract dataset type from census data URL"""
     try:
         url = census_data.get("url", "")
@@ -67,7 +62,7 @@ def extract_dataset_from_data(census_data: Dict) -> str:
         return "5-Year Estimates"
 
 
-def extract_table_codes_from_reasoning(reasoning_trace: str) -> List[str]:
+def extract_table_codes_from_reasoning(reasoning_trace: str) -> list[str]:
     """Extract Census table codes from reasoning trace"""
     try:
         # Match patterns like B01003, S1903, DP05, etc.
@@ -81,9 +76,7 @@ def extract_table_codes_from_reasoning(reasoning_trace: str) -> List[str]:
         return []
 
 
-def generate_footnotes(
-    census_data: Dict, data_summary: str, reasoning_trace: str
-) -> List[str]:
+def generate_footnotes(census_data: dict, data_summary: str, reasoning_trace: str) -> list[str]:
     """
     Generate footnotes dynamically based on census data used.
 
@@ -104,24 +97,14 @@ def generate_footnotes(
         table_codes = extract_table_codes_from_reasoning(reasoning_trace)
 
         # Static footnote: Data source citation (always included)
-        footnotes.append(
-            f"Source: U.S. Census Bureau, {year} American Community Survey {dataset}."
-        )
+        footnotes.append(f"Source: U.S. Census Bureau, {year} American Community Survey {dataset}.")
 
         # Static footnote: Statistical significance disclaimer
-        footnotes.append(
-            "Margins of error not shown. For statistical significance, refer to Census Bureau documentation."
-        )
+        footnotes.append("Margins of error not shown. For statistical significance, refer to Census Bureau documentation.")
 
         # Dynamic footnote: Inflation adjustment for income data
-        if (
-            "inflation-adjusted" in data_summary.lower()
-            or "income" in data_summary.lower()
-            or "S1903" in reasoning_trace
-        ):
-            footnotes.append(
-                f"Income values are adjusted for {year} inflation using the Consumer Price Index (CPI-U)."
-            )
+        if "inflation-adjusted" in data_summary.lower() or "income" in data_summary.lower() or "S1903" in reasoning_trace:
+            footnotes.append(f"Income values are adjusted for {year} inflation using the Consumer Price Index (CPI-U).")
 
         # Dynamic footnote: Table codes used
         if table_codes:
@@ -129,9 +112,7 @@ def generate_footnotes(
             footnotes.append(f"Census table(s) used: {table_list}.")
 
         # Static footnote: General disclaimer
-        footnotes.append(
-            "This tool is for informational purposes only. Verify critical data at census.gov."
-        )
+        footnotes.append("This tool is for informational purposes only. Verify critical data at census.gov.")
 
         logger.info(f"Generated {len(footnotes)} footnotes")
         return footnotes

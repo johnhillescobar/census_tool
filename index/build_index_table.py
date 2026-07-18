@@ -3,30 +3,27 @@ Table-Level Chroma Index Builder for Census Groups
 Builds a searchable index of Census tables (not individual variables)
 """
 
-import sys
 import logging
+import sys
 from pathlib import Path
-import chromadb
-from chromadb.utils.embedding_functions import OpenAIEmbeddingFunction
-from chromadb.config import Settings
-from typing import Any, Dict, cast
-from dotenv import load_dotenv
+from typing import Any, cast
 
+import chromadb
+from chromadb.config import Settings
+from chromadb.utils.embedding_functions import OpenAIEmbeddingFunction
+from dotenv import load_dotenv
 
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from config import (
+    CHROMA_EMBEDDING_MODEL,
     CHROMA_PERSIST_DIRECTORY,
     CHROMA_TABLE_COLLECTION_NAME,
-    CHROMA_EMBEDDING_MODEL,
 )
-
 from src.domain.census_groups import CensusGroupsAPI
 
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
 load_dotenv()
@@ -40,9 +37,7 @@ class CensusTableIndexBuilder:
         self.client = None
         self.table_collection = None
         self.base_url = "https://api.census.gov/data"
-        self.embedding_function = OpenAIEmbeddingFunction(
-            model_name=CHROMA_EMBEDDING_MODEL
-        )
+        self.embedding_function = OpenAIEmbeddingFunction(model_name=CHROMA_EMBEDDING_MODEL)
 
     def initialize_chroma(self):
         """Initialize Chroma client and collection"""
@@ -52,9 +47,7 @@ class CensusTableIndexBuilder:
         Path(CHROMA_PERSIST_DIRECTORY).mkdir(parents=True, exist_ok=True)
 
         # Initialize Chroma client with persistent storage
-        self.client = chromadb.PersistentClient(
-            path=CHROMA_PERSIST_DIRECTORY, settings=Settings(anonymized_telemetry=False)
-        )
+        self.client = chromadb.PersistentClient(path=CHROMA_PERSIST_DIRECTORY, settings=Settings(anonymized_telemetry=False))
 
         # Get or create collection
         try:
@@ -70,7 +63,7 @@ class CensusTableIndexBuilder:
 
     # TODO: Build table-level index
 
-    def build_document_text(self, table_info: Dict) -> str:
+    def build_document_text(self, table_info: dict) -> str:
         """Build searchable document text from variable metadata"""
 
         parts = [
@@ -88,7 +81,7 @@ class CensusTableIndexBuilder:
 
         return " ".join(filter(None, parts)).lower()
 
-    def upsert_to_chroma(self, aggregated_vars: Dict[str, Dict], batch_size: int = 100):
+    def upsert_to_chroma(self, aggregated_vars: dict[str, dict], batch_size: int = 100):
         """Upsert aggregated variables to Chroma collection"""
         logger.info(f"Upserting {len(aggregated_vars)} variables to Chroma...")
 
@@ -109,9 +102,7 @@ class CensusTableIndexBuilder:
                 "dataset": table_info.get("dataset", ""),
                 "category": table_info.get("category", "detail"),
                 "uses_groups": table_info.get("uses_groups", False),
-                "years_available": ",".join(
-                    map(str, table_info.get("years_available", []))
-                ),
+                "years_available": ",".join(map(str, table_info.get("years_available", []))),
                 "data_types": ",".join(table_info.get("data_types", [])),  # New field
             }
 
@@ -124,9 +115,7 @@ class CensusTableIndexBuilder:
                 logger.info(f"Upserting batch {i // batch_size + 1} ({len(ids)} items)")
 
                 try:
-                    self.collection.upsert(
-                        ids=ids, documents=documents, metadatas=metadatas
-                    )
+                    self.collection.upsert(ids=ids, documents=documents, metadatas=metadatas)
                     logger.info(f"Successfully upserted batch {i // batch_size + 1}")
                 except Exception as e:
                     logger.error(f"Error upserting batch: {e}")
@@ -183,43 +172,31 @@ def main():
         logger.info("\n" + "=" * 60)
         logger.info("TEST 1: Population query (should find Detail table)")
         logger.info("=" * 60)
-        test_results = builder.collection.query(
-            query_texts=["population total"], n_results=3
-        )
+        test_results = builder.collection.query(query_texts=["population total"], n_results=3)
         metadatas = test_results.get("metadatas")
         if metadatas and len(metadatas) > 0:
             for i, metadata in enumerate(metadatas[0]):
-                logger.info(
-                    f"  {i + 1}. {metadata['table_code']} ({metadata['category']}): {metadata['table_name']}"
-                )
+                logger.info(f"  {i + 1}. {metadata['table_code']} ({metadata['category']}): {metadata['table_name']}")
 
         # Test 2: Overview query
         logger.info("\n" + "=" * 60)
         logger.info("TEST 2: Overview query (should find Subject table)")
         logger.info("=" * 60)
-        test_results = builder.collection.query(
-            query_texts=["demographic overview age sex"], n_results=3
-        )
+        test_results = builder.collection.query(query_texts=["demographic overview age sex"], n_results=3)
         metadatas = test_results.get("metadatas")
         if metadatas and len(metadatas) > 0:
             for i, metadata in enumerate(metadatas[0]):
-                logger.info(
-                    f"  {i + 1}. {metadata['table_code']} ({metadata['category']}): {metadata['table_name']}"
-                )
+                logger.info(f"  {i + 1}. {metadata['table_code']} ({metadata['category']}): {metadata['table_name']}")
 
         # Test 3: Profile query
         logger.info("\n" + "=" * 60)
         logger.info("TEST 3: Profile query (should find Profile table)")
         logger.info("=" * 60)
-        test_results = builder.collection.query(
-            query_texts=["demographic profile housing"], n_results=3
-        )
+        test_results = builder.collection.query(query_texts=["demographic profile housing"], n_results=3)
         metadatas = test_results.get("metadatas")
         if metadatas and len(metadatas) > 0:
             for i, metadata in enumerate(metadatas[0]):
-                logger.info(
-                    f"  {i + 1}. {metadata['table_code']} ({metadata['category']}): {metadata['table_name']}"
-                )
+                logger.info(f"  {i + 1}. {metadata['table_code']} ({metadata['category']}): {metadata['table_name']}")
 
     except Exception as e:
         logger.error(f"Index build failed: {e}")

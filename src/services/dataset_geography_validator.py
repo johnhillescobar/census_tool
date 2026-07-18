@@ -7,7 +7,7 @@ from __future__ import annotations
 import logging
 import pickle
 from pathlib import Path
-from typing import Dict, List, Optional, Set, TypedDict, cast
+from typing import TypedDict, cast
 
 import requests
 from bs4 import BeautifulSoup, Tag
@@ -16,7 +16,7 @@ from src.clients import record_event
 
 logger = logging.getLogger(__name__)
 
-_CACHE: Dict[str, Set[str]] = {}
+_CACHE: dict[str, set[str]] = {}
 _DISK_CACHE_DIR = Path("data/geography_levels_cache")
 _DISK_CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -27,14 +27,14 @@ class GeographySupportResult(TypedDict):
     geography_level: str
     normalized_level: str
     supported: bool
-    available_levels: List[str]
+    available_levels: list[str]
 
 
 def _cache_key(dataset: str, year: int) -> str:
     return f"{dataset}:{year}"
 
 
-def _load_disk_cache(dataset: str, year: int) -> Optional[Set[str]]:
+def _load_disk_cache(dataset: str, year: int) -> set[str] | None:
     key = _cache_key(dataset, year)
     path = _DISK_CACHE_DIR / f"{key.replace('/', '_')}.pkl"
     if not path.exists():
@@ -47,7 +47,7 @@ def _load_disk_cache(dataset: str, year: int) -> Optional[Set[str]]:
         return None
 
 
-def _save_disk_cache(dataset: str, year: int, levels: Set[str]) -> None:
+def _save_disk_cache(dataset: str, year: int, levels: set[str]) -> None:
     key = _cache_key(dataset, year)
     path = _DISK_CACHE_DIR / f"{key.replace('/', '_')}.pkl"
     try:
@@ -61,16 +61,14 @@ def _normalize_level(token: str) -> str:
     return " ".join(token.strip().lower().split())
 
 
-def _parse_geography_levels(html_text: str) -> Set[str]:
+def _parse_geography_levels(html_text: str) -> set[str]:
     soup = BeautifulSoup(html_text, "html.parser")
-    levels: Set[str] = set()
+    levels: set[str] = set()
 
     # geography.html contains tables with Summary Level and Geography entries
     for table_el in soup.find_all("table"):
         table = cast(Tag, table_el)
-        headers = [
-            header.get_text(" ", strip=True).lower() for header in table.find_all("th")
-        ]
+        headers = [header.get_text(" ", strip=True).lower() for header in table.find_all("th")]
         for row_el in table.find_all("tr"):
             row = cast(Tag, row_el)
             cells = [cell.get_text(" ", strip=True) for cell in row.find_all("td")]
@@ -83,9 +81,7 @@ def _parse_geography_levels(html_text: str) -> Set[str]:
     return levels
 
 
-def fetch_dataset_geography_levels(
-    dataset: str, year: int, *, force_refresh: bool = False
-) -> Set[str]:
+def fetch_dataset_geography_levels(dataset: str, year: int, *, force_refresh: bool = False) -> set[str]:
     """
     Fetch the set of supported geography levels for dataset/year using geography.html.
     """
@@ -141,9 +137,7 @@ def fetch_dataset_geography_levels(
         return set()
 
 
-def geography_supported(
-    dataset: str, year: int, geography_level: str
-) -> GeographySupportResult:
+def geography_supported(dataset: str, year: int, geography_level: str) -> GeographySupportResult:
     """
     Check if a geography level is supported for a dataset/year.
     """

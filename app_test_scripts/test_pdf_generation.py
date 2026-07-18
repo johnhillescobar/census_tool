@@ -59,12 +59,8 @@ def test_pdf_generation(tmp_path):
         assert isinstance(pdf_bytes, bytes), f"Expected bytes, got {type(pdf_bytes)}"
 
         # ASSERTION 3: PDF should have reasonable size (not empty, not too large)
-        assert len(pdf_bytes) > 1000, (
-            f"PDF too small: {len(pdf_bytes)} bytes (expected > 1000)"
-        )
-        assert len(pdf_bytes) < 10_000_000, (
-            f"PDF too large: {len(pdf_bytes)} bytes (expected < 10MB)"
-        )
+        assert len(pdf_bytes) > 1000, f"PDF too small: {len(pdf_bytes)} bytes (expected > 1000)"
+        assert len(pdf_bytes) < 10_000_000, f"PDF too large: {len(pdf_bytes)} bytes (expected < 10MB)"
 
         # ASSERTION 4: PDF should start with PDF header
         assert pdf_bytes.startswith(b"%PDF"), f"Invalid PDF header: {pdf_bytes[:10]}"
@@ -78,9 +74,7 @@ def test_pdf_generation(tmp_path):
 
         # ASSERTION 6: File size should match bytes length
         file_size = test_pdf_path.stat().st_size
-        assert file_size == len(pdf_bytes), (
-            f"File size mismatch: {file_size} vs {len(pdf_bytes)}"
-        )
+        assert file_size == len(pdf_bytes), f"File size mismatch: {file_size} vs {len(pdf_bytes)}"
 
     except Exception as e:
         pytest.fail(f"PDF generation failed: {e}")
@@ -129,9 +123,7 @@ def test_missing_files():
                         "Table created successfully: data/tables/nonexistent_table.csv",
                     ],
                 },
-                "artifacts": {
-                    "census_data": {"data": [["NAME", "VALUE"], ["Test", "123"]]}
-                },
+                "artifacts": {"census_data": {"data": [["NAME", "VALUE"], ["Test", "123"]]}},
             },
         }
     ]
@@ -149,9 +141,7 @@ def test_missing_files():
         # ASSERTION: Should still generate PDF even with missing files
         assert pdf_bytes is not None, "PDF generation with missing files returned None"
         assert isinstance(pdf_bytes, bytes), f"Expected bytes, got {type(pdf_bytes)}"
-        assert len(pdf_bytes) > 500, (
-            f"PDF with missing files too small: {len(pdf_bytes)} bytes"
-        )
+        assert len(pdf_bytes) > 500, f"PDF with missing files too small: {len(pdf_bytes)} bytes"
         assert pdf_bytes.startswith(b"%PDF"), f"Invalid PDF header: {pdf_bytes[:10]}"
 
     except Exception as e:

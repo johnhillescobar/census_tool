@@ -1,7 +1,9 @@
-from src.domain.comparison_plan import ComparisonPlan
 import pytest
 
+from src.domain.comparison_plan import ComparisonPlan
+
 # Create tests for:
+
 
 # valid canonical plan
 def valid_payload() -> dict:
@@ -20,6 +22,7 @@ def valid_payload() -> dict:
         "join_keys": ["year", "geo_id"],
         "requested_text": "compare population counties",
     }
+
 
 def test_valid_canonical_plan():
     plan = ComparisonPlan(**valid_payload())
@@ -57,11 +60,10 @@ def test_empty_join_keys():
     with pytest.raises(ValueError, match="join_keys must be non-empty"):
         ComparisonPlan(**payload)
 
+
 # empty subject_geos
 def test_empty_subject_geos():
     payload = valid_payload()
     payload["subject_geos"] = []
     with pytest.raises(ValueError, match="subject_geos must be non-empty"):
         ComparisonPlan(**payload)
-
-

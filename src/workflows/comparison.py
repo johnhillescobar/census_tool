@@ -54,9 +54,7 @@ def comparison_node(state: CensusState, config: RunnableConfig) -> dict[str, Any
             "logs": ["comparison: skipped (benchmark not applicable)"],
         }
 
-    if not isinstance(temporal, TemporalResolved) or not isinstance(
-        benchmark, BenchmarkResolved
-    ):
+    if not isinstance(temporal, TemporalResolved) or not isinstance(benchmark, BenchmarkResolved):
         return {
             "plan": WorkflowPlan(
                 geography=geography,

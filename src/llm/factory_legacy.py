@@ -3,13 +3,12 @@ Legacy LLM creation - fallback if factory fails
 Preserves original ChatOpenAI behavior for rollback safety
 """
 
-from typing import Optional
-
 from langchain_openai import ChatOpenAI
+
 from src.llm.config import LLM_CONFIG
 
 
-def create_legacy_openai_llm(temperature: Optional[float] = None) -> ChatOpenAI:
+def create_legacy_openai_llm(temperature: float | None = None) -> ChatOpenAI:
     """
     Original ChatOpenAI creation logic (pre-factory)
 

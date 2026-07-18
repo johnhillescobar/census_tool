@@ -21,6 +21,17 @@ def _merge_dict(existing: dict[str, Any], new: dict[str, Any]) -> dict[str, Any]
     return out
 
 
+TURN_RESET_KEY = "__turn_reset__"
+
+
+def _artifacts_reducer(existing: dict[str, Any], new: dict[str, Any]) -> dict[str, Any]:
+    """Merge artifacts within a turn; replace when memory_load marks turn reset."""
+    if new and new.get(TURN_RESET_KEY):
+        cleaned = {k: v for k, v in new.items() if k != TURN_RESET_KEY}
+        return cleaned
+    return _merge_dict(existing, new)
+
+
 class FinalResponseState(BaseModel):
     """Typed view of the final-answer state channel."""
 
@@ -30,9 +41,7 @@ class FinalResponseState(BaseModel):
     charts_needed: list[dict[str, Any]] = Field(default_factory=list)
     tables_needed: list[dict[str, Any]] = Field(default_factory=list)
     footnotes: list[str] = Field(default_factory=list)
-    generated_files: list[RenderedArtifactSuccess | RenderedArtifactFailure] = Field(
-        default_factory=list
-    )
+    generated_files: list[RenderedArtifactSuccess | RenderedArtifactFailure] = Field(default_factory=list)
 
 
 class WorkflowArtifactsState(BaseModel):
@@ -69,10 +78,7 @@ def coerce_geography_intent(
         if not value:
             return None
         return GeographyIntent.model_validate(value)
-    raise TypeError(
-        "Geography intent must be GeographyIntent, dict, or None, "
-        f"got {type(value).__name__}"
-    )
+    raise TypeError(f"Geography intent must be GeographyIntent, dict, or None, got {type(value).__name__}")
 
 
 def geo_intent_to_dict(geo: GeographyIntent | None) -> dict[str, Any]:
@@ -92,9 +98,7 @@ class CensusState(BaseModel):
         None,
         description="Original user query (preserved for pattern matching); reducer: overwrite",
     )
-    intent: dict[str, Any] | None = Field(
-        None, description="Intent analysis; reducer: overwrite"
-    )
+    intent: dict[str, Any] | None = Field(None, description="Intent analysis; reducer: overwrite")
     geo: GeographyIntent | None = Field(
         default=None,
         description="Resolved geography projection; reducer: overwrite",
@@ -107,40 +111,26 @@ class CensusState(BaseModel):
             return value  # type: ignore[return-value]
         if isinstance(value, dict):
             return coerce_geography_intent(value)
-        raise TypeError(
-            "CensusState.geo must be GeographyIntent, dict, or None, "
-            f"got {type(value).__name__}"
-        )
-    candidates: dict[str, Any] = Field(
-        default_factory=dict, description="Candidate variables; reducer: overwrite"
-    )
-    plan: WorkflowPlan | None = Field(
-        None, description="Query plan; reducer: overwrite"
-    )
-    artifacts: Annotated[dict[str, Any], _merge_dict] = Field(
+        raise TypeError(f"CensusState.geo must be GeographyIntent, dict, or None, got {type(value).__name__}")
+
+    candidates: dict[str, Any] = Field(default_factory=dict, description="Candidate variables; reducer: overwrite")
+    plan: WorkflowPlan | None = Field(None, description="Query plan; reducer: overwrite")
+    artifacts: Annotated[dict[str, Any], _artifacts_reducer] = Field(
         default_factory=dict,
-        description="Dataset and preview handles; reducer: merge dictionaries",
+        description="Dataset and preview handles; reducer: turn-reset or merge",
     )
-    final: dict[str, Any] | None = Field(
-        None, description="Final answer; reducer: overwrite"
-    )
+    final: dict[str, Any] | None = Field(None, description="Final answer; reducer: overwrite")
 
     # System data
-    logs: Annotated[list[str], operator.add] = Field(
-        default_factory=list, description="System logs; reducer: append"
-    )
+    logs: Annotated[list[str], operator.add] = Field(default_factory=list, description="System logs; reducer: append")
     error: str | None = Field(None, description="Error message; reducer: overwrite")
-    summary: str | None = Field(
-        None, description="Message summary; reducer: overwrite"
-    )
+    summary: str | None = Field(None, description="Message summary; reducer: overwrite")
 
     # Memory and persistence
     profile: Annotated[dict[str, Any], _merge_dict] = Field(
         default_factory=dict, description="User profile; reducer: merge dictionaries"
     )
-    history: list[dict[str, Any]] = Field(
-        default_factory=list, description="Conversation history; reducer: overwrite"
-    )
+    history: list[dict[str, Any]] = Field(default_factory=list, description="Conversation history; reducer: overwrite")
     cache_index: Annotated[dict[str, Any], _merge_dict] = Field(
         default_factory=dict, description="Cache index; reducer: merge dictionaries"
     )
@@ -157,51 +147,31 @@ class QuerySpec(BaseModel):
 class GeographyEntity(BaseModel):
     name: str = Field(..., description="Name of the geographic entity")
     type: str = Field(..., description="Type: 'city', 'county', 'state', 'tract'")
-    confidence: float = Field(
-        ..., ge=0.0, le=1.0, description="Confidence score between 0 and 1"
-    )
-    context: dict[str, Any] = Field(
-        default_factory=dict, description="Additional context information"
-    )
+    confidence: float = Field(..., ge=0.0, le=1.0, description="Confidence score between 0 and 1")
+    context: dict[str, Any] = Field(default_factory=dict, description="Additional context information")
     start_pos: int = Field(..., ge=0, description="Start position in original text")
     end_pos: int = Field(..., ge=0, description="End position in original text")
 
 
 class GeographyRequest(BaseModel):
     raw_text: str = Field(..., description="Original user query text")
-    entities: list[GeographyEntity] = Field(
-        default_factory=list, description="Extracted geography entities"
-    )
-    requested_level: str | None = Field(
-        None, description="Requested geography level"
-    )
+    entities: list[GeographyEntity] = Field(default_factory=list, description="Extracted geography entities")
+    requested_level: str | None = Field(None, description="Requested geography level")
     state_context: str | None = Field(None, description="State context if provided")
     user_id: str | None = Field(None, description="User ID for caching")
 
 
 class ResolvedGeography(BaseModel):
     level: str = Field(..., description="Resolved geography level")
-    filters: dict[str, str] = Field(
-        default_factory=dict, description="Census API filters"
-    )
+    filters: dict[str, str] = Field(default_factory=dict, description="Census API filters")
     display_name: str = Field(..., description="Human-readable location name")
-    fips_codes: dict[str, str] = Field(
-        default_factory=dict, description="FIPS codes for the location"
-    )
-    confidence: float = Field(
-        ..., ge=0.0, le=1.0, description="Confidence score between 0 and 1"
-    )
+    fips_codes: dict[str, str] = Field(default_factory=dict, description="FIPS codes for the location")
+    confidence: float = Field(..., ge=0.0, le=1.0, description="Confidence score between 0 and 1")
     note: str = Field(default="", description="Additional notes about the resolution")
-    geocoding_metadata: dict[str, Any] = Field(
-        default_factory=dict, description="API response details"
-    )
+    geocoding_metadata: dict[str, Any] = Field(default_factory=dict, description="API response details")
 
 
 class GeographyError(BaseModel):
-    error_type: str = Field(
-        ..., description="Error type: 'unsupported_level', 'not_found', 'api_error'"
-    )
+    error_type: str = Field(..., description="Error type: 'unsupported_level', 'not_found', 'api_error'")
     message: str = Field(..., description="Human-readable error message")
-    suggested_alternatives: list[str] = Field(
-        default_factory=list, description="Suggested alternative locations or levels"
-    )
+    suggested_alternatives: list[str] = Field(default_factory=list, description="Suggested alternative locations or levels")

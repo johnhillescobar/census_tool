@@ -1,8 +1,9 @@
-import logging
 import json
+import logging
+from typing import Literal
+
 from langchain_core.tools import BaseTool
-from typing import Optional, Dict, Literal
-from pydantic import ConfigDict, BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from src.domain.geography_registry import GeographyRegistry
 from src.tools.geography_schemas import (
@@ -16,12 +17,8 @@ logger = logging.getLogger(__name__)
 class GeographyDiscoveryInput(BaseModel):
     """Input for geography discovery - supports enumerate and list_levels"""
 
-    action: Literal["enumerate_areas", "list_levels"] = Field(
-        ..., description="Action to perform"
-    )
-    level: Optional[GeographyLevel] = Field(
-        default=None, description="Geography level (required for enumerate)"
-    )
+    action: Literal["enumerate_areas", "list_levels"] = Field(..., description="Action to perform")
+    level: GeographyLevel | None = Field(default=None, description="Geography level (required for enumerate)")
     dataset: str = Field(
         default="acs/acs5",
         description="A census dataset is a collection of statistical information gathered from every individual or household in a specific region, used for demographic, social, and economic analysis",
@@ -30,9 +27,7 @@ class GeographyDiscoveryInput(BaseModel):
         default=2023,
         description="Census year which is the year of the data you want to analyze",
     )
-    parent: Optional[Dict[str, str]] = Field(
-        default=None, description="Parent geography constraint"
-    )
+    parent: dict[str, str] | None = Field(default=None, description="Parent geography constraint")
 
 
 class GeographyDiscoveryTool(BaseTool):
@@ -110,9 +105,7 @@ class GeographyDiscoveryTool(BaseTool):
 
             logger.info(f"Enumerating: {geo_token} (parent: {parent})")
 
-            areas = registry.enumerate_areas(
-                dataset=dataset, year=year, geo_token=geo_token, parent_geo=parent
-            )
+            areas = registry.enumerate_areas(dataset=dataset, year=year, geo_token=geo_token, parent_geo=parent)
 
             if not areas:
                 return f"No areas found for {geo_token}"

@@ -59,10 +59,7 @@ def comparison_metrics_node(state: CensusState, config: RunnableConfig) -> dict[
     request = ComparisonMetricComputeRequest(plan=comparison_plan, rows=rows)
     metric_rows = compute_comparison_metrics(request)
     metrics_artifact = ComparisonMetricsArtifact(
-        rows=[
-            ComparisonMetricArtifactRow.model_validate(row.model_dump())
-            for row in metric_rows
-        ]
+        rows=[ComparisonMetricArtifactRow.model_validate(row.model_dump()) for row in metric_rows]
     )
 
     return CensusGraphPatch(

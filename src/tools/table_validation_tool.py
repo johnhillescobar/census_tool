@@ -4,8 +4,8 @@ import logging
 from langchain_core.tools import BaseTool
 from pydantic import BaseModel, ConfigDict, Field
 
-from src.services.dataset_geography_validator import geography_supported
 from src.clients import record_event
+from src.services.dataset_geography_validator import geography_supported
 from src.tools.json_parse import parse_first_json
 
 logger = logging.getLogger(__name__)
@@ -43,11 +43,7 @@ class TableValidationTool(BaseTool):
         """Validate table supports geography level"""
 
         try:
-            params = (
-                parse_first_json(tool_input)
-                if isinstance(tool_input, str)
-                else tool_input
-            )
+            params = parse_first_json(tool_input) if isinstance(tool_input, str) else tool_input
         except json.JSONDecodeError as e:
             return f"Error: Invalid JSON input - {e}"
 

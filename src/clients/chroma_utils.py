@@ -4,18 +4,18 @@ Chroma database utilities for Census variable retrieval
 
 import json
 import logging
+from collections.abc import Iterable
 from functools import lru_cache
-from typing import Dict, Iterable, List, Optional, Tuple, Union
 
 import chromadb
 from chromadb.api import ClientAPI
 from chromadb.config import Settings
 
 from config import (
-    CHROMA_PERSIST_DIRECTORY,
     CHROMA_COLLECTION_NAME,
-    CHROMA_TABLE_COLLECTION_NAME,
     CHROMA_GEOGRAPHY_HIERARCHY_COLLECTION_NAME,
+    CHROMA_PERSIST_DIRECTORY,
+    CHROMA_TABLE_COLLECTION_NAME,
 )
 
 logger = logging.getLogger(__name__)
@@ -29,12 +29,10 @@ _GEO_TOKEN_CANONICAL = {
 }
 
 
-def initialize_chroma_client() -> Union[ClientAPI, Dict[str, Union[str, List[str]]]]:
+def initialize_chroma_client() -> ClientAPI | dict[str, str | list[str]]:
     """Initialize and return Chroma client"""
     try:
-        client = chromadb.PersistentClient(
-            path=CHROMA_PERSIST_DIRECTORY, settings=Settings(anonymized_telemetry=False)
-        )
+        client = chromadb.PersistentClient(path=CHROMA_PERSIST_DIRECTORY, settings=Settings(anonymized_telemetry=False))
 
     except Exception as e:
         logger.error(f"Failed to connect to Chroma: {e}")
@@ -48,7 +46,7 @@ def initialize_chroma_client() -> Union[ClientAPI, Dict[str, Union[str, List[str
 
 def get_chroma_collection_variables(
     client: ClientAPI,
-) -> Union[chromadb.Collection, Dict[str, Union[str, List[str]]]]:
+) -> chromadb.Collection | dict[str, str | list[str]]:
     """Get the census variables collection"""
     # Implementation here
     try:
@@ -64,7 +62,7 @@ def get_chroma_collection_variables(
 
 def get_chroma_collection_tables(
     client: ClientAPI,
-) -> Union[chromadb.Collection, Dict[str, Union[str, List[str]]]]:
+) -> chromadb.Collection | dict[str, str | list[str]]:
     """Get the census tables collection"""
     try:
         collection = client.get_collection(CHROMA_TABLE_COLLECTION_NAME)
@@ -85,7 +83,7 @@ def _normalize_geo_token(token: str) -> str:
 
 
 @lru_cache(maxsize=512)
-def get_hierarchy_ordering(dataset: str, year: int, for_level: str) -> List[str]:
+def get_hierarchy_ordering(dataset: str, year: int, for_level: str) -> list[str]:
     """
     Return the expected parent ordering for `for_level` given dataset/year.
     Looks up the census_geography_hierarchies Chroma collection.
@@ -132,12 +130,12 @@ def get_hierarchy_ordering(dataset: str, year: int, for_level: str) -> List[str]
 def validate_and_fix_geo_params(
     dataset: str,
     year: int,
-    geo_for: Dict[str, str],
-    geo_in: Optional[Dict[str, str]] = None,
+    geo_for: dict[str, str],
+    geo_in: dict[str, str] | None = None,
     *,
-    extra_in: Optional[Iterable[Tuple[str, str]]] = None,
+    extra_in: Iterable[tuple[str, str]] | None = None,
     validate_completeness: bool = False,
-) -> Tuple[str, str, List[Tuple[str, str]]]:
+) -> tuple[str, str, list[tuple[str, str]]]:
     """
     Normalize geo_for/geo_in into a canonical (for_token, for_value, ordered_in list).
 
@@ -164,32 +162,24 @@ def validate_and_fix_geo_params(
     if not geo_for:
         raise ValueError("geo_for is required")
 
-    normalized_for_items = [
-        (_normalize_geo_token(k), str(v).strip()) for k, v in geo_for.items()
-    ]
+    normalized_for_items = [(_normalize_geo_token(k), str(v).strip()) for k, v in geo_for.items()]
     # target level is the most granular entry (last given)
     for_token, for_value = normalized_for_items[-1]
     parent_pairs = normalized_for_items[:-1]
 
     normalized_in = []
     if geo_in:
-        normalized_in.extend(
-            (_normalize_geo_token(k), str(v).strip()) for k, v in geo_in.items()
-        )
+        normalized_in.extend((_normalize_geo_token(k), str(v).strip()) for k, v in geo_in.items())
     if extra_in:
-        normalized_in.extend(
-            (_normalize_geo_token(k), str(v).strip()) for k, v in extra_in
-        )
+        normalized_in.extend((_normalize_geo_token(k), str(v).strip()) for k, v in extra_in)
     # Add parents we removed from geo_for
     normalized_in.extend(parent_pairs)
 
     # Determine ordering
-    ordering = get_hierarchy_ordering(dataset, year, for_token) or [
-        token for token, _ in normalized_in
-    ]
+    ordering = get_hierarchy_ordering(dataset, year, for_token) or [token for token, _ in normalized_in]
     ordering_index = {token: idx for idx, token in enumerate(ordering)}
 
-    def sort_key(pair: Tuple[str, str]) -> Tuple[int, str]:
+    def sort_key(pair: tuple[str, str]) -> tuple[int, str]:
         token = pair[0]
         return (ordering_index.get(token, len(ordering_index)), token)
 
@@ -204,9 +194,7 @@ def validate_and_fix_geo_params(
     # Optional validation of hierarchy completeness
     if validate_completeness:
         provided_parents = [token for token, _ in ordered_in]
-        is_valid, missing, error_msg = validate_geography_hierarchy(
-            dataset, year, for_token, provided_parents
-        )
+        is_valid, missing, error_msg = validate_geography_hierarchy(dataset, year, for_token, provided_parents)
         if not is_valid:
             raise ValueError(error_msg)
 
@@ -217,8 +205,8 @@ def validate_geography_hierarchy(
     dataset: str,
     year: int,
     for_token: str,
-    provided_parents: List[str],
-) -> Tuple[bool, List[str], str]:
+    provided_parents: list[str],
+) -> tuple[bool, list[str], str]:
     """
     Validate that all required parent geographies are provided.
 
@@ -242,9 +230,7 @@ def validate_geography_hierarchy(
 
     if not ordering:
         # No hierarchy information available - assume valid
-        logger.debug(
-            f"No hierarchy ordering found for {dataset}/{year}/{for_token}, skipping validation"
-        )
+        logger.debug(f"No hierarchy ordering found for {dataset}/{year}/{for_token}, skipping validation")
         return (True, [], "")
 
     # Check if all required parents are provided
@@ -253,21 +239,16 @@ def validate_geography_hierarchy(
     missing = required_set - provided_set
 
     if missing:
-        missing_list = sorted(
-            missing, key=lambda x: ordering.index(x) if x in ordering else 999
-        )
+        missing_list = sorted(missing, key=lambda x: ordering.index(x) if x in ordering else 999)
         error_msg = (
-            f"Missing required parent geography: {', '.join(missing_list)}. "
-            f"For '{for_token}', you must specify: {ordering}"
+            f"Missing required parent geography: {', '.join(missing_list)}. For '{for_token}', you must specify: {ordering}"
         )
 
         # Try to get example URL from metadata
         client = initialize_chroma_client()
         if not isinstance(client, dict):
             try:
-                collection = client.get_collection(
-                    CHROMA_GEOGRAPHY_HIERARCHY_COLLECTION_NAME
-                )
+                collection = client.get_collection(CHROMA_GEOGRAPHY_HIERARCHY_COLLECTION_NAME)
                 result = collection.get(
                     where={
                         "$and": [

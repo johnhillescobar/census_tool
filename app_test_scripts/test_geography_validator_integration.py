@@ -4,6 +4,7 @@ These are slower but catch real-world failures.
 """
 
 import pytest
+
 from src.services.dataset_geography_validator import (
     fetch_dataset_geography_levels,
     geography_supported,
@@ -16,9 +17,7 @@ def test_fetch_real_geography_levels_acs5_2023():
     levels = fetch_dataset_geography_levels("acs/acs5", 2023, force_refresh=True)
 
     # Should find common levels
-    assert "state" in levels or len(levels) == 0, (
-        "Either parser works or returns empty (expected current behavior)"
-    )
+    assert "state" in levels or len(levels) == 0, "Either parser works or returns empty (expected current behavior)"
 
     # Document current state
     if len(levels) == 0:

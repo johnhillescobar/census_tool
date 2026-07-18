@@ -11,8 +11,8 @@ Examples:
 
 import logging
 import re
-from typing import Dict, Any, Optional
 from dataclasses import dataclass
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +23,7 @@ class EnumerationRequest:
 
     needs_enumeration: bool
     summary_level: str  # "county", "place", "tract", etc.
-    parent_geography: Optional[Dict[str, str]] = None  # e.g., {"state": "06"}
+    parent_geography: dict[str, str] | None = None  # e.g., {"state": "06"}
     confidence: float = 0.0
     reason: str = ""
 
@@ -89,13 +89,9 @@ class EnumerationDetector:
     }
 
     def __init__(self):
-        self.patterns = [
-            re.compile(pattern, re.IGNORECASE) for pattern in self.ENUMERATION_KEYWORDS
-        ]
+        self.patterns = [re.compile(pattern, re.IGNORECASE) for pattern in self.ENUMERATION_KEYWORDS]
 
-    def detect(
-        self, query: str, intent: Optional[Dict[str, Any]] = None
-    ) -> EnumerationRequest:
+    def detect(self, query: str, intent: dict[str, Any] | None = None) -> EnumerationRequest:
         """
         Detect if query needs enumeration
 
@@ -113,11 +109,7 @@ class EnumerationDetector:
             match = pattern.search(query_lower)
             if match:
                 # Extract the geography level mentioned
-                geography_level = (
-                    match.group(1)
-                    if (match.lastindex is not None and match.lastindex >= 1)
-                    else None
-                )
+                geography_level = match.group(1) if (match.lastindex is not None and match.lastindex >= 1) else None
 
                 if geography_level:
                     # Normalize the geography level
@@ -127,9 +119,7 @@ class EnumerationDetector:
                     parent_geo = self._extract_parent_geography(query_lower)
 
                     if normalized_level:
-                        logger.info(
-                            f"Enumeration detected: {normalized_level} in {parent_geo}"
-                        )
+                        logger.info(f"Enumeration detected: {normalized_level} in {parent_geo}")
                         return EnumerationRequest(
                             needs_enumeration=True,
                             summary_level=normalized_level,
@@ -147,12 +137,12 @@ class EnumerationDetector:
             reason="No enumeration keywords found",
         )
 
-    def _normalize_geography_level(self, level: str) -> Optional[str]:
+    def _normalize_geography_level(self, level: str) -> str | None:
         """Normalize geography level name to Census API format"""
         level_lower = level.lower().strip()
         return self.GEOGRAPHY_LEVEL_MAP.get(level_lower)
 
-    def _extract_parent_geography(self, query: str) -> Optional[Dict[str, str]]:
+    def _extract_parent_geography(self, query: str) -> dict[str, str] | None:
         """
         Extract parent geography from query
 
@@ -179,7 +169,7 @@ class EnumerationDetector:
 
         return None
 
-    def build_enumeration_filters(self, request: EnumerationRequest) -> Dict[str, Any]:
+    def build_enumeration_filters(self, request: EnumerationRequest) -> dict[str, Any]:
         """
         Build Census API filters for enumeration
 
@@ -192,7 +182,7 @@ class EnumerationDetector:
             return {"filters": {}, "geo_for": {}, "geo_in": {}}
 
         filters = {"for": f"{request.summary_level}:*"}
-        geo_in_dict: Dict[str, str] = {}
+        geo_in_dict: dict[str, str] = {}
 
         if request.parent_geography:
             in_parts = []
@@ -210,9 +200,7 @@ class EnumerationDetector:
         }
 
 
-def detect_and_build_enumeration(
-    query: str, intent: Optional[Dict[str, Any]] = None
-) -> Optional[Dict[str, Any]]:
+def detect_and_build_enumeration(query: str, intent: dict[str, Any] | None = None) -> dict[str, Any] | None:
     """
     Convenience function: Detect enumeration and build filters
 

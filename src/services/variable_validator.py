@@ -6,17 +6,18 @@ with live variables.json fallback.
 from __future__ import annotations
 
 import logging
+from collections.abc import Iterable
 from functools import lru_cache
-from typing import Dict, Iterable, List, Optional, Tuple, TypedDict, cast
+from typing import TypedDict, cast
 
 import requests
 from chromadb.types import Where
 
+from src.clients import record_event
 from src.clients.chroma_utils import (
     get_chroma_collection_variables,
     initialize_chroma_client,
 )
-from src.clients import record_event
 
 logger = logging.getLogger(__name__)
 
@@ -29,13 +30,13 @@ class VariableValidationError(RuntimeError):
 
 
 class VariableValidationResult(TypedDict):
-    valid: List[str]
-    invalid: List[str]
-    years_available: Dict[str, List[str]]
-    details: Dict[str, Dict[str, str]]
-    alternatives: Dict[str, List[str]]
-    source: Dict[str, str]
-    warnings: List[str]
+    valid: list[str]
+    invalid: list[str]
+    years_available: dict[str, list[str]]
+    details: dict[str, dict[str, str]]
+    alternatives: dict[str, list[str]]
+    source: dict[str, str]
+    warnings: list[str]
 
 
 class VariableListItem(TypedDict):
@@ -49,10 +50,10 @@ class VariableListResponse(TypedDict):
     dataset: str
     year: int
     count: int
-    variables: List[VariableListItem]
+    variables: list[VariableListItem]
 
 
-def _split_years(years_value: Optional[str]) -> List[str]:
+def _split_years(years_value: str | None) -> list[str]:
     if not years_value:
         return []
     if isinstance(years_value, (list, tuple)):
@@ -67,7 +68,7 @@ def _table_prefix(variable: str) -> str:
 
 
 @lru_cache(maxsize=32)
-def _fetch_variables_json(dataset: str, year: int) -> Dict[str, Dict]:
+def _fetch_variables_json(dataset: str, year: int) -> dict[str, dict]:
     """
     Fetch the live variables.json catalog for the given dataset/year.
     Results are cached via lru_cache.
@@ -93,7 +94,7 @@ def _score_candidate(
     target_concept: str,
     target_label: str,
     candidate_name: str,
-    candidate_meta: Dict,
+    candidate_meta: dict,
 ) -> int:
     score = 0
     candidate_prefix = _table_prefix(candidate_name)
@@ -113,17 +114,17 @@ def _score_candidate(
 
 def _suggest_alternatives(
     variable: str,
-    target_meta: Optional[Dict],
-    catalog: Dict[str, Dict],
+    target_meta: dict | None,
+    catalog: dict[str, dict],
     max_results: int = 5,
-) -> List[str]:
+) -> list[str]:
     target_prefix = _table_prefix(variable)
     target_concept = (target_meta or {}).get("concept", "")
     target_label = (target_meta or {}).get("label", "")
     target_concept_lower = target_concept.strip().lower()
     target_label_lower = target_label.strip().lower()
 
-    scored: List[Tuple[int, str]] = []
+    scored: list[tuple[int, str]] = []
     for candidate_name, candidate_meta in catalog.items():
         if candidate_name == variable:
             continue
@@ -142,11 +143,7 @@ def _suggest_alternatives(
         return [name for _, name in scored[:max_results]]
 
     prefix_stub = target_prefix[:3]
-    fallback = [
-        name
-        for name in sorted(catalog.keys())
-        if name != variable and name.startswith(prefix_stub)
-    ]
+    fallback = [name for name in sorted(catalog.keys()) if name != variable and name.startswith(prefix_stub)]
     if fallback:
         return fallback[:max_results]
 
@@ -154,7 +151,7 @@ def _suggest_alternatives(
     return remaining[:max_results]
 
 
-def _normalize_variable_payload(metadata: Dict) -> Dict[str, str]:
+def _normalize_variable_payload(metadata: dict) -> dict[str, str]:
     def _str(v: object) -> str:
         return str(v) if v is not None else ""
 
@@ -170,9 +167,7 @@ def _is_builtin_variable(variable: str) -> bool:
     return variable.upper() in _BUILTIN_VARIABLES
 
 
-def validate_variables(
-    dataset: str, year: int, variables: Iterable[str]
-) -> VariableValidationResult:
+def validate_variables(dataset: str, year: int, variables: Iterable[str]) -> VariableValidationResult:
     """
     Validate Census API variables against stored metadata with live fallback.
     Returns:
@@ -211,15 +206,11 @@ def validate_variables(
     else:
         collection_candidate = get_chroma_collection_variables(client)
         if isinstance(collection_candidate, dict):
-            result["warnings"].append(
-                collection_candidate.get(
-                    "error", "Chroma variables collection unavailable."
-                )
-            )
+            result["warnings"].append(collection_candidate.get("error", "Chroma variables collection unavailable."))
         else:
             collection = collection_candidate
 
-    metadata_map: Dict[str, Dict] = {}
+    metadata_map: dict[str, dict] = {}
     if collection is not None:
         try:
             response = collection.get(
@@ -243,7 +234,7 @@ def validate_variables(
             logger.error(warning)
             result["warnings"].append(warning)
 
-    pending_live_lookup: List[str] = []
+    pending_live_lookup: list[str] = []
 
     for var in variables:
         metadata = metadata_map.get(var)
@@ -260,7 +251,7 @@ def validate_variables(
         # Collect for live lookup
         pending_live_lookup.append(var)
 
-    live_catalog: Dict[str, Dict] = {}
+    live_catalog: dict[str, dict] = {}
     if pending_live_lookup:
         try:
             live_catalog = _fetch_variables_json(dataset, year)
@@ -282,9 +273,7 @@ def validate_variables(
         if _is_builtin_variable(var):
             result["valid"].append(var)
             result["source"][var] = "builtin"
-            result["years_available"][var] = sorted(
-                set(result["years_available"].get(var, []) + [year_str])
-            )
+            result["years_available"][var] = sorted(set(result["years_available"].get(var, []) + [year_str]))
             result["details"][var] = {
                 "concept": "Geography Name",
                 "label": "Geography Name",
@@ -297,9 +286,7 @@ def validate_variables(
             metadata = metadata_map.get(var, live_catalog[var])
             result["valid"].append(var)
             result["source"][var] = "live"
-            result["years_available"][var] = sorted(
-                set(result["years_available"].get(var, []) + [year_str])
-            )
+            result["years_available"][var] = sorted(set(result["years_available"].get(var, []) + [year_str]))
             result["details"][var] = _normalize_variable_payload(metadata)
         else:
             result["invalid"].append(var)
@@ -327,8 +314,8 @@ def validate_variables(
 def list_variables(
     dataset: str,
     year: int,
-    table_code: Optional[str] = None,
-    concept: Optional[str] = None,
+    table_code: str | None = None,
+    concept: str | None = None,
     limit: int = 20,
 ) -> VariableListResponse:
     """
@@ -340,7 +327,7 @@ def list_variables(
     table_prefix = table_code.strip() if table_code else None
     concept_lower = concept.lower() if concept else None
 
-    matches: List[Tuple[str, Dict]] = []
+    matches: list[tuple[str, dict]] = []
     for name, meta in catalog.items():
         if table_prefix and _table_prefix(name) != table_prefix:
             continue

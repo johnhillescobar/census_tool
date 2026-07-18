@@ -8,6 +8,7 @@ from types import SimpleNamespace
 
 import pytest
 
+from app_test_scripts.test_runtime_helpers import mock_agent_backend
 from src.agents.census_query_agent import CensusQueryAgent
 from src.domain.census_tool_contract import (
     StrictCensusApiRecord,
@@ -66,11 +67,7 @@ class TestAgentParsing:
                 geo_for={"state": "06"},
             ),
             headers=["NAME", "B01003_001E"],
-            records=[
-                StrictCensusApiRecord(
-                    values={"NAME": "California", "B01003_001E": "39538223"}
-                )
-            ],
+            records=[StrictCensusApiRecord(values={"NAME": "California", "B01003_001E": "39538223"})],
             row_count=1,
             error=None,
             error_message=None,
@@ -99,9 +96,7 @@ class TestAgentParsing:
             ["NAME", "B01003_001E"],
             ["California", "39538223"],
         ]
-        assert parsed["census_data"]["url"] == (
-            "https://api.census.gov/data/2023/acs/acs5"
-        )
+        assert parsed["census_data"]["url"] == ("https://api.census.gov/data/2023/acs/acs5")
 
     def test_parse_with_final_answer_prefix(self):
         """Test extraction after 'Final Answer:' marker."""
@@ -131,18 +126,14 @@ class TestAgentParsing:
         """Test parsing with large nested arrays (67 counties × 100 variables)."""
         # Simulate large CP03 response
         headers = ["NAME"] + [f"CP03_{i:03d}E" for i in range(100)]
-        data = [headers] + [
-            [f"County {i}"] + [str(j * i) for j in range(100)] for i in range(67)
-        ]
+        data = [headers] + [[f"County {i}"] + [str(j * i) for j in range(100)] for i in range(67)]
         large_json = {
             "census_data": {"success": True, "data": data},
             "data_summary": "Large dataset with 67 counties and 100 variables",
             "reasoning_trace": "Retrieved all CP03 data for Florida counties",
             "answer_text": "Here's the complete economic profile for 67 Florida counties",
             "charts_needed": [],
-            "tables_needed": [
-                {"format": "csv", "title": "Florida Counties Economic Data"}
-            ],
+            "tables_needed": [{"format": "csv", "title": "Florida Counties Economic Data"}],
             "footnotes": ["Source: Census Bureau, 2023 ACS 5-Year Estimates"],
         }
         output = f"Final Answer: {json.dumps(large_json)}"
@@ -188,10 +179,7 @@ class TestAgentParsing:
 
         # Should fall back to canonical failure shape (success: False, data: [])
         assert parsed["census_data"] == {"success": False, "data": []}
-        assert (
-            parsed["answer_text"]
-            == "Agent execution completed but output parsing failed"
-        )
+        assert parsed["answer_text"] == "Agent execution completed but output parsing failed"
 
     def test_parse_with_nested_objects_in_data(self):
         """Test parsing data with nested objects and null values."""
@@ -285,8 +273,6 @@ Final Answer: {json.dumps(json_data)}"""
 
 class TestAgentPlanConsumption:
     def test_solve_injects_plan_directives_in_input(self):
-        from unittest.mock import MagicMock
-
         from src.domain.agent_plan_context import AgentPlanContext
         from src.domain.benchmark_contract import BenchmarkIntent
         from src.domain.comparison_plan import ComparisonPlan
@@ -330,12 +316,7 @@ class TestAgentPlanConsumption:
             has_comparison_plan=True,
         )
 
-        mock_executor = MagicMock()
-        mock_executor.invoke.return_value = {
-            "output": "",
-            "intermediate_steps": [],
-        }
-        agent.agent_executor = mock_executor
+        mock_backend = mock_agent_backend(agent, {"output": "", "intermediate_steps": []})
         agent.offline_mode = False
 
         agent.solve(
@@ -344,7 +325,7 @@ class TestAgentPlanConsumption:
             plan_context=plan_context,
         )
 
-        invoke_input = mock_executor.invoke.call_args[0][0]["input"]
+        invoke_input = mock_backend.invoke.call_args[0][0]
         assert "Planning artifacts (MUST follow these constraints):" in invoke_input
         assert "Query years: [2020]" in invoke_input
 

@@ -7,11 +7,11 @@ from io import StringIO
 from unittest.mock import patch
 
 from src.api.displays import (
-    display_results,
-    display_single_value,
-    display_series,
-    display_table,
     display_not_census,
+    display_results,
+    display_series,
+    display_single_value,
+    display_table,
 )
 
 
@@ -126,9 +126,7 @@ def test_display_not_census():
         output = fake_out.getvalue()
 
     # Assertions
-    assert "I can only help with Census data questions." in output, (
-        "Should display message"
-    )
+    assert "I can only help with Census data questions." in output, "Should display message"
     assert "Try asking about population" in output, "Should display suggestion"
 
     print("✅ display_not_census test passed!")

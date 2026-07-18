@@ -23,9 +23,7 @@ def test_find_area_code_uses_fuzzy_matching(monkeypatch):
         lambda dataset, year, geo_token, parent_geo: sample_areas,
     )
 
-    result = registry.find_area_code(
-        "Manhattan", "county", "acs/acs5", 2023, parent_geo={"state": "36"}
-    )
+    result = registry.find_area_code("Manhattan", "county", "acs/acs5", 2023, parent_geo={"state": "36"})
     assert result is not None
     assert result["code"] == "061"
     assert result["match_type"] in {"Exact match", "Fuzzy match"}

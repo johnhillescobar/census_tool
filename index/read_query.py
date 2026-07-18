@@ -1,8 +1,7 @@
-from typing import Dict, List
-import chromadb
 import logging
 import pprint
 
+import chromadb
 from dotenv import load_dotenv
 
 # Import configuration
@@ -14,9 +13,7 @@ from config import (
 load_dotenv()
 
 # Set up logging
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
 
@@ -25,9 +22,7 @@ class ChromaQuery:
 
     def __init__(self):
         try:
-            logger.info(
-                f"Initializing ChromaQuery with collection: {CHROMA_TABLE_COLLECTION_NAME}"
-            )
+            logger.info(f"Initializing ChromaQuery with collection: {CHROMA_TABLE_COLLECTION_NAME}")
             if not CHROMA_PERSIST_DIRECTORY:
                 raise ValueError("CHROMA_PERSIST_DIRECTORY not configured")
 
@@ -44,9 +39,7 @@ class ChromaQuery:
             logger.error(f"Error initializing ChromaQuery: {e}")
             raise
 
-    def read_query(
-        self, query: str, fallback_empty: bool = True, timeout: int = 30
-    ) -> List[Dict]:
+    def read_query(self, query: str, fallback_empty: bool = True, timeout: int = 30) -> list[dict]:
         """Read a query from the command line and return a list of dictionaries"""
 
         try:

@@ -60,9 +60,7 @@ def test_census_state_creation():
 
     # 1. Create CensusState with messages field
     state = CensusState(
-        messages=[
-            {"role": "user", "content": "What's the population of New York City?"}
-        ],
+        messages=[{"role": "user", "content": "What's the population of New York City?"}],
         original_query="What's the population of New York City?",
         intent=None,
         geo=None,
@@ -78,9 +76,7 @@ def test_census_state_creation():
         cache_index={},
     )
     # 2. Verify it works using attribute access
-    assert state.messages == [
-        {"role": "user", "content": "What's the population of New York City?"}
-    ]
+    assert state.messages == [{"role": "user", "content": "What's the population of New York City?"}]
     assert state.intent is None
     assert state.geo is None
     assert state.candidates == {}
@@ -126,9 +122,7 @@ def test_quit_functionality():
     non_quit_inputs = ["hello", "help", "continue", "yes", "no"]
     for test_input in non_quit_inputs:
         should_quit = test_input.lower() in ["quit", "exit", "q"]
-        assert not should_quit, (
-            f"'{test_input}' should NOT be recognized as quit command"
-        )
+        assert not should_quit, f"'{test_input}' should NOT be recognized as quit command"
 
     print("✅ Quit functionality test passed!")
 
@@ -140,9 +134,7 @@ def test_error_handling():
     # Test that CensusState handles invalid data gracefully
     try:
         CensusState(
-            messages=cast(
-                Any, "invalid"
-            ),  # Intentional wrong type for error-handling test
+            messages=cast(Any, "invalid"),  # Intentional wrong type for error-handling test
             original_query=None,
             intent=None,
             geo=None,
@@ -168,9 +160,7 @@ def test_error_handling():
     empty_inputs = ["", "   ", "\t", "\n"]
     for test_input in empty_inputs:
         should_process = bool(test_input.strip())
-        assert not should_process, (
-            f"Empty/whitespace input '{test_input}' should NOT trigger processing"
-        )
+        assert not should_process, f"Empty/whitespace input '{test_input}' should NOT trigger processing"
 
     # Test valid input handling
     valid_inputs = ["hello", "What's the population?", "help me"]
@@ -189,9 +179,7 @@ def test_import_resolution():
     assert hasattr(main, "main"), "main.py should have main function"
 
     # Test that app.py can be imported without errors
-    assert hasattr(create_census_graph, "__call__"), (
-        "create_census_graph should be callable"
-    )
+    assert hasattr(create_census_graph, "__call__"), "create_census_graph should be callable"
 
     # Test that CensusState can be imported
     assert CensusState is not None, "CensusState should be importable"
@@ -222,9 +210,7 @@ def test_census_state_field_types():
 
     # Test field types
     assert isinstance(state.messages, list), "messages should be a list"
-    assert state.geo is None or isinstance(state.geo, GeographyIntent), (
-        "geo should be None or GeographyIntent"
-    )
+    assert state.geo is None or isinstance(state.geo, GeographyIntent), "geo should be None or GeographyIntent"
     assert isinstance(state.logs, list), "logs should be a list"
     assert state.intent is None, "intent should be None"
     assert state.plan is None, "plan should be None"

@@ -1,4 +1,4 @@
-from typing import Annotated, Literal, Union
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, Field
 
@@ -22,7 +22,7 @@ class BenchmarkNotApplicable(BaseModel):
 
 
 BenchmarkPlanState = Annotated[
-    Union[BenchmarkResolution, BenchmarkNotApplicable],
+    BenchmarkResolution | BenchmarkNotApplicable,
     Field(discriminator="status"),
 ]
 

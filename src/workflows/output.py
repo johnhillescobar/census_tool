@@ -57,9 +57,7 @@ def format_chart_title(
         y_label = variables[y_column].strip()
         # Validate: empty string after strip means invalid label
         if not y_label:
-            logger.warning(
-                f"Variable '{y_column}' has empty label in variables dict - using code-only title"
-            )
+            logger.warning(f"Variable '{y_column}' has empty label in variables dict - using code-only title")
             y_label = None
 
     # Format y-axis part: use label with code in parentheses, or just code
@@ -84,9 +82,7 @@ def format_chart_title(
     return title
 
 
-def _detect_geography_column(
-    df: pd.DataFrame, headers: list, x_column: str | None = None
-) -> str | None:
+def _detect_geography_column(df: pd.DataFrame, headers: list, x_column: str | None = None) -> str | None:
     """
     Detect geography column with priority order (less granular first).
 
@@ -120,10 +116,7 @@ def _detect_geography_column(
         if header == x_column:
             continue  # Skip x_column
         header_lower = header.lower()
-        if any(
-            keyword in header_lower
-            for keyword in ["state", "county", "place", "name", "geo", "area", "region"]
-        ):
+        if any(keyword in header_lower for keyword in ["state", "county", "place", "name", "geo", "area", "region"]):
             return header
 
     return None
@@ -137,11 +130,7 @@ def get_chart_params(census_data: dict[str, Any], chart_type: str) -> dict[str, 
     """
     try:
         # Extract headers from data
-        if (
-            "data" in census_data
-            and isinstance(census_data["data"], list)
-            and len(census_data["data"]) >= 2
-        ):
+        if "data" in census_data and isinstance(census_data["data"], list) and len(census_data["data"]) >= 2:
             headers = census_data["data"][0]
         else:
             raise ValueError("Invalid census_data format")
@@ -168,10 +157,7 @@ def get_chart_params(census_data: dict[str, Any], chart_type: str) -> dict[str, 
             header_upper = header.upper()
 
             # Check for time columns
-            if any(
-                keyword in header_upper
-                for keyword in ["YEAR", "DATE", "TIME", "PERIOD"]
-            ):
+            if any(keyword in header_upper for keyword in ["YEAR", "DATE", "TIME", "PERIOD"]):
                 time_columns.append(header)
             # Check if numeric
             elif value.replace(".", "").replace("-", "").isdigit():
@@ -217,13 +203,9 @@ def get_chart_params(census_data: dict[str, Any], chart_type: str) -> dict[str, 
             if unique_geos > 1:
                 # Multi-series detected: use geography column for color grouping
                 color_column = geography_column
-                logger.info(
-                    f"Multi-series detected: {unique_geos} unique values in '{geography_column}' column"
-                )
+                logger.info(f"Multi-series detected: {unique_geos} unique values in '{geography_column}' column")
             else:
-                logger.info(
-                    f"Single geography detected: only 1 unique value in '{geography_column}' - no color grouping"
-                )
+                logger.info(f"Single geography detected: only 1 unique value in '{geography_column}' - no color grouping")
 
         # Generate title
         if chart_type in ["bar", "line"]:
@@ -232,22 +214,16 @@ def get_chart_params(census_data: dict[str, Any], chart_type: str) -> dict[str, 
 
             # Log if variables dict is missing (helps debug title formatting)
             if not variables:
-                logger.info(
-                    f"No variables dict provided in census_data - using code-only title for '{y_column}'"
-                )
+                logger.info(f"No variables dict provided in census_data - using code-only title for '{y_column}'")
 
             # For multi-series: exclude geography from title (legend will show it)
             # For single-series: include x_column in title as before
             if color_column:
                 # Multi-series: title should be "Variable by X" (geography in legend)
-                title = format_chart_title(
-                    y_column, x_column, chart_type, variables, multi_series=True
-                )
+                title = format_chart_title(y_column, x_column, chart_type, variables, multi_series=True)
             else:
                 # Single-series: original behavior
-                title = format_chart_title(
-                    y_column, x_column, chart_type, variables, multi_series=False
-                )
+                title = format_chart_title(y_column, x_column, chart_type, variables, multi_series=False)
         else:
             title = "Census Data Visualization"
 
@@ -301,46 +277,30 @@ def output_node(state: CensusState, config: RunnableConfig) -> dict[str, Any]:
         for chart_spec in charts_needed:
             try:
                 # Determine parameters
-                chart_params = get_chart_params(
-                    census_data, chart_spec.get("type", "bar")
-                )
+                chart_params = get_chart_params(census_data, chart_spec.get("type", "bar"))
 
                 logger.info("=== output_node Chart Generation ===")
                 logger.info(f"Chart type: {chart_spec.get('type', 'bar')}")
-                logger.info(
-                    f"Chart params: x={chart_params['x_column']}, y={chart_params['y_column']}"
-                )
+                logger.info(f"Chart params: x={chart_params['x_column']}, y={chart_params['y_column']}")
                 logger.info(f"Census data keys: {list(census_data.keys())}")
 
                 # Log data structure details
                 if "data" in census_data:
                     if isinstance(census_data["data"], list):
-                        logger.info(
-                            f"Data is list with {len(census_data['data'])} elements"
-                        )
+                        logger.info(f"Data is list with {len(census_data['data'])} elements")
                         if len(census_data["data"]) > 0:
                             logger.info(f"Data headers: {census_data['data'][0]}")
                             if len(census_data["data"]) > 1:
                                 logger.info(f"First data row: {census_data['data'][1]}")
                     elif isinstance(census_data["data"], dict):
-                        logger.info(
-                            f"Data is dict with keys: {list(census_data['data'].keys())}"
-                        )
+                        logger.info(f"Data is dict with keys: {list(census_data['data'].keys())}")
 
                 # Validate column names exist in data
-                if (
-                    "data" in census_data
-                    and isinstance(census_data["data"], list)
-                    and len(census_data["data"]) > 0
-                ):
+                if "data" in census_data and isinstance(census_data["data"], list) and len(census_data["data"]) > 0:
                     headers = census_data["data"][0]
                     logger.info("Checking if selected columns exist in headers...")
-                    logger.info(
-                        f"  x_column '{chart_params['x_column']}' in headers: {chart_params['x_column'] in headers}"
-                    )
-                    logger.info(
-                        f"  y_column '{chart_params['y_column']}' in headers: {chart_params['y_column'] in headers}"
-                    )
+                    logger.info(f"  x_column '{chart_params['x_column']}' in headers: {chart_params['x_column'] in headers}")
+                    logger.info(f"  y_column '{chart_params['y_column']}' in headers: {chart_params['y_column'] in headers}")
 
                 logger.info("=== Calling ChartTool ===\n")
 

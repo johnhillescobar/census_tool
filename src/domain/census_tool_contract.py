@@ -36,12 +36,8 @@ class StrictCensusApiRequest(BaseModel):
     dataset: CensusDataset = Field(..., description="The dataset to query.")
     variables: list[str] = Field(..., description="The variables to query.")
     geo_for: dict[str, str] = Field(..., description="The geography for clause.")
-    geo_in: dict[str, str] | None = Field(
-        default=None, description="The geography in clause."
-    )
-    geo_in_chained: list[dict[str, str]] = Field(
-        default_factory=list, description="The geography in chained clause."
-    )
+    geo_in: dict[str, str] | None = Field(default=None, description="The geography in clause.")
+    geo_in_chained: list[dict[str, str]] = Field(default_factory=list, description="The geography in chained clause.")
 
     @field_validator("variables")
     def validate_variables(cls, v: list[str]) -> list[str]:
@@ -164,16 +160,10 @@ class StrictCensusApiResponse(BaseModel):
         description="The validated request that was made (None when schema parsing fails).",
     )
     headers: list[str] = Field(..., description="The headers of the table.")
-    records: list[StrictCensusApiRecord] = Field(
-        ..., description="The records of the table."
-    )
+    records: list[StrictCensusApiRecord] = Field(..., description="The records of the table.")
     row_count: int = Field(..., description="The number of rows in the table.")
-    error: StrictCensusApiErrorCode | None = Field(
-        default=None, description="The error code that occurred."
-    )
-    error_message: str | None = Field(
-        default=None, description="The error message that occurred."
-    )
+    error: StrictCensusApiErrorCode | None = Field(default=None, description="The error code that occurred.")
+    error_message: str | None = Field(default=None, description="The error message that occurred.")
 
     @model_validator(mode="after")
     def validate_success(self) -> "StrictCensusApiResponse":
@@ -185,9 +175,7 @@ class StrictCensusApiResponse(BaseModel):
             if self.error_message is not None:
                 raise ValueError("error_message must be None when success is True")
             if self.row_count != len(self.records):
-                raise ValueError(
-                    "row_count must equal len(records) when success is True"
-                )
+                raise ValueError("row_count must equal len(records) when success is True")
             if len(self.headers) == 0:
                 raise ValueError("headers must be non-empty when success is True")
             return self
@@ -196,9 +184,7 @@ class StrictCensusApiResponse(BaseModel):
         if self.error is None:
             raise ValueError("error is required when success is False")
         if self.error == "NO_STRICT_CENSUS_PAYLOAD" and self.request is not None:
-            raise ValueError(
-                "request must be None when error is NO_STRICT_CENSUS_PAYLOAD"
-            )
+            raise ValueError("request must be None when error is NO_STRICT_CENSUS_PAYLOAD")
         allow_missing_request = self.error in (
             "INVALID_INPUT_SCHEMA",
             "NO_STRICT_CENSUS_PAYLOAD",

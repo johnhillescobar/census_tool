@@ -1,6 +1,5 @@
 import json
 
-
 from src.clients import chroma_utils
 
 
@@ -27,9 +26,7 @@ def test_get_hierarchy_ordering_returns_normalized_order(monkeypatch):
             {"ordering_list": json.dumps(["state", "cbsa"])},
         ]
     }
-    monkeypatch.setattr(
-        chroma_utils, "initialize_chroma_client", lambda: DummyClient(payload)
-    )
+    monkeypatch.setattr(chroma_utils, "initialize_chroma_client", lambda: DummyClient(payload))
 
     ordering = chroma_utils.get_hierarchy_ordering("acs/acs5", 2023, "county")
 
@@ -43,9 +40,7 @@ def test_get_hierarchy_ordering_returns_normalized_order(monkeypatch):
 def test_get_hierarchy_ordering_handles_missing_metadata(monkeypatch):
     chroma_utils.get_hierarchy_ordering.cache_clear()
     payload = {"metadatas": []}
-    monkeypatch.setattr(
-        chroma_utils, "initialize_chroma_client", lambda: DummyClient(payload)
-    )
+    monkeypatch.setattr(chroma_utils, "initialize_chroma_client", lambda: DummyClient(payload))
 
     ordering = chroma_utils.get_hierarchy_ordering("acs/acs5", 2023, "county")
 

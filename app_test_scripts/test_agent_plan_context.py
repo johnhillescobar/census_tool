@@ -1,9 +1,9 @@
 import pytest
 
 from src.domain.agent_plan_context import AgentPlanContext
-from src.domain.geography_contract import GeographyIntent, GeographyResolved
 from src.domain.benchmark_contract import BenchmarkIntent, BenchmarkResolved
 from src.domain.comparison_plan import ComparisonPlan
+from src.domain.geography_contract import GeographyIntent, GeographyResolved
 from src.domain.temporal_contract import TemporalIntent, TemporalResolved
 from src.services.agent_plan_context import (
     build_agent_plan_context,

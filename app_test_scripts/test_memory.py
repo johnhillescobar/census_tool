@@ -3,14 +3,14 @@ Test script for memory_load_node
 """
 
 import logging
+
 from langchain_core.runnables import RunnableConfig
-from src.workflows.memory import memory_load_node
+
 from src.state.types import CensusState
+from src.workflows.memory import memory_load_node
 
 # Set up logging
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
 
 # Test the memory_load_node
@@ -35,9 +35,7 @@ def test_memory_load_node():
     )
 
     # Test config - FIXED: user_id should be nested under "configurable"
-    config: RunnableConfig = {
-        "configurable": {"user_id": "test_user", "thread_id": "test_thread"}
-    }
+    config: RunnableConfig = {"configurable": {"user_id": "test_user", "thread_id": "test_thread"}}
 
     # Test the function
     result = memory_load_node(state, config)

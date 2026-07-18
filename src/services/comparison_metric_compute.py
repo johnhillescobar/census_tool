@@ -28,21 +28,13 @@ class ComparisonMetricRow(BaseModel):
     year: int = Field(..., description="The year of the metric.")
     geo_id: str = Field(..., description="The geo_id of the metric.")
     metric: str = Field(..., description="The metric of the metric.")
-    derived_metric: DerivedMetric = Field(
-        ..., description="The derived metric of the metric."
-    )
+    derived_metric: DerivedMetric = Field(..., description="The derived metric of the metric.")
     value: float | None = Field(default=None, description="The value of the metric.")
-    subject_value: float | None = Field(
-        default=None, description="The subject value of the metric."
-    )
-    benchmark_value: float | None = Field(
-        default=None, description="The benchmark value of the metric."
-    )
+    subject_value: float | None = Field(default=None, description="The subject value of the metric.")
+    benchmark_value: float | None = Field(default=None, description="The benchmark value of the metric.")
     note: str | None = Field(None, description="The note of the metric.")
     error: str | None = Field(None, description="The error of the metric.")
-    success: bool = Field(
-        default=True, description="Whether the metric computation was successful."
-    )
+    success: bool = Field(default=True, description="Whether the metric computation was successful.")
 
 
 def _sorted_rows(rows: list[ComparisonInputRow]) -> list[ComparisonInputRow]:
@@ -54,9 +46,7 @@ def _compute_difference(subject_value: float, benchmark_value: float) -> float:
     return subject_value - benchmark_value
 
 
-def _compute_pct_difference(
-    subject_value: float, benchmark_value: float
-) -> float | None:
+def _compute_pct_difference(subject_value: float, benchmark_value: float) -> float | None:
     if benchmark_value == 0:
         return None
     return ((subject_value - benchmark_value) / benchmark_value) * 100.0
@@ -70,16 +60,12 @@ def _build_rank_map(
 ) -> dict[tuple[int, str, str], int]:
     if not dataset or not geo_level:
         return {}
-    by_group: dict[tuple[int, str, str, str], list[ComparisonInputRow]] = defaultdict(
-        list
-    )
+    by_group: dict[tuple[int, str, str, str], list[ComparisonInputRow]] = defaultdict(list)
     for r in rows:
         by_group[(r.year, r.metric, dataset, geo_level)].append(r)
     output: dict[tuple[int, str, str], int] = {}
     for _, group_rows in by_group.items():
-        ordered = sorted(
-            group_rows, key=lambda x: (-x.value, x.geo_id)
-        )  # deterministic
+        ordered = sorted(group_rows, key=lambda x: (-x.value, x.geo_id))  # deterministic
         current_rank = 0
         prev_value: float | None = None
         for row in ordered:
@@ -113,9 +99,7 @@ def _build_percentile_map(
 
         for group_row in group_rows:
             le_count = sum(1 for v in values if v <= group_row.value)
-            output[(group_row.year, group_row.geo_id, group_row.metric)] = (
-                100 * (le_count / n) if n > 0 else 0.0
-            )
+            output[(group_row.year, group_row.geo_id, group_row.metric)] = 100 * (le_count / n) if n > 0 else 0.0
 
     return output
 
@@ -135,9 +119,7 @@ def _build_trend_gap_map(
     for row in rows:
         by_series[(row.geo_id, row.metric)].append(row)
 
-    output: dict[
-        tuple[int, str, str], tuple[float | None, str | None, str | None, bool]
-    ] = {}
+    output: dict[tuple[int, str, str], tuple[float | None, str | None, str | None, bool]] = {}
 
     for (geo_id, metric), series_rows in by_series.items():
         ordered_rows = sorted(series_rows, key=lambda x: x.year)
@@ -188,9 +170,7 @@ def compute_comparison_metrics(
     # 2) enforce join-key contract for this deterministic compute boundary
     expected_join_keys = {"year", "geo_id"}
     if set(request.plan.join_keys) != expected_join_keys:
-        raise ValueError(
-            "join_keys must be exactly ['year', 'geo_id'] for metric compute"
-        )
+        raise ValueError("join_keys must be exactly ['year', 'geo_id'] for metric compute")
 
     # 3) row-level fail-closed validation against plan scope
     allowed_years = set(request.plan.query_years)
@@ -201,10 +181,7 @@ def compute_comparison_metrics(
             raise ValueError("row metric does not match plan.metric")
         if row.year not in allowed_years:
             raise ValueError("row year is outside plan.query_years")
-        if (
-            not plan_uses_placeholder_geos(request.plan)
-            and row.geo_id not in allowed_subject_geos
-        ):
+        if not plan_uses_placeholder_geos(request.plan) and row.geo_id not in allowed_subject_geos:
             raise ValueError("row geo_id is outside plan.subject_geos")
 
     # 4) deterministic row ordering (input) and build input maps
@@ -261,9 +238,7 @@ def compute_comparison_metrics(
                     note = "percentile value not found"
 
             elif derived_metric == "trend_gap":
-                tg_value, tg_note, tg_error, tg_success = trend_gap_map.get(
-                    key, (None, None, "MISSING_SERIES_CONTEXT", False)
-                )
+                tg_value, tg_note, tg_error, tg_success = trend_gap_map.get(key, (None, None, "MISSING_SERIES_CONTEXT", False))
                 value = tg_value
                 note = tg_note
                 error = tg_error

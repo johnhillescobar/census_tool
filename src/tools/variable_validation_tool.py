@@ -1,6 +1,5 @@
 import json
 import logging
-from typing import Optional
 
 from langchain_core.tools import BaseTool
 from pydantic import BaseModel, ConfigDict, Field
@@ -18,21 +17,19 @@ class VariableValidationInput(BaseModel):
     )
     dataset: str = Field(..., description="Dataset path such as acs/acs5")
     year: int = Field(..., description="Census year")
-    variables: Optional[list[str]] = Field(
+    variables: list[str] | None = Field(
         default=None,
         description="Variables to validate (required for validate_variables)",
     )
-    table_code: Optional[str] = Field(
+    table_code: str | None = Field(
         default=None,
         description="Optional table code prefix (e.g., B01003) when listing variables",
     )
-    concept: Optional[str] = Field(
+    concept: str | None = Field(
         default=None,
         description="Optional concept filter when listing variables",
     )
-    limit: Optional[int] = Field(
-        default=20, description="Maximum number of variables to return for list action"
-    )
+    limit: int | None = Field(default=20, description="Maximum number of variables to return for list action")
 
 
 class VariableValidationTool(BaseTool):
@@ -58,11 +55,7 @@ class VariableValidationTool(BaseTool):
 
     def _run(self, tool_input: str) -> str:
         try:
-            params = (
-                parse_first_json(tool_input)
-                if isinstance(tool_input, str)
-                else tool_input
-            )
+            params = parse_first_json(tool_input) if isinstance(tool_input, str) else tool_input
         except json.JSONDecodeError as exc:
             return f"Error: Invalid JSON input - {exc}"
 

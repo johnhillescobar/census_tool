@@ -48,10 +48,7 @@ def compute_presentation_routing(state: CensusState) -> PresentationRouting:
     headers = _headers_from_legacy_census_data(census_data)
     row_count = _row_count_from_legacy_census_data(census_data)
     charts_needed = final.get("charts_needed", [])
-    line_requested = any(
-        isinstance(chart, dict) and chart.get("type") == "line"
-        for chart in charts_needed
-    )
+    line_requested = any(isinstance(chart, dict) and chart.get("type") == "line" for chart in charts_needed)
 
     if row_count <= 1 and not _has_yearish_columns(headers) and not line_requested:
         return PresentationRouting(

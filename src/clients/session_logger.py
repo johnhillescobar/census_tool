@@ -72,9 +72,7 @@ class SessionLogger:
         sys.stdout = self.stdout_logger
 
         # Create file handler for logging module
-        self.file_handler = logging.FileHandler(
-            self.log_file, mode="a", encoding="utf-8"
-        )
+        self.file_handler = logging.FileHandler(self.log_file, mode="a", encoding="utf-8")
         self.file_handler.setLevel(logging.DEBUG)
 
         # Format: timestamp - level - logger - message

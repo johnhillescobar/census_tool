@@ -57,13 +57,9 @@ def display_results(result: dict[str, Any]):
         for i, file_info in enumerate(generated_files, 1):
             if isinstance(file_info, dict):
                 if file_info.get("status") == "success":
-                    file_info = artifact_to_display_text(
-                        RenderedArtifactSuccess.model_validate(file_info)
-                    )
+                    file_info = artifact_to_display_text(RenderedArtifactSuccess.model_validate(file_info))
                 elif file_info.get("status") == "failure":
-                    file_info = artifact_to_display_text(
-                        RenderedArtifactFailure.model_validate(file_info)
-                    )
+                    file_info = artifact_to_display_text(RenderedArtifactFailure.model_validate(file_info))
             print(f"  {i}. {file_info}")
 
     # Phase 3: Display charts/tables that were requested

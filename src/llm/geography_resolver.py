@@ -1,11 +1,9 @@
 import logging
-from typing import Optional
-from dotenv import load_dotenv
-from pydantic import BaseModel, Field
 
+from dotenv import load_dotenv
 from langchain_core.output_parsers import PydanticOutputParser
 from langchain_core.prompts import PromptTemplate
-
+from pydantic import BaseModel, Field
 
 from src.llm.config import LLM_CONFIG
 from src.llm.factory import create_llm
@@ -22,16 +20,12 @@ class GeographyResolution(BaseModel):
     "Structured output for geography resolution"
 
     place_name: str = Field(..., description="The standardized place name")
-    state: Optional[str] = Field(
-        ..., description="State name or abbreviation if specified"
-    )
-    state_fips: Optional[str] = Field(..., description="State FIPS code if resolvable")
-    place_fips: Optional[str] = Field(..., description="Place FIPS code if resolvable")
+    state: str | None = Field(..., description="State name or abbreviation if specified")
+    state_fips: str | None = Field(..., description="State FIPS code if resolvable")
+    place_fips: str | None = Field(..., description="Place FIPS code if resolvable")
     confidence: float = Field(..., description="Confidence score between 0-1")
     resolution_method: str = Field(..., description="Method used to resolve geography")
-    notes: Optional[str] = Field(
-        ..., description="Additional notes about the resolution"
-    )
+    notes: str | None = Field(..., description="Additional notes about the resolution")
 
 
 class LLMGeographyResolver:
@@ -82,9 +76,7 @@ class LLMGeographyResolver:
             {format_instructions}
             """,
             input_variables=["location_input"],
-            partial_variables={
-                "format_instructions": self.parser.get_format_instructions()
-            },
+            partial_variables={"format_instructions": self.parser.get_format_instructions()},
         )
 
         # Create the chain (fixed syntax)
@@ -118,9 +110,7 @@ class LLMGeographyResolver:
                 geocoding_metadata={},
             )
 
-    def _convert_to_resolved_geography(
-        self, resolution: GeographyResolution, original_input: str
-    ) -> ResolvedGeography:
+    def _convert_to_resolved_geography(self, resolution: GeographyResolution, original_input: str) -> ResolvedGeography:
         """Convert structured resolution to ResolvedGeography format"""
 
         filters = {}

@@ -26,9 +26,7 @@ class ComparisonCensusObservation(BaseModel):
     geo_id: str
     metric: str
     value: float
-    geo_level: str | None = Field(
-        default=None, description="Optional geography level for the observation."
-    )
+    geo_level: str | None = Field(default=None, description="Optional geography level for the observation.")
 
 
 class ComparisonInputRowBuildRequest(BaseModel):

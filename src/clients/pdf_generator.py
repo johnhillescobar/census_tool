@@ -22,9 +22,7 @@ from reportlab.platypus import (
 logger = logging.getLogger(__name__)
 
 
-def generate_session_pdf(
-    conversation_history: list[dict], user_id: str, session_metadata: dict
-) -> bytes:
+def generate_session_pdf(conversation_history: list[dict], user_id: str, session_metadata: dict) -> bytes:
     """
     Generate PDF from Streamlit session data
 
@@ -65,10 +63,7 @@ def generate_session_pdf(
             self.setFillColor(colors.grey)
             # Footer with page numbers and timestamp
             generated_at = datetime.now().strftime("%Y-%m-%d %H:%M")
-            footer_text = (
-                f"Page {self.getPageNumber()} of {page_count} | "
-                f"Generated {generated_at}"
-            )
+            footer_text = f"Page {self.getPageNumber()} of {page_count} | Generated {generated_at}"
             self.drawRightString(7.5 * inch, 0.75 * inch, footer_text)
 
             # Header line
@@ -234,9 +229,7 @@ def generate_session_pdf(
                     filepath = file_info.split("Chart created successfully: ")[1]
                     try:
                         if Path(filepath).exists():
-                            story.append(
-                                Paragraph("<b>📊 Chart:</b>", styles["Normal"])
-                            )
+                            story.append(Paragraph("<b>📊 Chart:</b>", styles["Normal"]))
                             # Resize chart appropriately
                             img = Image(filepath, width=6 * inch, height=4.5 * inch)
                             story.append(img)
@@ -247,9 +240,7 @@ def generate_session_pdf(
                             if footnotes:
                                 for i, footnote in enumerate(footnotes, 1):
                                     footnote_text = f"{i}. {footnote}"
-                                    story.append(
-                                        Paragraph(footnote_text, footnote_style)
-                                    )
+                                    story.append(Paragraph(footnote_text, footnote_style))
                                 story.append(Spacer(1, 10))
 
                             story.append(Spacer(1, 5))  # Remaining spacing
@@ -262,9 +253,7 @@ def generate_session_pdf(
                                 )
                             )
                     except Exception as e:
-                        story.append(
-                            Paragraph(f"❌ Error loading chart: {str(e)}", meta_style)
-                        )
+                        story.append(Paragraph(f"❌ Error loading chart: {str(e)}", meta_style))
 
                 elif "Table created successfully:" in file_info:
                     # Extract table path and embed data directly
@@ -292,9 +281,7 @@ def generate_session_pdf(
                             if table_file_path.exists():
                                 if table_file_path.suffix == ".csv":
                                     df = pd.read_csv(table_file_path)
-                                    table_data = _create_pdf_table_from_dataframe(
-                                        df, f"Table from {table_file_path.name}"
-                                    )
+                                    table_data = _create_pdf_table_from_dataframe(df, f"Table from {table_file_path.name}")
                                     if table_data is not None:
                                         story.append(table_data)
                                         table_embedded = True
@@ -324,17 +311,11 @@ def generate_session_pdf(
         if charts_processed > 0 or tables_processed > 0:
             summary_parts = []
             if charts_processed > 0:
-                summary_parts.append(
-                    f"{charts_processed} chart{'s' if charts_processed > 1 else ''}"
-                )
+                summary_parts.append(f"{charts_processed} chart{'s' if charts_processed > 1 else ''}")
             if tables_processed > 0:
-                summary_parts.append(
-                    f"{tables_processed} table{'s' if tables_processed > 1 else ''}"
-                )
+                summary_parts.append(f"{tables_processed} table{'s' if tables_processed > 1 else ''}")
 
-            story.append(
-                Paragraph(f"<i>Generated: {', '.join(summary_parts)}</i>", meta_style)
-            )
+            story.append(Paragraph(f"<i>Generated: {', '.join(summary_parts)}</i>", meta_style))
 
         # Add spacing between conversations
         story.append(Spacer(1, 30))
@@ -349,9 +330,7 @@ def generate_session_pdf(
         # Return error as PDF content
         error_buffer = BytesIO()
         error_doc = SimpleDocTemplate(error_buffer, pagesize=letter)
-        error_story: list[Flowable] = [
-            Paragraph(f"PDF Generation Error: {str(e)}", styles["Normal"])
-        ]
+        error_story: list[Flowable] = [Paragraph(f"PDF Generation Error: {str(e)}", styles["Normal"])]
         error_doc.build(error_story)
         error_buffer.seek(0)
         return error_buffer.getvalue()
@@ -420,9 +399,7 @@ def _create_pdf_table_from_census_data(census_data: dict) -> Table | None:
         if len(table_data) > 21:
             table_data = table_data[:21]
             # Add note about truncation
-            table_data[-1] = ["...", "Data truncated for PDF display"] + [""] * (
-                len(headers) - 2
-            )
+            table_data[-1] = ["...", "Data truncated for PDF display"] + [""] * (len(headers) - 2)
 
         return _create_pdf_table_from_data(table_data, "Census Data")
 
@@ -445,9 +422,7 @@ def _create_pdf_table_from_dataframe(df: pd.DataFrame, title: str) -> Table | No
         table_data = [df_display.columns.tolist()] + df_display.values.tolist()
 
         if note_added:
-            table_data.append(
-                ["...", "Data truncated for PDF display"] + [""] * (len(df.columns) - 2)
-            )
+            table_data.append(["...", "Data truncated for PDF display"] + [""] * (len(df.columns) - 2))
 
         return _create_pdf_table_from_data(table_data, title)
     except Exception:

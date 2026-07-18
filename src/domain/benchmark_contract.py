@@ -1,4 +1,5 @@
-from typing import Annotated, Literal, Union
+from typing import Annotated, Literal
+
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 # Create enums for the benchmark type, comparison operator, and normalization mode.
@@ -51,30 +52,16 @@ BenchmarkClarificationReason = Literal[
 # Create the BenchmarkIntent model and add validation for the fields.
 class BenchmarkIntent(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    
+
     benchmark_type: BenchmarkType
-    subject_geo_level: GeographyLevel = Field(
-        ..., description="The level of the subject geography."
-    )
-    subject_geo: list[str] = Field(
-        default_factory=list, description="The list of subject geographies."
-    )
-    benchmark_geo_level: GeographyLevel | None = Field(
-        default=None, description="The level of the benchmark geography."
-    )
-    benchmark_geos: list[str] = Field(
-        default_factory=list, description="The list of benchmark geographies."
-    )
+    subject_geo_level: GeographyLevel = Field(..., description="The level of the subject geography.")
+    subject_geo: list[str] = Field(default_factory=list, description="The list of subject geographies.")
+    benchmark_geo_level: GeographyLevel | None = Field(default=None, description="The level of the benchmark geography.")
+    benchmark_geos: list[str] = Field(default_factory=list, description="The list of benchmark geographies.")
     metric: str = Field(..., description="The metric to compare.")
-    comparison_op: ComparisonOp = Field(
-        default="difference", description="The comparison operator."
-    )
-    normalization: NormalizationMode = Field(
-        default="none", description="The normalization mode."
-    )
-    requested_text: str | None = Field(
-        None, description="The text that the user requested."
-    )
+    comparison_op: ComparisonOp = Field(default="difference", description="The comparison operator.")
+    normalization: NormalizationMode = Field(default="none", description="The normalization mode.")
+    requested_text: str | None = Field(None, description="The text that the user requested.")
     baseline_anchor_year: int | None = Field(
         default=None,
         description="Anchor year for historical_baseline comparisons.",
@@ -99,71 +86,47 @@ class BenchmarkIntent(BaseModel):
         if self.benchmark_type == "national":
             # National may omit benchmark_geos, but if provided, must be ['us:1']
             if self.benchmark_geos and self.benchmark_geos != ["us:1"]:
-                raise ValueError(
-                    "national benchmark must use benchmark_geos ['us:1'] or leave empty."
-                )
+                raise ValueError("national benchmark must use benchmark_geos ['us:1'] or leave empty.")
 
             if self.benchmark_geo_level not in (None, "nation"):
-                raise ValueError(
-                    "national benchmark must use benchmark_geo_level 'nation' or leave empty."
-                )
+                raise ValueError("national benchmark must use benchmark_geo_level 'nation' or leave empty.")
 
         elif self.benchmark_type == "state":
             # State benchmark requires benchmark_geos and benchmark_geo_level must be 'state'
             if not self.benchmark_geos:
-                raise ValueError(
-                    "state benchmark_type requires at least one benchmark geography."
-                )
+                raise ValueError("state benchmark_type requires at least one benchmark geography.")
 
             if self.benchmark_geo_level != "state":
-                raise ValueError(
-                    "state benchmark must use benchmark_geo_level 'state'."
-                )
+                raise ValueError("state benchmark must use benchmark_geo_level 'state'.")
 
         elif self.benchmark_type == "peer_group":
             if len(self.benchmark_geos) < 2:
-                raise ValueError(
-                    "peer_group benchmark_type requires at least two benchmark geographies."
-                )
+                raise ValueError("peer_group benchmark_type requires at least two benchmark geographies.")
 
             if self.benchmark_geo_level is None:
-                raise ValueError(
-                    "peer_group benchmark must use a benchmark_geo_level other than None."
-                )
+                raise ValueError("peer_group benchmark must use a benchmark_geo_level other than None.")
 
         elif self.benchmark_type == "custom_set":
             if not self.benchmark_geos:
-                raise ValueError(
-                    "custom_set benchmark_type requires benchmark geographies."
-                )
+                raise ValueError("custom_set benchmark_type requires benchmark geographies.")
 
             if self.benchmark_geo_level is None:
-                raise ValueError(
-                    "custom_set benchmark must use a benchmark_geo_level other than None."
-                )
+                raise ValueError("custom_set benchmark must use a benchmark_geo_level other than None.")
 
         elif self.benchmark_type == "historical_baseline":
             if self.baseline_anchor_year is None:
-                raise ValueError(
-                    "historical_baseline requires baseline_anchor_year."
-                )
+                raise ValueError("historical_baseline requires baseline_anchor_year.")
             window = self.baseline_window if self.baseline_window is not None else 1
             if window < 1:
                 raise ValueError("baseline_window must be >= 1.")
             if self.benchmark_geos:
-                raise ValueError(
-                    "historical_baseline must not include benchmark_geos."
-                )
+                raise ValueError("historical_baseline must not include benchmark_geos.")
             if self.benchmark_geo_level is not None:
-                raise ValueError(
-                    "historical_baseline must not include benchmark_geo_level."
-                )
+                raise ValueError("historical_baseline must not include benchmark_geo_level.")
 
         if self.benchmark_type != "historical_baseline":
             if self.baseline_anchor_year is not None or self.baseline_window is not None:
-                raise ValueError(
-                    "baseline_anchor_year and baseline_window are only valid for historical_baseline."
-                )
+                raise ValueError("baseline_anchor_year and baseline_window are only valid for historical_baseline.")
 
         return self
 
@@ -184,12 +147,8 @@ class BenchmarkClarificationPrompt(BaseModel):
 
 
 class BenchmarkResolved(BaseModel):
-    status: Literal["resolved"] = Field(
-        default="resolved", description="The status of the benchmark resolved."
-    )
-    benchmark: BenchmarkIntent = Field(
-        ..., description="The benchmark intent that was resolved."
-    )
+    status: Literal["resolved"] = Field(default="resolved", description="The status of the benchmark resolved.")
+    benchmark: BenchmarkIntent = Field(..., description="The benchmark intent that was resolved.")
 
 
 class BenchmarkClarificationRequired(BaseModel):
@@ -207,6 +166,6 @@ class BenchmarkClarificationRequired(BaseModel):
 
 
 BenchmarkResolution = Annotated[
-    Union[BenchmarkResolved, BenchmarkClarificationRequired],
+    BenchmarkResolved | BenchmarkClarificationRequired,
     Field(discriminator="status"),
 ]

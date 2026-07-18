@@ -52,10 +52,7 @@ def _coerce_json_map(value: JsonMap | dict[str, JsonNest] | None) -> JsonMap:
         return value
     if isinstance(value, dict):
         return JsonMap.model_validate(value)
-    raise TypeError(
-        "JsonMap coercible value must be JsonMap, dict, or None, "
-        f"got {type(value).__name__}"
-    )
+    raise TypeError(f"JsonMap coercible value must be JsonMap, dict, or None, got {type(value).__name__}")
 
 
 def as_json_map(value: JsonMap | dict[str, JsonNest] | None) -> JsonMap:
@@ -106,10 +103,7 @@ class ConversationMessage(BaseModel):
             else:
                 content = str(raw)
             return {"role": str(role), "content": content}
-        raise TypeError(
-            "ConversationMessage expected dict-shaped LC message or model, "
-            f"got {type(data).__name__}"
-        )
+        raise TypeError(f"ConversationMessage expected dict-shaped LC message or model, got {type(data).__name__}")
 
 
 DEFAULT_AGENT_INTENT = JsonMap(root={"is_census": True, "topic": "general"})

@@ -9,9 +9,7 @@ def test_variable_validation_tool_validate(monkeypatch):
     def fake_validate(dataset, year, variables):
         return {"valid": variables, "invalid": [], "warnings": []}
 
-    monkeypatch.setattr(
-        "src.tools.variable_validation_tool.validate_variables", fake_validate
-    )
+    monkeypatch.setattr("src.tools.variable_validation_tool.validate_variables", fake_validate)
 
     payload = {
         "dataset": "acs/acs5",

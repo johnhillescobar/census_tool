@@ -13,9 +13,7 @@ def temporal_node(state: CensusState, config: RunnableConfig) -> dict[str, Any]:
     user_question = state.messages[-1]["content"]
     existing_plan = state.plan
     geography = existing_plan.geography if existing_plan else None
-    upstream_clarification = bool(
-        existing_plan and existing_plan.requires_clarification
-    )
+    upstream_clarification = bool(existing_plan and existing_plan.requires_clarification)
     temporal_resolution = resolve_temporal_intent(user_question)
 
     if upstream_clarification:
@@ -39,9 +37,7 @@ def temporal_node(state: CensusState, config: RunnableConfig) -> dict[str, Any]:
                 requires_clarification=True,
             ),
             final=FinalResponseState(answer_text=clarification_text),
-            logs=[
-                f"temporal: clarification required ({temporal_resolution.reason_code})"
-            ],
+            logs=[f"temporal: clarification required ({temporal_resolution.reason_code})"],
         ).as_langgraph_update()
 
     return CensusGraphPatch(

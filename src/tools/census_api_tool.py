@@ -1,12 +1,12 @@
-import logging
 import json
+import logging
+
 from langchain_core.tools import BaseTool
 from pydantic import ConfigDict
 
-from src.clients.census_api_utils import fetch_census_data, build_geo_filters
-from src.tools.json_parse import parse_first_json
+from src.clients.census_api_utils import build_geo_filters, fetch_census_data
 from src.clients.telemetry import record_event
-
+from src.tools.json_parse import parse_first_json
 
 logger = logging.getLogger(__name__)
 
@@ -60,9 +60,7 @@ class CensusAPITool(BaseTool):
         geo_in_chained = params.get("geo_in_chained", [])
 
         if not all([year, dataset, variables, geo_for]):
-            return (
-                "Error: Missing required parameters (year, dataset, variables, geo_for)"
-            )
+            return "Error: Missing required parameters (year, dataset, variables, geo_for)"
 
         logger.info(f"Fetching Census data: {dataset}/{year}")
 
@@ -98,9 +96,7 @@ class CensusAPITool(BaseTool):
 
             geo_params = {"filters": geo_filters}
 
-            result = fetch_census_data(
-                dataset=dataset, year=year, variables=variables, geo=geo_params
-            )
+            result = fetch_census_data(dataset=dataset, year=year, variables=variables, geo=geo_params)
 
             logger.info(
                 f"Census data fetched successfully: {len(result.get('data', [])) if isinstance(result, dict) else 0} rows"

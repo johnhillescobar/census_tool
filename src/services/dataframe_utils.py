@@ -1,11 +1,11 @@
 import logging
+
 import pandas as pd
-from typing import Dict
 
 logger = logging.getLogger(__name__)
 
 
-def _create_dataframe_from_json(json_obj: Dict) -> pd.DataFrame:
+def _create_dataframe_from_json(json_obj: dict) -> pd.DataFrame:
     """
     Creates a pandas DataFrame from Census API response format.
 
@@ -14,19 +14,13 @@ def _create_dataframe_from_json(json_obj: Dict) -> pd.DataFrame:
     """
     logger.info("=== DataFrame Creation Debug ===")
     logger.info(f"Input json_obj type: {type(json_obj)}")
-    logger.info(
-        f"Input json_obj keys: {list(json_obj.keys()) if isinstance(json_obj, dict) else 'N/A'}"
-    )
+    logger.info(f"Input json_obj keys: {list(json_obj.keys()) if isinstance(json_obj, dict) else 'N/A'}")
 
     if not isinstance(json_obj, dict):
         raise ValueError("Input must be a dictionary.")
 
     # Handle nested data structure from agent
-    if (
-        "data" in json_obj
-        and isinstance(json_obj["data"], dict)
-        and "data" in json_obj["data"]
-    ):
+    if "data" in json_obj and isinstance(json_obj["data"], dict) and "data" in json_obj["data"]:
         # Format: {"data": {"success": True, "data": [["headers"], ["rows"]]}}
         logger.info("Detected nested format: {'data': {'success': ..., 'data': [...]}}")
         data = json_obj["data"]["data"]
@@ -38,14 +32,10 @@ def _create_dataframe_from_json(json_obj: Dict) -> pd.DataFrame:
         raise KeyError("JSON object must contain a 'data' key.")
 
     logger.info(f"Extracted data type: {type(data)}")
-    logger.info(
-        f"Extracted data length: {len(data) if isinstance(data, list) else 'N/A'}"
-    )
+    logger.info(f"Extracted data length: {len(data) if isinstance(data, list) else 'N/A'}")
 
     if not isinstance(data, list) or len(data) < 2:
-        raise ValueError(
-            "The 'data' key must contain a list with at least a header row and one data row."
-        )
+        raise ValueError("The 'data' key must contain a list with at least a header row and one data row.")
 
     header = data[0]
     rows = data[1:]
@@ -56,16 +46,12 @@ def _create_dataframe_from_json(json_obj: Dict) -> pd.DataFrame:
 
     df = pd.DataFrame(rows, columns=header)
 
-    logger.info(
-        f"DataFrame created with shape: {df.shape}, columns: {list(df.columns)}"
-    )
+    logger.info(f"DataFrame created with shape: {df.shape}, columns: {list(df.columns)}")
     logger.info(f"DataFrame dtypes BEFORE conversion: {df.dtypes.to_dict()}")
 
     # Log first row values and their types
     if len(df) > 0:
-        first_row_sample = {
-            col: (df[col].iloc[0], type(df[col].iloc[0]).__name__) for col in df.columns
-        }
+        first_row_sample = {col: (df[col].iloc[0], type(df[col].iloc[0]).__name__) for col in df.columns}
         logger.info(f"First row values with types: {first_row_sample}")
 
     # Convert numeric columns from strings to proper numeric types
@@ -106,13 +92,7 @@ def _create_dataframe_from_json(json_obj: Dict) -> pd.DataFrame:
         logger.info(f"  Sample values: {df[col].head(3).tolist()}")
 
         try:
-            cleaned = (
-                df[col]
-                .astype(str)
-                .str.replace(",", "", regex=False)
-                .str.replace("%", "", regex=False)
-                .str.strip()
-            )
+            cleaned = df[col].astype(str).str.replace(",", "", regex=False).str.replace("%", "", regex=False).str.strip()
             # Try to convert to numeric, coercing errors to NaN
             original_dtype = df[col].dtype
             df[col] = pd.to_numeric(cleaned, errors="coerce")

@@ -16,9 +16,7 @@ def benchmark_node(state: CensusState, config: RunnableConfig) -> dict[str, Any]
     existing_plan = state.plan
     temporal = existing_plan.temporal if existing_plan else None
     geography = existing_plan.geography if existing_plan else None
-    upstream_clarification = bool(
-        existing_plan and existing_plan.requires_clarification
-    )
+    upstream_clarification = bool(existing_plan and existing_plan.requires_clarification)
 
     if upstream_clarification:
         return CensusGraphPatch(
@@ -57,9 +55,7 @@ def benchmark_node(state: CensusState, config: RunnableConfig) -> dict[str, Any]
                 requires_clarification=True,
             ),
             final=FinalResponseState(answer_text=clarification_text),
-            logs=[
-                f"benchmark: clarification required ({benchmark_resolution.reason_code})"
-            ],
+            logs=[f"benchmark: clarification required ({benchmark_resolution.reason_code})"],
         ).as_langgraph_update()
 
     return CensusGraphPatch(

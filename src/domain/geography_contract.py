@@ -1,4 +1,4 @@
-from typing import Annotated, Literal, Union
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -53,6 +53,6 @@ class GeographyClarificationRequired(BaseModel):
 
 
 GeographyResolution = Annotated[
-    Union[GeographyResolved, GeographyClarificationRequired],
+    GeographyResolved | GeographyClarificationRequired,
     Field(discriminator="status"),
 ]

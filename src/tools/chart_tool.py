@@ -1,12 +1,13 @@
-import logging
 import json
-import pandas as pd
-from pathlib import Path
-from typing import Dict, Any, Literal
-from langchain_core.tools import BaseTool
-from pydantic import BaseModel, Field, ConfigDict
-import plotly.express as px
+import logging
 from datetime import datetime
+from pathlib import Path
+from typing import Any, Literal
+
+import pandas as pd
+import plotly.express as px
+from langchain_core.tools import BaseTool
+from pydantic import BaseModel, ConfigDict, Field
 
 from src.services.dataframe_utils import _create_dataframe_from_json
 from src.tools.json_parse import parse_first_json
@@ -17,15 +18,11 @@ logger = logging.getLogger(__name__)
 class ChartToolInput(BaseModel):
     """Input for chart creation"""
 
-    chart_type: Literal["bar", "line"] = Field(
-        ..., description="Chart type: 'bar' for comparisons, 'line' for trends"
-    )
+    chart_type: Literal["bar", "line"] = Field(..., description="Chart type: 'bar' for comparisons, 'line' for trends")
     x_column: str = Field(..., description="Column name for x-axis")
     y_column: str = Field(..., description="Column name for y-axis")
     title: str = Field(default="Census Data Visualization", description="Chart title")
-    data: Dict[str, Any] = Field(
-        ..., description="Census data dict from census_api_call tool"
-    )
+    data: dict[str, Any] = Field(..., description="Census data dict from census_api_call tool")
 
 
 class ChartTool(BaseTool):
@@ -90,14 +87,14 @@ class ChartTool(BaseTool):
             if color_column:
                 if color_column not in df.columns:
                     logger.warning(
-                        f"color_column '{color_column}' not found in data. Available columns: {list(df.columns)}. Proceeding without color grouping."
+                        "color_column '%s' not found in data. Available columns: %s. Proceeding without color grouping.",
+                        color_column,
+                        list(df.columns),
                     )
                     color_column = None
                 else:
                     unique_values = df[color_column].nunique()
-                    logger.info(
-                        f"Multi-series chart: {unique_values} unique values in color_column '{color_column}'"
-                    )
+                    logger.info(f"Multi-series chart: {unique_values} unique values in color_column '{color_column}'")
 
             # Log actual data being plotted
             logger.info("=== Pre-Plot Validation ===")
@@ -112,14 +109,10 @@ class ChartTool(BaseTool):
 
             # Check for numeric Y column
             if not pd.api.types.is_numeric_dtype(df[y_column]):
-                logger.warning(
-                    f"Y column '{y_column}' is not numeric! Attempting conversion..."
-                )
+                logger.warning(f"Y column '{y_column}' is not numeric! Attempting conversion...")
                 try:
                     df[y_column] = pd.to_numeric(df[y_column], errors="coerce")
-                    logger.info(
-                        f"Conversion successful. New dtype: {df[y_column].dtype}"
-                    )
+                    logger.info(f"Conversion successful. New dtype: {df[y_column].dtype}")
                 except Exception as conv_error:
                     logger.error(f"Conversion failed: {conv_error}")
 
@@ -139,9 +132,7 @@ class ChartTool(BaseTool):
             if chart_type == "bar":
                 if color_column:
                     # Multi-series bar chart: use color parameter for grouping
-                    fig = px.bar(
-                        df, x=x_column, y=y_column, color=color_column, title=title
-                    )
+                    fig = px.bar(df, x=x_column, y=y_column, color=color_column, title=title)
                 else:
                     # Single-series bar chart: use default color
                     fig = px.bar(df, x=x_column, y=y_column, title=title)
@@ -149,9 +140,7 @@ class ChartTool(BaseTool):
             elif chart_type == "line":
                 if color_column:
                     # Multi-series line chart: use color parameter for grouping
-                    fig = px.line(
-                        df, x=x_column, y=y_column, color=color_column, title=title
-                    )
+                    fig = px.line(df, x=x_column, y=y_column, color=color_column, title=title)
                 else:
                     # Single-series line chart: use default color
                     fig = px.line(df, x=x_column, y=y_column, title=title)

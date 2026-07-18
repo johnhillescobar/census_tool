@@ -49,9 +49,7 @@ def agent_reasoning_node(state: CensusState, config: RunnableConfig) -> dict[str
         plan_log = "agent: plan context attached (temporal only)"
 
     comparison_plan = (
-        plan_context.comparison
-        if plan_context is not None
-        else (state.plan.comparison if state.plan is not None else None)
+        plan_context.comparison if plan_context is not None else (state.plan.comparison if state.plan is not None else None)
     )
 
     agent = CensusQueryAgent()
@@ -71,9 +69,7 @@ def agent_reasoning_node(state: CensusState, config: RunnableConfig) -> dict[str
         geo_context = geo_intent_to_dict(state.geo)
 
         if census_data and data_summary:
-            logger.info(
-                "answer_text is too short, generating rich answer from census data"
-            )
+            logger.info("answer_text is too short, generating rich answer from census data")
             try:
                 generated_answer = generate_llm_answer(
                     user_question=user_question,
@@ -112,19 +108,12 @@ def agent_reasoning_node(state: CensusState, config: RunnableConfig) -> dict[str
         "reasoning_trace": result.get("reasoning_trace", ""),
     }
 
-    agent_rows = [
-        row.model_dump() if hasattr(row, "model_dump") else row
-        for row in result.get("comparison_input_rows", [])
-    ]
+    agent_rows = [row.model_dump() if hasattr(row, "model_dump") else row for row in result.get("comparison_input_rows", [])]
     if agent_rows:
         artifacts["comparison_input_rows"] = agent_rows
     else:
         census_data = result.get("census_data", {})
-        if (
-            comparison_plan is not None
-            and isinstance(census_data, dict)
-            and census_data.get("success")
-        ):
+        if comparison_plan is not None and isinstance(census_data, dict) and census_data.get("success"):
             try:
                 comparison_input_rows = _build_comparison_input_rows_from_result(
                     census_data,

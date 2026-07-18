@@ -1,7 +1,7 @@
 from config import LATEST_AVAILABLE_YEAR
 from src.domain.benchmark_contract import BenchmarkIntent
+from src.domain.comparison_plan import CensusDataset, ComparisonPlan
 from src.domain.temporal_contract import TemporalIntent
-from src.domain.comparison_plan import ComparisonPlan, CensusDataset
 
 
 def _expand_query_years(temporal_intent: TemporalIntent) -> list[int]:
@@ -13,9 +13,7 @@ def _expand_query_years(temporal_intent: TemporalIntent) -> list[int]:
 
     if temporal_intent.mode in {"range", "multi_period_compare"}:
         if temporal_intent.start_year is None or temporal_intent.end_year is None:
-            raise ValueError(
-                "Start year and end year are required for range and multi period compare modes."
-            )
+            raise ValueError("Start year and end year are required for range and multi period compare modes.")
 
         return list(range(temporal_intent.start_year, temporal_intent.end_year + 1))
 
@@ -38,9 +36,7 @@ def _expand_baseline_years(benchmark_intent: BenchmarkIntent) -> list[int]:
     return list(range(start, anchor + 1))
 
 
-def _expand_requested_text(
-    temporal_intent: TemporalIntent, benchmark_intent: BenchmarkIntent
-) -> str:
+def _expand_requested_text(temporal_intent: TemporalIntent, benchmark_intent: BenchmarkIntent) -> str:
     if benchmark_intent.requested_text:
         return benchmark_intent.requested_text
     elif temporal_intent.requested_text:

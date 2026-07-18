@@ -5,10 +5,10 @@ from src.domain.clarification_templates import (
     render_temporal_clarification,
 )
 from src.domain.temporal_contract import (
+    TemporalClarificationRequired,
     TemporalIntent,
     TemporalResolution,
     TemporalResolved,
-    TemporalClarificationRequired,
 )
 
 EXPLICIT_YEAR_PATTERN = re.compile(r"\b(19\d{2}|20\d{2})\b")

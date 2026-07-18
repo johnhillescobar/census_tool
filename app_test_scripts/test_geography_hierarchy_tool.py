@@ -4,13 +4,13 @@ from src.tools.geography_hierarchy_tool import GeographyHierarchyTool
 
 
 def test_geography_hierarchy_tool_returns_order(monkeypatch):
+    metro_area = "metropolitan statistical area/micropolitan statistical area"
+    state_part = "state (or part)"
+
     # Mock helper to return ordering
     monkeypatch.setattr(
         "src.tools.geography_hierarchy_tool.get_hierarchy_ordering",
-        lambda dataset, year, for_level: [
-            "metropolitan statistical area/micropolitan statistical area",
-            "state (or part)",
-        ],
+        lambda dataset, year, for_level: [metro_area, state_part],
     )
 
     # Mock initialize client -> metadata
@@ -19,8 +19,11 @@ def test_geography_hierarchy_tool_returns_order(monkeypatch):
             return {
                 "metadatas": [
                     {
-                        "geography_hierarchy": "metropolitan statistical area/micropolitan statistical area › state (or part) › county",
-                        "example_url": "for=county:*&in=metropolitan%20statistical%20area/micropolitan%20statistical%20area:31080%20state%20(or%20part):06",
+                        "geography_hierarchy": f"{metro_area} › {state_part} › county",
+                        "example_url": (
+                            "for=county:*&in=metropolitan%20statistical%20area/"
+                            "micropolitan%20statistical%20area:31080%20state%20(or%20part):06"
+                        ),
                     }
                 ]
             }

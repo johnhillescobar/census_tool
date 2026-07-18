@@ -100,9 +100,7 @@ def _typed_failure(
     )
 
 
-def fetch_census_data_typed(
-    dataset: str, year: int, variables: list[str], geo: dict[str, Any]
-) -> CensusApiCallResult:
+def fetch_census_data_typed(dataset: str, year: int, variables: list[str], geo: dict[str, Any]) -> CensusApiCallResult:
     """Fetch Census data from the Census API and validate its raw table shape."""
     url = build_census_url(dataset, year, variables, geo)
     for attempt in range(CENSUS_API_MAX_RETRIES):
@@ -139,14 +137,8 @@ def fetch_census_data_typed(
 
             elif response.status_code == 429:
                 retry_after = response.headers.get("Retry-After")
-                wait_time = (
-                    int(retry_after)
-                    if retry_after
-                    else CENSUS_API_BACKOFF_FACTOR * (2**attempt)
-                )
-                logger.info(
-                    f"Rate limit exceeded. Waiting {wait_time} seconds before retry..."
-                )
+                wait_time = int(retry_after) if retry_after else CENSUS_API_BACKOFF_FACTOR * (2**attempt)
+                logger.info(f"Rate limit exceeded. Waiting {wait_time} seconds before retry...")
                 time.sleep(wait_time)
                 continue
 
@@ -172,10 +164,7 @@ def fetch_census_data_typed(
                     url=url,
                     attempt=attempt_number,
                     error_code="REQUEST_EXCEPTION",
-                    error_message=(
-                        f"Requests failed after {CENSUS_API_MAX_RETRIES} attempts: "
-                        f"{str(e)}"
-                    ),
+                    error_message=(f"Requests failed after {CENSUS_API_MAX_RETRIES} attempts: {str(e)}"),
                 )
             wait_time = CENSUS_API_BACKOFF_FACTOR * (2**attempt)
             time.sleep(wait_time)
@@ -188,9 +177,7 @@ def fetch_census_data_typed(
     )
 
 
-def fetch_census_data(
-    dataset: str, year: int, variables: list[str], geo: dict[str, Any]
-) -> dict[str, Any]:
+def fetch_census_data(dataset: str, year: int, variables: list[str], geo: dict[str, Any]) -> dict[str, Any]:
     """Backward-compatible dict adapter around the typed Census API client."""
     typed_result = fetch_census_data_typed(
         dataset=dataset,
@@ -224,9 +211,7 @@ def fetch_census_data(
     }
 
 
-def build_census_url(
-    dataset: str, year: int, variables: list[str], geo: dict[str, Any]
-) -> str:
+def build_census_url(dataset: str, year: int, variables: list[str], geo: dict[str, Any]) -> str:
     """Build the Census API URL with support for complex geography patterns"""
     base_url = "https://api.census.gov/data"
 
@@ -234,11 +219,7 @@ def build_census_url(
     url = f"{base_url}/{year}/{dataset}"
 
     # Handle variables - can be list of variables or group syntax
-    if (
-        isinstance(variables, list)
-        and len(variables) == 1
-        and variables[0].startswith("group(")
-    ):
+    if isinstance(variables, list) and len(variables) == 1 and variables[0].startswith("group("):
         # Group syntax for subject tables
         variables_str = variables[0]
     else:
@@ -402,12 +383,8 @@ def test_build_census_url_from_metadata():
         "dataset": "acs/acs5/subject",
         "uses_groups": True,
     }
-    url = build_census_url_from_metadata(
-        metadata_subject, year=2023, geo={"filters": {"for": "state:*"}}
-    )
-    expected = (
-        "https://api.census.gov/data/2023/acs/acs5/subject?get=group(S0101)&for=state:*"
-    )
+    url = build_census_url_from_metadata(metadata_subject, year=2023, geo={"filters": {"for": "state:*"}})
+    expected = "https://api.census.gov/data/2023/acs/acs5/subject?get=group(S0101)&for=state:*"
     print(f"  Generated: {url}")
     print(f"  Expected:  {expected}")
     print(f"  Match: {url == expected}\n")
@@ -420,12 +397,8 @@ def test_build_census_url_from_metadata():
         "dataset": "acs/acs1/profile",
         "uses_groups": True,
     }
-    url = build_census_url_from_metadata(
-        metadata_profile, year=2023, geo={"filters": {"for": "state:06"}}
-    )
-    expected = (
-        "https://api.census.gov/data/2023/acs/acs1/profile?get=group(DP03)&for=state:06"
-    )
+    url = build_census_url_from_metadata(metadata_profile, year=2023, geo={"filters": {"for": "state:06"}})
+    expected = "https://api.census.gov/data/2023/acs/acs1/profile?get=group(DP03)&for=state:06"
     print(f"  Generated: {url}")
     print(f"  Expected:  {expected}")
     print(f"  Match: {url == expected}\n")
@@ -438,12 +411,8 @@ def test_build_census_url_from_metadata():
         "dataset": "acs/acs5/cprofile",
         "uses_groups": True,
     }
-    url = build_census_url_from_metadata(
-        metadata_cprofile, year=2023, geo={"filters": {"for": "state:*"}}
-    )
-    expected = (
-        "https://api.census.gov/data/2023/acs/acs5/cprofile?get=group(CP03)&for=state:*"
-    )
+    url = build_census_url_from_metadata(metadata_cprofile, year=2023, geo={"filters": {"for": "state:*"}})
+    expected = "https://api.census.gov/data/2023/acs/acs5/cprofile?get=group(CP03)&for=state:*"
     print(f"  Generated: {url}")
     print(f"  Expected:  {expected}")
     print(f"  Match: {url == expected}\n")

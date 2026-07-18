@@ -4,20 +4,21 @@ import os
 from typing import Any, cast
 
 from dotenv import load_dotenv
-from langchain.agents import AgentExecutor
+from langchain_classic.agents import AgentExecutor
 from pydantic import ValidationError
 
 # Try to import the agent creation function for different LangChain versions
 try:
-    from langchain.agents import create_react_agent
+    from langchain_classic.agents import create_react_agent
 except ImportError:
     try:
-        from langchain.agents import create_tool_calling_agent as create_react_agent
+        from langchain_classic.agents import create_tool_calling_agent as create_react_agent
     except ImportError:
         # Last resort: create a fallback
         create_react_agent = None
-from langchain.prompts import PromptTemplate
+from langchain_classic.prompts import PromptTemplate
 
+from src.agents.runtime.factory import build_agent_backend, resolve_agent_runtime
 from src.domain.agent_output_contract import (
     AgentPlanOutput,
     agent_output_to_legacy_dict,
@@ -30,7 +31,7 @@ from src.llm.factory import create_llm
 from src.services.agent_plan_context import format_plan_directives
 
 # Import conversation summarizer
-from src.services.conversation_summarizer import ConversationSummarizer, summarize_intermediate_steps
+from src.services.conversation_summarizer import ConversationSummarizer
 from src.tools.area_resolution_tool import AreaResolutionTool
 from src.tools.census_api_tool import CensusAPITool
 from src.tools.chart_tool import ChartTool
@@ -48,9 +49,7 @@ load_dotenv()
 logger = logging.getLogger(__name__)
 
 
-COMPARISON_INPUT_ROW_FIELDS = frozenset(
-    {"year", "geo_id", "metric", "value", "benchmark_value"}
-)
+COMPARISON_INPUT_ROW_FIELDS = frozenset({"year", "geo_id", "metric", "value", "benchmark_value"})
 CENSUS_DATA_FIELDS = frozenset({"success", "data", "variables", "url"})
 STRICT_CENSUS_TOOL_NAME = "strict_census_api_call"
 
@@ -86,6 +85,7 @@ class CensusQueryAgent:
             self.agent = None
             self.summarizer = None
             self.agent_executor = None
+            self.backend = None
             return
 
         self.llm = create_llm(temperature=LLM_CONFIG["temperature"])
@@ -105,34 +105,55 @@ class CensusQueryAgent:
             VariableValidationTool(),
         ]
 
-        # Create agent with compatibility for different LangChain versions
-        if create_react_agent is None:
-            raise ImportError(
-                "No compatible agent creation function available. Please update LangChain or use a different version."
+        self.runtime = resolve_agent_runtime()
+        self.agent = None
+        self.summarizer = None
+        self.agent_executor = None
+
+        if self.runtime == "classic":
+            if create_react_agent is None:
+                raise ImportError(
+                    "No compatible agent creation function available. Please update LangChain or use a different version."
+                )
+
+            self.agent = create_react_agent(llm=self.llm, tools=self.tools, prompt=cast(Any, self._build_prompt()))
+
+            self.summarizer = ConversationSummarizer(
+                token_threshold=100000,
+                keep_recent=5,
             )
 
-        self.agent = create_react_agent(
-            llm=self.llm, tools=self.tools, prompt=cast(Any, self._build_prompt())
-        )
+            self.agent_executor = AgentExecutor(
+                agent=self.agent,
+                tools=self.tools,
+                verbose=True,
+                max_iterations=max_iterations,
+                max_execution_time=max_execution_time,
+                handle_parsing_errors="Check your output format. You must output: 'Thought: I now know the final answer' followed by 'Final Answer: {valid JSON on single line}'",
+                callbacks=[self.summarizer],
+            )
 
-        # Create summarization callback
-        self.summarizer = ConversationSummarizer(
-            token_threshold=100000,  # Trigger at 100k tokens (80% of 128k limit)
-            keep_recent=5,  # Keep last 5 tool calls in full detail
-        )
-
-        self.agent_executor = AgentExecutor(
-            agent=self.agent,
+        self.backend = build_agent_backend(
+            runtime=self.runtime,
+            agent_executor=self.agent_executor,
+            llm=self.llm,
             tools=self.tools,
-            verbose=True,
-            max_iterations=max_iterations,
-            max_execution_time=max_execution_time,
-            handle_parsing_errors="Check your output format. You must output: 'Thought: I now know the final answer' followed by 'Final Answer: {valid JSON on single line}'",
-            callbacks=[self.summarizer],
+            system_prompt=self._build_modern_system_prompt(),
         )
 
     def _build_prompt(self):
         return PromptTemplate.from_template(AGENT_PROMPT_TEMPLATE)
+
+    def _build_modern_system_prompt(self) -> str:
+        tool_names = ", ".join(tool.name for tool in self.tools)
+        return (
+            "You are a Census data assistant. Use the provided tools to answer queries.\n"
+            f"Available tools: {tool_names}.\n"
+            "Return a single-line JSON object with keys: census_data, data_summary, "
+            "reasoning_trace, answer_text, charts_needed, tables_needed, footnotes, "
+            "comparison_input_rows.\n"
+            "Follow planning directives in the user message exactly."
+        )
 
     def _build_executor_input(
         self,
@@ -167,9 +188,7 @@ class CensusQueryAgent:
         Reason through the query and return structured data
         """
         if self.offline_mode:
-            logger.warning(
-                "CensusQueryAgent.solve called in offline mode without API credentials."
-            )
+            logger.warning("CensusQueryAgent.solve called in offline mode without API credentials.")
             return {
                 "census_data": {"success": False, "data": []},
                 "data_summary": "Agent execution skipped (no API credentials available)",
@@ -184,37 +203,25 @@ class CensusQueryAgent:
                 "comparison_input_rows": [],
             }
 
-        if self.agent_executor is None:
-            raise RuntimeError(
-                "Agent executor is not initialized. Set OPENAI_API_KEY or enable offline mode."
-            )
+        if self.backend is None:
+            raise RuntimeError("Agent backend is not initialized. Set OPENAI_API_KEY or enable offline mode.")
 
         self._active_plan_context = plan_context
-        result = self.agent_executor.invoke(
-            {
-                "input": self._build_executor_input(
-                    user_query=user_query,
-                    intent=intent,
-                    plan_context=plan_context,
-                )
-            }
+        execution = self.backend.invoke(
+            self._build_executor_input(
+                user_query=user_query,
+                intent=intent,
+                plan_context=plan_context,
+            )
         )
-
-        # Trim intermediate steps if they're too large (context length management)
-        intermediate_steps = result.get("intermediate_steps", [])
-        if len(intermediate_steps) > 10:
-            result["intermediate_steps"] = summarize_intermediate_steps(
-                intermediate_steps, keep_recent=5
-            )
-            logger.info(
-                f"Trimmed intermediate steps from {len(intermediate_steps)} to {len(result['intermediate_steps'])}"
-            )
+        result = {
+            "output": execution.output,
+            "intermediate_steps": execution.intermediate_steps,
+        }
 
         return self._parse_solution(result)
 
-    def _coerce_strict_census_response(
-        self, observation: Any
-    ) -> StrictCensusApiResponse | None:
+    def _coerce_strict_census_response(self, observation: Any) -> StrictCensusApiResponse | None:
         if isinstance(observation, StrictCensusApiResponse):
             return observation
         if isinstance(observation, dict):
@@ -232,9 +239,7 @@ class CensusQueryAgent:
                 return None
         return None
 
-    def _resolve_authoritative_strict_census_response(
-        self, result: dict[str, Any] | None
-    ) -> StrictCensusApiResponse | None:
+    def _resolve_authoritative_strict_census_response(self, result: dict[str, Any] | None) -> StrictCensusApiResponse | None:
         if not result:
             return None
         for step in reversed(result.get("intermediate_steps", []) or []):
@@ -248,9 +253,7 @@ class CensusQueryAgent:
                 return response
         return None
 
-    def _validate_agent_output_model(
-        self, parsed: dict[str, Any], result: dict[str, Any] | None = None
-    ) -> AgentPlanOutput:
+    def _validate_agent_output_model(self, parsed: dict[str, Any], result: dict[str, Any] | None = None) -> AgentPlanOutput:
         authoritative_response = self._resolve_authoritative_strict_census_response(result)
         if authoritative_response is not None:
             parsed["census_data"] = authoritative_response
@@ -267,12 +270,8 @@ class CensusQueryAgent:
             )
         return validated
 
-    def _validate_agent_output(
-        self, parsed: dict[str, Any], result: dict[str, Any] | None = None
-    ) -> dict[str, Any]:
-        return agent_output_to_legacy_dict(
-            self._validate_agent_output_model(parsed, result)
-        )
+    def _validate_agent_output(self, parsed: dict[str, Any], result: dict[str, Any] | None = None) -> dict[str, Any]:
+        return agent_output_to_legacy_dict(self._validate_agent_output_model(parsed, result))
 
     def _has_invalid_geography(self, result: dict, parsed: dict) -> bool:
         """Check if agent tried to query invalid geography"""
@@ -291,23 +290,15 @@ class CensusQueryAgent:
                 if isinstance(observation, str) and observation.strip():
                     # If observation doesn't start with '{', it's likely an error message, not JSON
                     if not observation.strip().startswith("{"):
-                        logger.info(
-                            f"Detected failed geography resolution: {observation[:100]}"
-                        )
+                        logger.info(f"Detected failed geography resolution: {observation[:100]}")
                         return True
 
             # Check if census_api_call returned success: False
             if hasattr(action, "tool") and action.tool == "census_api_call":
                 try:
-                    obs_dict = (
-                        json.loads(observation)
-                        if isinstance(observation, str)
-                        else observation
-                    )
+                    obs_dict = json.loads(observation) if isinstance(observation, str) else observation
                     if isinstance(obs_dict, dict) and obs_dict.get("success") is False:
-                        logger.info(
-                            f"Detected failed Census API call: {obs_dict.get('error', 'Unknown error')}"
-                        )
+                        logger.info(f"Detected failed Census API call: {obs_dict.get('error', 'Unknown error')}")
                         return True
                 except (json.JSONDecodeError, TypeError, AttributeError):
                     # If observation isn't JSON, might be an error message
@@ -402,9 +393,7 @@ class CensusQueryAgent:
             return self._validate_agent_output(parsed, result)
 
         if self._is_valid_json_without_prefix(output):
-            logger.warning(
-                "Agent returned bare JSON without 'Final Answer:' prefix, attempting direct parse"
-            )
+            logger.warning("Agent returned bare JSON without 'Final Answer:' prefix, attempting direct parse")
             parsed = self._try_direct_json_parse(output)
             if parsed:
                 if self._has_invalid_geography(result, parsed):
@@ -450,13 +439,9 @@ class CensusQueryAgent:
         except json.JSONDecodeError as e:
             logger.error(f"[PARSE DEBUG] Direct parse JSONDecodeError: {str(e)[:300]}")
         except ValidationError as e:
-            logger.error(
-                f"[PARSE DEBUG] Direct parse Pydantic ValidationError: {str(e)[:500]}"
-            )
+            logger.error(f"[PARSE DEBUG] Direct parse Pydantic ValidationError: {str(e)[:500]}")
         except Exception as e:
-            logger.error(
-                f"[PARSE DEBUG] Direct parse unexpected error: {type(e).__name__}: {str(e)[:300]}"
-            )
+            logger.error(f"[PARSE DEBUG] Direct parse unexpected error: {type(e).__name__}: {str(e)[:300]}")
         return None
 
     def _build_empty_output_response(self, result: dict) -> dict[str, Any]:
@@ -472,9 +457,7 @@ class CensusQueryAgent:
                 last_tool = getattr(action, "tool", None)
                 last_observation = observation
 
-        summary_parts = [
-            f"The agent completed {step_count} tool steps but did not emit a final answer payload."
-        ]
+        summary_parts = [f"The agent completed {step_count} tool steps but did not emit a final answer payload."]
         if last_tool:
             summary_parts.append(f"Last tool invoked: {last_tool}.")
         if last_observation:
@@ -522,9 +505,7 @@ class CensusQueryAgent:
                 return True
         return False
 
-    def _build_iteration_limit_response(
-        self, result: dict, output: str
-    ) -> dict[str, Any]:
+    def _build_iteration_limit_response(self, result: dict, output: str) -> dict[str, Any]:
         intermediate_steps = result.get("intermediate_steps", []) or []
         step_count = len(intermediate_steps)
 
@@ -537,9 +518,7 @@ class CensusQueryAgent:
                 last_tool = getattr(action, "tool", None)
                 last_observation = observation
 
-        summary_parts = [
-            f"Stopped after {step_count} steps because the agent hit its iteration limit."
-        ]
+        summary_parts = [f"Stopped after {step_count} steps because the agent hit its iteration limit."]
         if last_tool:
             summary_parts.append(f"Last tool invoked: {last_tool}.")
         if last_observation:
@@ -626,14 +605,10 @@ class CensusQueryAgent:
                     f"[PARSE DEBUG] Parsed JSON but missing 'census_data' key. Keys: {list(parsed.keys()) if isinstance(parsed, dict) else 'not a dict'}"
                 )
         except (json.JSONDecodeError, ValidationError) as e:
-            logger.error(
-                f"[PARSE DEBUG] JSON parse or Pydantic validation failed: {type(e).__name__}: {str(e)[:300]}"
-            )
+            logger.error(f"[PARSE DEBUG] JSON parse or Pydantic validation failed: {type(e).__name__}: {str(e)[:300]}")
         return None
 
-    def _normalize_parsed_output_contract(
-        self, parsed: dict[str, Any]
-    ) -> dict[str, Any]:
+    def _normalize_parsed_output_contract(self, parsed: dict[str, Any]) -> dict[str, Any]:
         """
         Normalize common LLM contract drift before strict Pydantic validation.
 
@@ -656,29 +631,17 @@ class CensusQueryAgent:
                     normalized_variables[item] = item
             census_data["variables"] = normalized_variables
 
-            logger.warning(
-                "Normalized census_data.variables from list to dict for contract compatibility"
-            )
+            logger.warning("Normalized census_data.variables from list to dict for contract compatibility")
 
-        stripped_census_data = {
-            key: census_data[key] for key in CENSUS_DATA_FIELDS if key in census_data
-        }
+        stripped_census_data = {key: census_data[key] for key in CENSUS_DATA_FIELDS if key in census_data}
         if "success" not in stripped_census_data:
             stripped_census_data["success"] = census_data.get("success", False)
         if "data" not in stripped_census_data:
             stripped_census_data["data"] = census_data.get("data", [])
-        if (
-            "url" not in stripped_census_data
-            and census_data.get("year") is not None
-            and census_data.get("dataset")
-        ):
-            stripped_census_data["url"] = (
-                f"https://api.census.gov/data/{census_data['year']}/{census_data['dataset']}"
-            )
+        if "url" not in stripped_census_data and census_data.get("year") is not None and census_data.get("dataset"):
+            stripped_census_data["url"] = f"https://api.census.gov/data/{census_data['year']}/{census_data['dataset']}"
         if stripped_census_data != census_data:
-            logger.warning(
-                "Normalized census_data by stripping extra agent/API metadata fields"
-            )
+            logger.warning("Normalized census_data by stripping extra agent/API metadata fields")
             parsed["census_data"] = stripped_census_data
             census_data = stripped_census_data
 
@@ -689,17 +652,11 @@ class CensusQueryAgent:
             for row in parsed["comparison_input_rows"]:
                 if not isinstance(row, dict):
                     continue
-                normalized_row = {
-                    key: row[key]
-                    for key in COMPARISON_INPUT_ROW_FIELDS
-                    if key in row
-                }
+                normalized_row = {key: row[key] for key in COMPARISON_INPUT_ROW_FIELDS if key in row}
                 if normalized_row:
                     normalized_rows.append(normalized_row)
             if normalized_rows != parsed["comparison_input_rows"]:
-                logger.warning(
-                    "Normalized comparison_input_rows by stripping extra agent fields"
-                )
+                logger.warning("Normalized comparison_input_rows by stripping extra agent fields")
             parsed["comparison_input_rows"] = normalized_rows
 
         return parsed
@@ -757,9 +714,7 @@ class CensusQueryAgent:
                 bracket_count -= 1
 
         # If we got here, no complete JSON found
-        logger.debug(
-            f"State machine: Incomplete JSON (brace_count={brace_count}, bracket_count={bracket_count})"
-        )
+        logger.debug(f"State machine: Incomplete JSON (brace_count={brace_count}, bracket_count={bracket_count})")
         return None
 
     def _is_valid_json_without_prefix(self, output: str) -> bool:

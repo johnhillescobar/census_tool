@@ -24,9 +24,7 @@ def _state(question: str) -> CensusState:
 
 
 def test_missing_geography_defaults_to_united_states():
-    resolution = resolve_geography_intent(
-        "Show me median income trends from 2015 to 2020"
-    )
+    resolution = resolve_geography_intent("Show me median income trends from 2015 to 2020")
     assert resolution.status == "resolved"
     assert resolution.geography.geo_for == {"us": "1"}
     assert resolution.geography.source == "missing_geo_default"

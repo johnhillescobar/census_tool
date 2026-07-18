@@ -6,6 +6,7 @@ generate human-readable titles with variable codes when variables dict is provid
 """
 
 import pytest
+
 from src.workflows.output import format_chart_title, get_chart_params
 
 

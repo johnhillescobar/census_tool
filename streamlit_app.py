@@ -5,18 +5,23 @@ This provides a web-based interface alongside the existing CLI interface (main.p
 Both interfaces use the same underlying LangGraph workflow and processing logic.
 """
 
-import streamlit as st
+import logging
+from datetime import datetime
+from pathlib import Path
+from typing import Any
+
 import pandas as pd
 import plotly.express as px
-from pathlib import Path
-import logging
-from typing import Dict, Any
-from datetime import datetime
-from src.clients import generate_session_pdf
-from src.clients import SessionLogger
+import streamlit as st
+
 from app import create_census_graph
-from src.state.types import CensusState
-from langchain_core.runnables import RunnableConfig
+from src.clients import SessionLogger, generate_session_pdf
+from src.services.graph_session import (
+    build_delta_turn_state,
+    build_fresh_thread_state,
+    new_thread_id,
+    runnable_config,
+)
 
 project_root = Path(__file__).parent
 streamlit_logs_dir = project_root / "logs" / "streamlit_logs"
@@ -44,7 +49,10 @@ def initialize_session_state():
         st.session_state.user_id = "demo"
 
     if "thread_id" not in st.session_state:
-        st.session_state.thread_id = "main"
+        st.session_state.thread_id = new_thread_id()
+
+    if "turn_count" not in st.session_state:
+        st.session_state.turn_count = 0
 
     if "conversation_history" not in st.session_state:
         st.session_state.conversation_history = []
@@ -88,7 +96,7 @@ def initialize_session_state():
             logger.error(f"Error starting session logger: {e}")
 
 
-def display_streamlit_results(result: Dict[str, Any]):
+def display_streamlit_results(result: dict[str, Any]):
     """Display results using Streamlit components"""
 
     if not result:
@@ -144,7 +152,7 @@ def display_streamlit_results(result: Dict[str, Any]):
                     st.text(log)
 
 
-def display_single_value_streamlit(final: Dict[str, Any]):
+def display_single_value_streamlit(final: dict[str, Any]):
     """Display a single value answer with Streamlit components"""
 
     value = final.get("value", "N/A")
@@ -168,7 +176,7 @@ def display_single_value_streamlit(final: Dict[str, Any]):
         st.info(f"🔢 Variable: {variable}")
 
 
-def display_series_streamlit(final: Dict[str, Any]):
+def display_series_streamlit(final: dict[str, Any]):
     """Display a time series answer with interactive chart"""
 
     data = final.get("data", [])
@@ -186,9 +194,7 @@ def display_series_streamlit(final: Dict[str, Any]):
             {
                 "Year": item.get("year", "Unknown"),
                 "Value": item.get("value", 0),
-                "Formatted Value": item.get(
-                    "formatted_value", str(item.get("value", 0))
-                ),
+                "Formatted Value": item.get("formatted_value", str(item.get("value", 0))),
             }
         )
 
@@ -233,7 +239,7 @@ def display_series_streamlit(final: Dict[str, Any]):
             st.warning("File not found for download")
 
 
-def display_table_streamlit(final: Dict[str, Any]):
+def display_table_streamlit(final: dict[str, Any]):
     """Display a table answer with interactive table"""
 
     data = final.get("data", [])
@@ -269,7 +275,7 @@ def display_table_streamlit(final: Dict[str, Any]):
             st.warning("File not found for download")
 
 
-def display_not_census_streamlit(final: Dict[str, Any]):
+def display_not_census_streamlit(final: dict[str, Any]):
     """Display a non-Census response"""
 
     message = final.get("message", "I can't help with that.")
@@ -280,7 +286,7 @@ def display_not_census_streamlit(final: Dict[str, Any]):
         st.info(f"💡 {suggestion}")
 
 
-def display_clarification_streamlit(final: Dict[str, Any]):
+def display_clarification_streamlit(final: dict[str, Any]):
     """Display clarification request"""
 
     message = final.get("message", "I need more information.")
@@ -294,7 +300,7 @@ def display_clarification_streamlit(final: Dict[str, Any]):
             st.write(f"{i}. {item}")
 
 
-def process_question(user_input: str) -> Dict[str, Any]:
+def process_question(user_input: str) -> dict[str, Any]:
     """Process a user question through the LangGraph workflow"""
 
     try:
@@ -302,30 +308,17 @@ def process_question(user_input: str) -> Dict[str, Any]:
         # Ensure session state is initialized
         initialize_session_state()
 
-        # Create initial state
-        initial_state = CensusState(
-            messages=[{"role": "user", "content": user_input}],
-            original_query=user_input,
-            intent=None,
-            geo=None,
-            candidates={},
-            plan=None,
-            artifacts={},
-            final=None,
-            logs=[],
-            error=None,
-            summary=None,
-            profile={},
-            history=[],
-            cache_index={},
-        )
+        turn_count = st.session_state.turn_count
 
-        # Create config
-        config = RunnableConfig(
-            configurable={
-                "user_id": st.session_state.user_id,
-                "thread_id": st.session_state.thread_id,
-            }
+        if turn_count == 0:
+            initial_state = build_fresh_thread_state(user_input)
+        else:
+            initial_state = build_delta_turn_state(user_input)
+        st.session_state.turn_count = turn_count + 1
+
+        config = runnable_config(
+            user_id=st.session_state.user_id,
+            thread_id=st.session_state.thread_id,
         )
 
         # Process through graph
@@ -360,9 +353,7 @@ def main():
 
     # Header
     st.title("🏛️ Census Data Assistant")
-    st.markdown(
-        "Ask questions about US Census data and get instant answers with visualizations!"
-    )
+    st.markdown("Ask questions about US Census data and get instant answers with visualizations!")
 
     # Sidebar for settings
     with st.sidebar:
@@ -378,8 +369,15 @@ def main():
         st.session_state.thread_id = st.text_input(
             "Thread ID",
             value=st.session_state.thread_id,
-            help="Enter thread ID to continue conversations",
+            help="UUID thread for checkpoint persistence",
         )
+
+        if st.button("🆕 New conversation"):
+            st.session_state.thread_id = new_thread_id()
+            st.session_state.turn_count = 0
+            st.session_state.conversation_history = []
+            st.session_state.current_result = None
+            st.rerun()
 
         # Display log file location
         if st.session_state.log_file_path:
@@ -427,9 +425,7 @@ def main():
                 with st.expander(f"Q{i + 1}: {entry['question'][:50]}..."):
                     st.text(f"Question: {entry['question']}")
                     if entry["result"].get("final"):
-                        st.text(
-                            f"Answer: {entry['result']['final'].get('type', 'Unknown')}"
-                        )
+                        st.text(f"Answer: {entry['result']['final'].get('type', 'Unknown')}")
 
     # Main interface
     st.header("💬 Ask a Question")
@@ -462,9 +458,7 @@ def main():
     # Debug info
     st.write(f"Debug: user_input = '{user_input}'")
     st.write(f"Debug: user_input.strip() = '{user_input.strip()}'")
-    st.write(
-        f"Debug: example_question in session_state = {'example_question' in st.session_state}"
-    )
+    st.write(f"Debug: example_question in session_state = {'example_question' in st.session_state}")
 
     # Process button
     if st.button("🔍 Ask Question", type="primary") and user_input.strip():

@@ -7,12 +7,13 @@ They are never run in GitHub Actions (module-level skip when CI/GITHUB_ACTIONS i
 Run locally with API keys configured.
 """
 
-import pytest
 import os
 from unittest.mock import patch
+
+import pytest
+
 from src.agents.census_query_agent import CensusQueryAgent
 from src.llm.config import LLM_CONFIG
-
 
 # In CI/GitHub Actions, skip this entire module so these tests never run or fail the build.
 if os.getenv("CI") or os.getenv("GITHUB_ACTIONS"):
@@ -107,10 +108,7 @@ class TestAgentIntegration:
 
         # Should have answer text
         assert len(result["answer_text"]) > 50
-        assert (
-            "Delaware" in result["answer_text"]
-            or "county" in result["answer_text"].lower()
-        )
+        assert "Delaware" in result["answer_text"] or "county" in result["answer_text"].lower()
 
     @requires_api_key
     @pytest.mark.integration
@@ -151,15 +149,10 @@ class TestAgentIntegration:
 
             data = result["census_data"].get("data", [])
             # Should have headers + many county rows
-            assert len(data) > 200, (
-                f"Expected 250+ rows for Texas counties, got {len(data)}"
-            )
+            assert len(data) > 200, f"Expected 250+ rows for Texas counties, got {len(data)}"
 
         # Verify parsing succeeded
-        assert (
-            result["answer_text"]
-            != "Agent execution completed but output parsing failed"
-        )
+        assert result["answer_text"] != "Agent execution completed but output parsing failed"
         assert "census_data" in result
 
         # Should mention Texas
@@ -179,10 +172,7 @@ class TestAgentIntegration:
         assert result["census_data"].get("success") is True
 
         # Should mention income in answer
-        assert any(
-            word in result["answer_text"].lower()
-            for word in ["income", "median", "household"]
-        )
+        assert any(word in result["answer_text"].lower() for word in ["income", "median", "household"])
 
         # Should reference appropriate table in footnotes
         footnotes_text = " ".join(result.get("footnotes", []))

@@ -3,6 +3,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
+from app_test_scripts.test_runtime_helpers import mock_agent_backend
 from src.agents.census_query_agent import CensusQueryAgent
 from src.domain.agent_plan_context import AgentPlanContext
 from src.domain.geography_contract import GeographyIntent
@@ -15,6 +16,7 @@ def offline_agent(monkeypatch):
     monkeypatch.setenv("OPENAI_API_KEY", "test-key")
     agent = CensusQueryAgent(allow_offline=False)
     agent.agent_executor = MagicMock()
+    agent.backend = MagicMock()
     return agent
 
 
@@ -58,10 +60,13 @@ def test_golden_success_payload_parses(offline_agent):
         "tables_needed": [],
         "footnotes": ["Source: U.S. Census Bureau"],
     }
-    offline_agent.agent_executor.invoke.return_value = {
-        "output": json.dumps(payload),
-        "intermediate_steps": [],
-    }
+    mock_agent_backend(
+        offline_agent,
+        {
+            "output": json.dumps(payload),
+            "intermediate_steps": [],
+        },
+    )
     result = offline_agent.solve("test", {"is_census": True, "topic": "general"})
     assert result["census_data"]["success"] is True
     assert result["answer_text"].startswith("Median household income")

@@ -45,9 +45,7 @@ def test_artifact_from_tool_result_table_xlsx_mime_type() -> None:
     )
 
     assert isinstance(artifact, RenderedArtifactSuccess)
-    assert artifact.mime_type == (
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    )
+    assert artifact.mime_type == ("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 
 
 def test_artifact_from_tool_result_table_html_mime_type() -> None:

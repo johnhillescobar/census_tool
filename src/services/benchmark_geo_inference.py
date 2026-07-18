@@ -12,9 +12,7 @@ COUNTY_PATTERN = re.compile(r"\b(county|counties)\b", re.IGNORECASE)
 PLACE_PATTERN = re.compile(r"\b(city|cities|place|places)\b", re.IGNORECASE)
 CBSA_PATTERN = re.compile(r"\b(cbsa|metro|metropolitan)\b", re.IGNORECASE)
 
-COMPARE_SPLIT_PATTERN = re.compile(
-    r"\b(compare|vs|versus|against|and|,)\b", re.IGNORECASE
-)
+COMPARE_SPLIT_PATTERN = re.compile(r"\b(compare|vs|versus|against|and|,)\b", re.IGNORECASE)
 
 NOISE_WORDS = frozenset(
     {
@@ -90,6 +88,7 @@ AMBIGUOUS_STATE_ABBREVIATIONS = frozenset(
         "wa",
     }
 )
+
 
 def _state_abbreviation_in_text(abbr: str, text: str) -> bool:
     """Match state abbreviations case-insensitively without English-word false positives."""
@@ -245,11 +244,7 @@ def _collect_state_fips(text: str, candidates: list[str]) -> list[str]:
         for token in name.split():
             if token.lower() in NOISE_WORDS:
                 continue
-            if (
-                len(token) == 2
-                and token.islower()
-                and token.lower() in AMBIGUOUS_STATE_ABBREVIATIONS
-            ):
+            if len(token) == 2 and token.islower() and token.lower() in AMBIGUOUS_STATE_ABBREVIATIONS:
                 continue
             fips = lookup_state_fips(token)
             if fips and fips not in seen:

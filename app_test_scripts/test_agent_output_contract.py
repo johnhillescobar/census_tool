@@ -56,9 +56,7 @@ def test_valid_comparison_input_rows():
             benchmark_value=8.0,
         )
     ]
-    output = AgentPlanOutput(
-        **_build_output_payload([row.model_dump() for row in rows])
-    )
+    output = AgentPlanOutput(**_build_output_payload([row.model_dump() for row in rows]))
     validated = validate_comparison_rows_for_plan(rows, _build_plan())
     assert len(output.comparison_input_rows) == 1
     assert len(validated) == 1
@@ -74,11 +72,7 @@ def test_agent_plan_output_preserves_strict_census_response_until_legacy_boundar
             geo_for={"state": "06"},
         ),
         headers=["NAME", "B01003_001E"],
-        records=[
-            StrictCensusApiRecord(
-                values={"NAME": "California", "B01003_001E": "39538223"}
-            )
-        ],
+        records=[StrictCensusApiRecord(values={"NAME": "California", "B01003_001E": "39538223"})],
         row_count=1,
         error=None,
         error_message=None,

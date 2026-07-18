@@ -1,15 +1,14 @@
 import json
 import logging
-from typing import Dict, List
 
 from langchain_core.tools import BaseTool
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
-from src.tools.json_parse import parse_first_json
 from src.clients.chroma_utils import (
     validate_and_fix_geo_params,
     validate_geography_hierarchy,
 )
+from src.tools.json_parse import parse_first_json
 
 logger = logging.getLogger(__name__)
 
@@ -19,10 +18,8 @@ class GeographyValidationInput(BaseModel):
 
     dataset: str = Field(..., description="Census dataset path (e.g., 'acs/acs5')")
     year: int = Field(..., description="Census year (e.g., 2023)")
-    geo_for: Dict[str, str] = Field(..., description="Geography for clause")
-    geo_in: Dict[str, str] = Field(
-        default_factory=dict, description="Geography in clause (optional)"
-    )
+    geo_for: dict[str, str] = Field(..., description="Geography for clause")
+    geo_in: dict[str, str] = Field(default_factory=dict, description="Geography in clause (optional)")
 
 
 class GeographyValidationTool(BaseTool):
@@ -96,8 +93,8 @@ class GeographyValidationTool(BaseTool):
         geo_for = validation_input.geo_for
         geo_in = validation_input.geo_in or {}
 
-        warnings: List[str] = []
-        errors: List[str] = []
+        warnings: list[str] = []
+        errors: list[str] = []
 
         try:
             # Attempt to normalize and fix parameters
@@ -114,20 +111,14 @@ class GeographyValidationTool(BaseTool):
             repaired_in_tokens = [token for token, _ in ordered_in]
 
             if original_in_tokens and original_in_tokens != repaired_in_tokens:
-                warnings.append(
-                    f"Geography ordering auto-corrected from {original_in_tokens} to {repaired_in_tokens}"
-                )
+                warnings.append(f"Geography ordering auto-corrected from {original_in_tokens} to {repaired_in_tokens}")
 
             # Check if for clause was simplified
             if len(geo_for) > 1:
-                warnings.append(
-                    f"Multiple geographies in 'for' clause simplified to target: {for_token}"
-                )
+                warnings.append(f"Multiple geographies in 'for' clause simplified to target: {for_token}")
 
             # Validate hierarchy completeness
-            is_valid, missing, error_msg = validate_geography_hierarchy(
-                dataset, year, for_token, repaired_in_tokens
-            )
+            is_valid, missing, error_msg = validate_geography_hierarchy(dataset, year, for_token, repaired_in_tokens)
 
             if not is_valid:
                 errors.append(error_msg)
@@ -145,9 +136,7 @@ class GeographyValidationTool(BaseTool):
             }
 
             if is_valid:
-                logger.info(
-                    f"Geography validation passed for {dataset}/{year}/{for_token}"
-                )
+                logger.info(f"Geography validation passed for {dataset}/{year}/{for_token}")
             else:
                 logger.warning(f"Geography validation failed: {errors}")
 

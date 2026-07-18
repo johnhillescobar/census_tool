@@ -3,9 +3,10 @@ Centralized LLM factory supporting multiple providers
 Handles provider-specific initialization and API compatibility
 """
 
-import os
 import logging
-from typing import Any, Optional
+import os
+from typing import Any
+
 from langchain_openai import ChatOpenAI
 
 from src.llm.config import LLM_CONFIG
@@ -16,7 +17,7 @@ logger = logging.getLogger(__name__)
 ENABLE_FACTORY = True
 
 
-def create_llm(temperature: Optional[float] = None, **kwargs) -> Any:
+def create_llm(temperature: float | None = None, **kwargs) -> Any:
     """
     Central LLM factory supporting OpenAI, Anthropic, and Google Gemini
 
@@ -48,9 +49,7 @@ def create_llm(temperature: Optional[float] = None, **kwargs) -> Any:
     elif provider == "google":
         return _create_gemini_llm(model, temp, **kwargs)
     else:
-        raise ValueError(
-            f"Unsupported provider: {provider}. Supported: openai, anthropic, google"
-        )
+        raise ValueError(f"Unsupported provider: {provider}. Supported: openai, anthropic, google")
 
 
 def _create_openai_llm(model: str, temperature: float, **kwargs) -> Any:
@@ -73,9 +72,7 @@ def _create_openai_llm(model: str, temperature: float, **kwargs) -> Any:
         # Add output_version for Responses API compatibility
         if "output_version" not in kwargs:
             kwargs["output_version"] = "responses/v1"
-        logger.info(
-            f"Using Responses API for {model} with output_version={kwargs['output_version']}"
-        )
+        logger.info(f"Using Responses API for {model} with output_version={kwargs['output_version']}")
 
     # Explicitly get API key from environment (ChatOpenAI reads it automatically, but we verify)
     api_key = os.getenv("OPENAI_API_KEY")
@@ -199,9 +196,7 @@ def _create_anthropic_llm(model: str, temperature: float, **kwargs) -> Any:
     try:
         from langchain_anthropic import ChatAnthropic
     except ImportError:
-        logger.error(
-            "langchain-anthropic not installed. Run: uv add langchain-anthropic"
-        )
+        logger.error("langchain-anthropic not installed. Run: uv add langchain-anthropic")
         raise
 
     anthropic_params: dict[str, Any] = {
@@ -229,9 +224,7 @@ def _create_gemini_llm(model: str, temperature: float, **kwargs) -> Any:
     try:
         from langchain_google_genai import ChatGoogleGenerativeAI
     except ImportError:
-        logger.error(
-            "langchain-google-genai not installed. Run: uv add langchain-google-genai"
-        )
+        logger.error("langchain-google-genai not installed. Run: uv add langchain-google-genai")
         raise
 
     return ChatGoogleGenerativeAI(
@@ -244,7 +237,7 @@ def _create_gemini_llm(model: str, temperature: float, **kwargs) -> Any:
     )
 
 
-def create_llm_with_fallback(temperature: Optional[float] = None, **kwargs) -> Any:
+def create_llm_with_fallback(temperature: float | None = None, **kwargs) -> Any:
     """
     Create LLM with automatic fallback on failure
 

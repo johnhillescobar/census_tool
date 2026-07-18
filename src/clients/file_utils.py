@@ -14,7 +14,7 @@ def load_json_file(file_path: Path, default_value: Any = None) -> Any:
     """Load JSON file safely with default fallback"""
     try:
         if file_path.exists():
-            with open(file_path, "r", encoding="utf-8") as f:
+            with open(file_path, encoding="utf-8") as f:
                 return json.load(f)
     except Exception as e:
         logger.warning(f"Error loading {file_path}: {e}")
