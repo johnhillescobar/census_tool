@@ -1,28 +1,29 @@
+import logging
+from datetime import datetime
+from io import BytesIO
+from pathlib import Path
+
 import pandas as pd
-from reportlab.pdfgen import canvas
-from reportlab.lib.pagesizes import letter
 from reportlab.lib import colors
+from reportlab.lib.pagesizes import letter
+from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import inch
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.pdfgen import canvas
 from reportlab.platypus import (
-    SimpleDocTemplate,
-    Paragraph,
-    Spacer,
+    Flowable,
     Image,
+    Paragraph,
+    SimpleDocTemplate,
+    Spacer,
     Table,
     TableStyle,
 )
-from typing import Dict, List
-from datetime import datetime
-from pathlib import Path
-from io import BytesIO
-import logging
 
 logger = logging.getLogger(__name__)
 
 
 def generate_session_pdf(
-    conversation_history: List[Dict], user_id: str, session_metadata: Dict
+    conversation_history: list[dict], user_id: str, session_metadata: dict
 ) -> bytes:
     """
     Generate PDF from Streamlit session data
@@ -49,7 +50,7 @@ def generate_session_pdf(
 
         def showPage(self):
             self._saved_page_states.append(dict(self.__dict__))
-            self._startPage()
+            getattr(self, "_startPage")()
 
         def save(self):
             page_count = len(self._saved_page_states)
@@ -63,7 +64,11 @@ def generate_session_pdf(
             self.setFont("Helvetica", 9)
             self.setFillColor(colors.grey)
             # Footer with page numbers and timestamp
-            footer_text = f"Page {self._pageNumber} of {page_count} | Generated {datetime.now().strftime('%Y-%m-%d %H:%M')}"
+            generated_at = datetime.now().strftime("%Y-%m-%d %H:%M")
+            footer_text = (
+                f"Page {self.getPageNumber()} of {page_count} | "
+                f"Generated {generated_at}"
+            )
             self.drawRightString(7.5 * inch, 0.75 * inch, footer_text)
 
             # Header line
@@ -137,7 +142,7 @@ def generate_session_pdf(
     )
 
     # Story list to hold all content
-    story = []
+    story: list[Flowable] = []
 
     # Enhanced cover page
     story.append(Spacer(1, 60))
@@ -207,6 +212,22 @@ def generate_session_pdf(
         tables_processed = 0
 
         for file_info in generated_files:
+            if isinstance(file_info, dict):
+                if file_info.get("status") == "failure":
+                    story.append(
+                        Paragraph(
+                            f"Render artifact failed: {file_info.get('message', 'Unknown error')}",
+                            meta_style,
+                        )
+                    )
+                    continue
+                kind = file_info.get("kind")
+                path = file_info.get("path", "")
+                if kind == "chart":
+                    file_info = f"Chart created successfully: {path}"
+                elif kind == "table":
+                    file_info = f"Table created successfully: {path}"
+
             if isinstance(file_info, str):
                 if "Chart created successfully:" in file_info:
                     # Extract and embed chart
@@ -274,9 +295,10 @@ def generate_session_pdf(
                                     table_data = _create_pdf_table_from_dataframe(
                                         df, f"Table from {table_file_path.name}"
                                     )
-                                    story.append(table_data)
-                                    table_embedded = True
-                                    tables_processed += 1
+                                    if table_data is not None:
+                                        story.append(table_data)
+                                        table_embedded = True
+                                        tables_processed += 1
                         except Exception:
                             pass  # Fall back to file reference
 
@@ -327,13 +349,15 @@ def generate_session_pdf(
         # Return error as PDF content
         error_buffer = BytesIO()
         error_doc = SimpleDocTemplate(error_buffer, pagesize=letter)
-        error_story = [Paragraph(f"PDF Generation Error: {str(e)}", styles["Normal"])]
+        error_story: list[Flowable] = [
+            Paragraph(f"PDF Generation Error: {str(e)}", styles["Normal"])
+        ]
         error_doc.build(error_story)
         error_buffer.seek(0)
         return error_buffer.getvalue()
 
 
-def _calculate_session_duration(conversation_history: List[Dict]) -> str:
+def _calculate_session_duration(conversation_history: list[dict]) -> str:
     """Calculate session duration from conversation timestamps"""
     if len(conversation_history) < 2:
         return "N/A"
@@ -378,7 +402,7 @@ def _add_header(canvas, doc):
     canvas.restoreState()
 
 
-def _create_pdf_table_from_census_data(census_data: Dict) -> Table:
+def _create_pdf_table_from_census_data(census_data: dict) -> Table | None:
     """Create ReportLab Table from census_data structure"""
     try:
         if not census_data or "data" not in census_data or not census_data["data"]:
@@ -406,7 +430,7 @@ def _create_pdf_table_from_census_data(census_data: Dict) -> Table:
         return None
 
 
-def _create_pdf_table_from_dataframe(df: pd.DataFrame, title: str) -> Table:
+def _create_pdf_table_from_dataframe(df: pd.DataFrame, title: str) -> Table | None:
     """Create ReportLab Table from pandas DataFrame"""
     try:
         # Limit rows for readability
@@ -430,7 +454,7 @@ def _create_pdf_table_from_dataframe(df: pd.DataFrame, title: str) -> Table:
         return None
 
 
-def _create_pdf_table_from_data(table_data: List[List], title: str) -> Table:
+def _create_pdf_table_from_data(table_data: list[list], title: str) -> Table | None:
     """Create styled ReportLab Table from data array"""
     try:
         if not table_data or len(table_data) < 2:

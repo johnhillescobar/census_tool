@@ -3,9 +3,17 @@ Unit tests for CensusQueryAgent parsing functionality.
 Tests the robust JSON parsing methods that handle various agent output formats.
 """
 
-import pytest
 import json
+from types import SimpleNamespace
+
+import pytest
+
 from src.agents.census_query_agent import CensusQueryAgent
+from src.domain.census_tool_contract import (
+    StrictCensusApiRecord,
+    StrictCensusApiRequest,
+    StrictCensusApiResponse,
+)
 
 
 class TestAgentParsing:
@@ -34,6 +42,66 @@ class TestAgentParsing:
         assert parsed["census_data"]["data"][1][0] == "California"
         assert parsed["answer_text"] == "test answer"
         assert len(parsed["footnotes"]) == 1
+
+    def test_strict_census_tool_observation_overrides_final_answer_data(self):
+        """Validated strict tool output is the authority for Census data."""
+        agent_authored_payload = {
+            "census_data": {
+                "success": True,
+                "data": [["NAME", "B01003_001E"], ["Wrong", "0"]],
+            },
+            "data_summary": "summary",
+            "reasoning_trace": "trace",
+            "answer_text": "answer",
+            "charts_needed": [],
+            "tables_needed": [],
+            "footnotes": [],
+        }
+        strict_response = StrictCensusApiResponse(
+            success=True,
+            request=StrictCensusApiRequest(
+                year=2023,
+                dataset="acs/acs5",
+                variables=["NAME", "B01003_001E"],
+                geo_for={"state": "06"},
+            ),
+            headers=["NAME", "B01003_001E"],
+            records=[
+                StrictCensusApiRecord(
+                    values={"NAME": "California", "B01003_001E": "39538223"}
+                )
+            ],
+            row_count=1,
+            error=None,
+            error_message=None,
+        )
+
+        agent = CensusQueryAgent()
+        result = {
+            "output": json.dumps(agent_authored_payload),
+            "intermediate_steps": [
+                (
+                    SimpleNamespace(tool="strict_census_api_call"),
+                    strict_response,
+                )
+            ],
+        }
+        internal_output = agent._validate_agent_output_model(
+            agent_authored_payload.copy(),
+            result,
+        )
+
+        assert isinstance(internal_output.census_data, StrictCensusApiResponse)
+
+        parsed = agent._parse_solution(result)
+
+        assert parsed["census_data"]["data"] == [
+            ["NAME", "B01003_001E"],
+            ["California", "39538223"],
+        ]
+        assert parsed["census_data"]["url"] == (
+            "https://api.census.gov/data/2023/acs/acs5"
+        )
 
     def test_parse_with_final_answer_prefix(self):
         """Test extraction after 'Final Answer:' marker."""
@@ -356,6 +424,9 @@ class TestAgentPlanConsumption:
         plan_context = AgentPlanContext(
             temporal=TemporalIntent(
                 mode="latest_available",
+                start_year=None,
+                end_year=None,
+                anchor_year=None,
                 requested_text="Compare population by county in California",
             ),
             benchmark=BenchmarkIntent(

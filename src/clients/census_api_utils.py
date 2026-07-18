@@ -2,22 +2,31 @@
 Census API Utils
 """
 
-import sys
-import os
-from pathlib import Path
-from typing import Dict, List, Any, Iterable, Optional
-import requests
-import time
-from urllib.parse import quote
-from dotenv import load_dotenv
 import logging
+import os
+import sys
+import time
+from collections.abc import Iterable
+from pathlib import Path
+from typing import Any
+from urllib.parse import quote
+
+import requests
+from dotenv import load_dotenv
 
 from config import (
-    CENSUS_API_TIMEOUT,
-    CENSUS_API_MAX_RETRIES,
     CENSUS_API_BACKOFF_FACTOR,
+    CENSUS_API_MAX_RETRIES,
+    CENSUS_API_TIMEOUT,
 )
 from src.clients.chroma_utils import validate_and_fix_geo_params
+from src.domain.census_client_contract import (
+    CensusApiCallFailure,
+    CensusApiCallResult,
+    CensusApiCallSuccess,
+    CensusApiFailureCode,
+    CensusApiRawTable,
+)
 
 # Load environment variables
 load_dotenv()
@@ -30,10 +39,10 @@ _GEO_SAFE_CHARS = ":/()*"
 
 
 def _combine_geo_in(
-    geo_in: Optional[Dict[str, str]],
-    chained_in: Optional[Iterable[Dict[str, str]]],
-) -> Dict[str, str]:
-    combined: Dict[str, str] = {} if geo_in is None else dict(geo_in)
+    geo_in: dict[str, str] | None,
+    chained_in: Iterable[dict[str, str]] | None,
+) -> dict[str, str]:
+    combined: dict[str, str] = {} if geo_in is None else dict(geo_in)
     if chained_in:
         for in_dict in chained_in:
             if isinstance(in_dict, dict):
@@ -44,10 +53,10 @@ def _combine_geo_in(
 def build_geo_filters(
     dataset: str,
     year: int,
-    geo_for: Dict[str, str],
-    geo_in: Optional[Dict[str, str]] = None,
-    geo_in_chained: Optional[Iterable[Dict[str, str]]] = None,
-) -> Dict[str, str]:
+    geo_for: dict[str, str],
+    geo_in: dict[str, str] | None = None,
+    geo_in_chained: Iterable[dict[str, str]] | None = None,
+) -> dict[str, str]:
     """
     Produce encoded `for` / `in` parameters using hierarchy ordering.
     """
@@ -67,30 +76,66 @@ def build_geo_filters(
         in_clause = " ".join(f"{token}:{value}" for token, value in ordered_in)
         encoded_in = quote(in_clause, safe=_GEO_SAFE_CHARS)
 
-    filters: Dict[str, str] = {"for": encoded_for}
+    filters: dict[str, str] = {"for": encoded_for}
     if encoded_in:
         filters["in"] = encoded_in
 
     return filters
 
 
-def fetch_census_data(
-    dataset: str, year: int, variables: List[str], geo: Dict[str, Any]
-) -> Dict[str, Any]:
-    """Fetch Census data from the Census API"""
-    url = build_census_url(dataset, year, variables, geo)
+def _typed_failure(
+    *,
+    url: str,
+    attempt: int,
+    error_code: CensusApiFailureCode,
+    error_message: str,
+) -> CensusApiCallResult:
+    return CensusApiCallResult(
+        failure=CensusApiCallFailure(
+            url=url,
+            attempt=attempt,
+            error_code=error_code,
+            error_message=error_message,
+        )
+    )
 
+
+def fetch_census_data_typed(
+    dataset: str, year: int, variables: list[str], geo: dict[str, Any]
+) -> CensusApiCallResult:
+    """Fetch Census data from the Census API and validate its raw table shape."""
+    url = build_census_url(dataset, year, variables, geo)
     for attempt in range(CENSUS_API_MAX_RETRIES):
+        attempt_number = attempt + 1
         try:
             response = requests.get(url, timeout=CENSUS_API_TIMEOUT)
 
             if response.status_code == 200:
-                return {
-                    "success": True,
-                    "data": response.json(),
-                    "url": url,
-                    "attempt": attempt + 1,
-                }
+                try:
+                    raw_payload = response.json()
+                except ValueError as exc:
+                    return _typed_failure(
+                        url=url,
+                        attempt=attempt_number,
+                        error_code="API_PAYLOAD_JSON_INVALID",
+                        error_message=str(exc),
+                    )
+                try:
+                    table = CensusApiRawTable.from_api_payload(raw_payload)
+                except ValueError as exc:
+                    return _typed_failure(
+                        url=url,
+                        attempt=attempt_number,
+                        error_code="API_PAYLOAD_SHAPE_INVALID",
+                        error_message=str(exc),
+                    )
+                return CensusApiCallResult(
+                    success=CensusApiCallSuccess(
+                        url=url,
+                        attempt=attempt_number,
+                        table=table,
+                    )
+                )
 
             elif response.status_code == 429:
                 retry_after = response.headers.get("Retry-After")
@@ -106,42 +151,81 @@ def fetch_census_data(
                 continue
 
             elif 500 <= response.status_code < 600:
-                logger.error(f"Server error. Attempt {attempt + 1} failed.")
+                logger.error(f"Server error. Attempt {attempt_number} failed.")
                 retry_after = response.headers.get("Retry-After")
                 wait_time = CENSUS_API_BACKOFF_FACTOR * attempt
                 time.sleep(wait_time)
                 continue
 
             else:
-                return {
-                    "success": False,
-                    "error": f"HTTP {response.status_code}: {response.text}",
-                    "url": url,
-                    "attempt": attempt + 1,
-                }
+                return _typed_failure(
+                    url=url,
+                    attempt=attempt_number,
+                    error_code="HTTP_ERROR",
+                    error_message=f"HTTP {response.status_code}: {response.text}",
+                )
 
         except requests.exceptions.RequestException as e:
             logger.error(f"Request exception: {str(e)}")
             if attempt == CENSUS_API_MAX_RETRIES - 1:
-                return {
-                    "success": False,
-                    "error": f"Requests failed after {CENSUS_API_MAX_RETRIES} attempts: {str(e)}",
-                    "url": url,
-                    "attempt": attempt + 1,
-                }
+                return _typed_failure(
+                    url=url,
+                    attempt=attempt_number,
+                    error_code="REQUEST_EXCEPTION",
+                    error_message=(
+                        f"Requests failed after {CENSUS_API_MAX_RETRIES} attempts: "
+                        f"{str(e)}"
+                    ),
+                )
             wait_time = CENSUS_API_BACKOFF_FACTOR * (2**attempt)
             time.sleep(wait_time)
 
+    return _typed_failure(
+        url=url,
+        attempt=CENSUS_API_MAX_RETRIES,
+        error_code="MAX_RETRIES_EXCEEDED",
+        error_message="Max retries exceeded",
+    )
+
+
+def fetch_census_data(
+    dataset: str, year: int, variables: list[str], geo: dict[str, Any]
+) -> dict[str, Any]:
+    """Backward-compatible dict adapter around the typed Census API client."""
+    typed_result = fetch_census_data_typed(
+        dataset=dataset,
+        year=year,
+        variables=variables,
+        geo=geo,
+    )
+    if typed_result.success is not None:
+        return {
+            "success": True,
+            "data": [
+                typed_result.success.table.headers,
+                *typed_result.success.table.rows,
+            ],
+            "url": typed_result.success.url,
+            "attempt": typed_result.success.attempt,
+        }
+    failure = typed_result.failure
+    if failure is None:
+        return {
+            "success": False,
+            "error": "INVALID_RESULT: missing success/failure payload",
+            "url": "",
+            "attempt": 0,
+        }
     return {
         "success": False,
-        "error": "Max retries exceeded",
-        "url": url,
-        "attempt": CENSUS_API_MAX_RETRIES,
+        "error": f"{failure.error_code}: {failure.error_message}",
+        "url": failure.url,
+        "attempt": failure.attempt,
     }
 
 
 def build_census_url(
-    dataset: str, year: int, variables: List[str], geo: Dict[str, Any]
+    dataset: str, year: int, variables: list[str], geo: dict[str, Any]
 ) -> str:
     """Build the Census API URL with support for complex geography patterns"""
     base_url = "https://api.census.gov/data"
@@ -185,10 +269,10 @@ def build_census_url(
 
 
 def build_census_url_from_metadata(
-    table_metadata: Dict,
+    table_metadata: dict,
     year: int,
-    geo: Dict[str, Any],
-    variables: Optional[List[str]] = None,
+    geo: dict[str, Any],
+    variables: list[str] | None = None,
 ) -> str:
     """
     Build Census API URL from table metadata
@@ -278,12 +362,12 @@ def build_census_url_from_metadata(
     return f"{base_url}/{year}/{dataset_path}?{param_string}"
 
 
-def parse_census_response(response: Dict) -> Dict:
+def parse_census_response(response: dict) -> dict:
     """Parse the Census API response"""
     return {}
 
 
-def handle_api_errors(response: Dict) -> Dict:
+def handle_api_errors(response: dict) -> dict:
     """Handle Census API errors"""
     return {}
 

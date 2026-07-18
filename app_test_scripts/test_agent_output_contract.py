@@ -3,7 +3,13 @@ from pydantic import ValidationError
 
 from src.domain.agent_output_contract import (
     AgentPlanOutput,
+    agent_output_to_legacy_dict,
     validate_comparison_rows_for_plan,
+)
+from src.domain.census_tool_contract import (
+    StrictCensusApiRecord,
+    StrictCensusApiRequest,
+    StrictCensusApiResponse,
 )
 from src.domain.comparison_input_contract import ComparisonInputRow
 from src.domain.comparison_plan import ComparisonPlan
@@ -56,6 +62,47 @@ def test_valid_comparison_input_rows():
     validated = validate_comparison_rows_for_plan(rows, _build_plan())
     assert len(output.comparison_input_rows) == 1
     assert len(validated) == 1
+
+
+def test_agent_plan_output_preserves_strict_census_response_until_legacy_boundary():
+    strict_response = StrictCensusApiResponse(
+        success=True,
+        request=StrictCensusApiRequest(
+            year=2023,
+            dataset="acs/acs5",
+            variables=["NAME", "B01003_001E"],
+            geo_for={"state": "06"},
+        ),
+        headers=["NAME", "B01003_001E"],
+        records=[
+            StrictCensusApiRecord(
+                values={"NAME": "California", "B01003_001E": "39538223"}
+            )
+        ],
+        row_count=1,
+        error=None,
+        error_message=None,
+    )
+    output = AgentPlanOutput(
+        census_data=strict_response,
+        data_summary="summary",
+        reasoning_trace="trace",
+        answer_text="answer",
+        charts_needed=[],
+        tables_needed=[],
+        footnotes=[],
+        comparison_input_rows=[],
+    )
+
+    assert isinstance(output.census_data, StrictCensusApiResponse)
+
+    legacy = agent_output_to_legacy_dict(output)
+    assert legacy["census_data"] == {
+        "success": True,
+        "data": [["NAME", "B01003_001E"], ["California", "39538223"]],
+        "variables": {"NAME": "NAME", "B01003_001E": "B01003_001E"},
+        "url": "https://api.census.gov/data/2023/acs/acs5",
+    }
 
 
 def test_rejects_placeholder_geo_ids():

@@ -2,6 +2,7 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from .census_tool_contract import StrictCensusApiResponse
 from .comparison_input_contract import ComparisonInputRow
 from .comparison_plan import ComparisonPlan
 
@@ -31,10 +32,13 @@ class CensusDataPayload(BaseModel):
     url: str | None = None
 
 
+AgentCensusData = StrictCensusApiResponse | CensusDataPayload
+
+
 class AgentPlanOutput(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    census_data: CensusDataPayload
+    census_data: AgentCensusData
     data_summary: str
     reasoning_trace: str
     answer_text: str
@@ -51,6 +55,59 @@ class AgentPlanOutput(BaseModel):
                     f"comparison_input_rows contains unresolved placeholder geo_id: {row.geo_id}"
                 )
         return self
+
+
+def strict_census_response_to_legacy_payload(
+    response: StrictCensusApiResponse,
+) -> CensusDataPayload:
+    """Adapt a validated strict Census response to the current workflow payload."""
+    data = [
+        response.headers,
+        *[
+            [record.values.get(header, "") for header in response.headers]
+            for record in response.records
+        ],
+    ]
+    variables = {header: header for header in response.headers}
+    url = None
+    if response.request is not None:
+        url = (
+            f"https://api.census.gov/data/"
+            f"{response.request.year}/{response.request.dataset}"
+        )
+    return CensusDataPayload(
+        success=response.success,
+        data=data,
+        variables=variables,
+        url=url,
+    )
+
+
+def agent_output_to_legacy_dict(output: AgentPlanOutput) -> dict[str, Any]:
+    """
+    Serialize typed agent output for existing workflow state.
+
+    This is the explicit compatibility boundary; upstream validation keeps strict
+    Census responses typed until this final handoff.
+    """
+    census_data = output.census_data
+    if isinstance(census_data, StrictCensusApiResponse):
+        legacy_census_data = strict_census_response_to_legacy_payload(census_data)
+    else:
+        legacy_census_data = census_data
+
+    return {
+        "census_data": legacy_census_data.model_dump(),
+        "data_summary": output.data_summary,
+        "reasoning_trace": output.reasoning_trace,
+        "answer_text": output.answer_text,
+        "charts_needed": output.charts_needed,
+        "tables_needed": output.tables_needed,
+        "footnotes": output.footnotes,
+        "comparison_input_rows": [
+            row.model_dump() for row in output.comparison_input_rows
+        ],
+    }
 
 
 def validate_comparison_rows_for_plan(

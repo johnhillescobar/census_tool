@@ -11,7 +11,8 @@ from src.services.comparison_metric_compute import (
     ComparisonMetricComputeRequest,
     compute_comparison_metrics,
 )
-from src.state.types import CensusState
+from src.state.types import CensusState, WorkflowArtifactsState
+from src.workflows.graph_patch import CensusGraphPatch
 
 
 def _extract_comparison_rows(state: CensusState) -> list[ComparisonInputRow]:
@@ -64,9 +65,7 @@ def comparison_metrics_node(state: CensusState, config: RunnableConfig) -> dict[
         ]
     )
 
-    return {
-        "artifacts": {
-            "comparison_metrics": [row.model_dump() for row in metrics_artifact.rows]
-        },
-        "logs": [f"comparison_metrics: computed {len(metrics_artifact.rows)} rows"],
-    }
+    return CensusGraphPatch(
+        artifacts=WorkflowArtifactsState(comparison_metrics=metrics_artifact.rows),
+        logs=[f"comparison_metrics: computed {len(metrics_artifact.rows)} rows"],
+    ).as_langgraph_update()

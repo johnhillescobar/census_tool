@@ -2,17 +2,15 @@
 Test PDF generation functionality
 """
 
-from pathlib import Path
 from datetime import datetime
+
 import pandas as pd
 import pytest
 
 from src.clients import generate_session_pdf
 
-project_root = Path(__file__).parent
 
-
-def test_pdf_generation():
+def test_pdf_generation(tmp_path):
     """Test PDF generation with sample data"""
 
     # Sample conversation history
@@ -71,10 +69,9 @@ def test_pdf_generation():
         # ASSERTION 4: PDF should start with PDF header
         assert pdf_bytes.startswith(b"%PDF"), f"Invalid PDF header: {pdf_bytes[:10]}"
 
-        # Save test PDF
-        test_pdf_path = Path("test_session_report.pdf")
-        with open(test_pdf_path, "wb") as f:
-            f.write(pdf_bytes)
+        # Save the PDF in pytest's temp directory so the test never dirties the repo.
+        test_pdf_path = tmp_path / "test_session_report.pdf"
+        test_pdf_path.write_bytes(pdf_bytes)
 
         # ASSERTION 5: File should be created successfully
         assert test_pdf_path.exists(), f"PDF file not created: {test_pdf_path}"

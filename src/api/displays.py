@@ -1,12 +1,17 @@
-from typing import Dict, Any
-
 import logging
+from typing import Any
+
+from src.domain.rendered_output_contract import (
+    RenderedArtifactFailure,
+    RenderedArtifactSuccess,
+    artifact_to_display_text,
+)
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
-def display_results(result: Dict[str, Any]):
+def display_results(result: dict[str, Any]):
     """Display the results of the Census query"""
 
     print("\n" + "=" * 50)
@@ -50,6 +55,15 @@ def display_results(result: Dict[str, Any]):
     if generated_files:
         print(f"\n[FILES GENERATED]: {len(generated_files)} file(s)")
         for i, file_info in enumerate(generated_files, 1):
+            if isinstance(file_info, dict):
+                if file_info.get("status") == "success":
+                    file_info = artifact_to_display_text(
+                        RenderedArtifactSuccess.model_validate(file_info)
+                    )
+                elif file_info.get("status") == "failure":
+                    file_info = artifact_to_display_text(
+                        RenderedArtifactFailure.model_validate(file_info)
+                    )
             print(f"  {i}. {file_info}")
 
     # Phase 3: Display charts/tables that were requested
@@ -87,7 +101,7 @@ def display_results(result: Dict[str, Any]):
             print(f"  • {log}")
 
 
-def display_single_value(final: Dict[str, Any]):
+def display_single_value(final: dict[str, Any]):
     """Display a single value answer"""
 
     value = final.get("value", "N/A")
@@ -102,7 +116,7 @@ def display_single_value(final: Dict[str, Any]):
         print(f"�� Variable: {variable}")
 
 
-def display_series(final: Dict[str, Any]):
+def display_series(final: dict[str, Any]):
     """Display a time series answer"""
 
     data = final.get("data", [])
@@ -132,7 +146,7 @@ def display_series(final: Dict[str, Any]):
         print(f"\n�� Full data saved to: {file_path}")
 
 
-def display_table(final: Dict[str, Any]):
+def display_table(final: dict[str, Any]):
     """Display a table answer"""
 
     data = final.get("data", [])
@@ -167,7 +181,7 @@ def display_table(final: Dict[str, Any]):
         print(f"\n💾 Full data saved to: {file_path}")
 
 
-def display_not_census(final: Dict[str, Any]):
+def display_not_census(final: dict[str, Any]):
     """Display a non-Census response"""
 
     message = final.get("message", "I can't help with that.")

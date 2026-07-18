@@ -3,8 +3,9 @@ from typing import Any
 from langchain_core.runnables import RunnableConfig
 
 from src.services.temporal_policy import resolve_temporal_intent
-from src.state.types import CensusState
+from src.state.types import CensusState, FinalResponseState
 from src.state.workflow_plan import WorkflowPlan
+from src.workflows.graph_patch import CensusGraphPatch
 
 
 def temporal_node(state: CensusState, config: RunnableConfig) -> dict[str, Any]:
@@ -16,23 +17,21 @@ def temporal_node(state: CensusState, config: RunnableConfig) -> dict[str, Any]:
         prompt = temporal_resolution.clarification_prompt
         option_lines = [f"{o.option_id}: {o.label}" for o in prompt.options]
         clarification_text = f"{prompt.question_text}\n" + "\n".join(option_lines)
-        return {
-            "plan": WorkflowPlan(
+        return CensusGraphPatch(
+            plan=WorkflowPlan(
                 temporal=temporal_resolution,
                 requires_clarification=True,
             ),
-            "final": {
-                "answer_text": clarification_text,
-            },
-            "logs": [
+            final=FinalResponseState(answer_text=clarification_text),
+            logs=[
                 f"temporal: clarification required ({temporal_resolution.reason_code})"
             ],
-        }
+        ).as_langgraph_update()
 
-    return {
-        "plan": WorkflowPlan(
+    return CensusGraphPatch(
+        plan=WorkflowPlan(
             temporal=temporal_resolution,
             requires_clarification=False,
         ),
-        "logs": ["temporal: resolved"],
-    }
+        logs=["temporal: resolved"],
+    ).as_langgraph_update()
