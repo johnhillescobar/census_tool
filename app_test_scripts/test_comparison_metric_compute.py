@@ -236,3 +236,36 @@ def test_row_geo_must_be_within_plan_subject_geos():
         compute_comparison_metrics(request)
 
 
+def test_accepts_resolved_geos_when_plan_uses_placeholders():
+    plan = ComparisonPlan(
+        query_years=[2020],
+        dataset="acs/acs5",
+        metric="population",
+        subject_geo_level="county",
+        subject_geos=["subject:unknown"],
+        benchmark_geo_level="county",
+        benchmark_geos=["peer:1", "peer:2"],
+        comparison_op="difference",
+        normalization="none",
+        missing_year_policy="skip_with_note",
+        derived_metrics=["difference"],
+        join_keys=["year", "geo_id"],
+        requested_text="compare counties",
+    )
+    rows = [
+        ComparisonInputRow(
+            year=2020,
+            geo_id="06001",
+            metric="population",
+            value=100.0,
+            benchmark_value=90.0,
+        )
+    ]
+    request = ComparisonMetricComputeRequest(plan=plan, rows=rows)
+
+    metrics = compute_comparison_metrics(request)
+
+    assert len(metrics) == 1
+    assert metrics[0].geo_id == "06001"
+
+

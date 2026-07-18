@@ -60,6 +60,20 @@ jobs:
           # Exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
           flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
 
+      - name: Lint with ruff
+        run: |
+          ruff check \
+            src/domain/benchmark_geo_inference.py \
+            src/domain/workflow_acceptance.py \
+            src/services/benchmark_geo_inference.py \
+            src/services/benchmark_policy.py \
+            src/services/workflow_acceptance_runner.py \
+            app_test_scripts/test_benchmark_geo_inference.py \
+            app_test_scripts/test_benchmark_contract.py \
+            app_test_scripts/test_benchmark_workflow_routing.py \
+            app_test_scripts/workflow_acceptance_plans.py \
+            app_test_scripts/test_workflow_acceptance_plans.py
+
       - name: Test with pytest
         run: |
           # Exclude integration tests (require API keys and can be flaky in CI)

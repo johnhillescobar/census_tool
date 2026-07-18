@@ -215,5 +215,246 @@ Final Answer: {json.dumps(json_data)}"""
         assert "Prince George's County" in parsed["census_data"]["data"][3][0]
 
 
+class TestAgentPlanConsumption:
+    def test_solve_injects_plan_directives_in_input(self):
+        from unittest.mock import MagicMock
+
+        from src.domain.agent_plan_context import AgentPlanContext
+        from src.domain.benchmark_contract import BenchmarkIntent
+        from src.domain.comparison_plan import ComparisonPlan
+        from src.domain.temporal_contract import TemporalIntent
+
+        agent = CensusQueryAgent(allow_offline=True)
+        plan_context = AgentPlanContext(
+            temporal=TemporalIntent(
+                mode="point_in_time",
+                start_year=None,
+                end_year=None,
+                anchor_year=2020,
+                requested_text="compare counties",
+            ),
+            benchmark=BenchmarkIntent(
+                benchmark_type="national",
+                metric="population",
+                subject_geo_level="state",
+                subject_geo=["06"],
+                benchmark_geo_level="nation",
+                benchmark_geos=["us:1"],
+                comparison_op="difference",
+                normalization="none",
+                requested_text="compare counties",
+            ),
+            comparison=ComparisonPlan(
+                query_years=[2020],
+                dataset="acs/acs5",
+                metric="population",
+                subject_geo_level="state",
+                subject_geos=["06"],
+                benchmark_geo_level="nation",
+                benchmark_geos=["us:1"],
+                comparison_op="difference",
+                normalization="none",
+                missing_year_policy="skip_with_note",
+                derived_metrics=["difference"],
+                join_keys=["year", "geo_id"],
+                requested_text="compare counties",
+            ),
+            has_comparison_plan=True,
+        )
+
+        mock_executor = MagicMock()
+        mock_executor.invoke.return_value = {
+            "output": "",
+            "intermediate_steps": [],
+        }
+        agent.agent_executor = mock_executor
+        agent.offline_mode = False
+
+        agent.solve(
+            user_query="compare counties",
+            intent={"is_census": True},
+            plan_context=plan_context,
+        )
+
+        invoke_input = mock_executor.invoke.call_args[0][0]["input"]
+        assert "Planning artifacts (MUST follow these constraints):" in invoke_input
+        assert "Query years: [2020]" in invoke_input
+
+    def test_parse_solution_validates_comparison_rows(self):
+        from src.domain.agent_plan_context import AgentPlanContext
+        from src.domain.benchmark_contract import BenchmarkIntent
+        from src.domain.comparison_plan import ComparisonPlan
+        from src.domain.temporal_contract import TemporalIntent
+
+        agent = CensusQueryAgent(allow_offline=True)
+        plan_context = AgentPlanContext(
+            temporal=TemporalIntent(
+                mode="point_in_time",
+                start_year=None,
+                end_year=None,
+                anchor_year=2020,
+                requested_text="compare counties",
+            ),
+            benchmark=BenchmarkIntent(
+                benchmark_type="national",
+                metric="population",
+                subject_geo_level="state",
+                subject_geo=["06"],
+                benchmark_geo_level="nation",
+                benchmark_geos=["us:1"],
+                comparison_op="difference",
+                normalization="none",
+                requested_text="compare counties",
+            ),
+            comparison=ComparisonPlan(
+                query_years=[2020],
+                dataset="acs/acs5",
+                metric="population",
+                subject_geo_level="state",
+                subject_geos=["06"],
+                benchmark_geo_level="nation",
+                benchmark_geos=["us:1"],
+                comparison_op="difference",
+                normalization="none",
+                missing_year_policy="skip_with_note",
+                derived_metrics=["difference"],
+                join_keys=["year", "geo_id"],
+                requested_text="compare counties",
+            ),
+            has_comparison_plan=True,
+        )
+        agent._active_plan_context = plan_context
+
+        payload = {
+            "census_data": {"success": True, "data": [["NAME"], ["County A"]]},
+            "data_summary": "summary",
+            "reasoning_trace": "trace",
+            "answer_text": "answer",
+            "charts_needed": [],
+            "tables_needed": [],
+            "footnotes": [],
+            "comparison_input_rows": [
+                {
+                    "year": 2020,
+                    "geo_id": "06",
+                    "metric": "population",
+                    "value": 10.0,
+                    "benchmark_value": 8.0,
+                }
+            ],
+        }
+        parsed = agent._parse_solution({"output": json.dumps(payload)})
+        assert parsed["comparison_input_rows"][0]["geo_id"] == "06"
+
+    def test_parse_solution_strips_extra_comparison_row_fields(self):
+        from src.domain.agent_plan_context import AgentPlanContext
+        from src.domain.benchmark_contract import BenchmarkIntent
+        from src.domain.comparison_plan import ComparisonPlan
+        from src.domain.temporal_contract import TemporalIntent
+
+        agent = CensusQueryAgent(allow_offline=True)
+        plan_context = AgentPlanContext(
+            temporal=TemporalIntent(
+                mode="latest_available",
+                requested_text="Compare population by county in California",
+            ),
+            benchmark=BenchmarkIntent(
+                benchmark_type="peer_group",
+                metric="population",
+                subject_geo_level="county",
+                subject_geo=["subject:unknown"],
+                benchmark_geo_level="county",
+                benchmark_geos=["peer:1", "peer:2"],
+                comparison_op="difference",
+                normalization="none",
+                requested_text="Compare population by county in California",
+            ),
+            comparison=ComparisonPlan(
+                query_years=[2023],
+                dataset="acs/acs5",
+                metric="population",
+                subject_geo_level="county",
+                subject_geos=["subject:unknown"],
+                benchmark_geo_level="county",
+                benchmark_geos=["peer:1", "peer:2"],
+                comparison_op="difference",
+                normalization="none",
+                missing_year_policy="skip_with_note",
+                derived_metrics=["difference"],
+                join_keys=["year", "geo_id"],
+                requested_text="Compare population by county in California",
+            ),
+            has_comparison_plan=True,
+        )
+        agent._active_plan_context = plan_context
+
+        payload = {
+            "census_data": {"success": True, "data": [["NAME"], ["Los Angeles County"]]},
+            "data_summary": "summary",
+            "reasoning_trace": "trace",
+            "answer_text": "Los Angeles County is the largest county in California.",
+            "charts_needed": [],
+            "tables_needed": [],
+            "footnotes": [],
+            "comparison_input_rows": [
+                {
+                    "year": 2023,
+                    "geo_id": "06037",
+                    "metric": "population",
+                    "value": 9845029.0,
+                    "benchmark_geo_id": "06073",
+                    "benchmark_value": 3266340.0,
+                    "derived_metric": "difference",
+                    "derived_value": 6578689.0,
+                }
+            ],
+        }
+
+        parsed = agent._parse_solution({"output": json.dumps(payload)})
+
+        assert parsed["answer_text"].startswith("Los Angeles County")
+        assert parsed["comparison_input_rows"] == [
+            {
+                "year": 2023,
+                "geo_id": "06037",
+                "metric": "population",
+                "value": 9845029.0,
+                "benchmark_value": 3266340.0,
+            }
+        ]
+
+    def test_parse_solution_strips_extra_census_data_fields(self):
+        agent = CensusQueryAgent(allow_offline=True)
+        payload = {
+            "census_data": {
+                "success": True,
+                "dataset": "acs/acs5",
+                "year": 2023,
+                "geo_for": {"county": "*"},
+                "geo_in": {"state": "06"},
+                "data": [["NAME", "B01003_001E"], ["Los Angeles County, California", "9829544"]],
+            },
+            "data_summary": "summary",
+            "reasoning_trace": "trace",
+            "answer_text": "Los Angeles County is the largest county in California.",
+            "charts_needed": [],
+            "tables_needed": [],
+            "footnotes": [],
+            "comparison_input_rows": [],
+        }
+
+        parsed = agent._parse_solution({"output": json.dumps(payload)})
+
+        assert parsed["answer_text"].startswith("Los Angeles County")
+        assert parsed["census_data"]["success"] is True
+        assert parsed["census_data"]["data"] == [
+            ["NAME", "B01003_001E"],
+            ["Los Angeles County, California", "9829544"],
+        ]
+        assert parsed["census_data"]["url"] == "https://api.census.gov/data/2023/acs/acs5"
+        assert "dataset" not in parsed["census_data"]
+        assert "geo_for" not in parsed["census_data"]
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

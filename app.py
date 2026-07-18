@@ -35,32 +35,27 @@ def create_viz_graph(compiled_graph):
 
 
 def _route_after_temporal(state: CensusState) -> str:
-    plan = state.plan or {}
-    if plan.get("requires_clarification"):
+    if state.plan and state.plan.requires_clarification:
         return "output"
     return "benchmark"
 
 
 def _route_after_benchmark(state: CensusState) -> str:
-    plan = state.plan or {}
-    if plan.get("requires_clarification"):
+    if state.plan and state.plan.requires_clarification:
         return "output"
-    benchmark_plan = plan.get("benchmark") or {}
-    if benchmark_plan.get("status") == "not_applicable":
+    if state.plan and state.plan.benchmark_is_not_applicable():
         return "agent"
     return "comparison"
 
 
 def _route_after_comparison(state: CensusState) -> str:
-    plan = state.plan or {}
-    if plan.get("requires_clarification"):
+    if state.plan and state.plan.requires_clarification:
         return "output"
     return "agent"
 
 
 def _route_after_agent(state: CensusState) -> str:
-    plan = state.plan or {}
-    if plan.get("requires_clarification"):
+    if state.plan and state.plan.requires_clarification:
         return "output"
     return "comparison_metrics"
 

@@ -1,6 +1,9 @@
 from collections import defaultdict
 
 from pydantic import BaseModel, ConfigDict, Field
+
+from src.domain.agent_output_contract import plan_uses_placeholder_geos
+from src.domain.comparison_artifacts import ComparisonInputRow
 from src.domain.comparison_plan import ComparisonPlan, DerivedMetric
 
 SUPPORTED_DERIVED_METRICS = {
@@ -10,16 +13,6 @@ SUPPORTED_DERIVED_METRICS = {
     "percentile",
     "trend_gap",
 }
-
-
-class ComparisonInputRow(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
-    year: int
-    geo_id: str
-    metric: str
-    value: float
-    benchmark_value: float
 
 
 class ComparisonMetricComputeRequest(BaseModel):
@@ -208,7 +201,10 @@ def compute_comparison_metrics(
             raise ValueError("row metric does not match plan.metric")
         if row.year not in allowed_years:
             raise ValueError("row year is outside plan.query_years")
-        if row.geo_id not in allowed_subject_geos:
+        if (
+            not plan_uses_placeholder_geos(request.plan)
+            and row.geo_id not in allowed_subject_geos
+        ):
             raise ValueError("row geo_id is outside plan.subject_geos")
 
     # 4) deterministic row ordering (input) and build input maps

@@ -4,6 +4,7 @@ Part of Phase 9F: Census API Flexibility
 """
 
 import logging
+import os
 import pickle
 import urllib.parse
 from datetime import datetime, timedelta
@@ -19,6 +20,30 @@ from src.clients.chroma_utils import validate_and_fix_geo_params
 from src.clients import record_event
 
 logger = logging.getLogger(__name__)
+
+
+def _append_census_api_key(url: str) -> str:
+    census_api_key = os.getenv("CENSUS_API_KEY")
+    if not census_api_key:
+        return url
+    separator = "&" if "?" in url else "?"
+    return f"{url}{separator}key={census_api_key}"
+
+
+def _fetch_census_json(url: str, *, timeout: int = 30) -> list[Any]:
+    request_url = _append_census_api_key(url)
+    response = requests.get(request_url, timeout=timeout)
+    response.raise_for_status()
+    if hasattr(response, "text"):
+        text = response.text.strip()
+        if text.startswith("<"):
+            raise ValueError(
+                "Census API returned HTML instead of JSON; verify CENSUS_API_KEY is set"
+            )
+    data = response.json()
+    if not isinstance(data, list):
+        raise ValueError("Census API response must be a JSON array")
+    return data
 
 
 class GeographyRegistry:
@@ -259,10 +284,7 @@ class GeographyRegistry:
 
             logger.debug(f"Calling Census API URL: {url}")
 
-            # Make request
-            response = requests.get(url, timeout=30)
-            response.raise_for_status()
-            data = response.json()
+            data = _fetch_census_json(url)
 
             # Parse response
             # Format: [["NAME", "GEO_ID", "CODE"], ["Area 1", "id1", "code1"], ...]
@@ -433,9 +455,7 @@ class GeographyRegistry:
             url = f"{base_url}?{'&'.join(params)}"
             logger.debug(f"Calling Census API URL: {url}")
 
-            response = requests.get(url, timeout=30)
-            response.raise_for_status()
-            data = response.json()
+            data = _fetch_census_json(url)
 
             areas = {}
 
@@ -672,9 +692,7 @@ class GeographyRegistry:
             url = f"{base_url}?{'&'.join(params)}"
             logger.debug(f"Calling Census API URL: {url}")
 
-            response = requests.get(url, timeout=30)
-            response.raise_for_status()
-            data = response.json()
+            data = _fetch_census_json(url)
 
             areas = {}
 
@@ -865,9 +883,7 @@ class GeographyRegistry:
             url = f"{base_url}?{'&'.join(params)}"
             logger.debug(f"Calling Census API URL: {url}")
 
-            response = requests.get(url, timeout=30)
-            response.raise_for_status()
-            data = response.json()
+            data = _fetch_census_json(url)
 
             areas = {}
 
@@ -977,6 +993,19 @@ class GeographyRegistry:
             return {"state": state.fips}
         return {}
 
+    def _resolve_state_by_name(self, friendly_name: str) -> Optional[Dict[str, Any]]:
+        state = us.states.lookup(friendly_name.strip())
+        if not state or not state.fips:
+            return None
+        fips = str(state.fips).zfill(2)
+        return {
+            "code": fips,
+            "geo_id": f"0400000US{fips}",
+            "full_name": state.name,
+            "confidence": 1.0,
+            "match_type": "Exact match",
+        }
+
     def find_area_code(
         self,
         friendly_name: str,
@@ -1036,6 +1065,25 @@ class GeographyRegistry:
             return self.resolve_statistical_area(
                 friendly_name, geo_token, dataset, year
             )
+
+        if geo_token == "state":
+            state_match = self._resolve_state_by_name(friendly_name)
+            if state_match is not None:
+                record_event(
+                    "geography_match",
+                    {
+                        "query": friendly_name,
+                        "normalized_query": self._normalize_name(friendly_name),
+                        "match_full_name": state_match["full_name"],
+                        "confidence": state_match["confidence"],
+                        "match_type": state_match["match_type"],
+                        "geo_token": geo_token,
+                        "dataset": dataset,
+                        "year": year,
+                        "source": "local_state_lookup",
+                    },
+                )
+                return state_match
 
         # Get all areas at this level
         areas = self.enumerate_areas(dataset, year, geo_token, parent_geo)

@@ -78,8 +78,6 @@ class ComparisonPlan(BaseModel):
 
     @field_validator("benchmark_geos")
     def validate_benchmark_geos(cls, v: list[str]) -> list[str]:
-        if len(v) == 0:
-            raise ValueError("benchmark_geos must be non-empty")
         return v
 
     @field_validator("subject_geos")

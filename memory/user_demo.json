@@ -9,201 +9,61 @@
   "preferred_level": "place",
   "var_aliases": {},
   "usage_stats": {
-    "total_queries": 55,
-    "success_queries": 55,
-    "last_query_date": "2026-03-07T08:12:41.155988"
+    "total_queries": 60,
+    "success_queries": 60,
+    "last_query_date": "2026-07-05T00:39:58.584038"
   },
   "history": [
     {
-      "timestamp": "2026-02-03T20:26:49.476951",
-      "user_id": "demo",
-      "question": "What's the population of New York City?",
-      "intent": {},
-      "geo": {},
-      "plan_summary": "",
-      "answer_type": "Unknown",
-      "success": true
-    },
-    {
-      "timestamp": "2026-02-03T20:29:01.188168",
-      "user_id": "demo",
-      "question": "Show me median income trends from 2015 to 2020",
-      "intent": {},
-      "geo": {},
-      "plan_summary": "",
-      "answer_type": "Unknown",
-      "success": true
-    },
-    {
-      "timestamp": "2026-03-03T07:35:37.973494",
-      "user_id": "demo",
-      "question": "What's the population of New York City?",
-      "intent": {},
-      "geo": {},
-      "plan_summary": "",
-      "answer_type": "Unknown",
-      "success": true
-    },
-    {
-      "timestamp": "2026-03-03T07:39:24.382514",
+      "timestamp": "2026-07-05T00:06:49.108149",
       "user_id": "demo",
       "question": "Compare population by county in California",
       "intent": {},
       "geo": {},
-      "plan_summary": "",
+      "plan_summary": "temporal=latest_available; benchmark=peer_group; years=[2023]",
       "answer_type": "Unknown",
       "success": true
     },
     {
-      "timestamp": "2026-03-03T07:40:50.699075",
+      "timestamp": "2026-07-05T00:14:24.691124",
       "user_id": "demo",
-      "question": "What's the median income in Los Angeles County?",
+      "question": "ompare population by county in California",
       "intent": {},
       "geo": {},
-      "plan_summary": "",
+      "plan_summary": "temporal=latest_available",
       "answer_type": "Unknown",
       "success": true
     },
     {
-      "timestamp": "2026-03-03T07:43:17.486862",
-      "user_id": "demo",
-      "question": "What's the population in DuPage and Kane County in IL?",
-      "intent": {},
-      "geo": {},
-      "plan_summary": "",
-      "answer_type": "Unknown",
-      "success": true
-    },
-    {
-      "timestamp": "2026-03-03T07:45:34.678561",
-      "user_id": "demo",
-      "question": "How many people have smartphones in Chicago as of 2023?",
-      "intent": {},
-      "geo": {},
-      "plan_summary": "",
-      "answer_type": "Unknown",
-      "success": true
-    },
-    {
-      "timestamp": "2026-03-06T16:53:20.412937",
-      "user_id": "demo",
-      "question": "What's the population of New York City?",
-      "intent": {},
-      "geo": {},
-      "plan_summary": "",
-      "answer_type": "Unknown",
-      "success": true
-    },
-    {
-      "timestamp": "2026-03-06T20:03:55.063806",
-      "user_id": "demo",
-      "question": "What's the median income in Los Angeles County?",
-      "intent": {},
-      "geo": {},
-      "plan_summary": "",
-      "answer_type": "Unknown",
-      "success": true
-    },
-    {
-      "timestamp": "2026-03-06T20:38:34.435316",
+      "timestamp": "2026-07-05T00:23:00.602609",
       "user_id": "demo",
       "question": "Compare population by county in California",
       "intent": {},
       "geo": {},
-      "plan_summary": "",
+      "plan_summary": "temporal=latest_available; benchmark=peer_group; years=[2023]",
       "answer_type": "Unknown",
       "success": true
     },
     {
-      "timestamp": "2026-03-06T20:39:32.316113",
-      "user_id": "demo",
-      "question": "What's the median income in Los Angeles County?",
-      "intent": {},
-      "geo": {},
-      "plan_summary": "",
-      "answer_type": "Unknown",
-      "success": true
-    },
-    {
-      "timestamp": "2026-03-06T20:40:57.633154",
-      "user_id": "demo",
-      "question": "What's the population of DuPage and Kane County in Illinois?",
-      "intent": {},
-      "geo": {},
-      "plan_summary": "",
-      "answer_type": "Unknown",
-      "success": true
-    },
-    {
-      "timestamp": "2026-03-06T20:42:31.261634",
-      "user_id": "demo",
-      "question": "What's the population of DuPage and Kane County in Illinois?",
-      "intent": {},
-      "geo": {},
-      "plan_summary": "",
-      "answer_type": "Unknown",
-      "success": true
-    },
-    {
-      "timestamp": "2026-03-06T20:43:36.285795",
-      "user_id": "demo",
-      "question": "How many people have smartphones in Chicago?",
-      "intent": {},
-      "geo": {},
-      "plan_summary": "",
-      "answer_type": "Unknown",
-      "success": true
-    },
-    {
-      "timestamp": "2026-03-06T20:44:31.364127",
-      "user_id": "demo",
-      "question": "How many people have smartphones in Chicago?",
-      "intent": {},
-      "geo": {},
-      "plan_summary": "",
-      "answer_type": "Unknown",
-      "success": true
-    },
-    {
-      "timestamp": "2026-03-07T08:05:48.863051",
-      "user_id": "demo",
-      "question": "What's the population of New York City?",
-      "intent": {},
-      "geo": {},
-      "plan_summary": "",
-      "answer_type": "Unknown",
-      "success": true
-    },
-    {
-      "timestamp": "2026-03-07T08:07:18.042194",
+      "timestamp": "2026-07-05T00:36:58.478089",
       "user_id": "demo",
       "question": "Compare population by county in California",
       "intent": {},
       "geo": {},
-      "plan_summary": "",
+      "plan_summary": "temporal=latest_available; benchmark=peer_group; years=[2023]",
       "answer_type": "Unknown",
       "success": true
     },
     {
-      "timestamp": "2026-03-07T08:10:26.583649",
+      "timestamp": "2026-07-05T00:39:58.584038",
       "user_id": "demo",
-      "question": "What's the population of DuPage and Kane County in Illinois?",
+      "question": "What's the median income in Los Angeles County?",
       "intent": {},
       "geo": {},
-      "plan_summary": "",
-      "answer_type": "Unknown",
-      "success": true
-    },
-    {
-      "timestamp": "2026-03-07T08:12:41.155988",
-      "user_id": "demo",
-      "question": "What's the population of DuPage and Kane County in Illinois?",
-      "intent": {},
-      "geo": {},
-      "plan_summary": "",
+      "plan_summary": "temporal=latest_available",
       "answer_type": "Unknown",
       "success": true
     }
   ],
-  "last_updated": "2026-03-07T08:12:41.155988"
+  "last_updated": "2026-07-05T00:39:58.584038"
 }

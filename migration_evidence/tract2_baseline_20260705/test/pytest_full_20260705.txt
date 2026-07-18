@@ -1,0 +1,310 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-8.4.2, pluggy-1.6.0 -- /workspace/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /workspace
+configfile: pytest.ini
+plugins: anyio-4.10.0, langsmith-0.4.27, timeout-2.4.0
+collecting ... collected 248 items / 10 deselected / 238 selected
+
+app_test_scripts/test_agent_comparison_rows_wiring.py::test_agent_emits_comparison_input_rows_when_plan_present PASSED [  0%]
+app_test_scripts/test_agent_comparison_rows_wiring.py::test_agent_does_not_emit_comparison_input_rows_without_plan PASSED [  0%]
+app_test_scripts/test_agent_comparison_rows_wiring.py::test_agent_skips_when_clarification_required PASSED [  1%]
+app_test_scripts/test_agent_fallback.py::test_agent_returns_error_on_iteration_limit PASSED [  1%]
+app_test_scripts/test_agent_output_contract.py::test_valid_comparison_input_rows PASSED [  2%]
+app_test_scripts/test_agent_output_contract.py::test_rejects_placeholder_geo_ids PASSED [  2%]
+app_test_scripts/test_agent_output_contract.py::test_rejects_year_outside_plan PASSED [  2%]
+app_test_scripts/test_agent_plan_context.py::test_valid_temporal_only_context PASSED [  3%]
+app_test_scripts/test_agent_plan_context.py::test_valid_full_comparison_context PASSED [  3%]
+app_test_scripts/test_agent_plan_context.py::test_comparison_flag_requires_comparison_plan PASSED [  4%]
+app_test_scripts/test_agent_plan_context.py::test_build_from_resolved_state_plan PASSED [  4%]
+app_test_scripts/test_agent_plan_context.py::test_build_temporal_only_not_applicable PASSED [  5%]
+app_test_scripts/test_agent_plan_context.py::test_build_invalid_plan_returns_none PASSED [  5%]
+app_test_scripts/test_agent_plan_context.py::test_format_plan_directives_deterministic PASSED [  5%]
+app_test_scripts/test_agent_plan_context.py::test_rejects_extra_fields PASSED [  6%]
+app_test_scripts/test_agent_reasoning_node.py::test_passes_typed_plan_context_to_solve PASSED [  6%]
+app_test_scripts/test_agent_reasoning_node.py::test_writes_comparison_input_rows_to_artifacts PASSED [  7%]
+app_test_scripts/test_app_integration.py::test_create_census_graph PASSED [  7%]
+app_test_scripts/test_app_integration.py::test_workflow_routing PASSED   [  7%]
+app_test_scripts/test_app_integration.py::test_state_management PASSED   [  8%]
+app_test_scripts/test_area_resolution_tool.py::test_area_resolution_tool_returns_components PASSED [  8%]
+app_test_scripts/test_benchmark_contract.py::test_conflict_requires_clarification PASSED [  9%]
+app_test_scripts/test_benchmark_contract.py::test_missing_metric_requires_clarification PASSED [  9%]
+app_test_scripts/test_benchmark_contract.py::test_ambiguous_target_requires_clarification PASSED [ 10%]
+app_test_scripts/test_benchmark_contract.py::test_missing_geo_level_requires_clarification PASSED [ 10%]
+app_test_scripts/test_benchmark_contract.py::test_resolved_national_benchmark PASSED [ 10%]
+app_test_scripts/test_benchmark_contract.py::test_resolved_state_benchmark PASSED [ 11%]
+app_test_scripts/test_benchmark_contract.py::test_resolved_peer_group_benchmark PASSED [ 11%]
+app_test_scripts/test_benchmark_contract.py::test_peer_language_with_explicit_geo_resolves PASSED [ 12%]
+app_test_scripts/test_benchmark_contract.py::test_fallback_ambiguous_target_for_unmapped_input PASSED [ 12%]
+app_test_scripts/test_benchmark_contract.py::test_historical_baseline_valid_intent PASSED [ 13%]
+app_test_scripts/test_benchmark_contract.py::test_historical_baseline_missing_anchor_rejected PASSED [ 13%]
+app_test_scripts/test_benchmark_contract.py::test_historical_baseline_invalid_window_rejected PASSED [ 13%]
+app_test_scripts/test_benchmark_contract.py::test_non_baseline_rejects_baseline_fields PASSED [ 14%]
+app_test_scripts/test_benchmark_contract.py::test_resolved_historical_baseline_policy PASSED [ 14%]
+app_test_scripts/test_benchmark_contract.py::test_missing_baseline_anchor_requires_clarification PASSED [ 15%]
+app_test_scripts/test_benchmark_contract.py::test_named_states_compare_resolves_without_clarification PASSED [ 15%]
+app_test_scripts/test_benchmark_contract.py::test_named_states_compare_uses_custom_set PASSED [ 15%]
+app_test_scripts/test_benchmark_contract.py::test_existing_county_keyword_still_resolves PASSED [ 16%]
+app_test_scripts/test_benchmark_geo_inference.py::test_detected_geo_context_rejects_invalid_fips PASSED [ 16%]
+app_test_scripts/test_benchmark_geo_inference.py::test_detected_geo_context_accepts_valid_state_level PASSED [ 17%]
+app_test_scripts/test_benchmark_geo_inference.py::test_detected_geo_context_geo_level_is_literal PASSED [ 17%]
+app_test_scripts/test_benchmark_geo_inference.py::test_extract_geo_candidates_splits_vs_phrases PASSED [ 18%]
+app_test_scripts/test_benchmark_geo_inference.py::test_lookup_state_fips_by_name_and_abbrev PASSED [ 18%]
+app_test_scripts/test_benchmark_geo_inference.py::test_lookup_mapped_level_for_known_place PASSED [ 18%]
+app_test_scripts/test_benchmark_geo_inference.py::test_infer_geo_context_keyword_priority_unchanged PASSED [ 19%]
+app_test_scripts/test_benchmark_geo_inference.py::test_infer_geo_context_from_named_states PASSED [ 19%]
+app_test_scripts/test_benchmark_geo_inference.py::test_infer_geo_context_returns_none_level_for_vague_compare PASSED [ 20%]
+app_test_scripts/test_benchmark_geo_inference.py::test_build_state_geo_ids_validates_fips PASSED [ 20%]
+app_test_scripts/test_benchmark_geo_inference.py::test_custom_set_benchmark_intent_pydantic_round_trip PASSED [ 21%]
+app_test_scripts/test_benchmark_geo_inference.py::test_malformed_custom_set_fails_pydantic PASSED [ 21%]
+app_test_scripts/test_benchmark_workflow_routing.py::test_benchmark_node_routes_named_state_compare_to_agent_path PASSED [ 21%]
+app_test_scripts/test_cache_performance.py::test_cache_hit_performance PASSED [ 22%]
+app_test_scripts/test_cache_performance.py::test_cache_eviction PASSED   [ 22%]
+app_test_scripts/test_cache_performance.py::test_retention_policy_enforcement PASSED [ 23%]
+app_test_scripts/test_category_detector.py::test_extract_json_raw_object PASSED [ 23%]
+app_test_scripts/test_category_detector.py::test_extract_json_with_prefix_and_suffix_text PASSED [ 23%]
+app_test_scripts/test_category_detector.py::test_extract_json_with_braces_inside_string PASSED [ 24%]
+app_test_scripts/test_category_detector.py::test_extract_json_returns_original_when_decode_fails PASSED [ 24%]
+app_test_scripts/test_census_query_agent.py::TestAgentParsing::test_parse_direct_json PASSED [ 25%]
+app_test_scripts/test_census_query_agent.py::TestAgentParsing::test_parse_with_final_answer_prefix PASSED [ 25%]
+app_test_scripts/test_census_query_agent.py::TestAgentParsing::test_parse_large_nested_structure PASSED [ 26%]
+app_test_scripts/test_census_query_agent.py::TestAgentParsing::test_parse_with_escaped_quotes PASSED [ 26%]
+app_test_scripts/test_census_query_agent.py::TestAgentParsing::test_pydantic_validation_catches_invalid_structure PASSED [ 26%]
+app_test_scripts/test_census_query_agent.py::TestAgentParsing::test_parse_with_nested_objects_in_data PASSED [ 27%]
+app_test_scripts/test_census_query_agent.py::TestAgentParsing::test_parse_multiline_output_with_thoughts PASSED [ 27%]
+app_test_scripts/test_census_query_agent.py::TestAgentParsing::test_parse_handles_special_characters PASSED [ 28%]
+app_test_scripts/test_census_query_agent.py::TestAgentPlanConsumption::test_solve_injects_plan_directives_in_input PASSED [ 28%]
+app_test_scripts/test_census_query_agent.py::TestAgentPlanConsumption::test_parse_solution_validates_comparison_rows PASSED [ 28%]
+app_test_scripts/test_chroma_utils.py::test_get_hierarchy_ordering_returns_normalized_order PASSED [ 29%]
+app_test_scripts/test_chroma_utils.py::test_get_hierarchy_ordering_handles_missing_metadata PASSED [ 29%]
+app_test_scripts/test_chroma_utils.py::test_validate_and_fix_geo_params_orders_and_normalizes PASSED [ 30%]
+app_test_scripts/test_comparison_artifacts_contract.py::test_comparison_input_row_valid_payload PASSED [ 30%]
+app_test_scripts/test_comparison_artifacts_contract.py::test_comparison_input_row_rejects_extra_fields PASSED [ 31%]
+app_test_scripts/test_comparison_artifacts_contract.py::test_comparison_census_observation_requires_required_fields PASSED [ 31%]
+app_test_scripts/test_comparison_artifacts_contract.py::test_comparison_input_row_build_request_validates_nested_models PASSED [ 31%]
+app_test_scripts/test_comparison_artifacts_contract.py::test_comparison_input_rows_artifact_rejects_extra_fields PASSED [ 32%]
+app_test_scripts/test_comparison_artifacts_contract.py::test_comparison_metrics_artifact_validates_output_rows PASSED [ 32%]
+app_test_scripts/test_comparison_input_builder.py::test_extract_observations_from_census_data_happy_path PASSED [ 33%]
+app_test_scripts/test_comparison_input_builder.py::test_build_comparison_input_rows_peer_group_mean_pairing PASSED [ 33%]
+app_test_scripts/test_comparison_input_builder.py::test_build_comparison_input_rows_national_benchmark_pairing PASSED [ 34%]
+app_test_scripts/test_comparison_input_builder.py::test_extract_observations_fail_closed_on_empty_data PASSED [ 34%]
+app_test_scripts/test_comparison_input_builder.py::test_build_comparison_input_rows_fail_closed_missing_subject_observation PASSED [ 34%]
+app_test_scripts/test_comparison_input_builder.py::test_build_comparison_input_rows_fail_closed_missing_national_benchmark PASSED [ 35%]
+app_test_scripts/test_comparison_input_builder.py::test_build_comparison_input_rows_deterministic_rerun PASSED [ 35%]
+app_test_scripts/test_comparison_metric_compute.py::test_compute_all_metrics_happy_path_and_deterministic_order PASSED [ 36%]
+app_test_scripts/test_comparison_metric_compute.py::test_pct_difference_division_by_zero_returns_error PASSED [ 36%]
+app_test_scripts/test_comparison_metric_compute.py::test_trend_gap_insufficient_timepoints_fails_closed PASSED [ 36%]
+app_test_scripts/test_comparison_metric_compute.py::test_join_keys_contract_must_match_metric_compute_boundary PASSED [ 37%]
+app_test_scripts/test_comparison_metric_compute.py::test_row_metric_must_match_plan_metric PASSED [ 37%]
+app_test_scripts/test_comparison_metric_compute.py::test_row_year_must_be_within_plan_query_years PASSED [ 38%]
+app_test_scripts/test_comparison_metric_compute.py::test_row_geo_must_be_within_plan_subject_geos PASSED [ 38%]
+app_test_scripts/test_comparison_metrics_node.py::test_comparison_metrics_node_computes_metrics_for_valid_state PASSED [ 39%]
+app_test_scripts/test_comparison_metrics_node.py::test_comparison_metrics_node_skips_without_rows PASSED [ 39%]
+app_test_scripts/test_comparison_metrics_node.py::test_comparison_metrics_node_fail_closed_on_invalid_rows PASSED [ 39%]
+app_test_scripts/test_comparison_metrics_node.py::test_comparison_metrics_node_skips_on_clarification_gate PASSED [ 40%]
+app_test_scripts/test_comparison_plan.py::test_valid_canonical_plan PASSED [ 40%]
+app_test_scripts/test_comparison_plan.py::test_empty_query_years PASSED  [ 41%]
+app_test_scripts/test_comparison_plan.py::test_duplicate_years PASSED    [ 41%]
+app_test_scripts/test_comparison_plan.py::test_empty_derived_metrics PASSED [ 42%]
+app_test_scripts/test_comparison_plan.py::test_empty_join_keys PASSED    [ 42%]
+app_test_scripts/test_comparison_plan.py::test_empty_subject_geos PASSED [ 42%]
+app_test_scripts/test_comparison_plan_policy.py::test_point_in_time PASSED [ 43%]
+app_test_scripts/test_comparison_plan_policy.py::test_range PASSED       [ 43%]
+app_test_scripts/test_comparison_plan_policy.py::test_latest_available PASSED [ 44%]
+app_test_scripts/test_comparison_plan_policy.py::test_deterministic_rerun_same_input_same_output PASSED [ 44%]
+app_test_scripts/test_comparison_plan_policy.py::test_historical_baseline_merges_temporal_and_baseline_years PASSED [ 44%]
+app_test_scripts/test_dataset_geography_validator.py::test_geography_supported_uses_cache PASSED [ 45%]
+app_test_scripts/test_dataset_geography_validator.py::test_fetch_levels_handles_network_error PASSED [ 45%]
+app_test_scripts/test_displays.py::test_display_single_value PASSED      [ 46%]
+app_test_scripts/test_displays.py::test_display_series PASSED            [ 46%]
+app_test_scripts/test_displays.py::test_display_table PASSED             [ 47%]
+app_test_scripts/test_displays.py::test_display_not_census PASSED        [ 47%]
+app_test_scripts/test_displays.py::test_display_results PASSED           [ 47%]
+app_test_scripts/test_displays.py::test_display_results_with_error PASSED [ 48%]
+app_test_scripts/test_e2e_workflows.py::test_population_query_nyc PASSED [ 48%]
+app_test_scripts/test_e2e_workflows.py::test_income_trends_series PASSED [ 49%]
+app_test_scripts/test_e2e_workflows.py::test_county_comparison_table PASSED [ 49%]
+app_test_scripts/test_e2e_workflows.py::test_non_census_question PASSED  [ 50%]
+app_test_scripts/test_e2e_workflows.py::test_ambiguous_question PASSED   [ 50%]
+app_test_scripts/test_e2e_workflows.py::test_api_error_handling PASSED   [ 50%]
+app_test_scripts/test_e2e_workflows.py::test_tribal_area_workflow PASSED [ 51%]
+app_test_scripts/test_e2e_workflows.py::test_metro_area_workflow PASSED  [ 51%]
+app_test_scripts/test_e2e_workflows.py::test_auto_repair_workflow PASSED [ 52%]
+app_test_scripts/test_e2e_workflows.py::test_missing_parent_workflow PASSED [ 52%]
+app_test_scripts/test_e2e_workflows.py::test_part_geography_workflow PASSED [ 52%]
+app_test_scripts/test_e2e_workflows.py::test_validation_before_api_workflow PASSED [ 53%]
+app_test_scripts/test_e2e_workflows.py::test_complex_hierarchy_workflow PASSED [ 53%]
+app_test_scripts/test_enumeration_detector.py::test_build_enumeration_filters_returns_geo_dicts PASSED [ 54%]
+app_test_scripts/test_geo_utils.py::test_resolve_geography_hint_returns_geo_dict PASSED [ 54%]
+app_test_scripts/test_geo_utils.py::test_resolve_geography_hint_profile_default_augmented PASSED [ 55%]
+app_test_scripts/test_geo_utils.py::test_default_geo_contains_geo_dict PASSED [ 55%]
+app_test_scripts/test_geography_expansion.py::test_enumerate_tribal_areas_with_suffix PASSED [ 55%]
+app_test_scripts/test_geography_expansion.py::test_resolve_tribal_area_fuzzy_match PASSED [ 56%]
+app_test_scripts/test_geography_expansion.py::test_find_area_code_routes_to_tribal PASSED [ 56%]
+app_test_scripts/test_geography_expansion.py::test_enumerate_statistical_areas PASSED [ 57%]
+app_test_scripts/test_geography_expansion.py::test_resolve_statistical_area_fuzzy PASSED [ 57%]
+app_test_scripts/test_geography_expansion.py::test_resolve_part_geography PASSED [ 57%]
+app_test_scripts/test_geography_expansion.py::test_validate_geography_hierarchy_valid PASSED [ 58%]
+app_test_scripts/test_geography_expansion.py::test_validate_geography_hierarchy_missing_parent PASSED [ 58%]
+app_test_scripts/test_geography_expansion.py::test_validate_and_fix_geo_params_with_validation PASSED [ 59%]
+app_test_scripts/test_geography_expansion.py::test_geography_validation_tool_valid_params PASSED [ 59%]
+app_test_scripts/test_geography_expansion.py::test_geography_validation_tool_missing_parent PASSED [ 60%]
+app_test_scripts/test_geography_expansion.py::test_validate_and_fix_geo_params_reorders PASSED [ 60%]
+app_test_scripts/test_geography_expansion.py::test_token_normalization PASSED [ 60%]
+app_test_scripts/test_geography_hierarchy_tool.py::test_geography_hierarchy_tool_returns_order PASSED [ 61%]
+app_test_scripts/test_geography_hierarchy_tool.py::test_geography_hierarchy_tool_handles_missing_order PASSED [ 61%]
+app_test_scripts/test_geography_index.py::test_build_metadata_serializes_ordering_list PASSED [ 62%]
+app_test_scripts/test_geography_index.py::test_upsert_documents_uses_configured_embedding PASSED [ 62%]
+app_test_scripts/test_geography_integration.py::test_tribal_area_query_integration PASSED [ 63%]
+app_test_scripts/test_geography_integration.py::test_metro_area_query_integration PASSED [ 63%]
+app_test_scripts/test_geography_integration.py::test_auto_repair_bad_ordering_integration PASSED [ 63%]
+app_test_scripts/test_geography_integration.py::test_missing_parent_detection_integration PASSED [ 64%]
+app_test_scripts/test_geography_integration.py::test_part_geography_query_integration PASSED [ 64%]
+app_test_scripts/test_geography_integration.py::test_validation_before_api_call_workflow PASSED [ 65%]
+app_test_scripts/test_geography_registry.py::test_enumerate_areas_orders_parents PASSED [ 65%]
+app_test_scripts/test_geography_registry_fuzzy.py::test_find_area_code_uses_fuzzy_matching PASSED [ 65%]
+app_test_scripts/test_integration_agent_api.py::TestAgentErrorHandling::test_agent_handles_invalid_geography PASSED [ 66%]
+app_test_scripts/test_main_app.py::test_main_app_startup PASSED          [ 66%]
+app_test_scripts/test_main_app.py::test_census_app_creation PASSED       [ 67%]
+app_test_scripts/test_main_app.py::test_user_input_processing PASSED     [ 67%]
+app_test_scripts/test_main_app.py::test_census_state_creation PASSED     [ 68%]
+app_test_scripts/test_main_app.py::test_quit_functionality PASSED        [ 68%]
+app_test_scripts/test_main_app.py::test_error_handling PASSED            [ 68%]
+app_test_scripts/test_main_app.py::test_import_resolution PASSED         [ 69%]
+app_test_scripts/test_main_app.py::test_census_state_field_types PASSED  [ 69%]
+app_test_scripts/test_main_app.py::test_all_tests PASSED                 [ 70%]
+app_test_scripts/test_memory.py::test_memory_load_node PASSED            [ 70%]
+app_test_scripts/test_memory_utils.py::test_build_history_record PASSED  [ 71%]
+app_test_scripts/test_memory_utils.py::test_update_profile PASSED        [ 71%]
+app_test_scripts/test_memory_utils.py::test_prune_history_by_age PASSED  [ 71%]
+app_test_scripts/test_memory_utils.py::test_enforce_retention_policies PASSED [ 72%]
+app_test_scripts/test_multi_series_charts.py::TestGeographyColumnDetection::test_priority_order_state_first PASSED [ 72%]
+app_test_scripts/test_multi_series_charts.py::TestGeographyColumnDetection::test_priority_order_county_second PASSED [ 73%]
+app_test_scripts/test_multi_series_charts.py::TestGeographyColumnDetection::test_priority_order_name_third PASSED [ 73%]
+app_test_scripts/test_multi_series_charts.py::TestGeographyColumnDetection::test_excludes_x_column PASSED [ 73%]
+app_test_scripts/test_multi_series_charts.py::TestGeographyColumnDetection::test_returns_none_when_no_geography PASSED [ 74%]
+app_test_scripts/test_multi_series_charts.py::TestMultiSeriesDetection::test_multi_series_line_chart_detected PASSED [ 74%]
+app_test_scripts/test_multi_series_charts.py::TestMultiSeriesDetection::test_single_series_not_detected PASSED [ 75%]
+app_test_scripts/test_multi_series_charts.py::TestMultiSeriesDetection::test_multi_series_bar_chart_detected PASSED [ 75%]
+app_test_scripts/test_multi_series_charts.py::TestMultiSeriesDetection::test_priority_state_over_county PASSED [ 76%]
+app_test_scripts/test_multi_series_charts.py::TestMultiSeriesDetection::test_no_multi_series_when_geography_is_x_column PASSED [ 76%]
+app_test_scripts/test_multi_series_charts.py::TestMultiSeriesDetection::test_multi_series_with_time_series PASSED [ 76%]
+app_test_scripts/test_multi_series_charts.py::TestMultiSeriesDetection::test_backward_compatibility_single_state PASSED [ 77%]
+app_test_scripts/test_output_title_formatting.py::TestFormatChartTitle::test_with_variables_dict_bar_chart PASSED [ 77%]
+app_test_scripts/test_output_title_formatting.py::TestFormatChartTitle::test_with_variables_dict_line_chart PASSED [ 78%]
+app_test_scripts/test_output_title_formatting.py::TestFormatChartTitle::test_without_variables_dict_bar_chart PASSED [ 78%]
+app_test_scripts/test_output_title_formatting.py::TestFormatChartTitle::test_without_variables_dict_line_chart PASSED [ 78%]
+app_test_scripts/test_output_title_formatting.py::TestFormatChartTitle::test_with_empty_variables_dict PASSED [ 79%]
+app_test_scripts/test_output_title_formatting.py::TestFormatChartTitle::test_with_empty_string_label PASSED [ 79%]
+app_test_scripts/test_output_title_formatting.py::TestFormatChartTitle::test_with_whitespace_only_label PASSED [ 80%]
+app_test_scripts/test_output_title_formatting.py::TestFormatChartTitle::test_with_unknown_chart_type PASSED [ 80%]
+app_test_scripts/test_output_title_formatting.py::TestFormatChartTitle::test_variable_not_in_dict PASSED [ 81%]
+app_test_scripts/test_output_title_formatting.py::TestGetChartParams::test_get_chart_params_with_variables_dict PASSED [ 81%]
+app_test_scripts/test_output_title_formatting.py::TestGetChartParams::test_get_chart_params_without_variables_dict PASSED [ 81%]
+app_test_scripts/test_output_title_formatting.py::TestGetChartParams::test_get_chart_params_line_chart_with_variables PASSED [ 82%]
+app_test_scripts/test_output_title_formatting.py::TestGetChartParams::test_get_chart_params_empty_variables_dict PASSED [ 82%]
+app_test_scripts/test_output_title_formatting.py::TestGetChartParams::test_get_chart_params_invalid_data_format PASSED [ 83%]
+app_test_scripts/test_pdf_generation.py::test_pdf_generation PASSED      [ 83%]
+app_test_scripts/test_pdf_generation.py::test_empty_conversation PASSED  [ 84%]
+app_test_scripts/test_pdf_generation.py::test_missing_files PASSED       [ 84%]
+app_test_scripts/test_table_tool.py::test_create_dataframe_from_json_strips_formatting PASSED [ 84%]
+app_test_scripts/test_table_tool.py::test_run_saves_clean_csv PASSED     [ 85%]
+app_test_scripts/test_table_tool.py::test_preserves_identifier_columns PASSED [ 85%]
+app_test_scripts/test_table_validation_tool.py::test_table_validation_tool_supported PASSED [ 86%]
+app_test_scripts/test_table_validation_tool.py::test_table_validation_tool_invalid_input PASSED [ 86%]
+app_test_scripts/test_temporal_policy_contract.py::test_conflict_requires_clarification PASSED [ 86%]
+app_test_scripts/test_temporal_policy_contract.py::test_no_temporal_phrase_defaults_latest_available PASSED [ 87%]
+app_test_scripts/test_temporal_policy_contract.py::test_range_is_normalized PASSED [ 87%]
+app_test_scripts/test_track2_graph_invoke.py::test_graph_invoke_comparison_path_with_stubbed_agent PASSED [ 88%]
+app_test_scripts/test_track2_workflow_planning.py::test_temporal_clarification_sets_typed_plan_and_final PASSED [ 88%]
+app_test_scripts/test_track2_workflow_planning.py::test_temporal_resolved_defaults_latest_available PASSED [ 89%]
+app_test_scripts/test_track2_workflow_planning.py::test_benchmark_skip_when_no_compare_intent PASSED [ 89%]
+app_test_scripts/test_track2_workflow_planning.py::test_benchmark_clarification_envelope PASSED [ 89%]
+app_test_scripts/test_track2_workflow_planning.py::test_comparison_resolved_chain_produces_comparison_plan PASSED [ 90%]
+app_test_scripts/test_track2_workflow_planning.py::test_comparison_upstream_unresolved_requires_clarification PASSED [ 90%]
+app_test_scripts/test_track2_workflow_planning.py::test_historical_baseline_chain_merges_query_years PASSED [ 91%]
+app_test_scripts/test_track2_workflow_planning.py::test_historical_baseline_merges_latest_available_with_anchor PASSED [ 91%]
+app_test_scripts/test_track2_workflow_planning.py::test_comparison_metrics_node_computes_rows PASSED [ 92%]
+app_test_scripts/test_track2_workflow_planning.py::test_workflow_plan_repeatability PASSED [ 92%]
+app_test_scripts/test_track2_workflow_planning.py::test_build_history_record_summarizes_workflow_plan PASSED [ 92%]
+app_test_scripts/test_variable_validation_tool.py::test_variable_validation_tool_validate PASSED [ 93%]
+app_test_scripts/test_variable_validation_tool.py::test_variable_validation_tool_list PASSED [ 93%]
+app_test_scripts/test_variable_validator.py::test_validate_variables_uses_chroma PASSED [ 94%]
+app_test_scripts/test_variable_validator.py::test_validate_variables_live_fallback PASSED [ 94%]
+app_test_scripts/test_variable_validator.py::test_validate_variables_provides_alternatives PASSED [ 94%]
+app_test_scripts/test_variable_validator.py::test_list_variables_filters PASSED [ 95%]
+app_test_scripts/test_workflow_acceptance_plans.py::TestWorkflowAcceptancePlanContracts::test_all_canonical_plans_validate_as_pydantic_models PASSED [ 95%]
+app_test_scripts/test_workflow_acceptance_plans.py::TestWorkflowAcceptancePlanContracts::test_canonical_plan_ids_are_unique PASSED [ 96%]
+app_test_scripts/test_workflow_acceptance_plans.py::TestWorkflowAcceptancePlans::test_benchmark_conflict_clarification PASSED [ 96%]
+app_test_scripts/test_workflow_acceptance_plans.py::TestWorkflowAcceptancePlans::test_benchmark_missing_metric_clarification PASSED [ 97%]
+app_test_scripts/test_workflow_acceptance_plans.py::TestWorkflowAcceptancePlans::test_comparison_metrics_end_to_end PASSED [ 97%]
+app_test_scripts/test_workflow_acceptance_plans.py::TestWorkflowAcceptancePlans::test_named_state_custom_set_comparison PASSED [ 97%]
+app_test_scripts/test_workflow_acceptance_plans.py::TestWorkflowAcceptancePlans::test_national_benchmark_comparison PASSED [ 98%]
+app_test_scripts/test_workflow_acceptance_plans.py::TestWorkflowAcceptancePlans::test_non_comparison_latest_available PASSED [ 98%]
+app_test_scripts/test_workflow_acceptance_plans.py::TestWorkflowAcceptancePlans::test_resolved_peer_group_comparison PASSED [ 99%]
+app_test_scripts/test_workflow_acceptance_plans.py::TestWorkflowAcceptancePlans::test_temporal_conflict_clarification PASSED [ 99%]
+app_test_scripts/test_workflow_acceptance_plans.py::TestWorkflowAcceptanceRuff::test_workflow_acceptance_files_pass_ruff PASSED [100%]
+
+=============================== warnings summary ===============================
+app_test_scripts/test_integration_agent_api.py:117
+  /workspace/app_test_scripts/test_integration_agent_api.py:117: PytestUnknownMarkWarning: Unknown pytest.mark.slow - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.slow
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+================ 238 passed, 10 deselected, 1 warning in 17.94s ================
+--- Logging error ---
+Traceback (most recent call last):
+  File "/workspace/.venv/lib/python3.12/site-packages/langsmith/_internal/_background_thread.py", line 833, in tracing_control_thread_func_compress_parallel
+    LANGSMITH_CLIENT_THREAD_POOL.submit(
+  File "/usr/lib/python3.12/concurrent/futures/thread.py", line 170, in submit
+    raise RuntimeError('cannot schedule new futures after shutdown')
+RuntimeError: cannot schedule new futures after shutdown
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/workspace/.venv/lib/python3.12/site-packages/langsmith/utils.py", line 159, in raise_for_status_with_text
+    response.raise_for_status()
+  File "/workspace/.venv/lib/python3.12/site-packages/requests/models.py", line 1026, in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+requests.exceptions.HTTPError: 403 Client Error: Forbidden for url: https://api.smith.langchain.com/runs/multipart
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/workspace/.venv/lib/python3.12/site-packages/langsmith/client.py", line 937, in request_with_retries
+    ls_utils.raise_for_status_with_text(response)
+  File "/workspace/.venv/lib/python3.12/site-packages/langsmith/utils.py", line 161, in raise_for_status_with_text
+    raise requests.HTTPError(str(e), response.text) from e  # type: ignore[call-arg]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+requests.exceptions.HTTPError: [Errno 403 Client Error: Forbidden for url: https://api.smith.langchain.com/runs/multipart] {"error":"Forbidden"}
+
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/workspace/.venv/lib/python3.12/site-packages/langsmith/client.py", line 2309, in _send_compressed_multipart_req
+    self.request_with_retries(
+  File "/workspace/.venv/lib/python3.12/site-packages/langsmith/client.py", line 997, in request_with_retries
+    raise ls_utils.LangSmithError(
+langsmith.utils.LangSmithError: Failed to POST https://api.smith.langchain.com/runs/multipart in LangSmith API. HTTPError('403 Client Error: Forbidden for url: https://api.smith.langchain.com/runs/multipart', '{"error":"Forbidden"}\n')
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/usr/lib/python3.12/logging/__init__.py", line 1163, in emit
+    stream.write(msg + self.terminator)
+ValueError: I/O operation on closed file.
+Call stack:
+  File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
+    self._bootstrap_inner()
+  File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
+    self.run()
+  File "/usr/lib/python3.12/threading.py", line 1010, in run
+    self._target(*self._args, **self._kwargs)
+  File "/workspace/.venv/lib/python3.12/site-packages/langsmith/_internal/_background_thread.py", line 841, in tracing_control_thread_func_compress_parallel
+    client._send_compressed_multipart_req(
+  File "/workspace/.venv/lib/python3.12/site-packages/langsmith/client.py", line 2337, in _send_compressed_multipart_req
+    logger.warning(
+Message: 'Failed to send compressed multipart ingest: langsmith.utils.LangSmithError: Failed to POST https://api.smith.langchain.com/runs/multipart in LangSmith API. HTTPError(\'403 Client Error: Forbidden for url: https://api.smith.langchain.com/runs/multipart\', \'{"error":"Forbidden"}\\n\')'
+Arguments: ()

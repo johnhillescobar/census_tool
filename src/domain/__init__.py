@@ -42,6 +42,16 @@ from .comparison_plan import (
     CensusDataset,
     DerivedMetric,
 )
+from .benchmark_geo_inference import DetectedGeoContext
+from .comparison_input_contract import ComparisonInputRow
+from .agent_plan_context import AgentPlanContext
+from .agent_output_contract import (
+    AgentPlanOutput,
+    CensusDataPayload,
+    is_placeholder_geo_id,
+    plan_uses_placeholder_geos,
+    validate_comparison_rows_for_plan,
+)
 
 __all__ = [
     "extract_years",
@@ -77,4 +87,12 @@ __all__ = [
     "ComparisonPlan",
     "CensusDataset",
     "DerivedMetric",
+    "DetectedGeoContext",
+    "ComparisonInputRow",
+    "AgentPlanContext",
+    "AgentPlanOutput",
+    "CensusDataPayload",
+    "is_placeholder_geo_id",
+    "plan_uses_placeholder_geos",
+    "validate_comparison_rows_for_plan",
 ]

@@ -44,6 +44,7 @@ BenchmarkClarificationReason = Literal[
     "BENCHMARK_MISSING_METRIC",
     "BENCHMARK_MISSING_GEO_LEVEL",
     "BENCHMARK_CONFLICT_BASELINE_VS_PEER_GROUP",
+    "BENCHMARK_MISSING_BASELINE_ANCHOR",
 ]
 
 
@@ -73,6 +74,14 @@ class BenchmarkIntent(BaseModel):
     )
     requested_text: str | None = Field(
         None, description="The text that the user requested."
+    )
+    baseline_anchor_year: int | None = Field(
+        default=None,
+        description="Anchor year for historical_baseline comparisons.",
+    )
+    baseline_window: int | None = Field(
+        default=None,
+        description="Inclusive year span ending at baseline_anchor_year.",
     )
 
     @model_validator(mode="after")
@@ -134,9 +143,26 @@ class BenchmarkIntent(BaseModel):
                 )
 
         elif self.benchmark_type == "historical_baseline":
-            # baseline comparison against prior period/anchor; geography may be present
-            raise ValueError(
-                "historical_baseline not yet implemented in Track 2"
+            if self.baseline_anchor_year is None:
+                raise ValueError(
+                    "historical_baseline requires baseline_anchor_year."
+                )
+            window = self.baseline_window if self.baseline_window is not None else 1
+            if window < 1:
+                raise ValueError("baseline_window must be >= 1.")
+            if self.benchmark_geos:
+                raise ValueError(
+                    "historical_baseline must not include benchmark_geos."
+                )
+            if self.benchmark_geo_level is not None:
+                raise ValueError(
+                    "historical_baseline must not include benchmark_geo_level."
+                )
+
+        if self.benchmark_type != "historical_baseline":
+            if self.baseline_anchor_year is not None or self.baseline_window is not None:
+                raise ValueError(
+                    "baseline_anchor_year and baseline_window are only valid for historical_baseline."
                 )
 
         return self
