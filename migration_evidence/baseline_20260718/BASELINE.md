@@ -102,7 +102,7 @@ Result: **316 passed**, 13 deselected (integration), **full-repo ruff clean** (s
 
 - `checkpoints.db` retained by default; deleted only when `CENSUS_RESET_CHECKPOINTS=1`.
 - `src/services/graph_session.py`: UUID thread IDs, `build_fresh_thread_state`, `build_delta_turn_state`, `build_turn_state`, turn-reset artifacts.
-- `main.py` / `streamlit_app.py`: UUID-scoped threads, delta invokes on turn 2+, Streamlit “New conversation” (rotates UUID, resets `turn_count`, clears UI history).
+- `main.py` / `streamlit_app.py`: UUID-scoped threads, delta invokes on turn 2+, Streamlit “New conversation” (rotates UUID, clears UI history).
 - `CensusState.artifacts` reducer clears merged artifacts at turn boundary via `__turn_reset__`; `plan` / `final` / `error` use overwrite reducers cleared in delta state.
 - JSON user memory unchanged (`memory_load` / `memory_write`).
 

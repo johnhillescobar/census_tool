@@ -50,9 +50,6 @@ def initialize_session_state():
     if "thread_id" not in st.session_state:
         st.session_state.thread_id = new_thread_id()
 
-    if "turn_count" not in st.session_state:
-        st.session_state.turn_count = 0
-
     if "conversation_history" not in st.session_state:
         st.session_state.conversation_history = []
 
@@ -370,7 +367,6 @@ def main():
 
         if st.button("🆕 New conversation"):
             st.session_state.thread_id = new_thread_id()
-            st.session_state.turn_count = 0
             st.session_state.conversation_history = []
             st.session_state.current_result = None
             st.rerun()
