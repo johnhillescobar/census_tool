@@ -51,3 +51,7 @@ memos.md
 .DS_Store
 
 logs/
+
+# Memory runtime artifacts
+memory/user_*.json
+memory/cache_index_*.json
