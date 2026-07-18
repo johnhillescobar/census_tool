@@ -51,15 +51,22 @@ def _clarification(reason_code: str, question: str, options: list[tuple[str, str
     )
 
 
-def _normalize_profile_default_mapping(profile_default_geo: dict) -> dict | None:
-    """Build a mapping dict compatible with _mapping_to_intent."""
+def _profile_default_to_intent(
+    profile_default_geo: dict,
+    *,
+    requested_text: str,
+) -> GeographyIntent | None:
+    """Convert saved profile default_geo JSON into a typed GeographyIntent."""
     if not profile_default_geo.get("level"):
         return None
 
-    mapping = dict(profile_default_geo)
-    geo_for = dict(mapping.get("geo_for") or {})
-    geo_in = dict(mapping.get("geo_in") or {})
-    filters = mapping.get("filters") or {}
+    level = profile_default_geo.get("level")
+    if level not in {"nation", "state", "county", "place", "cbsa"}:
+        return None
+
+    geo_for = dict(profile_default_geo.get("geo_for") or {})
+    geo_in = dict(profile_default_geo.get("geo_in") or {})
+    filters = profile_default_geo.get("filters") or {}
     if not geo_for and isinstance(filters, dict):
         for_clause = filters.get("for")
         in_clause = filters.get("in")
@@ -77,12 +84,20 @@ def _normalize_profile_default_mapping(profile_default_geo: dict) -> dict | None
     if not geo_for:
         return None
 
-    mapping["geo_for"] = geo_for
-    mapping["geo_in"] = geo_in
-    mapping["note"] = (
-        mapping.get("display_name") or mapping.get("note") or mapping.get("name") or mapping["level"]
+    display_name = (
+        profile_default_geo.get("display_name")
+        or profile_default_geo.get("note")
+        or profile_default_geo.get("name")
+        or str(level)
     )
-    return mapping
+    return GeographyIntent(
+        level=level,  # type: ignore[arg-type]
+        geo_for=geo_for,
+        geo_in=geo_in,
+        display_name=str(display_name),
+        source="profile_default",
+        requested_text=requested_text,
+    )
 
 
 def _mapping_to_intent(mapping: dict, *, source: str, requested_text: str | None) -> GeographyIntent:
@@ -184,16 +199,13 @@ def resolve_geography_intent(
             [("clarify", "Add state or county"), ("cancel", "Cancel")],
         )
 
-    if profile_default_geo and profile_default_geo.get("level"):
-        mapping = _normalize_profile_default_mapping(profile_default_geo)
-        if mapping is not None:
-            return GeographyResolved(
-                geography=_mapping_to_intent(
-                    mapping,
-                    source="profile_default",
-                    requested_text=requested_text,
-                )
-            )
+    if profile_default_geo:
+        profile_intent = _profile_default_to_intent(
+            profile_default_geo,
+            requested_text=requested_text,
+        )
+        if profile_intent is not None:
+            return GeographyResolved(geography=profile_intent)
 
     # Locked policy: missing geography defaults to United States national scope.
     default_geo = US_NATIONAL_GEO.model_copy(update={"requested_text": requested_text})
