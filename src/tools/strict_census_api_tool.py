@@ -1,0 +1,209 @@
+import json
+import logging
+from typing import Any
+
+from langchain.callbacks.manager import (
+    AsyncCallbackManagerForToolRun,
+    CallbackManagerForToolRun,
+)
+from langchain_core.tools import BaseTool
+from pydantic import BaseModel, ValidationError
+
+from src.clients.census_api_utils import build_geo_filters, fetch_census_data_typed
+from src.clients.telemetry import record_event
+from src.domain.census_tool_contract import (
+    StrictCensusApiErrorCode,
+    StrictCensusApiRawTable,
+    StrictCensusApiRecord,
+    StrictCensusApiRequest,
+    StrictCensusApiResponse,
+)
+
+logger = logging.getLogger(__name__)
+
+
+class StrictCensusApiTool(BaseTool):
+    name: str = "strict_census_api_call"
+    description: str = (
+        "Execute a strict typed Census API query. "
+        "Input must follow strict request contract with year, dataset, variables, "
+        "geo_for, optional geo_in, and optional geo_in_chained."
+    )
+    args_schema: type[BaseModel] = StrictCensusApiRequest
+
+    def _parse_input(
+        self, tool_input: str | dict[str, Any], tool_call_id: str | None
+    ) -> str | dict[str, Any]:
+        if isinstance(tool_input, str):
+            try:
+                parsed = json.loads(tool_input)
+            except json.JSONDecodeError:
+                return tool_input
+            if isinstance(parsed, dict):
+                return parsed
+        return tool_input
+
+    def _error_response(
+        self,
+        request: StrictCensusApiRequest | None,
+        error_code: StrictCensusApiErrorCode,
+        error_message: str,
+    ) -> StrictCensusApiResponse:
+        payload = StrictCensusApiResponse(
+            success=False,
+            request=request,
+            headers=[],
+            records=[],
+            row_count=0,
+            error=error_code,
+            error_message=error_message,
+        )
+
+        record_event(
+            "strict_census_api_call",
+            {
+                "dataset": request.dataset if request is not None else None,
+                "year": request.year if request is not None else None,
+                "variables": request.variables if request is not None else None,
+                "success": False,
+                "error": error_code,
+                "error_message": error_message,
+            },
+        )
+        return payload
+
+    def _coerce_request(
+        self,
+        tool_input: StrictCensusApiRequest | dict[str, Any] | None = None,
+        **kwargs: Any,
+    ) -> StrictCensusApiRequest:
+        if kwargs:
+            if tool_input is None:
+                tool_input = kwargs
+            elif isinstance(tool_input, dict):
+                tool_input = {**tool_input, **kwargs}
+            elif isinstance(tool_input, StrictCensusApiRequest):
+                tool_input = tool_input.model_copy(update=kwargs)
+
+        return StrictCensusApiRequest.model_validate(tool_input)
+
+    def _run(
+        self,
+        tool_input: StrictCensusApiRequest | dict[str, Any] | None = None,
+        run_manager: CallbackManagerForToolRun | None = None,
+        **kwargs: Any,
+    ) -> StrictCensusApiResponse:
+        request_obj: StrictCensusApiRequest | None = None
+
+        # 1) Validate request through strict typed contract only
+        try:
+            request_obj = self._coerce_request(tool_input, **kwargs)
+        except ValidationError as exc:
+            return self._error_response(
+                request=None,
+                error_code="INVALID_INPUT_SCHEMA",
+                error_message=str(exc),
+            )
+
+        # 2) Build geo filters with strict hierarchy validation
+        try:
+            geo_filters = build_geo_filters(
+                dataset=request_obj.dataset,
+                year=request_obj.year,
+                geo_for=request_obj.geo_for,
+                geo_in=request_obj.geo_in,
+                geo_in_chained=request_obj.geo_in_chained,
+            )
+        except Exception as exc:
+            return self._error_response(
+                request=request_obj,
+                error_code="INVALID_GEO_PARAMS",
+                error_message=str(exc),
+            )
+
+        # 3) Execute API call
+        result = fetch_census_data_typed(
+            dataset=request_obj.dataset,
+            year=request_obj.year,
+            variables=request_obj.variables,
+            geo={"filters": geo_filters},
+        )
+
+        if result.failure is not None:
+            return self._error_response(
+                request=request_obj,
+                error_code="API_HTTP_ERROR",
+                error_message=result.failure.error_message,
+            )
+
+        # 4) Validate payload shape
+        if result.success is None:
+            return self._error_response(
+                request=request_obj,
+                error_code="API_PAYLOAD_SHAPE_INVALID",
+                error_message="Typed Census API result did not include success data",
+            )
+
+        try:
+            raw_table = StrictCensusApiRawTable(
+                headers=result.success.table.headers,
+                rows=result.success.table.rows,
+            )
+        except ValidationError as exc:
+            return self._error_response(
+                request=request_obj,
+                error_code="API_PAYLOAD_SHAPE_INVALID",
+                error_message=str(exc),
+            )
+
+        if len(raw_table.rows) == 0:
+            return self._error_response(
+                request=request_obj,
+                error_code="EMPTY_RESULT",
+                error_message="Census API returned no data rows",
+            )
+
+        records = [
+            StrictCensusApiRecord(values=dict(zip(raw_table.headers, row)))
+            for row in raw_table.rows
+        ]
+
+        response = StrictCensusApiResponse(
+            success=True,
+            request=request_obj,
+            headers=raw_table.headers,
+            records=records,
+            row_count=len(records),
+            error=None,
+            error_message=None,
+        )
+
+        record_event(
+            "strict_census_api_call",
+            {
+                "dataset": request_obj.dataset,
+                "year": request_obj.year,
+                "variables": request_obj.variables,
+                "geo_filters": geo_filters,
+                "success": True,
+                "row_count": response.row_count,
+                "url": result.success.url,
+            },
+        )
+        logger.info(
+            "Strict Census API call succeeded (%s/%s) rows=%s",
+            request_obj.dataset,
+            request_obj.year,
+            response.row_count,
+        )
+
+        return response
+
+    async def _arun(
+        self,
+        tool_input: StrictCensusApiRequest | dict[str, Any] | None = None,
+        run_manager: AsyncCallbackManagerForToolRun | None = None,
+        **kwargs: Any,
+    ) -> StrictCensusApiResponse:
+        # Keep async contract; sync execution is deterministic and already validated.
+        return self._run(tool_input, **kwargs)

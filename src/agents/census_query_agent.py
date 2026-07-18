@@ -1,11 +1,11 @@
-import os
-import logging
 import json
-from typing import Dict, Any, Optional, cast
-from dotenv import load_dotenv
-from pydantic import ValidationError
+import logging
+import os
+from typing import Any, cast
 
+from dotenv import load_dotenv
 from langchain.agents import AgentExecutor
+from pydantic import ValidationError
 
 # Try to import the agent creation function for different LangChain versions
 try:
@@ -18,28 +18,30 @@ except ImportError:
         create_react_agent = None
 from langchain.prompts import PromptTemplate
 
-from src.llm.config import LLM_CONFIG, AGENT_PROMPT_TEMPLATE
+from src.domain.agent_output_contract import (
+    AgentPlanOutput,
+    agent_output_to_legacy_dict,
+    validate_comparison_rows_for_plan,
+)
+from src.domain.agent_plan_context import AgentPlanContext
+from src.domain.census_tool_contract import StrictCensusApiResponse
+from src.llm.config import AGENT_PROMPT_TEMPLATE, LLM_CONFIG
 from src.llm.factory import create_llm
+from src.services.agent_plan_context import format_plan_directives
+
+# Import conversation summarizer
+from src.services.conversation_summarizer import ConversationSummarizer, summarize_intermediate_steps
+from src.tools.area_resolution_tool import AreaResolutionTool
+from src.tools.census_api_tool import CensusAPITool
+from src.tools.chart_tool import ChartTool
 from src.tools.geography_discovery_tool import GeographyDiscoveryTool
 from src.tools.geography_hierarchy_tool import GeographyHierarchyTool
 from src.tools.geography_validation_tool import GeographyValidationTool
-from src.tools.table_search_tool import TableSearchTool
-from src.tools.census_api_tool import CensusAPITool
-from src.tools.chart_tool import ChartTool
-from src.tools.table_tool import TableTool
 from src.tools.pattern_builder_tool import PatternBuilderTool
-from src.tools.area_resolution_tool import AreaResolutionTool
+from src.tools.strict_census_api_tool import StrictCensusApiTool
+from src.tools.table_search_tool import TableSearchTool
+from src.tools.table_tool import TableTool
 from src.tools.variable_validation_tool import VariableValidationTool
-
-# Import conversation summarizer
-from src.services.conversation_summarizer import ConversationSummarizer
-from src.services.conversation_summarizer import summarize_intermediate_steps
-from src.domain.agent_plan_context import AgentPlanContext
-from src.domain.agent_output_contract import (
-    AgentPlanOutput,
-    validate_comparison_rows_for_plan,
-)
-from src.services.agent_plan_context import format_plan_directives
 
 load_dotenv()
 
@@ -50,6 +52,7 @@ COMPARISON_INPUT_ROW_FIELDS = frozenset(
     {"year", "geo_id", "metric", "value", "benchmark_value"}
 )
 CENSUS_DATA_FIELDS = frozenset({"success", "data", "variables", "url"})
+STRICT_CENSUS_TOOL_NAME = "strict_census_api_call"
 
 
 class AgentOutput(AgentPlanOutput):
@@ -93,6 +96,7 @@ class CensusQueryAgent:
             GeographyValidationTool(),
             TableSearchTool(),
             CensusAPITool(),
+            StrictCensusApiTool(),
             TableTool(),
             PatternBuilderTool(),
             AreaResolutionTool(),
@@ -133,7 +137,7 @@ class CensusQueryAgent:
     def _build_executor_input(
         self,
         user_query: str,
-        intent: Dict,
+        intent: dict,
         plan_context: AgentPlanContext | None,
     ) -> str:
         sections = []
@@ -156,9 +160,9 @@ class CensusQueryAgent:
     def solve(
         self,
         user_query: str,
-        intent: Dict,
+        intent: dict,
         plan_context: AgentPlanContext | None = None,
-    ) -> Dict:
+    ) -> dict:
         """
         Reason through the query and return structured data
         """
@@ -208,7 +212,48 @@ class CensusQueryAgent:
 
         return self._parse_solution(result)
 
-    def _validate_agent_output(self, parsed: Dict[str, Any]) -> Dict[str, Any]:
+    def _coerce_strict_census_response(
+        self, observation: Any
+    ) -> StrictCensusApiResponse | None:
+        if isinstance(observation, StrictCensusApiResponse):
+            return observation
+        if isinstance(observation, dict):
+            try:
+                return StrictCensusApiResponse.model_validate(observation)
+            except ValidationError:
+                return None
+        if isinstance(observation, str):
+            text = observation.strip()
+            if not text.startswith("{"):
+                return None
+            try:
+                return StrictCensusApiResponse.model_validate_json(text)
+            except ValidationError:
+                return None
+        return None
+
+    def _resolve_authoritative_strict_census_response(
+        self, result: dict[str, Any] | None
+    ) -> StrictCensusApiResponse | None:
+        if not result:
+            return None
+        for step in reversed(result.get("intermediate_steps", []) or []):
+            if not step or len(step) < 2:
+                continue
+            action, observation = step[0], step[1]
+            if getattr(action, "tool", None) != STRICT_CENSUS_TOOL_NAME:
+                continue
+            response = self._coerce_strict_census_response(observation)
+            if response is not None and response.success:
+                return response
+        return None
+
+    def _validate_agent_output_model(
+        self, parsed: dict[str, Any], result: dict[str, Any] | None = None
+    ) -> AgentPlanOutput:
+        authoritative_response = self._resolve_authoritative_strict_census_response(result)
+        if authoritative_response is not None:
+            parsed["census_data"] = authoritative_response
         validated = AgentPlanOutput(**parsed)
         if (
             self._active_plan_context is not None
@@ -220,9 +265,16 @@ class CensusQueryAgent:
                 validated.comparison_input_rows,
                 self._active_plan_context.comparison,
             )
-        return validated.model_dump()
+        return validated
 
-    def _has_invalid_geography(self, result: Dict, parsed: Dict) -> bool:
+    def _validate_agent_output(
+        self, parsed: dict[str, Any], result: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
+        return agent_output_to_legacy_dict(
+            self._validate_agent_output_model(parsed, result)
+        )
+
+    def _has_invalid_geography(self, result: dict, parsed: dict) -> bool:
         """Check if agent tried to query invalid geography"""
         intermediate_steps = result.get("intermediate_steps", [])
 
@@ -265,7 +317,7 @@ class CensusQueryAgent:
 
         return False
 
-    def _build_invalid_geography_response(self, result: Dict, parsed: Dict) -> Dict:
+    def _build_invalid_geography_response(self, result: dict, parsed: dict) -> dict:
         """Build error response for invalid geography"""
         return {
             "census_data": {"success": False, "data": []},
@@ -281,7 +333,7 @@ class CensusQueryAgent:
             "comparison_input_rows": [],
         }
 
-    def _normalize_error_response(self, parsed: Dict, result: Dict) -> Dict:
+    def _normalize_error_response(self, parsed: dict, result: dict) -> dict:
         """
         Normalize error responses to ensure answer_text contains expected phrases.
         If success is False but answer_text doesn't match test expectations, update it.
@@ -310,7 +362,7 @@ class CensusQueryAgent:
 
         return parsed
 
-    def _parse_solution(self, result: Dict) -> Dict:
+    def _parse_solution(self, result: dict) -> dict:
         """
         Parse agent output - extract JSON after 'Final Answer:' prefix.
         Simplified to 2 methods: direct parse or prefix extraction.
@@ -329,14 +381,14 @@ class CensusQueryAgent:
             if self._has_invalid_geography(result, parsed):
                 return self._build_invalid_geography_response(result, parsed)
             parsed = self._normalize_error_response(parsed, result)
-            return self._validate_agent_output(parsed)
+            return self._validate_agent_output(parsed, result)
 
         parsed = self._extract_after_final_answer(output)
         if parsed:
             if self._has_invalid_geography(result, parsed):
                 return self._build_invalid_geography_response(result, parsed)
             parsed = self._normalize_error_response(parsed, result)
-            return self._validate_agent_output(parsed)
+            return self._validate_agent_output(parsed, result)
 
         if self._is_valid_json_without_prefix(output):
             logger.warning(
@@ -347,7 +399,7 @@ class CensusQueryAgent:
                 if self._has_invalid_geography(result, parsed):
                     return self._build_invalid_geography_response(result, parsed)
                 parsed = self._normalize_error_response(parsed, result)
-                return self._validate_agent_output(parsed)
+                return self._validate_agent_output(parsed, result)
 
         logger.warning("All parsing methods failed")
         logger.debug(f"Raw output sample: {output[:500]}")
@@ -364,7 +416,7 @@ class CensusQueryAgent:
             "comparison_input_rows": [],
         }
 
-    def _try_direct_json_parse(self, output: str) -> Optional[Dict]:
+    def _try_direct_json_parse(self, output: str) -> dict | None:
         """Attempt direct JSON parsing of entire output."""
         try:
             logger.error(
@@ -396,7 +448,7 @@ class CensusQueryAgent:
             )
         return None
 
-    def _build_empty_output_response(self, result: Dict) -> Dict[str, Any]:
+    def _build_empty_output_response(self, result: dict) -> dict[str, Any]:
         intermediate_steps = result.get("intermediate_steps", []) or []
         step_count = len(intermediate_steps)
 
@@ -423,7 +475,7 @@ class CensusQueryAgent:
             "Please rerun the question and I will try again."
         )
 
-        census_data_payload: Dict[str, Any] = {
+        census_data_payload: dict[str, Any] = {
             "success": False,
             "error": "empty_output",
         }
@@ -442,7 +494,7 @@ class CensusQueryAgent:
             "comparison_input_rows": [],
         }
 
-    def _did_reach_iteration_limit(self, result: Dict, output: str) -> bool:
+    def _did_reach_iteration_limit(self, result: dict, output: str) -> bool:
         if not output:
             return False
 
@@ -460,8 +512,8 @@ class CensusQueryAgent:
         return False
 
     def _build_iteration_limit_response(
-        self, result: Dict, output: str
-    ) -> Dict[str, Any]:
+        self, result: dict, output: str
+    ) -> dict[str, Any]:
         intermediate_steps = result.get("intermediate_steps", []) or []
         step_count = len(intermediate_steps)
 
@@ -488,7 +540,7 @@ class CensusQueryAgent:
             "Please rerun the question or adjust it and I will try again."
         )
 
-        census_data_payload: Dict[str, Any] = {
+        census_data_payload: dict[str, Any] = {
             "success": False,
             "error": "iteration_limit",
         }
@@ -507,7 +559,7 @@ class CensusQueryAgent:
             "comparison_input_rows": [],
         }
 
-    def _coerce_observation_to_dict(self, observation: Any) -> Optional[Dict[str, Any]]:
+    def _coerce_observation_to_dict(self, observation: Any) -> dict[str, Any] | None:
         if isinstance(observation, dict):
             return observation
         if isinstance(observation, str):
@@ -521,7 +573,7 @@ class CensusQueryAgent:
                     return None
         return None
 
-    def _extract_after_final_answer(self, output: str) -> Optional[Dict]:
+    def _extract_after_final_answer(self, output: str) -> dict | None:
         """Extract JSON after 'Final Answer:' prefix using state machine."""
         # Find "Final Answer:" marker
         marker = "Final Answer:"
@@ -569,8 +621,8 @@ class CensusQueryAgent:
         return None
 
     def _normalize_parsed_output_contract(
-        self, parsed: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, parsed: dict[str, Any]
+    ) -> dict[str, Any]:
         """
         Normalize common LLM contract drift before strict Pydantic validation.
 
@@ -587,7 +639,7 @@ class CensusQueryAgent:
 
         variables = census_data.get("variables")
         if isinstance(variables, list):
-            normalized_variables: Dict[str, str] = {}
+            normalized_variables: dict[str, str] = {}
             for item in variables:
                 if isinstance(item, str) and item.strip():
                     normalized_variables[item] = item
@@ -622,7 +674,7 @@ class CensusQueryAgent:
         if "comparison_input_rows" not in parsed:
             parsed["comparison_input_rows"] = []
         else:
-            normalized_rows: list[Dict[str, Any]] = []
+            normalized_rows: list[dict[str, Any]] = []
             for row in parsed["comparison_input_rows"]:
                 if not isinstance(row, dict):
                     continue
@@ -641,7 +693,7 @@ class CensusQueryAgent:
 
         return parsed
 
-    def _extract_json_with_state_machine(self, text: str) -> Optional[str]:
+    def _extract_json_with_state_machine(self, text: str) -> str | None:
         """
         Extract JSON object using state machine that handles:
         - Nested objects/arrays
