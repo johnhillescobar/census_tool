@@ -1,0 +1,35 @@
+row_no,question,composite,failure_class,priority,component,url_verdict,delivery_verdict,api_call_count,retry_recovered,expected_url,winning_url,best_mismatch,stopped_before_agent,answer_preview,suggested_fix_area
+1,What's the total population/age summary for the U.S. in 2023?,blocked,geography_blocked,P0,geography_policy,fail,clarification,0,False,"https://api.census.gov/data/2023/acs/acs1/subject?get=NAME,S0101_C01_001E&for=us:1",,,True,"I found multiple geographies in your request. Which one should I use?
+geo_0: Default geography: 'United States (default)'
+geo_1: Default geography: 'United States (default)'
+geo_2: Default geography: ",src/services/geography_policy.py
+2,What's the median household income by state in 2022?,blocked,geography_blocked,P0,geography_policy,fail,clarification,0,False,"https://api.census.gov/data/2022/acs/acs1/subject?get=NAME,S1901_C01_012E&for=state:",,,True,"I found multiple geographies in your request. Which one should I use?
+geo_0: Default geography: 'United States (default)'
+geo_1: Default geography: 'United States (default)'",src/services/geography_policy.py
+3,Show total population for all California counties in 2023.,blocked,geography_blocked,P0,geography_policy,fail,clarification,0,False,"https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=county:*&in=state:06",,,True,"I found multiple geographies in your request. Which one should I use?
+geo_0: Default geography: 'United States (default)'
+geo_1: County-level request for 'all California counties' - needs clarificatio",src/services/geography_policy.py
+4,Give me the labor force comparison profile for Florida (2018 vs 2023).,blocked,geography_blocked,P0,geography_policy,fail,clarification,0,False,"https://api.census.gov/data/2023/acs/acs5/cprofile?get=NAME,group(CP03)&for=state:12",,,True,"I found multiple geographies in your request. Which one should I use?
+geo_0: Default geography: 'United States (default)'
+geo_1: State-level request for 'labor force comparison profile' to Illinois
+ge",src/services/geography_policy.py
+5,What are the housing characteristics for Chicago in 2022?,blocked,geography_blocked,P0,geography_policy,fail,clarification,0,False,"https://api.census.gov/data/2022/acs/acs5/profile?get=NAME,group(DP04)&for=place:14000&in=state:17",,,True,"I found multiple geographies in your request. Which one should I use?
+geo_0: Default geography: 'United States (default)'
+geo_1: Chicago",src/services/geography_policy.py
+8,Show poverty by age (full B17001) for all states (2021).,blocked,geography_blocked,P0,geography_policy,fail,clarification,0,False,"https://api.census.gov/data/2021/acs/acs5?get=NAME,group(B17001)&for=state:",,,True,"I found multiple geographies in your request. Which one should I use?
+geo_0: Default geography: 'United States (default)'
+geo_1: Default geography: 'United States (default)'
+geo_2: Default geography: ",src/services/geography_policy.py
+11,List all metro and micropolitan areas for 2023.,blocked,geography_blocked,P0,geography_policy,fail,clarification,0,False,"https://api.census.gov/data/2023/acs/acs5?get=NAME,GEO_ID&for=metropolitan%20statistical%20area/micropolitan%20statistical%20area:",,,True,"I found multiple geographies in your request. Which one should I use?
+geo_0: Default geography: 'United States (default)'
+geo_1: Default geography: 'United States (default)'",src/services/geography_policy.py
+16,Which counties are in CBSA 35620?,blocked,geography_blocked,P0,geography_policy,fail,clarification,0,False,"https://api.census.gov/data/2023/acs/acs5?get=NAME,GEO_ID&for=county:*&in=metropolitan%20statistical%20area/micropolitan%20statistical%20area:35620",,,True,"I found multiple geographies in your request. Which one should I use?
+geo_0: County-level request for 'Which counties' - needs clarification
+geo_1: Default geography: 'United States (default)'",src/services/geography_policy.py
+19,"Show tract-level population for Los Angeles County, CA (2023).",blocked,geography_blocked,P0,geography_policy,fail,clarification,0,False,"https://api.census.gov/data/2023/acs/acs5?get=NAME,GEO_ID,B01001_001E&for=tract:*&in=state:06%20county:037",,,True,"I found multiple geographies in your request. Which one should I use?
+geo_0: Default geography: 'United States (default)'
+geo_1: County-level request for 'Los Angeles County CA' - needs clarification
+",src/services/geography_policy.py
+22,Population for Massachusetts county subdivisions (2021).,blocked,geography_blocked,P0,geography_policy,fail,clarification,0,False,"https://api.census.gov/data/2021/acs/acs5?get=NAME,B01001_001E&for=county%20subdivision:*&in=state:25",,,True,"I found multiple geographies in your request. Which one should I use?
+geo_0: County-level request for 'Massachusetts county subdivisions' - needs clarification
+geo_1: Default geography: 'United States",src/services/geography_policy.py

@@ -1,0 +1,4 @@
+row_no,question,composite,failure_class,url_verdict,delivery_verdict,api_call_count,retry_recovered,expected_url,winning_url,best_mismatch,stopped_before_agent,answer_preview,suggested_fix_area
+3,Show total population for all California counties in 2023.,blocked,geography_blocked,fail,clarification,0,False,"https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=county:*&in=state:06",,,True,"I found multiple geographies in your request. Which one should I use?
+geo_0: Default geography: 'United States (default)'
+geo_1: County-level request for 'all California counties' - needs clarificatio",src/services/geography_policy.py
