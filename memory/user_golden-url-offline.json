@@ -1,0 +1,59 @@
+{
+  "user_id": "golden-url-offline",
+  "default_geo": {},
+  "preferred_dataset": "acs/acs5",
+  "default_year_range": [
+    2012,
+    2023
+  ],
+  "preferred_level": "place",
+  "var_aliases": {},
+  "usage_stats": {
+    "total_queries": 4,
+    "success_queries": 4,
+    "last_query_date": "2026-07-18T20:25:35.310788"
+  },
+  "history": [
+    {
+      "timestamp": "2026-07-18T20:06:54.912878",
+      "user_id": "golden-url-offline",
+      "question": "Show total population for all California counties in 2023.",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "clarification_required",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2026-07-18T20:07:37.812162",
+      "user_id": "golden-url-offline",
+      "question": "Show total population for all California counties in 2023.",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "clarification_required",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2026-07-18T20:25:15.971281",
+      "user_id": "golden-url-offline",
+      "question": "Show total population for all California counties in 2023.",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "clarification_required",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2026-07-18T20:25:35.310788",
+      "user_id": "golden-url-offline",
+      "question": "Show total population for all California counties in 2023.",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "clarification_required",
+      "answer_type": "Unknown",
+      "success": true
+    }
+  ],
+  "last_updated": "2026-07-18T20:25:35.310788"
+}

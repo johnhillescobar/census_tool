@@ -225,8 +225,8 @@ def variables_compatible(expected: tuple[str, ...], actual: tuple[str, ...]) -> 
     if exp_set.issubset(act_set):
         return True
 
-    exp_groups = {_group_prefix(v) for v in expected} - {None}
-    act_groups = {_group_prefix(v) for v in actual} - {None}
+    exp_groups = {p for p in (_group_prefix(v) for v in expected) if p is not None}
+    act_groups = {p for p in (_group_prefix(v) for v in actual) if p is not None}
 
     if exp_groups and not act_groups:
         prefix = next(iter(exp_groups))

@@ -18,9 +18,9 @@
   "preferred_level": "place",
   "var_aliases": {},
   "usage_stats": {
-    "total_queries": 26,
-    "success_queries": 26,
-    "last_query_date": "2026-07-18T09:15:32.096644"
+    "total_queries": 36,
+    "success_queries": 36,
+    "last_query_date": "2026-07-18T20:25:44.895586"
   },
   "history": [
     {
@@ -520,8 +520,208 @@
       "plan_summary": "temporal=point_in_time",
       "answer_type": "Unknown",
       "success": true
+    },
+    {
+      "timestamp": "2026-07-18T11:34:21.522024",
+      "user_id": "track2-graph-test",
+      "question": "compare population for counties",
+      "intent": {},
+      "geo": {
+        "level": "county",
+        "geo_for": {
+          "county": "*"
+        },
+        "geo_in": {
+          "state": "17"
+        },
+        "display_name": "County-level request for 'counties' - needs clarification",
+        "source": "explicit",
+        "requested_text": "compare population for counties"
+      },
+      "plan_summary": "temporal=latest_available; benchmark=peer_group; years=[2023]",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2026-07-18T11:34:22.378138",
+      "user_id": "track2-graph-test",
+      "question": "population of california in 2020",
+      "intent": {},
+      "geo": {
+        "level": "state",
+        "geo_for": {
+          "state": "06"
+        },
+        "geo_in": {},
+        "display_name": "California",
+        "source": "explicit",
+        "requested_text": "population of california in 2020"
+      },
+      "plan_summary": "temporal=point_in_time",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2026-07-18T20:05:39.980871",
+      "user_id": "track2-graph-test",
+      "question": "compare population for counties",
+      "intent": {},
+      "geo": {
+        "level": "county",
+        "geo_for": {
+          "county": "*"
+        },
+        "geo_in": {
+          "state": "17"
+        },
+        "display_name": "County-level request for 'counties' - needs clarification",
+        "source": "explicit",
+        "requested_text": "compare population for counties"
+      },
+      "plan_summary": "temporal=latest_available; benchmark=peer_group; years=[2023]",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2026-07-18T20:05:40.474818",
+      "user_id": "track2-graph-test",
+      "question": "population of california in 2020",
+      "intent": {},
+      "geo": {
+        "level": "state",
+        "geo_for": {
+          "state": "06"
+        },
+        "geo_in": {},
+        "display_name": "California",
+        "source": "explicit",
+        "requested_text": "population of california in 2020"
+      },
+      "plan_summary": "temporal=point_in_time",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2026-07-18T20:06:19.761426",
+      "user_id": "track2-graph-test",
+      "question": "compare population for counties",
+      "intent": {},
+      "geo": {
+        "level": "county",
+        "geo_for": {
+          "county": "*"
+        },
+        "geo_in": {
+          "state": "17"
+        },
+        "display_name": "County-level request for 'counties' - needs clarification",
+        "source": "explicit",
+        "requested_text": "compare population for counties"
+      },
+      "plan_summary": "temporal=latest_available; benchmark=peer_group; years=[2023]",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2026-07-18T20:06:20.274048",
+      "user_id": "track2-graph-test",
+      "question": "population of california in 2020",
+      "intent": {},
+      "geo": {
+        "level": "state",
+        "geo_for": {
+          "state": "06"
+        },
+        "geo_in": {},
+        "display_name": "California",
+        "source": "explicit",
+        "requested_text": "population of california in 2020"
+      },
+      "plan_summary": "temporal=point_in_time",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2026-07-18T20:07:45.765297",
+      "user_id": "track2-graph-test",
+      "question": "compare population for counties",
+      "intent": {},
+      "geo": {
+        "level": "county",
+        "geo_for": {
+          "county": "*"
+        },
+        "geo_in": {
+          "state": "17"
+        },
+        "display_name": "County-level request for 'counties' - needs clarification",
+        "source": "explicit",
+        "requested_text": "compare population for counties"
+      },
+      "plan_summary": "temporal=latest_available; benchmark=peer_group; years=[2023]",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2026-07-18T20:07:46.312467",
+      "user_id": "track2-graph-test",
+      "question": "population of california in 2020",
+      "intent": {},
+      "geo": {
+        "level": "state",
+        "geo_for": {
+          "state": "06"
+        },
+        "geo_in": {},
+        "display_name": "California",
+        "source": "explicit",
+        "requested_text": "population of california in 2020"
+      },
+      "plan_summary": "temporal=point_in_time",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2026-07-18T20:25:44.319060",
+      "user_id": "track2-graph-test",
+      "question": "compare population for counties",
+      "intent": {},
+      "geo": {
+        "level": "county",
+        "geo_for": {
+          "county": "*"
+        },
+        "geo_in": {
+          "state": "17"
+        },
+        "display_name": "County-level request for 'counties' - needs clarification",
+        "source": "explicit",
+        "requested_text": "compare population for counties"
+      },
+      "plan_summary": "temporal=latest_available; benchmark=peer_group; years=[2023]",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2026-07-18T20:25:44.895586",
+      "user_id": "track2-graph-test",
+      "question": "population of california in 2020",
+      "intent": {},
+      "geo": {
+        "level": "state",
+        "geo_for": {
+          "state": "06"
+        },
+        "geo_in": {},
+        "display_name": "California",
+        "source": "explicit",
+        "requested_text": "population of california in 2020"
+      },
+      "plan_summary": "temporal=point_in_time",
+      "answer_type": "Unknown",
+      "success": true
     }
   ],
-  "last_updated": "2026-07-18T09:15:32.096644",
+  "last_updated": "2026-07-18T20:25:44.895586",
   "last_geo": "California"
 }

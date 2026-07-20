@@ -1,0 +1,119 @@
+{
+  "user_id": "golden-url-e2e",
+  "default_geo": {},
+  "preferred_dataset": "acs/acs5",
+  "default_year_range": [
+    2012,
+    2023
+  ],
+  "preferred_level": "place",
+  "var_aliases": {},
+  "usage_stats": {
+    "total_queries": 10,
+    "success_queries": 10,
+    "last_query_date": "2026-07-18T20:14:39.356825"
+  },
+  "history": [
+    {
+      "timestamp": "2026-07-18T20:14:34.797569",
+      "user_id": "golden-url-e2e",
+      "question": "What's the total population/age summary for the U.S. in 2023?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "clarification_required",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2026-07-18T20:14:35.484199",
+      "user_id": "golden-url-e2e",
+      "question": "What's the median household income by state in 2022?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "clarification_required",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2026-07-18T20:14:35.860807",
+      "user_id": "golden-url-e2e",
+      "question": "Show total population for all California counties in 2023.",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "clarification_required",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2026-07-18T20:14:36.751260",
+      "user_id": "golden-url-e2e",
+      "question": "Give me the labor force comparison profile for Florida (2018 vs 2023).",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "clarification_required",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2026-07-18T20:14:37.142208",
+      "user_id": "golden-url-e2e",
+      "question": "What are the housing characteristics for Chicago in 2022?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "clarification_required",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2026-07-18T20:14:37.511524",
+      "user_id": "golden-url-e2e",
+      "question": "Show poverty by age (full B17001) for all states (2021).",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "clarification_required",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2026-07-18T20:14:37.937752",
+      "user_id": "golden-url-e2e",
+      "question": "List all metro and micropolitan areas for 2023.",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "clarification_required",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2026-07-18T20:14:38.337394",
+      "user_id": "golden-url-e2e",
+      "question": "Which counties are in CBSA 35620?",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "clarification_required",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2026-07-18T20:14:38.772303",
+      "user_id": "golden-url-e2e",
+      "question": "Show tract-level population for Los Angeles County, CA (2023).",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "clarification_required",
+      "answer_type": "Unknown",
+      "success": true
+    },
+    {
+      "timestamp": "2026-07-18T20:14:39.356825",
+      "user_id": "golden-url-e2e",
+      "question": "Population for Massachusetts county subdivisions (2021).",
+      "intent": {},
+      "geo": {},
+      "plan_summary": "clarification_required",
+      "answer_type": "Unknown",
+      "success": true
+    }
+  ],
+  "last_updated": "2026-07-18T20:14:39.356825"
+}
