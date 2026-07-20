@@ -17,6 +17,7 @@ GOLDEN_CSV = Path(__file__).resolve().parents[1] / "test_questions" / "test_ques
 GOLDEN_ARTIFACTS_DIR = Path(__file__).resolve().parents[1] / "migration_evidence" / "golden_urls"
 
 CATALOG_SUFFIXES = ("/groups.json", "/variables.json")
+IGNORABLE_EXTRA_VARS = frozenset({"GEO_ID"})
 
 FAILURE_PHRASES = ("unable to complete",)
 
@@ -192,12 +193,16 @@ def parse_census_url(url: str) -> CensusUrlParts:
     )
 
 
-def normalize_for_compare(url: str) -> CensusUrlParts:
+def strip_api_key_from_url(url: str) -> str:
     parsed = urlparse(url)
-    if parsed.query:
-        kept = "&".join(piece for piece in parsed.query.split("&") if not piece.startswith("key="))
-        url = parsed._replace(query=kept).geturl()
-    return parse_census_url(url)
+    if not parsed.query:
+        return url
+    kept = "&".join(piece for piece in parsed.query.split("&") if not piece.startswith("key="))
+    return parsed._replace(query=kept).geturl()
+
+
+def normalize_for_compare(url: str) -> CensusUrlParts:
+    return parse_census_url(strip_api_key_from_url(url))
 
 
 def _group_prefix(variable: str) -> str | None:
@@ -205,6 +210,10 @@ def _group_prefix(variable: str) -> str | None:
     if upper.startswith("GROUP(") and upper.endswith(")"):
         return upper[6:-1]
     return None
+
+
+def _is_allowed_extra_var(variable: str) -> bool:
+    return variable == "NAME" or variable in IGNORABLE_EXTRA_VARS
 
 
 def variables_compatible(expected: tuple[str, ...], actual: tuple[str, ...]) -> bool:
@@ -221,10 +230,10 @@ def variables_compatible(expected: tuple[str, ...], actual: tuple[str, ...]) -> 
 
     if exp_groups and not act_groups:
         prefix = next(iter(exp_groups))
-        return all(v == "NAME" or v.startswith(prefix) for v in actual)
+        return all(_is_allowed_extra_var(v) or v.startswith(prefix) for v in actual)
     if act_groups and not exp_groups:
         prefix = next(iter(act_groups))
-        return all(v == "NAME" or v.startswith(prefix) for v in expected)
+        return all(_is_allowed_extra_var(v) or v.startswith(prefix) for v in expected)
 
     return False
 
@@ -276,12 +285,13 @@ def rebuild_url_from_golden(expected_url: str) -> str:
 
     assert parts.year is not None
     assert parts.dataset is not None
-    return build_census_url(
+    rebuilt = build_census_url(
         dataset=parts.dataset,
         year=parts.year,
         variables=variables,
         geo={"filters": filters},
     )
+    return strip_api_key_from_url(rebuilt)
 
 
 def _delivery_verdict(final_state: dict[str, Any], *, expect_clarification: bool = False) -> str:

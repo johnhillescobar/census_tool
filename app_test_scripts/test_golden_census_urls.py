@@ -19,15 +19,10 @@ GOLDEN_ROWS = load_golden_questions()
 TIER1_RECORDS: list[dict] = []
 
 
-@pytest.fixture(scope="session", autouse=True)
-def _no_census_api_key_in_rebuild_urls():
+@pytest.fixture
+def no_census_api_key_in_rebuild_urls(monkeypatch: pytest.MonkeyPatch):
     """Rebuild comparisons must not embed CENSUS_API_KEY into committed artifacts."""
-    import os
-
-    prior = os.environ.pop("CENSUS_API_KEY", None)
-    yield
-    if prior is not None:
-        os.environ["CENSUS_API_KEY"] = prior
+    monkeypatch.delenv("CENSUS_API_KEY", raising=False)
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -55,7 +50,7 @@ def test_golden_url_parses(row):
 
 
 @pytest.mark.parametrize("row", GOLDEN_ROWS, ids=lambda r: f"row_{r.row_no}")
-def test_golden_url_rebuilds(row):
+def test_golden_url_rebuilds(row, no_census_api_key_in_rebuild_urls):
     if row.is_catalog_url:
         pytest.skip("catalog URLs are not rebuilt")
 

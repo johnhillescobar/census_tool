@@ -66,6 +66,8 @@ def tier3_backlog_rows(tier3_rows: list[dict]) -> list[dict]:
     for item in tier3_rows:
         composite = item.get("composite", "unknown")
         failure_class = item.get("failure_class", "unknown")
+        if composite == "pass" or failure_class == "none":
+            continue
         rows.append(
             {
                 "row_no": item.get("row_no"),

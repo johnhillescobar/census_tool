@@ -65,6 +65,9 @@ def test_golden_url_smoke(row):
     except requests.RequestException as exc:
         record["error"] = str(exc)
         record["failure_class"] = "api_down"
+    except ValueError as exc:
+        record["error"] = str(exc)
+        record["failure_class"] = "stale_fixture"
 
     TIER2_RECORDS.append(record)
     assert record["http_status"] == 200, record.get("error")

@@ -53,6 +53,12 @@ def test_variables_compatible_group_vs_individual():
     assert variables_compatible(expected, actual)
 
 
+def test_variables_compatible_group_expansion_allows_geo_id():
+    expected = ("NAME", "GROUP(B17001)")
+    actual = ("NAME", "GEO_ID", "B17001_001E", "B17001_002E")
+    assert variables_compatible(expected, actual)
+
+
 def test_compare_equivalent_urls_with_geo_id_superset():
     expected = "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=county:*&in=state:06"
     actual = "https://api.census.gov/data/2023/acs/acs5?get=NAME,GEO_ID,B01001_001E&for=county:*&in=state:06"
@@ -97,3 +103,14 @@ def test_build_row_result_blocked_geography():
     result = build_row_result(row, [], final_state)
     assert result.composite == "blocked"
     assert result.failure_class == "geography_blocked"
+
+
+def test_tier3_backlog_rows_exclude_passing_rows():
+    from app_test_scripts.export_golden_url_report import tier3_backlog_rows
+
+    tier3 = [
+        {"row_no": 1, "question": "passing", "composite": "pass", "failure_class": "none"},
+        {"row_no": 2, "question": "blocked", "composite": "blocked", "failure_class": "geography_blocked"},
+    ]
+    backlog = tier3_backlog_rows(tier3)
+    assert [row["row_no"] for row in backlog] == [2]
