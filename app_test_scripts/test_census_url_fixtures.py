@@ -14,9 +14,9 @@ from app_test_scripts.census_url_fixtures import (
 )
 
 
-def test_load_golden_questions_has_seventy_rows():
+def test_load_golden_questions_has_124_rows():
     rows = load_golden_questions()
-    assert len(rows) == 70
+    assert len(rows) == 124
     assert rows[2].row_no == 3
     assert "California counties" in rows[2].question
 
