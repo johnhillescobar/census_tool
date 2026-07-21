@@ -18,7 +18,7 @@ _GEO_LEVEL = re.compile(
     r"zip code tabulation areas?|zctas?|metros?|metropolitan areas?|nation(?:al)?)\b",
     re.IGNORECASE,
 )
-_AREA_TAIL = re.compile(r"\b(?:in|within|across|for)\s+(.+)$", re.IGNORECASE)
+_AREA_TAIL = re.compile(r"\b(?:in|within|across|for|of)\s+(.+)$", re.IGNORECASE)
 _AREA_SPLIT = re.compile(r"\s*(?:,|;|\band\b|\bversus\b|\bvs\.?)\s*", re.IGNORECASE)
 
 

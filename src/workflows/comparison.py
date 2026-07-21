@@ -11,7 +11,6 @@ from src.state.workflow_plan import BenchmarkNotApplicable, WorkflowPlan
 
 def comparison_node(state: CensusState, config: RunnableConfig) -> dict[str, Any]:
     existing_plan = state.plan
-    geography = existing_plan.geography if existing_plan else None
     if existing_plan is None:
         return {
             "plan": WorkflowPlan(requires_clarification=True),
@@ -23,57 +22,33 @@ def comparison_node(state: CensusState, config: RunnableConfig) -> dict[str, Any
 
     if existing_plan.requires_clarification:
         return {
-            "plan": WorkflowPlan(
-                geography=geography,
-                temporal=temporal,
-                benchmark=benchmark,
-                requires_clarification=True,
-            ),
+            "plan": existing_plan.model_copy(update={"requires_clarification": True}),
             "logs": ["comparison: skipped (clarification required)"],
         }
 
     if temporal is None or benchmark is None:
         return {
-            "plan": WorkflowPlan(
-                geography=geography,
-                temporal=temporal,
-                benchmark=benchmark,
-                requires_clarification=True,
-            ),
+            "plan": existing_plan.model_copy(update={"requires_clarification": True}),
             "logs": ["comparison: missing temporal/benchmark plan"],
         }
 
     if isinstance(benchmark, BenchmarkNotApplicable):
         return {
-            "plan": WorkflowPlan(
-                geography=geography,
-                temporal=temporal,
-                benchmark=benchmark,
-                requires_clarification=False,
-            ),
+            "plan": existing_plan.model_copy(update={"requires_clarification": False}),
             "logs": ["comparison: skipped (benchmark not applicable)"],
         }
 
     if not isinstance(temporal, TemporalResolved) or not isinstance(benchmark, BenchmarkResolved):
         return {
-            "plan": WorkflowPlan(
-                geography=geography,
-                temporal=temporal,
-                benchmark=benchmark,
-                requires_clarification=True,
-            ),
+            "plan": existing_plan.model_copy(update={"requires_clarification": True}),
             "logs": ["comparison: upstream plan unresolved"],
         }
 
     comparison = resolve_comparison_plan(benchmark.benchmark, temporal.time)
 
     return {
-        "plan": WorkflowPlan(
-            geography=geography,
-            temporal=temporal,
-            benchmark=benchmark,
-            comparison=comparison,
-            requires_clarification=False,
+        "plan": existing_plan.model_copy(
+            update={"comparison": comparison, "requires_clarification": False}
         ),
         "logs": ["comparison: resolved"],
     }

@@ -1,11 +1,18 @@
 import uuid
 from unittest.mock import patch
 
+import pytest
+
 from app import create_census_graph
 from src.domain.comparison_artifacts import ComparisonInputRow
 from src.domain.geography_contract import GeographyIntent
 from src.state.types import CensusState, coerce_geography_intent
 from src.state.workflow_plan import WorkflowPlan
+
+
+@pytest.fixture(autouse=True)
+def _use_deprecated_geography_policy(monkeypatch):
+    monkeypatch.setenv("CENSUS_CHROMA_GROUNDED_PLANNING", "0")
 
 
 def _state(question: str) -> CensusState:

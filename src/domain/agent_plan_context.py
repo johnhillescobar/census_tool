@@ -1,5 +1,7 @@
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from src.services.grounded_plan_validator import CanonicalTable, ValidatedGroundedPlan
+
 from .benchmark_contract import BenchmarkIntent
 from .comparison_plan import ComparisonPlan
 from .geography_contract import GeographyIntent
@@ -13,6 +15,8 @@ class AgentPlanContext(BaseModel):
     temporal: TemporalIntent | None = Field(default=None, description="Resolved temporal intent from planning nodes.")
     benchmark: BenchmarkIntent | None = Field(default=None, description="Resolved benchmark intent from planning nodes.")
     comparison: ComparisonPlan | None = Field(default=None, description="Resolved comparison plan from planning nodes.")
+    selected_table: CanonicalTable | None = Field(default=None, description="Validated Chroma-selected Census table.")
+    grounded_plan: ValidatedGroundedPlan | None = Field(default=None, description="Validated grounded execution plan.")
     has_comparison_plan: bool = Field(..., description="Whether a comparison plan is active for this query.")
 
     @model_validator(mode="after")

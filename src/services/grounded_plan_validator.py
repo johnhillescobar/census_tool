@@ -21,6 +21,7 @@ class CanonicalTable(BaseModel):
     table_code: str
     table_name: str
     category: str
+    years_available: list[int] = Field(default_factory=list)
 
 
 class CanonicalGeography(BaseModel):
@@ -147,6 +148,7 @@ def validate_grounded_plan(
         table_code=table_candidate.table_code,
         table_name=table_candidate.table_name,
         category=table_candidate.category,
+        years_available=table_candidate.years_available,
     )
 
     if selection.selected_hierarchy_id is None:

@@ -6,6 +6,7 @@ GeographySource = Literal[
     "explicit",
     "profile_default",
     "missing_geo_default",
+    "chroma",
 ]
 
 GeographyLevel = Literal[

@@ -9,12 +9,14 @@ from src.domain.benchmark_contract import (
 )
 from src.domain.comparison_plan import ComparisonPlan
 from src.domain.geography_contract import GeographyIntent, GeographyResolution
+from src.domain.retrieval_plan import RetrievalEvidence
 from src.domain.retrieval_trace import RetrievalTrace
 from src.domain.temporal_contract import (
     TemporalIntent,
     TemporalResolution,
     TemporalResolved,
 )
+from src.services.grounded_plan_validator import CanonicalTable, ValidatedGroundedPlan
 
 
 class BenchmarkNotApplicable(BaseModel):
@@ -33,6 +35,9 @@ class WorkflowPlan(BaseModel):
     temporal: TemporalResolution | None = None
     benchmark: BenchmarkPlanState | None = None
     comparison: ComparisonPlan | None = None
+    selected_table: CanonicalTable | None = None
+    retrieval_evidence: list[RetrievalEvidence] = Field(default_factory=list)
+    grounded_plan: ValidatedGroundedPlan | None = None
     retrieval_trace: RetrievalTrace | None = None
     requires_clarification: bool = False
 

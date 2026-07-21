@@ -1,3 +1,4 @@
+import pytest
 from langchain_core.runnables import RunnableConfig
 
 from app import _route_after_geography
@@ -9,6 +10,11 @@ from src.workflows.geography import geography_node
 from src.workflows.temporal import temporal_node
 
 CONFIG: RunnableConfig = {"configurable": {"user_id": "test", "thread_id": "test"}}
+
+
+@pytest.fixture(autouse=True)
+def _use_deprecated_geography_policy(monkeypatch):
+    monkeypatch.setenv("CENSUS_CHROMA_GROUNDED_PLANNING", "0")
 
 
 def _state(question: str) -> CensusState:
@@ -42,7 +48,7 @@ def test_invalid_explicit_geography_clarifies():
     assert resolution.status == "clarification_required"
 
 
-def test_geography_node_routes_to_temporal_when_resolved():
+def test_legacy_geography_node_routes_to_benchmark_when_resolved():
     state = _state("population of california")
     result = geography_node(state, CONFIG)
     assert isinstance(result["plan"], WorkflowPlan)
@@ -52,7 +58,7 @@ def test_geography_node_routes_to_temporal_when_resolved():
     assert result["geo"].geo_for == {"state": "06"}
     assert result["geo"].requested_text is not None
     routed = _route_after_geography(state.model_copy(update={"plan": result["plan"]}))
-    assert routed == "temporal"
+    assert routed == "benchmark"
 
 
 def test_geography_node_uses_profile_default_when_geography_missing():

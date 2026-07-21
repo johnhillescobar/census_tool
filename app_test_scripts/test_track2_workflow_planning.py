@@ -1,3 +1,4 @@
+import pytest
 from langchain_core.runnables import RunnableConfig
 
 from app import (
@@ -24,6 +25,11 @@ from src.workflows.geography import geography_node
 from src.workflows.temporal import temporal_node
 
 CONFIG: RunnableConfig = {"configurable": {"user_id": "test", "thread_id": "test"}}
+
+
+@pytest.fixture(autouse=True)
+def _use_deprecated_geography_policy(monkeypatch):
+    monkeypatch.setenv("CENSUS_CHROMA_GROUNDED_PLANNING", "0")
 
 
 def _state(question: str, plan: WorkflowPlan | None = None, artifacts: dict | None = None) -> CensusState:
@@ -58,8 +64,8 @@ def _apply_node(state: CensusState, node_fn) -> CensusState:
 
 
 def _run_planning_chain(state: CensusState) -> CensusState:
-    state = _apply_node(state, geography_node)
     state = _apply_node(state, temporal_node)
+    state = _apply_node(state, geography_node)
     return state
 
 
@@ -82,7 +88,7 @@ def test_temporal_resolved_defaults_latest_available():
     assert result["plan"].requires_clarification is False
     assert isinstance(result["plan"].temporal, TemporalResolved)
     assert result["plan"].temporal.time.mode == "latest_available"
-    assert _route_after_temporal(state.model_copy(update={"plan": result["plan"]})) == "benchmark"
+    assert _route_after_temporal(state.model_copy(update={"plan": result["plan"]})) == "geography"
 
 
 def test_benchmark_skip_when_no_compare_intent():

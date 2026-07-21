@@ -1,10 +1,12 @@
 import json
 import logging
+from typing import Any
 
 from langchain_core.tools import BaseTool
-from pydantic import ConfigDict
+from pydantic import ConfigDict, Field
 
-from src.domain.geography_registry import GeographyRegistry
+from src.services.census_retrieval_analyzer import CensusRetrievalAnalysis
+from src.services.chroma_catalog_retriever import retrieve_geography_candidates
 from src.tools.geography_schemas import GeographyLevel
 from src.tools.json_parse import parse_first_json
 
@@ -34,6 +36,7 @@ class AreaResolutionTool(BaseTool):
 
     # args_schema: type[BaseModel] = AreaResolutionInput  # Disabled for ReAct compatibility
     model_config = ConfigDict(arbitrary_types_allowed=True)
+    chroma_client: Any = Field(default=None, exclude=True)
 
     def _run(self, tool_input: str) -> str:
         """Resolve area name to Census code
@@ -65,32 +68,49 @@ class AreaResolutionTool(BaseTool):
         else:
             geo_token = geography_type
 
-        logger.info(f"Resolving: {name} ({geo_token})")
-        registry = GeographyRegistry()
-
-        result = registry.find_area_code(
-            friendly_name=name,
-            geo_token=geo_token,
+        logger.info("Resolving from Chroma: %s (%s)", name, geo_token)
+        analysis = CensusRetrievalAnalysis(
+            question=name,
+            table_search_text="area lookup",
+            geography_search_text=geo_token,
+            area_search_texts=[name],
+            geography_explicit=True,
+        )
+        retrieved = retrieve_geography_candidates(
+            analysis,
             dataset=dataset,
             year=year,
-            parent_geo=parent,
+            client=self.chroma_client,
         )
-
-        if result is None and geo_token in {"place", "city", "town"}:
-            fallback = registry.find_area_code(
-                friendly_name=name,
-                geo_token="county",
-                dataset=dataset,
-                year=year,
-                parent_geo=parent,
+        area_evidence = retrieved.area_evidence[0]
+        candidates = [
+            candidate
+            for candidate in area_evidence.candidates
+            if candidate.friendly_level == geo_token or candidate.census_token == geo_token
+        ]
+        if parent:
+            expected_codes = set(parent.values())
+            candidates = [
+                candidate
+                for candidate in candidates
+                if not candidate.parent_geo_ids or expected_codes.intersection(candidate.parent_geo_ids)
+            ]
+        if area_evidence.status != "hit" or len(candidates) != 1:
+            error_msg = (
+                f"No unambiguous Chroma match found for '{name}' in {geo_token} "
+                f"(status={area_evidence.status}, candidates={len(candidates)})"
             )
-            if fallback:
-                fallback["note"] = "Resolved via county fallback for multi-level place"
-                result = fallback
-
-        if result is None:
-            error_msg = f"No match found for '{name}' in {geo_token}"
             logger.warning(error_msg)
             return error_msg
 
-        return json.dumps(result)
+        candidate = candidates[0]
+        return json.dumps(
+            {
+                "code": candidate.geography_code,
+                "geo_id": candidate.geo_id,
+                "full_name": candidate.display_name,
+                "geography_type": candidate.friendly_level,
+                "candidate_id": candidate.candidate_id,
+                "source": "chroma",
+            }
+        )
