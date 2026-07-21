@@ -4,13 +4,10 @@ from typing import Any
 
 from dotenv import load_dotenv
 
-from .config import (
-    ANSWER_PROMPT_TEMPLATE,
-    CLARIFICATION_PROMPT_TEMPLATE,
-    INTENT_PROMPT_TEMPLATE,
-    LLM_CONFIG,
-)
+from .config import INTENT_PROMPT_TEMPLATE, LLM_CONFIG
 from .factory import create_llm
+from .prompts.answer_writer import build_answer_writer_prompt
+from .prompts.clarification_writer import build_clarification_writer_prompt
 
 load_dotenv()
 
@@ -76,10 +73,10 @@ def generate_intelligent_clarification(
 ) -> str:
     """Generate an intelligent clarification question" using LLM"""
 
-    prompt = CLARIFICATION_PROMPT_TEMPLATE.format(
+    prompt = build_clarification_writer_prompt(
         user_question=user_question,
-        available_options=available_options or "No available options",
-        user_profile="No profile available",  # TODO review this when you have finished
+        clarification_needed=", ".join(clarification_needed),
+        available_options=str(available_options or "No evidence-backed options available"),
     )
 
     llm = create_llm(temperature=LLM_CONFIG["temperature"])
@@ -155,7 +152,7 @@ def generate_llm_answer(
     geo_text = f"{geo_level} level data for {geo_name}"
 
     # Build prompt with answer_type
-    prompt = ANSWER_PROMPT_TEMPLATE.format(
+    prompt = build_answer_writer_prompt(
         user_question=user_question,
         answer_type=answer_type,
         data_summary=data_summary,

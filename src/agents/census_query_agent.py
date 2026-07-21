@@ -16,6 +16,7 @@ from src.domain.agent_plan_context import AgentPlanContext
 from src.domain.census_tool_contract import StrictCensusApiResponse
 from src.llm.config import LLM_CONFIG
 from src.llm.factory import create_llm
+from src.llm.prompts.execution_agent import build_execution_agent_prompt
 from src.services.agent_plan_context import format_plan_directives
 from src.tools.area_resolution_tool import AreaResolutionTool
 from src.tools.census_api_tool import CensusAPITool
@@ -93,15 +94,7 @@ class CensusQueryAgent:
         )
 
     def _build_modern_system_prompt(self) -> str:
-        tool_names = ", ".join(tool.name for tool in self.tools)
-        return (
-            "You are a Census data assistant. Use the provided tools to answer queries.\n"
-            f"Available tools: {tool_names}.\n"
-            "Return a single-line JSON object with keys: census_data, data_summary, "
-            "reasoning_trace, answer_text, charts_needed, tables_needed, footnotes, "
-            "comparison_input_rows.\n"
-            "Follow planning directives in the user message exactly."
-        )
+        return build_execution_agent_prompt(tool.name for tool in self.tools)
 
     def _build_executor_input(
         self,
