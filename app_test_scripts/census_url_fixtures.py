@@ -5,6 +5,7 @@ from __future__ import annotations
 import csv
 import json
 import os
+import re
 from dataclasses import asdict, dataclass, field
 from datetime import date
 from pathlib import Path
@@ -50,6 +51,14 @@ class CensusUrlParts:
     geo_for: tuple[tuple[str, str], ...]
     geo_in: tuple[tuple[str, str], ...]
     catalog_path: str | None = None
+
+
+@dataclass(frozen=True)
+class GoldenGeographyPlan:
+    """Canonical geography expectation parsed from a golden Census URL."""
+
+    geo_for: tuple[tuple[str, str], ...]
+    geo_in: tuple[tuple[str, str], ...]
 
 
 @dataclass(frozen=True)
@@ -132,17 +141,17 @@ def load_golden_questions(csv_path: Path = GOLDEN_CSV) -> list[GoldenQuestionRow
     return rows
 
 
+_GEO_PAIR_PATTERN = re.compile(r"(?P<level>.+?):(?P<value>[^\s]*)(?:\s+|$)")
+
+
 def _split_geo_clause(clause: str) -> tuple[tuple[str, str], ...]:
     clause = unquote(clause).strip()
     if not clause:
         return ()
-    pairs: list[tuple[str, str]] = []
-    for token in clause.split():
-        if ":" not in token:
-            continue
-        level, value = token.split(":", 1)
-        pairs.append((level.strip().lower(), value.strip()))
-    return tuple(pairs)
+    return tuple(
+        (match.group("level").strip().lower(), match.group("value").strip())
+        for match in _GEO_PAIR_PATTERN.finditer(clause)
+    )
 
 
 def _data_path_parts(path: str) -> tuple[int | None, str | None]:
@@ -191,6 +200,14 @@ def parse_census_url(url: str) -> CensusUrlParts:
         geo_in=geo_in,
         catalog_path=None,
     )
+
+
+def geography_plan_from_url(url: str) -> GoldenGeographyPlan | None:
+    """Return the canonical geography oracle for a data URL."""
+    parts = parse_census_url(url)
+    if parts.catalog_path is not None:
+        return None
+    return GoldenGeographyPlan(geo_for=parts.geo_for, geo_in=parts.geo_in)
 
 
 def strip_api_key_from_url(url: str) -> str:

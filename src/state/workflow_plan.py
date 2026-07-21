@@ -9,6 +9,7 @@ from src.domain.benchmark_contract import (
 )
 from src.domain.comparison_plan import ComparisonPlan
 from src.domain.geography_contract import GeographyIntent, GeographyResolution
+from src.domain.retrieval_trace import RetrievalTrace
 from src.domain.temporal_contract import (
     TemporalIntent,
     TemporalResolution,
@@ -32,6 +33,7 @@ class WorkflowPlan(BaseModel):
     temporal: TemporalResolution | None = None
     benchmark: BenchmarkPlanState | None = None
     comparison: ComparisonPlan | None = None
+    retrieval_trace: RetrievalTrace | None = None
     requires_clarification: bool = False
 
     def benchmark_is_not_applicable(self) -> bool:

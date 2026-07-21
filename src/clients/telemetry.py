@@ -6,6 +6,8 @@ from __future__ import annotations
 
 import json
 import logging
+import os
+import sys
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -33,9 +35,10 @@ def record_event(event_type: str, payload: dict[str, Any]) -> None:
     }
     try:
         _logger.info(json.dumps(event))
-    except Exception:
-        # We intentionally swallow telemetry errors to avoid breaking primary logic.
-        pass
+    except Exception as exc:
+        print(f"telemetry_write_failed event_type={event_type} error={exc}", file=sys.stderr)
+        if os.getenv("CENSUS_TELEMETRY_STRICT", "").strip().lower() in {"1", "true", "yes"}:
+            raise
 
 
 __all__ = ["record_event"]

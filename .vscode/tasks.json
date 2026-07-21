@@ -1,0 +1,92 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Geography: Ruff",
+            "type": "shell",
+            "command": "uv run ruff check .",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "group": "build",
+            "problemMatcher": []
+        },
+        {
+            "label": "Geography: Unit tests",
+            "type": "shell",
+            "command": "uv run pytest app_test_scripts/test_census_url_fixtures.py app_test_scripts/test_retrieval_trace.py app_test_scripts/test_geography_workflow_planning.py -q",
+            "options": {
+                "cwd": "${workspaceFolder}",
+                "env": {
+                    "PYTHONPATH": "${workspaceFolder}",
+                    "CENSUS_TELEMETRY_STRICT": "1"
+                }
+            },
+            "group": {
+                "kind": "test",
+                "isDefault": true
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Geography: Tier 1 golden URLs",
+            "type": "shell",
+            "command": "uv run pytest app_test_scripts/test_census_url_fixtures.py app_test_scripts/test_golden_census_urls.py -q",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "group": "test",
+            "problemMatcher": []
+        },
+        {
+            "label": "Geography: Stratified Tier 3",
+            "type": "shell",
+            "command": "uv run pytest app_test_scripts/test_nl_questions_with_urls.py -m 'integration and slow' -q",
+            "options": {
+                "cwd": "${workspaceFolder}",
+                "env": {
+                    "CENSUS_GOLDEN_COLLECT": "1"
+                }
+            },
+            "group": "test",
+            "problemMatcher": []
+        },
+        {
+            "label": "Geography: Build hierarchy index",
+            "type": "shell",
+            "command": "uv run python index/build_geography_index.py",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Geography: Build area index",
+            "type": "shell",
+            "command": "uv run python index/build_geography_areas_index.py",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Geography: Index health",
+            "type": "shell",
+            "command": "uv run python index/check_geography_index.py",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Geography: Tail telemetry",
+            "type": "shell",
+            "command": "tail -f logs/telemetry.log",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "isBackground": true,
+            "problemMatcher": []
+        }
+    ]
+}
