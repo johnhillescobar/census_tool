@@ -51,8 +51,8 @@ def test_parse_row3_county_california_url():
         ),
         (
             23,
-            (("tract", "*"),),
-            (("american indian area/alaska native area/hawaiian home land", "2430"),),
+            (("tribal census tract", "*"),),
+            (("american indian area/alaska native area/hawaiian home land", "3000"),),
         ),
         (
             80,
