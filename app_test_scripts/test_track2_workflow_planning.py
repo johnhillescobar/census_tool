@@ -1,4 +1,3 @@
-import pytest
 from langchain_core.runnables import RunnableConfig
 
 from app import (
@@ -7,6 +6,7 @@ from app import (
     _route_after_comparison,
     _route_after_temporal,
 )
+from app_test_scripts.grounded_planning_fakes import FakeGroundedRetrieval
 from src.domain.benchmark_contract import BenchmarkClarificationRequired, BenchmarkResolved
 from src.domain.comparison_plan import ComparisonPlan
 from src.domain.temporal_contract import (
@@ -24,12 +24,13 @@ from src.workflows.comparison_metrics import comparison_metrics_node
 from src.workflows.geography import geography_node
 from src.workflows.temporal import temporal_node
 
-CONFIG: RunnableConfig = {"configurable": {"user_id": "test", "thread_id": "test"}}
-
-
-@pytest.fixture(autouse=True)
-def _use_deprecated_geography_policy(monkeypatch):
-    monkeypatch.setenv("CENSUS_CHROMA_GROUNDED_PLANNING", "0")
+CONFIG: RunnableConfig = {
+    "configurable": {
+        "user_id": "test",
+        "thread_id": "test",
+        "grounded_geography_dependencies": FakeGroundedRetrieval().dependencies(),
+    }
+}
 
 
 def _state(question: str, plan: WorkflowPlan | None = None, artifacts: dict | None = None) -> CensusState:
@@ -147,7 +148,7 @@ def test_comparison_upstream_unresolved_requires_clarification():
 
 
 def test_historical_baseline_chain_merges_query_years():
-    state = _run_planning_chain(_state("compare population vs 2019 baseline"))
+    state = _run_planning_chain(_state("compare county population in California vs 2019 baseline"))
     state = _apply_node(state, benchmark_node)
     result = comparison_node(state, CONFIG)
 
@@ -211,11 +212,13 @@ def test_workflow_plan_repeatability():
     second_plan = _run_planning_chain(_state(question)).plan
     assert first_plan is not None
     assert second_plan is not None
-    assert first_plan.model_dump() == second_plan.model_dump()
+    first = first_plan.model_dump(exclude={"retrieval_trace"})
+    second = second_plan.model_dump(exclude={"retrieval_trace"})
+    assert first == second
 
 
 def test_build_history_record_summarizes_workflow_plan():
-    state = _run_planning_chain(_state("compare population vs 2019 baseline"))
+    state = _run_planning_chain(_state("compare county population in California vs 2019 baseline"))
     state = _apply_node(state, benchmark_node)
     state = _apply_node(state, comparison_node)
 

@@ -14,7 +14,7 @@
         {
             "label": "Geography: Unit tests",
             "type": "shell",
-            "command": "uv run pytest app_test_scripts/test_census_url_fixtures.py app_test_scripts/test_retrieval_trace.py app_test_scripts/test_geography_workflow_planning.py -q",
+            "command": "uv run pytest app_test_scripts/test_census_url_fixtures.py app_test_scripts/test_retrieval_trace.py app_test_scripts/test_geography_workflow_planning.py app_test_scripts/test_geography_architecture_static.py -q",
             "options": {
                 "cwd": "${workspaceFolder}",
                 "env": {
@@ -63,7 +63,7 @@
         {
             "label": "Geography: Build area index",
             "type": "shell",
-            "command": "uv run python index/build_geography_areas_index.py",
+            "command": "uv run python index/build_geography_areas_index.py --dataset ${input:geographyDataset} --year ${input:geographyYear} --level ${input:geographyLevel} --partition ${input:geographyPartition}",
             "options": {
                 "cwd": "${workspaceFolder}"
             },
@@ -87,6 +87,32 @@
             },
             "isBackground": true,
             "problemMatcher": []
+        }
+    ],
+    "inputs": [
+        {
+            "id": "geographyDataset",
+            "type": "promptString",
+            "description": "Census dataset",
+            "default": "acs/acs5"
+        },
+        {
+            "id": "geographyYear",
+            "type": "promptString",
+            "description": "Census year",
+            "default": "2023"
+        },
+        {
+            "id": "geographyLevel",
+            "type": "promptString",
+            "description": "Exact Census geography token",
+            "default": "county"
+        },
+        {
+            "id": "geographyPartition",
+            "type": "promptString",
+            "description": "Parent partition clauses",
+            "default": "state:06"
         }
     ]
 }

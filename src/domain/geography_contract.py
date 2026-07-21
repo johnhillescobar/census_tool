@@ -5,7 +5,6 @@ from pydantic import BaseModel, ConfigDict, Field
 GeographySource = Literal[
     "explicit",
     "profile_default",
-    "missing_geo_default",
     "chroma",
 ]
 

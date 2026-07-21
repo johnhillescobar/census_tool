@@ -40,7 +40,7 @@ def _priority_for(composite: str, failure_class: str) -> str:
 
 def _component_for(failure_class: str) -> str:
     mapping = {
-        "geography_blocked": "geography_policy",
+        "geography_blocked": "grounded geography retrieval",
         "clarification_resume_missing": "graph_session",
         "false_failure_parser": "census_query_agent",
         "false_failure_plan_validator": "plan_result_validator",

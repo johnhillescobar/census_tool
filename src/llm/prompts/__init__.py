@@ -46,7 +46,6 @@ LEGACY_ACTIVE_PROMPTS = MappingProxyType(
     {
         "intent_analysis": "src.llm.config.INTENT_PROMPT_TEMPLATE",
         "category_detection": "src.llm.config.CATEGORY_DETECTION_PROMPT_TEMPLATE",
-        "geography_resolution": "src.llm.geography_resolver.GeographyResolver.prompt_template",
     }
 )
 

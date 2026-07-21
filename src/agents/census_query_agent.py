@@ -28,7 +28,6 @@ from src.tools.pattern_builder_tool import PatternBuilderTool
 from src.tools.strict_census_api_tool import StrictCensusApiTool
 from src.tools.table_search_tool import TableSearchTool
 from src.tools.table_tool import TableTool
-from src.tools.table_validation_tool import TableValidationTool
 from src.tools.variable_validation_tool import VariableValidationTool
 
 load_dotenv()
@@ -77,7 +76,6 @@ class CensusQueryAgent:
         self.tools = [
             GeographyDiscoveryTool(),
             GeographyValidationTool(),
-            TableValidationTool(),
             TableSearchTool(),
             CensusAPITool(),
             StrictCensusApiTool(),

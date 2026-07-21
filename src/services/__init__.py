@@ -5,10 +5,6 @@ from .conversation_summarizer import (
     summarize_intermediate_steps as summarize_conversation,
 )
 from .dataframe_utils import _create_dataframe_from_json
-from .dataset_geography_validator import (
-    fetch_dataset_geography_levels,
-    geography_supported,
-)
 from .enumeration_detector import detect_and_build_enumeration
 from .footnote_generator import generate_footnotes
 from .memory_utils import (
@@ -23,8 +19,6 @@ from .variable_validator import validate_variables
 
 __all__ = [
     "_create_dataframe_from_json",
-    "fetch_dataset_geography_levels",
-    "geography_supported",
     "validate_variables",
     "detect_and_build_enumeration",
     "generate_footnotes",

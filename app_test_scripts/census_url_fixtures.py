@@ -379,7 +379,7 @@ def classify_failure(row_result: RowResult) -> str:
 
 def _suggested_fix_area(failure_class: str) -> str:
     mapping = {
-        "geography_blocked": "src/services/geography_policy.py",
+        "geography_blocked": "src/workflows/geography.py",
         "clarification_resume_missing": "src/services/graph_session.py",
         "false_failure_parser": "src/agents/census_query_agent.py",
         "false_failure_plan_validator": "src/services/plan_result_validator.py",

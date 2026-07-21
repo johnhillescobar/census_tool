@@ -9,7 +9,7 @@ breakpoints in user workspace state, so they cannot be committed in
 
 | Stage | File and symbol | Inspect |
 | --- | --- | --- |
-| Graph input | `src/workflows/geography.py:geography_node` | `user_question`, `profile_default`, `state.plan` |
+| Graph input | `src/workflows/geography.py:geography_node` | `user_question`, `existing`, `state.profile` |
 | Routing | `app.py:_route_after_geography` | `state.plan.requires_clarification` |
 | Retrieval analysis | `src/services/census_retrieval_analyzer.py:analyze_retrieval_request` | search phrases only; no canonical codes |
 | Table retrieval | `src/services/chroma_catalog_retriever.py:retrieve_table_candidates` | query, metadata filters, IDs, distances |
@@ -22,10 +22,6 @@ breakpoints in user workspace state, so they cannot be committed in
 | API guard | `src/tools/strict_census_api_tool.py:StrictCensusApiTool._run` | grounded evidence and request |
 | Geography encoding | `src/clients/census_api_utils.py:build_geo_filters` | canonical `for` and ordered `in` |
 | URL construction | `src/clients/census_api_utils.py:build_census_url` | final URL without logging the API key |
-
-Symbols under `src/services/` that do not yet exist are introduced by the
-Chroma-grounded planning migration. Keep this guide synchronized if a symbol
-is renamed.
 
 ## Conditional breakpoints
 
@@ -62,7 +58,8 @@ URLs after an API key has been appended.
 3. Row 98: tribal `(or part)` tokens must remain canonical and untruncated.
 4. `Population of Springfield`: retrieval must expose official alternatives
    and route to clarification.
-5. Empty geography collection: the pipeline must return
-   `GEOGRAPHY_INDEX_UNAVAILABLE` or `INDEX_PARTITION_MISSING`, never `us:1`.
+5. Empty or unavailable geography collection: the pipeline must return a
+   `GEOGRAPHY_PARTITION_MISSING` or `GEOGRAPHY_INDEX_UNAVAILABLE`
+   clarification, never `us:1`.
 6. Fabricated selector ID: validation must reject it before any Census API
    tool executes.

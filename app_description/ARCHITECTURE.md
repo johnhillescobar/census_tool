@@ -1,289 +1,106 @@
-# Census Tool Architecture
+# Census Tool architecture
 
-**Last updated**: July 18, 2026  
-**Status**: Current implementation reference (Track 2 deterministic planning + agent-first execution)  
-**Purpose**: Single source of truth for how the Census Tool is wired today
+**Updated:** July 21, 2026
+**Status:** temporal-first planning with Chroma-grounded geography and agent-owned execution
 
----
+## System shape
 
-## 1. Executive Summary
+The application combines deterministic planning contracts with a reasoning agent. Planning resolves time first, then builds a
+table-and-geography plan exclusively from retrieved Chroma candidates. The agent remains execution owner: it performs strict
+Census API calls and chooses answer, chart, and table directives within the immutable plan.
 
-The Census Tool is a local Census Q&A application built on **LangGraph**, **ChromaDB**, and the **US Census API**. It combines:
+Deterministic planning is reliability scaffolding; it does not replace the reasoning node.
 
-1. **Deterministic planning nodes** (geography, temporal, benchmark, comparison) that normalize ambiguous user input into typed contracts and fail closed to clarification when needed.
-2. **A reasoning agent** (`CensusQueryAgent`) that remains the **execution owner** for Census data retrieval, using ReAct-style tool loops.
-3. **Deterministic post-processing** (comparison metrics, chart/table rendering, presentation routing) that turns agent artifacts into UI-ready outputs.
+## LangGraph
 
-### Canonical principle
+`app.py:create_census_graph()` builds ten nodes, including checkpoint resume:
 
-Deterministic contracts and workflow/service steps are **reliability scaffolding** that empower AI reasoning nodes. They must **not** replace the reasoning node.
+`memory_load → temporal → geography → benchmark → comparison → agent → comparison_metrics → output → memory_write`
 
-- Planning nodes clarify and gate ambiguous input early.
-- The agent performs repeated typed Census tool calls and drives answer/chart/table directives.
-- Downstream nodes compute comparison metrics and render artifacts without re-interpreting free text.
+- `memory_load` routes checkpointed geography choices to `geography_resume`.
+- Temporal, geography, benchmark, comparison, and agent nodes route typed clarification directly to `output`.
+- Benchmark may bypass comparison when it is not applicable.
+- `comparison_metrics` computes deterministic metrics from agent-produced typed rows.
+- `memory_write` persists the completed turn.
 
----
+All workflow updates use `CensusGraphPatch`. `WorkflowPlan` is the planning aggregate; `state.geo` is its typed resolved
+projection.
 
-## 2. Workflow Graph
+## Grounded geography
 
-**Entry point**: `app.py` → `create_census_graph()`
+`src/workflows/geography.py` performs this sequence:
 
-The graph is **not** a simple 4-node linear flow. It has **9 nodes** with conditional routing for clarification and benchmark bypass.
+1. Analyze the question into search phrases without producing canonical Census codes.
+2. Retrieve table candidates for the temporally resolved year.
+3. Select one retrieved table candidate.
+4. Require explicit geography text or a profile hint; absence requires clarification.
+5. Retrieve hierarchy and area candidates constrained by the selected dataset and year.
+6. Select only supplied candidate IDs.
+7. Validate IDs, table compatibility, exact Census tokens, and parent ordering.
+8. Store the grounded plan, evidence, and retrieval trace; project a `GeographyIntent(source="chroma")`.
 
-```
-memory_load
-    → geography ──(clarification?)──→ output
-    → temporal ──(clarification?)──→ output
-    → benchmark ──(clarification?)──→ output
-                ──(benchmark N/A?)──→ agent
-                ──(else)──────────→ comparison
-    → comparison ──(clarification?)──→ output
-                 ──(else)──────────→ agent
-    → agent ──(clarification?)──→ output
-            ──(else)──────────→ comparison_metrics
-    → comparison_metrics → output → memory_write → END
-```
+There is no feature flag, legacy mapping fallback, LLM geography resolver, pickle-backed runtime authority, or implicit US
+default in this path. Missing, unavailable, stale, empty, ambiguous, or malformed evidence fails closed.
 
-### Node responsibilities
+The three active collections are `census_tables`, `census_dataset_geographies`, and `census_geography_areas`. Their typed
+contracts and manifests are defined in `src/domain/geography_catalog.py`. Detailed schemas and invariants are in
+`docs/chroma_geography_architecture.md`; operations are in `docs/chroma_geography_operator_runbook.md`.
 
-| Node | Module | Role |
-|------|--------|------|
-| `memory_load` | `src/workflows/memory.py` | Load user profile, history, cache index from JSON (`memory/user_{id}.json`) |
-| `geography` | `src/workflows/geography.py` | Resolve `GeographyIntent` via `geography_policy`; writes typed `state.geo` |
-| `temporal` | `src/workflows/temporal.py` | Resolve `TemporalIntent` via `temporal_policy`; preserves upstream clarification |
-| `benchmark` | `src/workflows/benchmark.py` | Resolve `BenchmarkIntent` or mark benchmark not applicable; preserves upstream clarification |
-| `comparison` | `src/workflows/comparison.py` | Build `ComparisonPlan` from resolved temporal + benchmark |
-| `agent` | `src/workflows/agent.py` | Call `CensusQueryAgent.solve()` with `AgentPlanContext`; validate result via `plan_result_validator` |
-| `comparison_metrics` | `src/workflows/comparison_metrics.py` | Deterministic metric compute from `comparison_input_rows` |
-| `output` | `src/workflows/output.py` | Render charts/tables when `is_census_data_renderable()`; populate `generated_files` via typed artifacts |
-| `memory_write` | `src/workflows/memory.py` | Persist conversation state |
+## Contracts
 
-Routing helpers live in `app.py`: `_route_after_geography`, `_route_after_temporal`, `_route_after_benchmark`, `_route_after_comparison`, `_route_after_agent`.
+| Contract | Responsibility |
+| --- | --- |
+| `TemporalIntent` | point, range, rolling, or latest time scope |
+| `GeographyIntent` | validated `geo_for`, ordered context projected as `geo_in`, display name, source |
+| `RetrievalEvidence` | collection status, query, versions, candidate IDs, typed candidates |
+| `GroundedSelection` | selected candidate IDs and attached evidence IDs |
+| `GroundedCensusPlan` | validated table and geography execution authority |
+| `BenchmarkIntent` / `ComparisonPlan` | comparison target, years, metric, operation, normalization |
+| `AgentPlanContext` / `ExecutionSpec` | immutable execution obligations |
+| `AgentPlanOutput` | validated agent data and presentation directives |
+| `StrictCensusApiResponse` | typed Census API tool result |
+| `RetrievalTrace` | stage-by-stage retrieval and validation receipt |
 
-Typed node return values should use `CensusGraphPatch` (`src/workflows/graph_patch.py`) at the LangGraph boundary.
+Pydantic contracts reject extra fields at trust boundaries where specified. The strict Census API tool rejects requests that
+do not agree with grounded evidence.
 
----
+## Agent and tools
 
-## 3. Typed Contracts (`src/domain/`)
+`CensusQueryAgent` uses the modern runtime backend and receives `AgentPlanContext`. Active tools cover grounded geography
+discovery and validation, table search, strict and compatibility Census calls, pattern construction, area resolution,
+hierarchy inspection, variable validation, and output generation.
 
-Track 2 planning artifacts are Pydantic models with strict validation (`extra="forbid"`).
+The old `TableValidationTool` is not registered because runtime table/geography compatibility is enforced before execution by
+grounded plan validation. Build-time Census enumeration remains in `index/`; it populates Chroma and is not called as runtime
+authority.
 
-### Planning contracts
+## State, persistence, and presentation
 
-| Model | File | Purpose |
-|-------|------|---------|
-| `GeographyIntent` | `geography_contract.py` | Resolved geography (`geo_for`, `geo_in`, `display_name`, `source`) |
-| `TemporalIntent` | `temporal_contract.py` | Normalized time scope (`point_in_time`, `range`, `latest_available`, etc.) |
-| `BenchmarkIntent` | `benchmark_contract.py` | Comparison target, operator, normalization, geography level |
-| `ComparisonPlan` | `comparison_plan.py` | Query years, dataset, metric, derived metrics, join keys |
-| `WorkflowPlan` | `src/state/workflow_plan.py` | Aggregates geography/temporal/benchmark/comparison resolution + `requires_clarification` |
+`CensusState` uses typed reducer channels for messages, plan, artifacts, final response, profile, cache index, and logs.
+LangGraph checkpoints use SQLite with an in-memory fallback. A pending geography clarification stores trace and index version,
+so resume rejects stale or mismatched evidence.
 
-Resolution wrappers (`GeographyResolved`, `GeographyClarificationRequired`, `TemporalResolved`, `BenchmarkResolved`, `BenchmarkNotApplicable`, clarification variants) discriminate on a `status` field.
+Presentation routing derives from typed state, not agent prose. Output nodes render only successful Census payloads and
+validated comparison rows.
 
-`CensusState.geo` is a typed resolved projection (`GeographyIntent | None`). Authoritative planning envelopes live on `state.plan.geography`.
+## Observability
 
-### Agent and data contracts
+`src/clients/telemetry.py` writes JSON-line events to `logs/telemetry.log`. Grounded retrieval events include trace ID, stage,
+status, reason, collection, filters, candidates, and selections. Release metrics detect blocked geography, invented IDs,
+implicit national scope, and silent Chroma misses.
 
-| Model | File | Purpose |
-|-------|------|---------|
-| `AgentPlanOutput` | `agent_output_contract.py` | Validated agent JSON output (`census_data`, `answer_text`, `charts_needed`, …) |
-| `AgentPlanContext` | `agent_plan_context.py` | Plan directives injected into agent prompt (geo + year obligations) |
-| `ExecutionSpec` | `execution_spec.py` | Required query years and time-series flag derived from plan |
-| `StrictCensusApiResponse` | `census_tool_contract.py` | Typed strict Census API tool response |
-| `ComparisonInputRow` | `comparison_artifacts.py` | Rows for deterministic metric compute |
-| `ComparisonMetricArtifactRow` | `comparison_artifacts.py` | Computed comparison metrics |
+Use `.vscode/geography-breakpoints.md`, the `Geography: Golden row 3` launch profile, and
+`scripts/debug_geography_query.py` for node-by-node inspection.
 
-### Output and presentation contracts
+## Acceptance
 
-| Model | File | Purpose |
-|-------|------|---------|
-| `RenderedArtifactSuccess` / `RenderedArtifactFailure` | `rendered_output_contract.py` | Typed chart/table export results in `final.generated_files` |
-| `PresentationRouting` | `presentation_contract.py` | Deterministic UI routing (`SINGLE_VALUE`, `TIME_SERIES`, `CLARIFICATION`, …) |
+The committed corpus has 124 questions: 122 data URLs replay through candidate selection and validation, while two catalog
+URLs are intentionally bypassed.
 
-Presentation routing is computed in `src/services/presentation_routing.py` from state — not from agent prose.
-
-See also: `docs/typed_contracts.md` (layman's guide to typed contracts).
-
----
-
-## 4. Services Layer (`src/services/`)
-
-Deterministic policy and computation live here (not in workflow nodes):
-
-| Service | Role |
-|---------|------|
-| `geography_policy.py` | Text → `GeographyResolution` (US default when no geo; explicit precedence; ambiguous → clarify) |
-| `temporal_policy.py` | Text → `TemporalResolution` |
-| `benchmark_policy.py` | Text → `BenchmarkResolution` |
-| `benchmark_geo_inference.py` | Geography hints for benchmark targets |
-| `comparison_plan_policy.py` | Temporal + benchmark → `ComparisonPlan` |
-| `comparison_input_builder.py` | Agent census data → `ComparisonInputRow` list |
-| `comparison_metric_compute.py` | Rows + plan → derived metrics |
-| `agent_plan_context.py` | `WorkflowPlan` → agent prompt directives |
-| `plan_result_validator.py` | Agent JSON output vs plan obligations; strips charts on failure |
-| `presentation_routing.py` | `CensusState` → `PresentationRouting` |
-| `workflow_acceptance_runner.py` | Canonical acceptance plan runner |
-
-Supporting services: `memory_utils`, `variable_validator`, `dataset_geography_validator`, `enumeration_detector`, `footnote_generator`, `conversation_summarizer`, `dataframe_utils`.
-
----
-
-## 5. Agent Design (`CensusQueryAgent`)
-
-**Location**: `src/agents/census_query_agent.py`
-
-Uses LangChain `create_agent` via `ModernBackend` with structured output validation via `AgentPlanOutput`. Legacy `{output, intermediate_steps}` shape is preserved through `message_to_executor`.
-
-### Registered tools (11)
-
-| Tool | Module | Notes |
-|------|--------|-------|
-| `GeographyDiscoveryTool` | `geography_discovery_tool.py` | Enumerate geography levels/areas |
-| `GeographyValidationTool` | `geography_validation_tool.py` | Validate geography against dataset rules |
-| `TableSearchTool` | `table_search_tool.py` | ChromaDB semantic table search |
-| `CensusAPITool` | `census_api_tool.py` | Legacy Census API execution |
-| `StrictCensusApiTool` | `strict_census_api_tool.py` | Typed strict Census API calls |
-| `TableTool` | `table_tool.py` | CSV/Excel/HTML export |
-| `PatternBuilderTool` | `pattern_builder_tool.py` | Census API URL patterns |
-| `AreaResolutionTool` | `area_resolution_tool.py` | Name → FIPS resolution |
-| `ChartTool` | `chart_tool.py` | Plotly chart generation |
-| `GeographyHierarchyTool` | `geography_hierarchy_tool.py` | Geography hierarchy navigation |
-| `VariableValidationTool` | `variable_validation_tool.py` | Variable/table validation |
-
-**Not registered** (exists but unused by agent): `TableValidationTool` (`table_validation_tool.py`).
-
-The agent accepts optional `AgentPlanContext` from the workflow plan so comparison/temporal directives are injected deterministically.
-
-Offline mode: if `OPENAI_API_KEY` is missing and `allow_offline=True`, the agent initializes without tools (parsing helpers only).
-
----
-
-## 6. State Management
-
-**Schema**: `src/state/types.py` — `CensusState` (Pydantic `BaseModel` with LangGraph `Annotated` reducers)
-
-Key channels:
-
-- `messages` — append
-- `plan` — overwrite (`WorkflowPlan | None`)
-- `artifacts` — merge dict (includes `census_data`, `comparison_input_rows`, `comparison_metrics`, …)
-- `final` — overwrite (answer text, chart/table specs, `generated_files`)
-- `profile`, `cache_index` — merge dict
-- `logs` — append
-
-Typed views: `FinalResponseState`, `WorkflowArtifactsState` (projected via helper functions for LangGraph compatibility).
-
-Checkpoints: SQLite (`checkpoints.db`) via `SqliteSaver`, with in-memory fallback.
-
----
-
-## 7. Clients and Presentation
-
-| Module | Role |
-|--------|------|
-| `src/clients/census_api_utils.py` | Census API HTTP client |
-| `src/clients/chroma_utils.py` | ChromaDB table index access |
-| `src/clients/file_utils.py` | Cache read/write, retention |
-| `src/clients/pdf_generator.py` | Streamlit session PDF export |
-| `src/clients/session_logger.py` | CLI session logging |
-| `src/clients/telemetry.py` | Telemetry hooks |
-| `src/api/displays.py` | CLI result formatting |
-
-Entry points: `main.py` (CLI), `streamlit_app.py` (web), `launcher.py` (chooser).
-
----
-
-## 8. Testing
-
-**Location**: `app_test_scripts/`  
-**Collected**: 281 tests (`uv run pytest app_test_scripts/ --collect-only -q`)
-
-Track 2 coverage includes:
-
-- Contract tests: `test_temporal_policy_contract.py`, `test_benchmark_contract.py`, `test_comparison_*`
-- Graph wiring: `test_track2_graph_invoke.py`, `test_benchmark_workflow_routing.py`, `test_graph_patch_contract.py`
-- Agent integration: `test_agent_reasoning_node.py`, `test_agent_plan_context.py`, `test_rendered_output_contract.py`
-- Acceptance: `test_workflow_acceptance_plans.py`
-
-Some tests require live LLM/API keys (`test_census_query_agent.py`, `test_integration_agent_api.py`, `test_e2e_workflows.py`).
-
-```bash
-# Full suite
-uv run pytest app_test_scripts/ -v
-
-# Fast unit/contract subset (excludes live LLM integration)
-uv run pytest app_test_scripts/ -q \
-  --ignore=app_test_scripts/test_integration_agent_api.py \
-  --ignore=app_test_scripts/test_census_query_agent.py \
-  --ignore=app_test_scripts/test_e2e_workflows.py
-```
-
----
-
-## 9. Project Structure (active paths)
-
-```
-census_tool/
-├── app.py                          # LangGraph definition (9 nodes)
-├── main.py, streamlit_app.py, launcher.py
-├── config.py
-├── src/
-│   ├── domain/                     # Typed contracts
-│   ├── services/                   # Deterministic policy + compute
-│   ├── workflows/                  # Graph nodes + graph_patch
-│   ├── agents/census_query_agent.py
-│   ├── tools/                      # Agent tools
-│   ├── state/types.py, workflow_plan.py
-│   ├── clients/                    # External I/O
-│   ├── api/displays.py
-│   └── llm/                        # Factory, config, prompts
-├── app_test_scripts/
-├── docs/                           # track-2_framework.md, typed_contracts.md
-├── app_description/                # This file + output format specs
-├── index/                          # ChromaDB index builder
-├── data/, memory/, chroma/         # Runtime artifacts
-└── migration_evidence/             # Track baselines and gap registers
-```
-
----
-
-## 10. Related Documentation
-
-| Document | Audience |
-|----------|----------|
-| `README.md` | User-facing overview and setup |
-| `ARCHITECTURE_GUIDE.md` | Onboarding guide for contributors |
-| `USAGE_GUIDE.md` | CLI vs Streamlit usage |
-| `docs/track-2_framework.md` | Track 2 scope, policy decisions, acceptance criteria |
-| `docs/typed_contracts.md` | Plain-language explanation of typed contracts |
-| `app_description/output_format_docs/AGENT_OUTPUT_FORMAT.md` | Agent JSON output spec |
-
----
-
-## 11. Maintenance Notes
-
-### Adding a tool
-
-1. Create `src/tools/my_tool.py` (`BaseTool` subclass).
-2. Register in `CensusQueryAgent.__init__()` tools list.
-3. Update agent prompt in `src/llm/config.py` if behavior changes.
-4. Add tests under `app_test_scripts/`.
-
-### Changing the graph
-
-1. Edit `app.py` nodes/edges/routing.
-2. Update affected workflow modules and `CensusGraphPatch` usage.
-3. Run `test_track2_graph_invoke.py` and routing tests.
-4. Regenerate `graph.png` (automatic on graph compile when visualization succeeds).
-5. Update this document and `README.md`.
-
-### Changing contracts
-
-1. Update Pydantic models in `src/domain/`.
-2. Update services that produce/consume them.
-3. Update contract tests and acceptance plans.
-4. Keep `WorkflowPlan` as the single planning aggregate on `CensusState.plan`.
-
----
-
-**This document describes the running architecture as of July 2026. For migration history and baseline evidence, see `migration_evidence/`.**
+- Offline URL contract: `uv run pytest app_test_scripts/test_census_url_fixtures.py app_test_scripts/test_golden_census_urls.py -q`
+- Grounded replay: `uv run pytest app_test_scripts/test_phase6_golden_grounded_replay.py -q`
+- Full non-integration suite: `uv run pytest app_test_scripts -m "not integration" -q`
+- Static quality: `uv run ruff check . && uv run ruff format --check .`
+
+Live Tier 2 and Tier 3 commands, artifact semantics, and evidence naming are documented in
+`migration_evidence/golden_urls/README.md`.

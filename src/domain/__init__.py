@@ -31,11 +31,6 @@ from .comparison_plan import (
     ComparisonPlan,
     DerivedMetric,
 )
-from .geo_utils import (
-    get_unsupported_level_message,
-    resolve_geography_hint,
-    validate_geography_level,
-)
 from .temporal_contract import (
     ClarificationOption,
     ClarificationPrompt,
@@ -59,9 +54,6 @@ __all__ = [
     "extract_geo_hint",
     "determine_answer_type",
     "is_census_question",
-    "resolve_geography_hint",
-    "validate_geography_level",
-    "get_unsupported_level_message",
     "parse_timestamp",
     "is_older_than",
     "TemporalIntent",

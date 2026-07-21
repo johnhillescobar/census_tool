@@ -1,54 +1,59 @@
-# Golden URL Validation Artifacts
+# Golden URL acceptance
 
-This directory stores outputs from the post-LangGraph golden URL validation harness.
+This directory stores release evidence for the temporal-first, Chroma-grounded Census graph.
 
-## Source fixture
+## Corpus and verdicts
 
-- [test_questions/test_questions_new.csv](../../test_questions/test_questions_new.csv) — 70 rows with friendly questions and expected Census URLs
+`test_questions/test_questions_new.csv` contains 124 friendly questions and expected Census URLs. Grounded deterministic replay
+validates 122 data rows through retrieved candidate IDs and plan validation. Rows 9 and 10 are catalog URLs and are intentionally
+bypassed.
 
-## Tiers
+- `url_verdict`: any successful Census call semantically matches the expected URL; failed retries are ignored.
+- `delivery_verdict`: the user-visible answer and data are acceptable.
+- `composite`: combines URL and delivery; `false_failure` means a correct URL with failed delivery.
 
-| Tier | Test module | Keys | CI |
-|------|-------------|------|-----|
-| 1 | `app_test_scripts/test_golden_census_urls.py` | none | yes |
-| 2 | `app_test_scripts/test_golden_census_url_smoke.py` | `CENSUS_API_KEY` | no |
-| 3 | `app_test_scripts/test_nl_questions_with_urls.py` | both API keys | no |
+## Acceptance tiers
 
-## Commands
+| Tier | Scope | Credentials | CI |
+| --- | --- | --- | --- |
+| Grounded replay | all 124 questions, offline model-drift contract | none | yes |
+| Tier 1 | offline URL reconstruction | none | yes |
+| Tier 2 | direct Census HTTP smoke | `CENSUS_API_KEY` | no |
+| Tier 3 | full graph and NL execution | LLM and Census keys | no |
 
-```bash
-# Tier 1 (offline rebuild contract)
-uv run pytest app_test_scripts/test_census_url_fixtures.py app_test_scripts/test_golden_census_urls.py -q
+Run grounded replay:
 
-# Tier 2 (direct HTTP smoke)
-uv run pytest app_test_scripts/test_golden_census_url_smoke.py -m integration -q
+`uv run pytest app_test_scripts/test_phase6_golden_grounded_replay.py -q`
 
-# Tier 3 (NL E2E collection — no composite asserts)
-$env:CENSUS_GOLDEN_COLLECT="1"
-uv run pytest app_test_scripts/test_nl_questions_with_urls.py -m "integration and slow" -q
+Run Tier 1:
 
-# Export summary + backlog from latest JSON artifacts
-uv run python app_test_scripts/export_golden_url_report.py
-```
+`uv run pytest app_test_scripts/test_census_url_fixtures.py app_test_scripts/test_golden_census_urls.py -q`
 
-## Verdict model
+Run Tier 2:
 
-- **url_verdict** — any successful API call matches golden URL semantically (retries/failed attempts ignored)
-- **delivery_verdict** — user-visible answer/data acceptable
-- **composite** — derived; `false_failure` means good URL but bad delivery (P0)
+`uv run pytest app_test_scripts/test_golden_census_url_smoke.py -m integration -q`
 
-## Artifact files
+Run the full 124-row Tier 3 collection:
+
+`CENSUS_GOLDEN_COLLECT=1 CENSUS_GOLDEN_FULL_124=1 uv run pytest app_test_scripts/test_nl_questions_with_urls.py -m "integration and slow" -q`
+
+Export the latest summary and backlog:
+
+`uv run python app_test_scripts/export_golden_url_report.py`
+
+Run release static and non-integration gates:
+
+`uv run pytest app_test_scripts -m "not integration" -q`
+
+`uv run ruff check . && uv run ruff format --check .`
+
+## Artifacts
 
 - `tier1_baseline_YYYYMMDD.json`
 - `tier2_smoke_YYYYMMDD.json`
-- `tier3_e2e_YYYYMMDD.json` / `.csv`
+- `tier3_e2e_YYYYMMDD.json` and `.csv`
 - `SUMMARY_YYYYMMDD.md`
 - `backlog_YYYYMMDD.csv`
 
-## Manual gate (until Fix PR B)
-
-See [manual_multiturn_log.md](manual_multiturn_log.md) for the row 3 county/CA → `"all of them."` scenario.
-
-## Fix PR planning
-
-See [fix_pr_backlog_plan.md](fix_pr_backlog_plan.md) for triage buckets after baseline capture.
+Every artifact must identify the corpus size and command. Never overwrite prior release evidence. Preserve failed attempts for
+diagnosis, but determine URL equivalence from successful attempts only.

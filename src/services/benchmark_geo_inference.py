@@ -4,7 +4,6 @@ import us
 
 from src.domain.benchmark_contract import GeographyLevel
 from src.domain.benchmark_geo_inference import DetectedGeoContext
-from src.domain.geo_utils import GEOGRAPHY_MAPPINGS
 
 NATIONAL_PATTERN = re.compile(r"\b(us|u\.s\.|united states|national)\b", re.IGNORECASE)
 STATE_PATTERN = re.compile(r"\b(state|states|statewide)\b", re.IGNORECASE)
@@ -173,42 +172,6 @@ def lookup_state_fips(name: str) -> str | None:
     return None
 
 
-def lookup_mapped_level(name: str) -> GeographyLevel | None:
-    """Return geography level from known GEOGRAPHY_MAPPINGS entries."""
-    if not name:
-        return None
-
-    hint_lower = name.lower().strip()
-    if hint_lower in GEOGRAPHY_MAPPINGS:
-        level = GEOGRAPHY_MAPPINGS[hint_lower]["level"]
-        return level if level in _VALID_LEVELS else None
-
-    for mapping_key, mapping in GEOGRAPHY_MAPPINGS.items():
-        if mapping_key in hint_lower or hint_lower in mapping_key:
-            level = mapping["level"]
-            return level if level in _VALID_LEVELS else None
-
-    return None
-
-
-_VALID_LEVELS = frozenset(
-    {
-        "nation",
-        "state",
-        "county",
-        "place",
-        "cbsa",
-        "metro_division",
-        "tract",
-        "block_group",
-        "congressional_district",
-        "zcta",
-        "puma",
-        "county_subdivision",
-    }
-)
-
-
 def _detect_geo_level_from_keywords(text: str) -> GeographyLevel | None:
     text_l = text.lower()
     if NATIONAL_PATTERN.search(text_l):
@@ -260,35 +223,21 @@ def _collect_state_fips(text: str, candidates: list[str]) -> list[str]:
     return fips_codes
 
 
-def _collect_mapped_levels(candidates: list[str]) -> list[GeographyLevel]:
-    levels: list[GeographyLevel] = []
-    seen: set[GeographyLevel] = set()
-    for candidate in candidates:
-        level = lookup_mapped_level(candidate)
-        if level and level not in seen:
-            seen.add(level)
-            levels.append(level)
-    return levels
-
-
 def infer_geo_context(text: str) -> DetectedGeoContext:
     """Run deterministic geo inference cascade and return typed context."""
     candidates = extract_geo_candidates(text)
     state_fips = _collect_state_fips(text, candidates)
-    mapped_levels = _collect_mapped_levels(candidates)
 
     geo_level = _detect_geo_level_from_keywords(text)
     if geo_level is None:
         geo_level = _detect_geo_level_from_suffix(text)
     if geo_level is None and state_fips:
         geo_level = "state"
-    if geo_level is None and mapped_levels:
-        geo_level = mapped_levels[0]
 
     return DetectedGeoContext(
         geo_level=geo_level,
         state_fips=state_fips,
-        mapped_levels=mapped_levels,
+        mapped_levels=[],
     )
 
 

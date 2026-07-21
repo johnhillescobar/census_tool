@@ -7,7 +7,6 @@ from src.services.benchmark_geo_inference import (
     build_state_geo_ids,
     extract_geo_candidates,
     infer_geo_context,
-    lookup_mapped_level,
     lookup_state_fips,
 )
 from src.services.benchmark_policy import resolve_benchmark_intent
@@ -38,10 +37,6 @@ def test_extract_geo_candidates_splits_vs_phrases():
 def test_lookup_state_fips_by_name_and_abbrev():
     assert lookup_state_fips("California") == "06"
     assert lookup_state_fips("TX") == "48"
-
-
-def test_lookup_mapped_level_for_known_place():
-    assert lookup_mapped_level("Chicago") == "place"
 
 
 def test_infer_geo_context_keyword_priority_unchanged():

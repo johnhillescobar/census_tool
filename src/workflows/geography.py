@@ -1,5 +1,4 @@
 import logging
-import os
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
@@ -34,7 +33,6 @@ from src.services.chroma_catalog_retriever import (
     retrieve_table_candidates,
 )
 from src.services.geography_clarification_resume import resume_geography_clarification
-from src.services.geography_policy import resolve_geography_intent
 from src.services.grounded_census_planner import select_grounded_plan
 from src.services.grounded_plan_validator import GroundedPlanValidationResult, validate_grounded_plan
 from src.state.types import CensusState, FinalResponseState
@@ -56,10 +54,6 @@ class GroundedGeographyDependencies:
     retrieve_geographies: Callable[..., GeographyRetrievalResult] = retrieve_geography_candidates
     select: Callable[..., GroundedSelection] = select_grounded_plan
     validate: Callable[..., GroundedPlanValidationResult] = validate_grounded_plan
-
-
-def _grounded_planning_enabled() -> bool:
-    return os.getenv("CENSUS_CHROMA_GROUNDED_PLANNING", "1").strip().lower() not in {"0", "false", "no", "off"}
 
 
 def _planning_year(plan: WorkflowPlan | None) -> int:
@@ -213,43 +207,12 @@ def _clarification(
     ).as_langgraph_update()
 
 
-def _legacy_geography_node(state: CensusState) -> dict[str, Any]:
-    user_question = state.messages[-1]["content"]
-    saved_default = state.profile.get("default_geo") if state.profile else None
-    resolution = resolve_geography_intent(
-        user_question,
-        profile_default_geo=saved_default if isinstance(saved_default, dict) else None,
-    )
-    existing = state.plan or WorkflowPlan()
-    if resolution.status == "clarification_required":
-        prompt = resolution.clarification_prompt
-        option_lines = [f"{option.option_id}: {option.label}" for option in prompt.options]
-        clarification_text = f"{prompt.question_text}\n" + "\n".join(option_lines)
-        return CensusGraphPatch(
-            plan=existing.model_copy(update={"geography": resolution, "requires_clarification": True}),
-            final=FinalResponseState(
-                answer_text=clarification_text,
-                clarification_type="geography",
-                reason_code=resolution.reason_code,
-            ),
-            logs=[f"geography: legacy clarification required ({resolution.reason_code})"],
-        ).as_langgraph_update()
-    return CensusGraphPatch(
-        plan=existing.model_copy(update={"geography": resolution, "requires_clarification": False}),
-        geo=resolution.geography,
-        logs=[f"geography: legacy resolved ({resolution.geography.source})"],
-    ).as_langgraph_update()
-
-
 def geography_node(
     state: CensusState,
     config: RunnableConfig,
     dependencies: GroundedGeographyDependencies | None = None,
 ) -> dict[str, Any]:
     """Build geography only from selected and validated Chroma evidence."""
-    if not _grounded_planning_enabled():
-        return _legacy_geography_node(state)
-
     user_question = state.messages[-1]["content"]
     existing = state.plan or WorkflowPlan()
     configured = config.get("configurable", {}).get("grounded_geography_dependencies")
