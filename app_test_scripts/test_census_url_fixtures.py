@@ -38,7 +38,7 @@ def test_parse_row3_county_california_url():
     ("row_no", "expected_for", "expected_in"),
     [
         (7, (("zip code tabulation area", "60601"),), ()),
-        (11, (("metropolitan statistical area/micropolitan statistical area", ""),), ()),
+        (11, (("metropolitan statistical area/micropolitan statistical area", "*"),), ()),
         (
             17,
             (("state (or part)", "*"),),
