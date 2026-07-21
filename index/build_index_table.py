@@ -17,6 +17,8 @@ from dotenv import load_dotenv
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from config import (
+    CENSUS_CATALOG_INDEX_VERSION,
+    CENSUS_CATALOG_SCHEMA_VERSION,
     CHROMA_EMBEDDING_MODEL,
     CHROMA_PERSIST_DIRECTORY,
     CHROMA_TABLE_COLLECTION_NAME,
@@ -25,8 +27,14 @@ from src.domain.census_groups import CensusGroupsAPI
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
+BASE_URL = "https://api.census.gov/data"
 
 load_dotenv()
+
+
+def stable_table_id(dataset: str, table_code: str) -> str:
+    """Return a deterministic ID that cannot collide across Census datasets."""
+    return f"table:{dataset}:{table_code}"
 
 
 class CensusTableIndexBuilder:
@@ -36,7 +44,7 @@ class CensusTableIndexBuilder:
         self.groups_api = CensusGroupsAPI()
         self.client = None
         self.table_collection = None
-        self.base_url = "https://api.census.gov/data"
+        self.base_url = BASE_URL
         self.embedding_function = OpenAIEmbeddingFunction(model_name=CHROMA_EMBEDDING_MODEL)
 
     def initialize_chroma(self):
@@ -56,7 +64,11 @@ class CensusTableIndexBuilder:
         except Exception:
             self.collection = self.client.create_collection(
                 name=CHROMA_TABLE_COLLECTION_NAME,
-                metadata={"hnsw:space": "cosine"},
+                metadata={
+                    "hnsw:space": "cosine",
+                    "schema_version": CENSUS_CATALOG_SCHEMA_VERSION,
+                    "index_version": CENSUS_CATALOG_INDEX_VERSION,
+                },
                 embedding_function=cast(Any, self.embedding_function),
             )
             logger.info(f"Created new collection: {CHROMA_TABLE_COLLECTION_NAME}")
@@ -90,23 +102,35 @@ class CensusTableIndexBuilder:
         documents = []
         metadatas = []
 
-        for i, (key, table_info) in enumerate(aggregated_vars.items()):
+        for i, table_info in enumerate(aggregated_vars.values()):
             # Build document text for semantic search
             document_text = self.build_document_text(table_info)
+            dataset = table_info.get("dataset", "")
+            table_code = table_info.get("table_code", "")
+            candidate_id = stable_table_id(dataset, table_code)
+            years = sorted(table_info.get("years_available", []))
+            source_year = years[-1] if years else ""
 
             # Prepare metadata (Chroma requires string values)
             metadata = {
-                "table_code": table_info.get("table_code", ""),  # Not "var"
+                "candidate_id": candidate_id,
+                "display_name": table_info.get("table_name", ""),
+                "table_code": table_code,  # Not "var"
                 "table_name": table_info.get("table_name", ""),  # Not "label"
                 "description": table_info.get("description", ""),  # Not "concept"
-                "dataset": table_info.get("dataset", ""),
+                "dataset": dataset,
                 "category": table_info.get("category", "detail"),
                 "uses_groups": table_info.get("uses_groups", False),
-                "years_available": ",".join(map(str, table_info.get("years_available", []))),
+                "year": source_year,
+                "years_available": ",".join(map(str, years)),
                 "data_types": ",".join(table_info.get("data_types", [])),  # New field
+                "provenance": "census_groups",
+                "source_url": f"{BASE_URL}/{source_year}/{dataset}/groups.json",
+                "schema_version": CENSUS_CATALOG_SCHEMA_VERSION,
+                "index_version": CENSUS_CATALOG_INDEX_VERSION,
             }
 
-            ids.append(key)
+            ids.append(candidate_id)
             documents.append(document_text)
             metadatas.append(metadata)
 

@@ -31,6 +31,7 @@ articles/
 # Database files
 checkpoints.db
 check*
+!index/check_geography_index.py
 census_vars.db
 census_vars.db-shm
 census_vars.db-wal
