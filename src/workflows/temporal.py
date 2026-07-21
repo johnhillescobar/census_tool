@@ -29,7 +29,11 @@ def temporal_node(state: CensusState, config: RunnableConfig) -> dict[str, Any]:
             plan=(existing_plan or WorkflowPlan()).model_copy(
                 update={"temporal": temporal_resolution, "requires_clarification": True}
             ),
-            final=FinalResponseState(answer_text=clarification_text),
+            final=FinalResponseState(
+                answer_text=clarification_text,
+                clarification_type="temporal",
+                reason_code=temporal_resolution.reason_code,
+            ),
             logs=[f"temporal: clarification required ({temporal_resolution.reason_code})"],
         ).as_langgraph_update()
 

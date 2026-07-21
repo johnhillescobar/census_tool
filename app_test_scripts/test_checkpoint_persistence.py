@@ -55,6 +55,7 @@ _TURN2_STUB = {
 def checkpoint_db(tmp_path, monkeypatch):
     db_path = tmp_path / "test_checkpoints.db"
     monkeypatch.setenv("CENSUS_CHECKPOINT_DB", str(db_path))
+    monkeypatch.setenv("CENSUS_CHROMA_GROUNDED_PLANNING", "0")
     monkeypatch.delenv("CENSUS_RESET_CHECKPOINTS", raising=False)
     return db_path
 

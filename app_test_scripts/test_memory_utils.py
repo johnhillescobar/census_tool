@@ -56,7 +56,7 @@ def test_build_history_record():
     assert result["user_id"] == "test_user", "User ID should match"
     assert result["question"] == "What is the population of the United States?", "Question should be extracted"
     assert result["intent"] == intent, "Intent should be preserved"
-    assert result["geo"] == geo, "Geo should be preserved"
+    assert result["geo"] == {}, "Ungrounded executable geography should not be preserved"
     # The actual function returns years as integers and datasets as actual dataset names
     assert "2 queries for years" in result["plan_summary"], "Plan summary should contain query count"
     assert "2020" in result["plan_summary"] or "[2020" in result["plan_summary"], "Plan summary should contain year 2020"
@@ -88,7 +88,7 @@ def test_update_profile():
 
     # Test the result
     assert isinstance(result, dict), "Result should be a dictionary"
-    assert result["default_geo"] == geo, "Default geo should be updated"
+    assert result["default_geo"] == {"display_name": "NYC"}, "Only display text should be persisted without grounded IDs"
     assert result["last_geo"] == "NYC", "Last geo should be updated"
     assert result["preferred_dataset"] == "population", "Preferred dataset should be updated"
     assert "var_aliases" in result, "Variable aliases should be present"

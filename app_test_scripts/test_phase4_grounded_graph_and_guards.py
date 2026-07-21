@@ -48,7 +48,7 @@ def test_grounded_geography_fails_closed_without_explicit_geography_after_table_
     result = geography_node(state, {}, dependencies=fake.dependencies())
 
     assert result["plan"].requires_clarification is True
-    assert result["plan"].geography.reason_code == "MISSING_EXPLICIT_GEOGRAPHY"
+    assert result["plan"].geography.reason_code == "GEOGRAPHY_PARTITION_MISSING"
     assert ("table", 2023) in fake.calls
     assert not any(name == "geography" for name, _value in fake.calls)
     assert result.get("geo") is None

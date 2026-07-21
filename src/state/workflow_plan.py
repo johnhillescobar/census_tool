@@ -30,6 +30,25 @@ BenchmarkPlanState = Annotated[
 ]
 
 
+GeographyClarificationSlot = Literal["table", "hierarchy", "area", "geography"]
+
+
+class PendingGeographyOption(BaseModel):
+    option_id: str
+    candidate_id: str
+    label: str
+
+
+class PendingGeographyClarification(BaseModel):
+    original_query: str
+    trace_id: str
+    retrieved_candidate_ids: list[str] = Field(default_factory=list)
+    options: list[PendingGeographyOption] = Field(default_factory=list)
+    requested_slot: GeographyClarificationSlot
+    index_version: str | None = None
+    reason_code: str
+
+
 class WorkflowPlan(BaseModel):
     geography: GeographyResolution | None = None
     temporal: TemporalResolution | None = None
@@ -39,7 +58,9 @@ class WorkflowPlan(BaseModel):
     retrieval_evidence: list[RetrievalEvidence] = Field(default_factory=list)
     grounded_plan: ValidatedGroundedPlan | None = None
     retrieval_trace: RetrievalTrace | None = None
+    pending_geography_clarification: PendingGeographyClarification | None = None
     requires_clarification: bool = False
+    workflow_cancelled: bool = False
 
     def benchmark_is_not_applicable(self) -> bool:
         return isinstance(self.benchmark, BenchmarkNotApplicable)

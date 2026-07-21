@@ -16,6 +16,7 @@ from src.workflows import (
     comparison_metrics_node,
     comparison_node,
     geography_node,
+    geography_resume_node,
     memory_load_node,
     memory_write_node,
     output_node,
@@ -40,10 +41,16 @@ def create_viz_graph(compiled_graph):
 
 
 def _route_after_geography(state: CensusState) -> str:
-    if state.plan and state.plan.requires_clarification:
+    if state.plan and (state.plan.requires_clarification or state.plan.workflow_cancelled):
         return "output"
 
     return "benchmark"
+
+
+def _route_after_memory(state: CensusState) -> str:
+    if state.plan and state.plan.pending_geography_clarification:
+        return "geography_resume"
+    return "temporal"
 
 
 def _route_after_temporal(state: CensusState) -> str:
@@ -87,6 +94,7 @@ def create_census_graph():
     workflow.add_node("memory_load", memory_load_node)
 
     workflow.add_node("geography", geography_node)
+    workflow.add_node("geography_resume", geography_resume_node)
 
     workflow.add_node("temporal", temporal_node)
 
@@ -104,7 +112,16 @@ def create_census_graph():
 
     workflow.set_entry_point("memory_load")
 
-    workflow.add_edge("memory_load", "temporal")
+    workflow.add_conditional_edges(
+        "memory_load",
+        _route_after_memory,
+        {"temporal": "temporal", "geography_resume": "geography_resume"},
+    )
+    workflow.add_conditional_edges(
+        "geography_resume",
+        _route_after_geography,
+        {"benchmark": "benchmark", "output": "output"},
+    )
 
     workflow.add_conditional_edges(
         "geography",

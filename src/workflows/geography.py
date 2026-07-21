@@ -8,9 +8,13 @@ from langchain_core.runnables import RunnableConfig
 
 from config import LATEST_AVAILABLE_YEAR
 from src.clients.telemetry import record_event
+from src.domain.clarification_templates import (
+    normalize_geography_reason,
+    render_geography_clarification,
+)
 from src.domain.geography_catalog import AreaCandidate, TableCandidate
 from src.domain.geography_contract import (
-    ClarificationPrompt,
+    ClarificationOption,
     GeographyClarificationRequired,
     GeographyIntent,
     GeographyResolved,
@@ -29,11 +33,17 @@ from src.services.chroma_catalog_retriever import (
     retrieve_geography_candidates,
     retrieve_table_candidates,
 )
+from src.services.geography_clarification_resume import resume_geography_clarification
 from src.services.geography_policy import resolve_geography_intent
 from src.services.grounded_census_planner import select_grounded_plan
 from src.services.grounded_plan_validator import GroundedPlanValidationResult, validate_grounded_plan
 from src.state.types import CensusState, FinalResponseState
-from src.state.workflow_plan import WorkflowPlan
+from src.state.workflow_plan import (
+    GeographyClarificationSlot,
+    PendingGeographyClarification,
+    PendingGeographyOption,
+    WorkflowPlan,
+)
 from src.workflows.graph_patch import CensusGraphPatch
 
 logger = logging.getLogger(__name__)
@@ -106,14 +116,62 @@ def _clarification(
     existing: WorkflowPlan,
     trace: RetrievalTrace,
     reason_code: str,
-    question: str,
     evidence: list[RetrievalEvidence],
+    *,
+    original_query: str,
+    requested_slot: GeographyClarificationSlot,
 ) -> dict[str, Any]:
+    normalized_reason = normalize_geography_reason(reason_code)
+    candidate_types: tuple[type, ...]
+    if requested_slot == "table":
+        candidate_types = (TableCandidate,)
+    elif requested_slot == "area":
+        candidate_types = (AreaCandidate,)
+    elif requested_slot == "hierarchy":
+        from src.domain.geography_catalog import HierarchyCandidate
+
+        candidate_types = (HierarchyCandidate,)
+    else:
+        candidate_types = (AreaCandidate,)
+    retrieved = [
+        candidate
+        for item in evidence
+        if item.status == "hit"
+        for candidate in item.candidates
+        if isinstance(candidate, candidate_types)
+    ]
+    pending_options = [
+        PendingGeographyOption(
+            option_id=f"geo_{index}",
+            candidate_id=candidate.candidate_id,
+            label=candidate.display_name,
+        )
+        for index, candidate in enumerate(retrieved)
+    ]
+    prompt = render_geography_clarification(
+        normalized_reason,
+        [ClarificationOption(option_id=option.option_id, label=option.label) for option in pending_options],
+    )
+    clarification_text = "\n".join(
+        [prompt.question_text, *(f"{option.option_id}: {option.label}" for option in prompt.options)]
+    )
+    option_candidate_ids = {option.candidate_id for option in pending_options}
+    relevant_evidence = [
+        item
+        for item in evidence
+        if not option_candidate_ids or any(candidate_id in item.candidate_ids for candidate_id in option_candidate_ids)
+    ]
+    option_versions = {
+        item.index_version
+        for item in relevant_evidence
+        if item.index_version is not None
+    }
+    index_version = next(iter(option_versions)) if len(option_versions) == 1 else None
     trace.append(
         RetrievalTraceEvent(
             stage=RetrievalStage.CLARIFICATION,
             status=RetrievalStatus.CLARIFICATION_REQUIRED,
-            reason_code=reason_code,
+            reason_code=normalized_reason,
         )
     )
     record_event(
@@ -122,17 +180,21 @@ def _clarification(
             "trace_id": trace.trace_id,
             "stage": RetrievalStage.CLARIFICATION.value,
             "status": RetrievalStatus.CLARIFICATION_REQUIRED.value,
-            "reason_code": reason_code,
+            "reason_code": normalized_reason,
         },
     )
     resolution = GeographyClarificationRequired(
-        reason_code=reason_code,
-        clarification_prompt=ClarificationPrompt(
-            template_id="grounded_geography_clarification",
-            reason_code=reason_code,
-            question_text=question,
-            options=[],
-        ),
+        reason_code=normalized_reason,
+        clarification_prompt=prompt,
+    )
+    pending = PendingGeographyClarification(
+        original_query=original_query,
+        trace_id=trace.trace_id,
+        retrieved_candidate_ids=[option.candidate_id for option in pending_options],
+        options=pending_options,
+        requested_slot=requested_slot,
+        index_version=index_version,
+        reason_code=normalized_reason,
     )
     return CensusGraphPatch(
         plan=existing.model_copy(
@@ -140,18 +202,24 @@ def _clarification(
                 "geography": resolution,
                 "retrieval_evidence": evidence,
                 "retrieval_trace": trace,
+                "pending_geography_clarification": pending,
                 "requires_clarification": True,
+                "workflow_cancelled": False,
             }
         ),
-        final=FinalResponseState(answer_text=question),
-        logs=[f"geography: grounded clarification required ({reason_code})"],
+        final=FinalResponseState(
+            answer_text=clarification_text,
+            clarification_type="geography",
+            reason_code=normalized_reason,
+            trace_id=trace.trace_id,
+        ),
+        logs=[f"geography: grounded clarification required ({normalized_reason})"],
     ).as_langgraph_update()
 
 
 def _legacy_geography_node(state: CensusState) -> dict[str, Any]:
     user_question = state.messages[-1]["content"]
-    profile_default = state.profile.get("default_geo") if state.profile else None
-    resolution = resolve_geography_intent(user_question, profile_default_geo=profile_default)
+    resolution = resolve_geography_intent(user_question, profile_default_geo=None)
     existing = state.plan or WorkflowPlan()
     if resolution.status == "clarification_required":
         prompt = resolution.clarification_prompt
@@ -159,7 +227,11 @@ def _legacy_geography_node(state: CensusState) -> dict[str, Any]:
         clarification_text = f"{prompt.question_text}\n" + "\n".join(option_lines)
         return CensusGraphPatch(
             plan=existing.model_copy(update={"geography": resolution, "requires_clarification": True}),
-            final=FinalResponseState(answer_text=clarification_text),
+            final=FinalResponseState(
+                answer_text=clarification_text,
+                clarification_type="geography",
+                reason_code=resolution.reason_code,
+            ),
             logs=[f"geography: legacy clarification required ({resolution.reason_code})"],
         ).as_langgraph_update()
     return CensusGraphPatch(
@@ -190,8 +262,29 @@ def geography_node(
     except Exception as exc:
         logger.warning("Grounded request analysis failed: %s", exc)
         _trace_event(trace, RetrievalStage.ANALYSIS, RetrievalStatus.ERROR, reason_code="ANALYSIS_FAILED")
-        return _clarification(existing, trace, "ANALYSIS_FAILED", "Please restate the Census topic and geography.", evidence)
+        return _clarification(
+            existing,
+            trace,
+            "ANALYSIS_FAILED",
+            evidence,
+            original_query=user_question,
+            requested_slot="geography",
+        )
     _trace_event(trace, RetrievalStage.ANALYSIS, RetrievalStatus.RESOLVED)
+    if not analysis.geography_explicit and state.profile:
+        saved = state.profile.get("default_geo")
+        saved_display = saved.get("display_name") if isinstance(saved, dict) else None
+        profile_hint = saved_display or state.profile.get("last_geo")
+        if isinstance(profile_hint, str) and profile_hint.strip():
+            preferred_level = state.profile.get("preferred_level")
+            level_hint = preferred_level if isinstance(preferred_level, str) else "geography"
+            analysis = analysis.model_copy(
+                update={
+                    "geography_search_text": f"{level_hint} {profile_hint}".strip(),
+                    "area_search_texts": [profile_hint],
+                    "geography_explicit": True,
+                }
+            )
 
     requested_year = _planning_year(existing)
     table_evidence = deps.retrieve_tables(analysis, year=requested_year)
@@ -211,8 +304,9 @@ def geography_node(
             existing,
             trace,
             reason,
-            "I could not ground a current Census table for that topic. Which Census measure should I use?",
             evidence,
+            original_query=user_question,
+            requested_slot="table",
         )
 
     table_selection = deps.select(table_evidence)
@@ -223,8 +317,9 @@ def geography_node(
             existing,
             trace,
             reason,
-            "More than one Census table matches that measure. Please specify the measure more precisely.",
             evidence,
+            original_query=user_question,
+            requested_slot="table",
         )
     selected_table = next(
         (
@@ -239,8 +334,9 @@ def geography_node(
             existing,
             trace,
             "TABLE_SELECTION_INVALID",
-            "I could not validate the selected Census table. Please specify another measure.",
             evidence,
+            original_query=user_question,
+            requested_slot="table",
         )
 
     if not analysis.geography_explicit:
@@ -248,8 +344,9 @@ def geography_node(
             existing,
             trace,
             "MISSING_EXPLICIT_GEOGRAPHY",
-            "Which U.S. geography should I use? Please name a state, county, city, or national scope.",
             evidence,
+            original_query=user_question,
+            requested_slot="geography",
         )
 
     geography_result = deps.retrieve_geographies(
@@ -275,20 +372,27 @@ def geography_node(
             existing,
             trace,
             reason,
-            "I could not find one current, unambiguous Census geography for that request. Please specify it more precisely.",
             evidence,
+            original_query=user_question,
+            requested_slot="geography",
         )
 
     selection = deps.select(table_evidence, geography_result)
     if selection.status != "selected":
         reason = selection.reason_code or "GEOGRAPHY_AMBIGUOUS"
         _trace_event(trace, RetrievalStage.GROUNDED_SELECTION, RetrievalStatus.REJECTED, reason_code=reason)
+        requested_slot: GeographyClarificationSlot = "geography"
+        if len(geography_result.hierarchy_evidence.candidates) > 1:
+            requested_slot = "hierarchy"
+        elif any(len(item.candidates) > 1 for item in geography_result.area_evidence):
+            requested_slot = "area"
         return _clarification(
             existing,
             trace,
             reason,
-            "The requested geography is ambiguous. Please provide its state or a more specific name.",
             evidence,
+            original_query=user_question,
+            requested_slot=requested_slot,
         )
     _trace_event(
         trace,
@@ -309,8 +413,9 @@ def geography_node(
             existing,
             trace,
             reason,
-            "That geography is not valid for the selected Census table and year. Please choose a supported geography.",
             evidence,
+            original_query=user_question,
+            requested_slot="geography",
         )
 
     grounded = validation.plan
@@ -342,8 +447,9 @@ def geography_node(
             existing,
             trace,
             "UNSUPPORTED_GEOGRAPHY_CONTRACT",
-            "That Census geography cannot be represented safely. Please choose another geography.",
             evidence,
+            original_query=user_question,
+            requested_slot="geography",
         )
     _trace_event(trace, RetrievalStage.PLAN_VALIDATION, RetrievalStatus.RESOLVED)
     resolution = GeographyResolved(geography=geography)
@@ -355,7 +461,9 @@ def geography_node(
                 "retrieval_evidence": evidence,
                 "grounded_plan": grounded,
                 "retrieval_trace": trace,
+                "pending_geography_clarification": None,
                 "requires_clarification": False,
+                "workflow_cancelled": False,
             }
         ),
         geo=geography,
@@ -366,4 +474,31 @@ def geography_node(
     ).as_langgraph_update()
 
 
-__all__ = ["GroundedGeographyDependencies", "geography_node"]
+def geography_resume_node(state: CensusState, config: RunnableConfig) -> dict[str, Any]:
+    """Resume a checkpointed geography choice without reinterpreting it as a new query."""
+    plan = state.plan
+    if plan is None or plan.pending_geography_clarification is None:
+        raise ValueError("geography resume requires pending clarification context")
+    pending = plan.pending_geography_clarification
+    selection = state.messages[-1]["content"]
+    result = resume_geography_clarification(plan, selection)
+    if result.status == "resolved":
+        return CensusGraphPatch(
+            plan=result.plan,
+            geo=result.geography,
+            logs=[f"geography: resumed from trace {pending.trace_id}"],
+        ).as_langgraph_update()
+    reason_code = "GEOGRAPHY_CANCELLED" if result.status == "cancelled" else pending.reason_code
+    return CensusGraphPatch(
+        plan=result.plan,
+        final=FinalResponseState(
+            answer_text=result.answer_text,
+            clarification_type="geography",
+            reason_code=reason_code,
+            trace_id=pending.trace_id,
+        ),
+        logs=[f"geography: clarification {result.status} ({reason_code})"],
+    ).as_langgraph_update()
+
+
+__all__ = ["GroundedGeographyDependencies", "geography_node", "geography_resume_node"]

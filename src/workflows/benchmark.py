@@ -43,7 +43,11 @@ def benchmark_node(state: CensusState, config: RunnableConfig) -> dict[str, Any]
             plan=(existing_plan or WorkflowPlan()).model_copy(
                 update={"benchmark": benchmark_resolution, "requires_clarification": True}
             ),
-            final=FinalResponseState(answer_text=clarification_text),
+            final=FinalResponseState(
+                answer_text=clarification_text,
+                clarification_type="benchmark",
+                reason_code=benchmark_resolution.reason_code,
+            ),
             logs=[f"benchmark: clarification required ({benchmark_resolution.reason_code})"],
         ).as_langgraph_update()
 
