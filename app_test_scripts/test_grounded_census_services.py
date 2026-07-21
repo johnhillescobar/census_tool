@@ -138,9 +138,7 @@ def test_typed_chroma_query_reports_hit_empty_unavailable_stale_and_schema_misma
     malformed = dict(metadata, candidate_id="different")
     mismatch = query_table_collection(
         FakeClient(
-            FakeCollection(
-                {"ids": [["table:1"]], "metadatas": [[malformed]], "documents": [["doc"]], "distances": [[0.1]]}
-            )
+            FakeCollection({"ids": [["table:1"]], "metadatas": [[malformed]], "documents": [["doc"]], "distances": [[0.1]]})
         ),
         "population",
     )

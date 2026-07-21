@@ -47,8 +47,6 @@ def comparison_node(state: CensusState, config: RunnableConfig) -> dict[str, Any
     comparison = resolve_comparison_plan(benchmark.benchmark, temporal.time)
 
     return {
-        "plan": existing_plan.model_copy(
-            update={"comparison": comparison, "requires_clarification": False}
-        ),
+        "plan": existing_plan.model_copy(update={"comparison": comparison, "requires_clarification": False}),
         "logs": ["comparison: resolved"],
     }

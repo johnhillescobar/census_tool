@@ -102,11 +102,7 @@ def test_authoritative_geography_rows_are_enriched_by_examples():
         )
     ]
     docs = summarize_geography_levels(rows, examples)
-    payload = next(
-        payload
-        for payload in docs.values()
-        if payload["hierarchy"] == "state › place › county (or part)"
-    )
+    payload = next(payload for payload in docs.values() if payload["hierarchy"] == "state › place › county (or part)")
     assert payload["census_token"] == "county (or part)"
     assert payload["friendly_level"] == "county"
     assert payload["summary_level"] == "155"

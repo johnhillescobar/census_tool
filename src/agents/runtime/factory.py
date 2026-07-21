@@ -16,10 +16,7 @@ DEFAULT_RUNTIME = "modern"
 def resolve_agent_runtime() -> str:
     runtime = (os.getenv("AGENT_RUNTIME") or DEFAULT_RUNTIME).strip().lower()
     if runtime == "classic":
-        raise ValueError(
-            "AGENT_RUNTIME=classic was removed after A4 cutover; "
-            "use modern (default) or unset AGENT_RUNTIME."
-        )
+        raise ValueError("AGENT_RUNTIME=classic was removed after A4 cutover; use modern (default) or unset AGENT_RUNTIME.")
     if runtime not in VALID_RUNTIMES:
         raise ValueError(f"Unknown AGENT_RUNTIME={runtime!r}; expected {DEFAULT_RUNTIME!r}")
     return runtime

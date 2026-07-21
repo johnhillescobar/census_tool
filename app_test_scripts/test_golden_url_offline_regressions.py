@@ -24,4 +24,6 @@ def test_row3_geography_resolves_offline():
     assert geography.geo_for == {"county": "*"}
     assert geography.geo_in == {"state": "06"}
     assert geography.source == "chroma"
+    assert plan.selected_table is not None
+    assert any(item.collection_name == "census_tables" for item in plan.retrieval_evidence)
     assert ("geography", ("acs/acs5", 2023)) in fake.calls

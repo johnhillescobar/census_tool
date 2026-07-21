@@ -199,12 +199,7 @@ def parse_geography_table(
             continue
         record = dict(zip(headers, values))
         hierarchy = record.get("geography hierarchy") or record.get("hierarchy") or ""
-        summary_level = (
-            record.get("geography level")
-            or record.get("summary level")
-            or record.get("summary level code")
-            or ""
-        )
+        summary_level = record.get("geography level") or record.get("summary level") or record.get("summary level code") or ""
         tokens = hierarchy_tokens(hierarchy)
         census_token = tokens[-1] if tokens else record.get("name", "")
         if not hierarchy or not census_token:
@@ -262,11 +257,7 @@ def fetch_geographies(
     response = requests.get(url, timeout=30)
     response.raise_for_status()
     soup = BeautifulSoup(response.text, "html.parser")
-    rows = [
-        item
-        for table in soup.find_all("table")
-        for item in parse_geography_table(category, dataset, year, table, url)
-    ]
+    rows = [item for table in soup.find_all("table") for item in parse_geography_table(category, dataset, year, table, url)]
     if not rows:
         raise RuntimeError("no authoritative geography rows found")
     logger.info(

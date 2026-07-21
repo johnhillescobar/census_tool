@@ -31,9 +31,7 @@ def test_retrieval_trace_round_trips_through_workflow_plan():
         )
     )
 
-    restored = WorkflowPlan.model_validate(
-        WorkflowPlan(retrieval_trace=trace).model_dump(mode="json")
-    ).retrieval_trace
+    restored = WorkflowPlan.model_validate(WorkflowPlan(retrieval_trace=trace).model_dump(mode="json")).retrieval_trace
 
     assert restored is not None
     assert restored.trace_id == trace.trace_id

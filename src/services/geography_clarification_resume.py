@@ -66,10 +66,7 @@ def _candidate_for_option(
     evidence: list[RetrievalEvidence],
 ):
     matches = [
-        candidate
-        for item in evidence
-        for candidate in item.candidates
-        if candidate.candidate_id == option.candidate_id
+        candidate for item in evidence for candidate in item.candidates if candidate.candidate_id == option.candidate_id
     ]
     if len(matches) != 1 or matches[0].display_name != option.label:
         return None
@@ -78,10 +75,7 @@ def _candidate_for_option(
 
 def _single_candidate_id(evidence: list[RetrievalEvidence], candidate_type: type) -> str | None:
     candidates = [
-        candidate.candidate_id
-        for item in evidence
-        for candidate in item.candidates
-        if isinstance(candidate, candidate_type)
+        candidate.candidate_id for item in evidence for candidate in item.candidates if isinstance(candidate, candidate_type)
     ]
     return candidates[0] if len(candidates) == 1 else None
 

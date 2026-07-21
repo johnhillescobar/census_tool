@@ -28,10 +28,7 @@ class VersionedPrompt:
 
     def render(self, **values: str) -> str:
         body = self.template.format(**values)
-        return (
-            f"[prompt_id={self.prompt_id} prompt_version={self.version} "
-            f"prompt_role={self.role}]\n{body}"
-        )
+        return f"[prompt_id={self.prompt_id} prompt_version={self.version} prompt_role={self.role}]\n{body}"
 
 
 __all__ = ["VersionedPrompt"]

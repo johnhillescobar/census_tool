@@ -168,12 +168,18 @@ def _collection_health(collection: Any) -> tuple[EvidenceStatus | None, str | No
     schema_version = metadata.get("schema_version")
     index_version = metadata.get("index_version")
     if schema_version != CHROMA_CATALOG_SCHEMA_VERSION:
-        return "schema_mismatch", str(schema_version) if schema_version is not None else None, (
-            str(index_version) if index_version is not None else None
-        ), "collection schema version is missing or unsupported"
+        return (
+            "schema_mismatch",
+            str(schema_version) if schema_version is not None else None,
+            (str(index_version) if index_version is not None else None),
+            "collection schema version is missing or unsupported",
+        )
     if index_version != CHROMA_CATALOG_INDEX_VERSION:
-        return "stale", str(schema_version), str(index_version) if index_version is not None else None, (
-            "collection index version is missing or outdated"
+        return (
+            "stale",
+            str(schema_version),
+            str(index_version) if index_version is not None else None,
+            ("collection index version is missing or outdated"),
         )
 
     built_at = metadata.get("built_at") or metadata.get("retrieved_at")
@@ -239,9 +245,7 @@ def _candidate_from_metadata(
         "candidate_id": candidate_id,
         "dataset": metadata["dataset"],
         "year": int(metadata["year"]),
-        "display_name": metadata.get("display_name")
-        or metadata.get("table_name")
-        or metadata.get("geography_hierarchy"),
+        "display_name": metadata.get("display_name") or metadata.get("table_name") or metadata.get("geography_hierarchy"),
         "score": _score(distance),
         "provenance": metadata["provenance"],
         "schema_version": metadata["schema_version"],

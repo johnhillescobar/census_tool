@@ -102,10 +102,7 @@ def test_parse_catalog_url():
 
 
 def test_normalize_strips_api_key():
-    url = (
-        "https://api.census.gov/data/2023/acs/acs5?"
-        "get=NAME,B01001_001E&for=county:*&in=state:06&key=secret"
-    )
+    url = "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=county:*&in=state:06&key=secret"
     parts = normalize_for_compare(url)
     assert parts.geo_in == (("state", "06"),)
 

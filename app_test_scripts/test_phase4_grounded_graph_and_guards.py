@@ -78,9 +78,7 @@ def test_both_census_api_tools_reject_values_outside_validated_plan(monkeypatch)
 
     monkeypatch.setattr("src.tools.census_api_tool.fetch_census_data", fail_fetch)
     monkeypatch.setattr("src.tools.strict_census_api_tool.fetch_census_data_typed", fail_fetch)
-    token = set_grounded_execution_context(
-        GroundedExecutionContext(plan=state.plan.grounded_plan, allowed_years=[2023])
-    )
+    token = set_grounded_execution_context(GroundedExecutionContext(plan=state.plan.grounded_plan, allowed_years=[2023]))
     try:
         request = {
             "year": 2023,

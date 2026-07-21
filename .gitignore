@@ -52,3 +52,8 @@ memos.md
 .DS_Store
 
 logs/
+
+# Test-generated user memory
+memory/user_checkpoint-test.json
+memory/user_golden-url-e2e.json
+memory/user_track2-graph-test.json

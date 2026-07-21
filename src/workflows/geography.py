@@ -161,11 +161,7 @@ def _clarification(
         for item in evidence
         if not option_candidate_ids or any(candidate_id in item.candidate_ids for candidate_id in option_candidate_ids)
     ]
-    option_versions = {
-        item.index_version
-        for item in relevant_evidence
-        if item.index_version is not None
-    }
+    option_versions = {item.index_version for item in relevant_evidence if item.index_version is not None}
     index_version = next(iter(option_versions)) if len(option_versions) == 1 else None
     trace.append(
         RetrievalTraceEvent(
@@ -219,7 +215,11 @@ def _clarification(
 
 def _legacy_geography_node(state: CensusState) -> dict[str, Any]:
     user_question = state.messages[-1]["content"]
-    resolution = resolve_geography_intent(user_question, profile_default_geo=None)
+    saved_default = state.profile.get("default_geo") if state.profile else None
+    resolution = resolve_geography_intent(
+        user_question,
+        profile_default_geo=saved_default if isinstance(saved_default, dict) else None,
+    )
     existing = state.plan or WorkflowPlan()
     if resolution.status == "clarification_required":
         prompt = resolution.clarification_prompt

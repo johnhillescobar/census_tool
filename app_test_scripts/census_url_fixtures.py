@@ -149,8 +149,7 @@ def _split_geo_clause(clause: str) -> tuple[tuple[str, str], ...]:
     if not clause:
         return ()
     return tuple(
-        (match.group("level").strip().lower(), match.group("value").strip())
-        for match in _GEO_PAIR_PATTERN.finditer(clause)
+        (match.group("level").strip().lower(), match.group("value").strip()) for match in _GEO_PAIR_PATTERN.finditer(clause)
     )
 
 
@@ -431,7 +430,8 @@ def build_row_result(
     answer_text = final.get("answer_text") or ""
 
     stopped_before_agent = any(
-        isinstance(entry, str) and entry.startswith(("geography:", "temporal:", "benchmark:", "comparison:"))
+        isinstance(entry, str)
+        and entry.startswith(("geography:", "temporal:", "benchmark:", "comparison:"))
         and "clarification required" in entry
         for entry in logs
     ) and not any(isinstance(entry, str) and entry.startswith("agent:") and "skipped" not in entry for entry in logs)
