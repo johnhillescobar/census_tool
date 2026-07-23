@@ -154,3 +154,30 @@ uv run pytest app_test_scripts/ -m "not integration" -q
 ```
 
 Result: **334 passed**, 12 deselected (integration).
+
+## Golden URL validation harness (2026-07-18)
+
+Fixture source: [test_questions/test_questions_new.csv](../test_questions/test_questions_new.csv) (70 rows).
+
+```bash
+uv run ruff check src app_test_scripts
+uv run pytest app_test_scripts/test_census_url_fixtures.py app_test_scripts/test_golden_census_urls.py -q
+uv run pytest app_test_scripts/test_golden_url_offline_regressions.py -q
+uv run python app_test_scripts/export_golden_url_report.py
+```
+
+Offline evidence:
+- **486 passed** (includes golden URL tests), integration deselected
+- Tier 1 rebuild: **70/70 equivalent** — artifact [golden_urls/tier1_baseline_20260718.json](../golden_urls/tier1_baseline_20260718.json)
+- Tier 3 offline row 3: **blocked / geography_blocked** (zero API calls) — [golden_urls/backlog_20260718.csv](../golden_urls/backlog_20260718.csv)
+
+Credentialed (local keys required):
+
+```bash
+uv run pytest app_test_scripts/test_golden_census_url_smoke.py -m integration -q
+$env:CENSUS_GOLDEN_COLLECT="1"
+uv run pytest app_test_scripts/test_nl_questions_with_urls.py -m "integration and slow" -q
+uv run python app_test_scripts/export_golden_url_report.py
+```
+
+See [golden_urls/README.md](../golden_urls/README.md) for verdict model and fix PR triage ([fix_pr_backlog_plan.md](../golden_urls/fix_pr_backlog_plan.md)).

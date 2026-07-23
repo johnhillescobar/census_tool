@@ -1,0 +1,26 @@
+[
+  {
+    "row_no": 3,
+    "question": "Show total population for all California counties in 2023.",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=county:*&in=state:06",
+    "source_label": "Detail table B01001_001 (Total population) by county in California (2023 ACS 5-year)",
+    "url_attempts": [],
+    "failed_attempt_count": 0,
+    "successful_attempt_count": 0,
+    "retry_recovered": false,
+    "winning_url": null,
+    "url_verdict": "fail",
+    "delivery_verdict": "clarification",
+    "composite": "blocked",
+    "failure_class": "geography_blocked",
+    "stopped_before_agent": true,
+    "requires_clarification": true,
+    "final_census_success": false,
+    "answer_has_failure_phrase": false,
+    "answer_preview": "I found multiple geographies in your request. Which one should I use?\ngeo_0: Default geography: 'United States (default)'\ngeo_1: County-level request for 'all California counties' - needs clarificatio",
+    "best_mismatch": "",
+    "api_call_count": 0,
+    "suggested_fix_area": "src/services/geography_policy.py",
+    "notes": []
+  }
+]
