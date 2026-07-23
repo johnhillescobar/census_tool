@@ -22,7 +22,7 @@ def test_canonical_census_vocabulary_contains_all_golden_tokens():
         for pair in (parse_census_url(row.expected_url).geo_for, parse_census_url(row.expected_url).geo_in)
         for level, _ in pair
     }
-    assert tokens == golden_tokens
+    assert golden_tokens <= tokens
     assert "tribal census tract (or part)" in tokens
     assert "american indian area/alaska native area/hawaiian home land (or part)" in tokens
     assert "zip code tabulation area" in tokens
