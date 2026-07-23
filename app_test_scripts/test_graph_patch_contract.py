@@ -58,7 +58,7 @@ def test_graph_patch_projects_typed_geo() -> None:
         geo_for={"us": "1"},
         geo_in={},
         display_name="United States",
-        source="missing_geo_default",
+        source="chroma",
     )
     update = CensusGraphPatch(geo=geo).as_langgraph_update()
     assert isinstance(update["geo"], GeographyIntent)

@@ -3,20 +3,19 @@ from src.domain.execution_spec import build_execution_spec
 from src.domain.geography_contract import GeographyIntent, GeographyResolved
 from src.domain.temporal_contract import TemporalIntent
 from src.services.agent_plan_context import build_agent_plan_context
-from src.services.geography_policy import resolve_geography_intent
 from src.services.plan_result_validator import validate_agent_result_against_plan
 from src.state.workflow_plan import TemporalResolved, WorkflowPlan
 from src.workflows.output import is_census_data_renderable
 
 
-def _us_default_context() -> AgentPlanContext:
+def _grounded_us_context() -> AgentPlanContext:
     return AgentPlanContext(
         geography=GeographyIntent(
             level="nation",
             geo_for={"us": "1"},
             geo_in={},
             display_name="United States",
-            source="missing_geo_default",
+            source="chroma",
         ),
         temporal=TemporalIntent(
             mode="range",
@@ -32,47 +31,8 @@ def _us_default_context() -> AgentPlanContext:
     )
 
 
-def test_missing_geography_defaults_to_us_national():
-    resolution = resolve_geography_intent("Show me median income trends from 2015 to 2020")
-    assert resolution.status == "resolved"
-    assert resolution.geography.geo_for == {"us": "1"}
-    assert resolution.geography.source == "missing_geo_default"
-
-
-def test_profile_default_geo_used_when_geography_missing():
-    resolution = resolve_geography_intent(
-        "Show me median income trends from 2015 to 2020",
-        profile_default_geo={
-            "level": "state",
-            "filters": {"for": "state:48"},
-            "note": "Texas",
-        },
-    )
-    assert resolution.status == "resolved"
-    assert resolution.geography.geo_for == {"state": "48"}
-    assert resolution.geography.source == "profile_default"
-
-
-def test_lowercase_state_abbreviation_resolves_without_english_word_false_positive():
-    resolution = resolve_geography_intent("population of ca")
-    assert resolution.status == "resolved"
-    assert resolution.geography.geo_for == {"state": "06"}
-
-    in_me = resolve_geography_intent("show me population trends in 2020")
-    assert in_me.status == "resolved"
-    assert in_me.geography.geo_for == {"us": "1"}
-    assert in_me.geography.source == "missing_geo_default"
-
-
-def test_explicit_nyc_does_not_use_us_fallback():
-    resolution = resolve_geography_intent("population of nyc")
-    assert resolution.status == "resolved"
-    assert resolution.geography.geo_for.get("place") == "51000"
-    assert resolution.geography.source == "explicit"
-
-
 def test_execution_spec_requires_six_years_for_2015_2020():
-    spec = build_execution_spec(_us_default_context())
+    spec = build_execution_spec(_grounded_us_context())
     assert spec is not None
     assert spec.query_years == [2015, 2016, 2017, 2018, 2019, 2020]
     assert spec.requires_time_series is True
@@ -86,7 +46,7 @@ def test_plan_result_validator_strips_charts_on_failed_agent_output():
             "charts_needed": [{"type": "line", "title": "Trend"}],
             "tables_needed": [{"type": "table", "title": "Data"}],
         },
-        _us_default_context(),
+        _grounded_us_context(),
     )
     assert result["charts_needed"] == []
     assert result["tables_needed"] == []
@@ -100,7 +60,7 @@ def test_plan_result_validator_rejects_empty_success_series():
             "charts_needed": [{"type": "line", "title": "Trend"}],
             "tables_needed": [],
         },
-        _us_default_context(),
+        _grounded_us_context(),
     )
     assert result["census_data"]["success"] is False
     assert result["charts_needed"] == []
@@ -126,7 +86,7 @@ def test_build_agent_plan_context_from_median_income_plan():
                 geo_for={"us": "1"},
                 geo_in={},
                 display_name="United States",
-                source="missing_geo_default",
+                source="chroma",
             )
         ),
         temporal=TemporalResolved(time=temporal),

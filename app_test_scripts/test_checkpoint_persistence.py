@@ -8,6 +8,7 @@ from unittest.mock import patch
 import pytest
 
 from app import create_census_graph
+from app_test_scripts.grounded_planning_fakes import FakeGroundedRetrieval
 from src.domain.comparison_artifacts import ComparisonInputRow
 from src.services.graph_session import (
     build_delta_turn_state,
@@ -51,33 +52,41 @@ _TURN2_STUB = {
 }
 
 
+def _grounded_config(thread_id: str, grounded):
+    config = runnable_config(user_id="checkpoint-test", thread_id=thread_id)
+    config["configurable"]["grounded_geography_dependencies"] = grounded
+    return config
+
+
 @pytest.fixture
 def checkpoint_db(tmp_path, monkeypatch):
     db_path = tmp_path / "test_checkpoints.db"
     monkeypatch.setenv("CENSUS_CHECKPOINT_DB", str(db_path))
     monkeypatch.delenv("CENSUS_RESET_CHECKPOINTS", raising=False)
-    return db_path
+    return db_path, FakeGroundedRetrieval().dependencies()
 
 
 def test_checkpoint_survives_graph_recreation(checkpoint_db):
+    _db_path, grounded = checkpoint_db
     thread_id = str(uuid.uuid4())
-    config = runnable_config(user_id="checkpoint-test", thread_id=thread_id)
+    config = _grounded_config(thread_id, grounded)
 
     with patch("src.workflows.agent.CensusQueryAgent") as mock_agent_cls:
         mock_agent_cls.return_value.solve.return_value = _TURN1_STUB
         graph1 = create_census_graph()
-        graph1.invoke(build_fresh_thread_state("first question"), config)
+        graph1.invoke(build_fresh_thread_state("first county population in California question"), config)
 
         mock_agent_cls.return_value.solve.return_value = _TURN2_STUB
         graph2 = create_census_graph()
-        final_state = graph2.invoke(build_delta_turn_state("second question"), config)
+        final_state = graph2.invoke(build_delta_turn_state("second county population in California question"), config)
 
     assert len(final_state["messages"]) == 2
-    assert final_state["messages"][0]["content"] == "first question"
-    assert final_state["messages"][1]["content"] == "second question"
+    assert final_state["messages"][0]["content"] == "first county population in California question"
+    assert final_state["messages"][1]["content"] == "second county population in California question"
 
 
 def test_different_threads_are_isolated(checkpoint_db):
+    _db_path, grounded = checkpoint_db
     thread_a = str(uuid.uuid4())
     thread_b = str(uuid.uuid4())
 
@@ -85,83 +94,87 @@ def test_different_threads_are_isolated(checkpoint_db):
         mock_agent_cls.return_value.solve.return_value = _TURN1_STUB
         graph = create_census_graph()
         graph.invoke(
-            build_fresh_thread_state("thread A question"),
-            runnable_config(user_id="checkpoint-test", thread_id=thread_a),
+            build_fresh_thread_state("thread A county population in California question"),
+            _grounded_config(thread_a, grounded),
         )
         final_b = graph.invoke(
-            build_fresh_thread_state("thread B question"),
-            runnable_config(user_id="checkpoint-test", thread_id=thread_b),
+            build_fresh_thread_state("thread B county population in California question"),
+            _grounded_config(thread_b, grounded),
         )
 
     assert len(final_b["messages"]) == 1
-    assert final_b["messages"][0]["content"] == "thread B question"
+    assert final_b["messages"][0]["content"] == "thread B county population in California question"
 
 
 def test_delta_turn_clears_stale_artifacts(checkpoint_db):
+    _db_path, grounded = checkpoint_db
     thread_id = str(uuid.uuid4())
-    config = runnable_config(user_id="checkpoint-test", thread_id=thread_id)
+    config = _grounded_config(thread_id, grounded)
 
     with patch("src.workflows.agent.CensusQueryAgent") as mock_agent_cls:
         mock_agent_cls.return_value.solve.return_value = _TURN1_STUB
         graph = create_census_graph()
-        turn1 = graph.invoke(build_fresh_thread_state("first question"), config)
+        turn1 = graph.invoke(build_fresh_thread_state("first county population in California question"), config)
         assert turn1.get("artifacts", {}).get("comparison_input_rows")
 
         mock_agent_cls.return_value.solve.return_value = _TURN2_STUB
-        final_state = graph.invoke(build_delta_turn_state("second question"), config)
+        final_state = graph.invoke(build_delta_turn_state("second county population in California question"), config)
 
     assert not final_state["artifacts"].get("comparison_input_rows")
 
 
 def test_delta_turn_replaces_stale_final_answer(checkpoint_db):
+    _db_path, grounded = checkpoint_db
     thread_id = str(uuid.uuid4())
-    config = runnable_config(user_id="checkpoint-test", thread_id=thread_id)
+    config = _grounded_config(thread_id, grounded)
 
     with patch("src.workflows.agent.CensusQueryAgent") as mock_agent_cls:
         mock_agent_cls.return_value.solve.return_value = _TURN1_STUB
         graph = create_census_graph()
-        turn1 = graph.invoke(build_fresh_thread_state("first question"), config)
+        turn1 = graph.invoke(build_fresh_thread_state("first county population in California question"), config)
         assert turn1.get("final", {}).get("answer_text") == "Turn one answer from the stubbed agent."
 
         mock_agent_cls.return_value.solve.return_value = _TURN2_STUB
-        final_state = graph.invoke(build_delta_turn_state("second question"), config)
+        final_state = graph.invoke(build_delta_turn_state("second county population in California question"), config)
 
     assert final_state.get("final", {}).get("answer_text") == "Turn two answer from the stubbed agent."
 
 
 def test_new_conversation_thread_starts_fresh(checkpoint_db):
+    _db_path, grounded = checkpoint_db
     thread_id = str(uuid.uuid4())
 
     with patch("src.workflows.agent.CensusQueryAgent") as mock_agent_cls:
         mock_agent_cls.return_value.solve.return_value = _TURN1_STUB
         graph = create_census_graph()
         graph.invoke(
-            build_fresh_thread_state("old conversation"),
-            runnable_config(user_id="checkpoint-test", thread_id=thread_id),
+            build_fresh_thread_state("old county population in California conversation"),
+            _grounded_config(thread_id, grounded),
         )
 
         new_thread = str(uuid.uuid4())
         final_state = graph.invoke(
-            build_fresh_thread_state("new conversation"),
-            runnable_config(user_id="checkpoint-test", thread_id=new_thread),
+            build_fresh_thread_state("new county population in California conversation"),
+            _grounded_config(new_thread, grounded),
         )
 
     assert len(final_state["messages"]) == 1
-    assert final_state["messages"][0]["content"] == "new conversation"
+    assert final_state["messages"][0]["content"] == "new county population in California conversation"
 
 
 def test_resumed_thread_id_uses_delta_turn_state(checkpoint_db):
+    _db_path, grounded = checkpoint_db
     thread_id = str(uuid.uuid4())
-    config = runnable_config(user_id="checkpoint-test", thread_id=thread_id)
+    config = _grounded_config(thread_id, grounded)
 
     with patch("src.workflows.agent.CensusQueryAgent") as mock_agent_cls:
         mock_agent_cls.return_value.solve.return_value = _TURN1_STUB
         graph = create_census_graph()
-        graph.invoke(build_fresh_thread_state("first question"), config)
+        graph.invoke(build_fresh_thread_state("first county population in California question"), config)
 
         resumed_state = build_turn_state_for_thread(
             graph,
-            "second question",
+            "second county population in California question",
             config=config,
         )
 

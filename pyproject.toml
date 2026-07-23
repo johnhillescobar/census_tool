@@ -77,7 +77,6 @@ select = ["E", "F", "I", "UP"]
 # Agent prompts and Census API literals exceed line-length by design.
 "src/agents/census_query_agent.py" = ["E501"]
 "src/llm/config.py" = ["E501"]
-"src/llm/geography_resolver.py" = ["E501"]
 "src/domain/geography_registry.py" = ["E501"]
 "src/tools/census_api_tool.py" = ["E501"]
 "src/tools/geography_discovery_tool.py" = ["E501"]

@@ -6,6 +6,12 @@ from src.domain.benchmark_contract import (
     BenchmarkClarificationOption,
     BenchmarkClarificationPrompt,
 )
+from src.domain.geography_contract import (
+    ClarificationOption as GeographyClarificationOption,
+)
+from src.domain.geography_contract import (
+    ClarificationPrompt as GeographyClarificationPrompt,
+)
 from src.domain.temporal_contract import ClarificationOption, ClarificationPrompt
 
 
@@ -70,6 +76,80 @@ class ClarificationTemplate(BaseModel):
     reason_code: str
     question_template: str
     option_templates: list[OptionTemplate]
+
+
+GeographyClarificationReason = Literal[
+    "GEOGRAPHY_AMBIGUOUS",
+    "GEOGRAPHY_NOT_FOUND",
+    "GEOGRAPHY_UNSUPPORTED_DATASET",
+    "GEOGRAPHY_INDEX_UNAVAILABLE",
+    "GEOGRAPHY_INDEX_STALE",
+    "GEOGRAPHY_PARTITION_MISSING",
+    "GEOGRAPHY_INCOMPATIBLE",
+]
+
+GEOGRAPHY_REASON_TEMPLATES: dict[GeographyClarificationReason, tuple[str, str]] = {
+    "GEOGRAPHY_AMBIGUOUS": (
+        "geography.ambiguous.v1",
+        "I found multiple official Census geography records. Choose one:",
+    ),
+    "GEOGRAPHY_NOT_FOUND": (
+        "geography.not_found.v1",
+        "I could not find an official Census geography matching that request. Please provide a more specific name.",
+    ),
+    "GEOGRAPHY_UNSUPPORTED_DATASET": (
+        "geography.unsupported_dataset.v1",
+        "That geography is not supported by the selected Census dataset. Please choose a supported geography.",
+    ),
+    "GEOGRAPHY_INDEX_UNAVAILABLE": (
+        "geography.index_unavailable.v1",
+        "The official Census geography index is unavailable. Please try again later or cancel.",
+    ),
+    "GEOGRAPHY_INDEX_STALE": (
+        "geography.index_stale.v1",
+        "The official Census geography index is stale for this request. Please try another year or cancel.",
+    ),
+    "GEOGRAPHY_PARTITION_MISSING": (
+        "geography.partition_missing.v1",
+        "The requested Census dataset/year geography partition is missing. Please choose another year or dataset.",
+    ),
+    "GEOGRAPHY_INCOMPATIBLE": (
+        "geography.incompatible.v1",
+        "That official geography record is incompatible with the selected Census table and year.",
+    ),
+}
+
+
+def normalize_geography_reason(reason_code: str) -> GeographyClarificationReason:
+    normalized = reason_code.upper()
+    if "AMBIGUOUS" in normalized:
+        return "GEOGRAPHY_AMBIGUOUS"
+    if "UNAVAILABLE" in normalized:
+        return "GEOGRAPHY_INDEX_UNAVAILABLE"
+    if "STALE" in normalized:
+        return "GEOGRAPHY_INDEX_STALE"
+    if "PARTITION" in normalized or "MISSING_EXPLICIT" in normalized:
+        return "GEOGRAPHY_PARTITION_MISSING"
+    if "UNSUPPORTED" in normalized or normalized.startswith("TABLE_EMPTY"):
+        return "GEOGRAPHY_UNSUPPORTED_DATASET"
+    if "INCOMPATIBLE" in normalized or "VALIDATION" in normalized:
+        return "GEOGRAPHY_INCOMPATIBLE"
+    return "GEOGRAPHY_NOT_FOUND"
+
+
+def render_geography_clarification(
+    reason_code: str,
+    options: list[GeographyClarificationOption],
+) -> GeographyClarificationPrompt:
+    """Render a stable geography prompt without inventing candidate labels."""
+    normalized = normalize_geography_reason(reason_code)
+    template_id, question = GEOGRAPHY_REASON_TEMPLATES[normalized]
+    return GeographyClarificationPrompt(
+        template_id=template_id,
+        reason_code=normalized,
+        question_text=question,
+        options=[*options, GeographyClarificationOption(option_id="cancel", label="Cancel")],
+    )
 
 
 # Define the templates for the clarification prompt

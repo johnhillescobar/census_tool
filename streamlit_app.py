@@ -112,6 +112,14 @@ def display_streamlit_results(result: dict[str, Any]):
 
     # Display answer type
     answer_type = final.get("type", "Unknown")
+    if final.get("clarification_type"):
+        st.warning(final.get("answer_text", "I need more information."))
+        st.caption(
+            f"Clarification: {final['clarification_type']} · "
+            f"Reason: {final.get('reason_code', 'unknown')} · "
+            f"Trace: {final.get('trace_id', 'n/a')}"
+        )
+        return
 
     # Create columns for better layout
     col1, col2 = st.columns([2, 1])

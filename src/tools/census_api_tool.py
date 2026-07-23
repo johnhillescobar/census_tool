@@ -6,6 +6,7 @@ from pydantic import ConfigDict
 
 from src.clients.census_api_utils import build_geo_filters, fetch_census_data
 from src.clients.telemetry import record_event
+from src.services.grounded_execution_context import validate_grounded_api_request
 from src.tools.json_parse import parse_first_json
 
 logger = logging.getLogger(__name__)
@@ -82,6 +83,27 @@ class CensusAPITool(BaseTool):
             geo_in_dict = _coerce_geo_dict(geo_in)
 
             logger.info(f"Original geo_for: {geo_for_dict}, geo_in: {geo_in_dict}")
+            guard_error = validate_grounded_api_request(
+                dataset=dataset,
+                year=year,
+                variables=variables if isinstance(variables, list) else [variables],
+                geo_for=geo_for_dict,
+                geo_in=geo_in_dict,
+                geo_in_chained=geo_in_chained,
+            )
+            if guard_error:
+                logger.error("Grounded execution guard rejected Census API call: %s", guard_error)
+                record_event(
+                    "grounded_api_guard",
+                    {"tool": self.name, "success": False, "error": guard_error},
+                )
+                return json.dumps(
+                    {
+                        "success": False,
+                        "error": f"Grounded plan guard rejected request: {guard_error}",
+                        "error_type": "grounded_plan_guard",
+                    }
+                )
 
             # Validate and auto-repair geography parameters
             geo_filters = build_geo_filters(

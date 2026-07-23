@@ -2,24 +2,28 @@
 
 from __future__ import annotations
 
-import uuid
-
-from app import create_census_graph
-from app_test_scripts.census_url_fixtures import build_row_result, load_golden_questions
-from src.services.graph_session import build_fresh_thread_state, runnable_config
+from app_test_scripts.census_url_fixtures import load_golden_questions
+from app_test_scripts.grounded_planning_fakes import FakeGroundedRetrieval
+from src.services.graph_session import build_fresh_thread_state
+from src.workflows.geography import geography_node
+from src.workflows.temporal import temporal_node
 
 ROW_3 = next(row for row in load_golden_questions() if row.row_no == 3)
 
 
-def test_row3_geography_blocked_offline(record_census_urls, tier3_results_collector):
-    """Documented P0: county+California friendly question hits geography gate with zero API calls."""
-    graph = create_census_graph()
-    config = runnable_config(user_id="golden-url-offline", thread_id=str(uuid.uuid4()))
-    final_state = graph.invoke(build_fresh_thread_state(ROW_3.question), config=config)
-
-    row_result = build_row_result(ROW_3, record_census_urls, final_state)
-    tier3_results_collector.append(row_result)
-
-    assert row_result.api_call_count == 0
-    assert row_result.composite == "blocked"
-    assert row_result.failure_class == "geography_blocked"
+def test_row3_geography_resolves_offline():
+    state = build_fresh_thread_state(ROW_3.question)
+    temporal = temporal_node(state, {})
+    state = state.model_copy(update={"plan": temporal["plan"]})
+    fake = FakeGroundedRetrieval()
+    result = geography_node(state, {}, dependencies=fake.dependencies())
+    plan = result["plan"]
+    geography = plan.resolved_geography_intent()
+    assert plan.requires_clarification is False
+    assert geography is not None
+    assert geography.geo_for == {"county": "*"}
+    assert geography.geo_in == {"state": "06"}
+    assert geography.source == "chroma"
+    assert plan.selected_table is not None
+    assert any(item.collection_name == "census_tables" for item in plan.retrieval_evidence)
+    assert ("geography", ("acs/acs5", 2023)) in fake.calls

@@ -52,7 +52,7 @@ def test_query2_resolves_us_default_and_six_year_plan():
     geo = coerce_geography_intent(final_state.get("geo"))
     assert geo is not None
     assert geo.geo_for == {"us": "1"}
-    assert geo.source == "missing_geo_default"
+    assert geo.source == "chroma"
 
     plan_context = build_agent_plan_context(plan)
     assert plan_context is not None

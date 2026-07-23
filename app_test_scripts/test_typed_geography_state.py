@@ -52,7 +52,7 @@ def test_geo_intent_to_dict_projects_json_for_memory_boundary():
         geo_for={"us": "1"},
         geo_in={},
         display_name="United States",
-        source="missing_geo_default",
+        source="chroma",
         requested_text="median income trends",
     )
     projected = geo_intent_to_dict(geo)

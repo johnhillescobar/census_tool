@@ -1,5 +1,5 @@
 import operator
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -42,6 +42,9 @@ class FinalResponseState(BaseModel):
     tables_needed: list[dict[str, Any]] = Field(default_factory=list)
     footnotes: list[str] = Field(default_factory=list)
     generated_files: list[RenderedArtifactSuccess | RenderedArtifactFailure] = Field(default_factory=list)
+    clarification_type: Literal["geography", "temporal", "benchmark"] | None = None
+    reason_code: str | None = None
+    trace_id: str | None = None
 
 
 class WorkflowArtifactsState(BaseModel):

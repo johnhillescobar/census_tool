@@ -27,7 +27,7 @@ def test_plan_directives_include_us_default_and_year_obligation():
             geo_for={"us": "1"},
             geo_in={},
             display_name="United States",
-            source="missing_geo_default",
+            source="chroma",
         ),
         temporal=TemporalIntent(
             mode="range",

@@ -8,6 +8,7 @@ from typing import Any
 from langchain_core.runnables import RunnableConfig
 
 from src.state.types import TURN_RESET_KEY, CensusState
+from src.state.workflow_plan import WorkflowPlan
 
 
 def new_thread_id() -> str:
@@ -24,15 +25,23 @@ def turn_reset_artifacts() -> dict[str, Any]:
     return {TURN_RESET_KEY: True}
 
 
-def build_delta_turn_state(user_message: str) -> CensusState:
+def build_delta_turn_state(
+    user_message: str,
+    *,
+    pending_plan: WorkflowPlan | None = None,
+) -> CensusState:
     """Checkpoint continuation: one new user message plus ephemeral turn reset."""
     return CensusState(
         messages=[{"role": "user", "content": user_message}],
-        original_query=user_message,
+        original_query=(
+            pending_plan.pending_geography_clarification.original_query
+            if pending_plan and pending_plan.pending_geography_clarification
+            else user_message
+        ),
         intent=None,
         geo=None,
         candidates={},
-        plan=None,
+        plan=pending_plan,
         artifacts=turn_reset_artifacts(),
         final=None,
         error=None,
@@ -98,4 +107,14 @@ def build_turn_state_for_thread(
 ) -> CensusState:
     """Build invoke input from checkpoint history, not local session counters."""
     is_first_turn = not thread_has_checkpoint(graph, config)
-    return build_turn_state(user_message, is_first_turn=is_first_turn)
+    if is_first_turn:
+        return build_fresh_thread_state(user_message)
+    snapshot = graph.get_state(config)
+    raw_plan = (snapshot.values or {}).get("plan") if snapshot else None
+    checkpoint_plan = WorkflowPlan.model_validate(raw_plan) if raw_plan else None
+    pending_plan = (
+        checkpoint_plan
+        if checkpoint_plan is not None and checkpoint_plan.pending_geography_clarification is not None
+        else None
+    )
+    return build_delta_turn_state(user_message, pending_plan=pending_plan)

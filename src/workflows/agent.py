@@ -12,6 +12,11 @@ from src.services.comparison_input_builder import (
     build_comparison_input_rows,
     extract_observations_from_census_data,
 )
+from src.services.grounded_execution_context import (
+    GroundedExecutionContext,
+    reset_grounded_execution_context,
+    set_grounded_execution_context,
+)
 from src.services.plan_result_validator import validate_agent_result_against_plan
 from src.state.types import CensusState, geo_intent_to_dict
 
@@ -53,11 +58,27 @@ def agent_reasoning_node(state: CensusState, config: RunnableConfig) -> dict[str
     )
 
     agent = CensusQueryAgent()
-    result = agent.solve(
-        user_query=user_question,
-        intent=intent,
-        plan_context=plan_context,
-    )
+    context_token = None
+    if state.plan and state.plan.grounded_plan is not None:
+        temporal = state.plan.resolved_temporal_intent()
+        allowed_years: list[int] = []
+        if temporal is not None:
+            if temporal.anchor_year is not None:
+                allowed_years = [temporal.anchor_year]
+            elif temporal.start_year is not None and temporal.end_year is not None:
+                allowed_years = list(range(temporal.start_year, temporal.end_year + 1))
+        context_token = set_grounded_execution_context(
+            GroundedExecutionContext(plan=state.plan.grounded_plan, allowed_years=allowed_years)
+        )
+    try:
+        result = agent.solve(
+            user_query=user_question,
+            intent=intent,
+            plan_context=plan_context,
+        )
+    finally:
+        if context_token is not None:
+            reset_grounded_execution_context(context_token)
 
     result = validate_agent_result_against_plan(result, plan_context)
 

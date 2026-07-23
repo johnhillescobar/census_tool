@@ -24,7 +24,23 @@ CHROMA_PERSIST_DIRECTORY = "./chroma"
 CHROMA_COLLECTION_NAME = "census_vars"
 CHROMA_TABLE_COLLECTION_NAME = "census_tables"
 CHROMA_GEOGRAPHY_HIERARCHY_COLLECTION_NAME = "census_geography_hierarchies"
+CHROMA_DATASET_GEOGRAPHIES_COLLECTION_NAME = "census_dataset_geographies"
+CHROMA_GEOGRAPHY_AREAS_COLLECTION_NAME = "census_geography_areas"
 CHROMA_EMBEDDING_MODEL = "text-embedding-3-large"
+CHROMA_CATALOG_SCHEMA_VERSION = "1.0"
+CHROMA_CATALOG_INDEX_VERSION = "1.0"
+CHROMA_RETRIEVAL_TOP_K = 12
+CHROMA_RETRIEVAL_MIN_SCORE = 0.4
+CHROMA_RETRIEVAL_AMBIGUITY_MARGIN = 0.05
+CHROMA_INDEX_MAX_AGE_SECONDS = 30 * 24 * 60 * 60
+
+# Short aliases for index tooling and compatibility with deployment configuration.
+CENSUS_CATALOG_SCHEMA_VERSION = CHROMA_CATALOG_SCHEMA_VERSION
+CENSUS_CATALOG_INDEX_VERSION = CHROMA_CATALOG_INDEX_VERSION
+CENSUS_GEOGRAPHY_TOP_K = CHROMA_RETRIEVAL_TOP_K
+CENSUS_GEOGRAPHY_MIN_SCORE = CHROMA_RETRIEVAL_MIN_SCORE
+CENSUS_GEOGRAPHY_AMBIGUITY_MARGIN = CHROMA_RETRIEVAL_AMBIGUITY_MARGIN
+CENSUS_GEOGRAPHY_INDEX_MAX_AGE_SECONDS = CHROMA_INDEX_MAX_AGE_SECONDS
 
 # Census Datasets Configuration
 DEFAULT_DATASETS = [
@@ -101,12 +117,6 @@ CENSUS_CATEGORIES = {
 #     ("dec/pl", [2020]),  # 2020
 # ]
 
-# Default Geography Settings
-DEFAULT_GEO = {
-    "level": "place",
-    "filters": {"for": "place:51000", "in": "state:36"},  # NYC
-}
-
 # File Format Settings
 DEFAULT_FILE_FORMAT = "csv"  # TODO: switch to parquet later for speed
 PREVIEW_ROWS = 5  # number of rows to keep in memory preview
@@ -118,16 +128,6 @@ MESSAGE_TRIM_COUNT = 8  # keep last N messages after summarization
 # Retrieval Settings
 RETRIEVAL_TOP_K = 12  # number of candidates to retrieve from Chroma
 CONFIDENCE_THRESHOLD = 0.4  # minimum confidence for automatic selection
-
-# Geography Code Mappings
-GEOGRAPHY_MAPPINGS = {
-    "nyc": {"level": "place", "filters": {"for": "place:51000", "in": "state:36"}},
-    "new_york_city": {
-        "level": "place",
-        "filters": {"for": "place:51000", "in": "state:36"},
-    },
-    "nation": {"level": "nation", "filters": {"for": "us:1"}},
-}
 
 # Supported Geography Levels
 SUPPORTED_GEO_LEVELS = {

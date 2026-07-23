@@ -33,6 +33,13 @@ def display_results(result: dict[str, Any]):
     answer_text = final.get("answer_text")
     if answer_text:
         print(f"\n[ANSWER] {answer_text}")
+    if final.get("clarification_type"):
+        print(
+            "[CLARIFICATION] "
+            f"type={final['clarification_type']} "
+            f"reason={final.get('reason_code', 'unknown')} "
+            f"trace={final.get('trace_id', 'n/a')}"
+        )
 
     # Display answer type (legacy format)
     answer_type = final.get("type", "Unknown")

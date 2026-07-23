@@ -56,9 +56,7 @@ def test_modern_backend_invoke_maps_message_trace_to_executor_result():
     action, observation = result.intermediate_steps[0]
     assert action.tool == "strict_census_api_call"
     assert observation == '{"success": true, "data": []}'
-    mock_agent.invoke.assert_called_once_with(
-        {"messages": [{"role": "user", "content": "User query: population"}]}
-    )
+    mock_agent.invoke.assert_called_once_with({"messages": [{"role": "user", "content": "User query: population"}]})
 
 
 def test_modern_backend_configures_call_limit_middleware():

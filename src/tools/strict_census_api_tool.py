@@ -18,6 +18,7 @@ from src.domain.census_tool_contract import (
     StrictCensusApiRequest,
     StrictCensusApiResponse,
 )
+from src.services.grounded_execution_context import validate_grounded_api_request
 
 logger = logging.getLogger(__name__)
 
@@ -101,6 +102,25 @@ class StrictCensusApiTool(BaseTool):
                 request=None,
                 error_code="INVALID_INPUT_SCHEMA",
                 error_message=str(exc),
+            )
+
+        guard_error = validate_grounded_api_request(
+            dataset=request_obj.dataset,
+            year=request_obj.year,
+            variables=request_obj.variables,
+            geo_for=request_obj.geo_for,
+            geo_in=request_obj.geo_in,
+            geo_in_chained=request_obj.geo_in_chained,
+        )
+        if guard_error:
+            record_event(
+                "grounded_api_guard",
+                {"tool": self.name, "success": False, "error": guard_error},
+            )
+            return self._error_response(
+                request=request_obj,
+                error_code="GROUNDED_PLAN_GUARD_REJECTED",
+                error_message=guard_error,
             )
 
         # 2) Build geo filters with strict hierarchy validation

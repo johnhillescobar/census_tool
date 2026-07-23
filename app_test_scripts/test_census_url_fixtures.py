@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+import pytest
+
 from app_test_scripts.census_url_fixtures import (
     UrlAttempt,
     build_row_result,
     compare_census_urls,
+    geography_plan_from_url,
     load_golden_questions,
     normalize_for_compare,
     parse_census_url,
@@ -14,9 +17,9 @@ from app_test_scripts.census_url_fixtures import (
 )
 
 
-def test_load_golden_questions_has_seventy_rows():
+def test_load_golden_questions_has_124_rows():
     rows = load_golden_questions()
-    assert len(rows) == 70
+    assert len(rows) == 124
     assert rows[2].row_no == 3
     assert "California counties" in rows[2].question
 
@@ -31,6 +34,66 @@ def test_parse_row3_county_california_url():
     assert "B01001_001E" in parts.get_vars
 
 
+@pytest.mark.parametrize(
+    ("row_no", "expected_for", "expected_in"),
+    [
+        (7, (("zip code tabulation area", "60601"),), ()),
+        (11, (("metropolitan statistical area/micropolitan statistical area", "*"),), ()),
+        (
+            17,
+            (("state (or part)", "*"),),
+            (("metropolitan statistical area/micropolitan statistical area", "35620"),),
+        ),
+        (
+            20,
+            (("block group", "*"),),
+            (("state", "36"), ("county", "061"), ("tract", "003100")),
+        ),
+        (
+            23,
+            (("tribal census tract", "*"),),
+            (("american indian area/alaska native area/hawaiian home land", "3000"),),
+        ),
+        (
+            80,
+            (("county (or part)", "*"),),
+            (("state", "06"), ("place", "44000")),
+        ),
+        (
+            98,
+            (("tribal block group (or part)", "*"),),
+            (
+                (
+                    "american indian area/alaska native area (reservation or statistical entity only)",
+                    "2555R",
+                ),
+                ("tribal census tract (or part)", "T00500"),
+            ),
+        ),
+        (
+            103,
+            (("county", "*"),),
+            (
+                ("metropolitan statistical area/micropolitan statistical area", "31080"),
+                ("metropolitan division", "31084"),
+                ("state (or part)", "06"),
+            ),
+        ),
+        (120, (("zip code tabulation area", "*"),), ()),
+    ],
+)
+def test_golden_geography_plan_oracle(
+    row_no: int,
+    expected_for: tuple[tuple[str, str], ...],
+    expected_in: tuple[tuple[str, str], ...],
+):
+    row = next(row for row in load_golden_questions() if row.row_no == row_no)
+    plan = geography_plan_from_url(row.expected_url)
+    assert plan is not None
+    assert plan.geo_for == expected_for
+    assert plan.geo_in == expected_in
+
+
 def test_parse_catalog_url():
     row = load_golden_questions()[8]
     parts = parse_census_url(row.expected_url)
@@ -39,10 +102,7 @@ def test_parse_catalog_url():
 
 
 def test_normalize_strips_api_key():
-    url = (
-        "https://api.census.gov/data/2023/acs/acs5?"
-        "get=NAME,B01001_001E&for=county:*&in=state:06&key=secret"
-    )
+    url = "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=county:*&in=state:06&key=secret"
     parts = normalize_for_compare(url)
     assert parts.geo_in == (("state", "06"),)
 

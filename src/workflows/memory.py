@@ -120,7 +120,7 @@ def memory_write_node(state: CensusState, config: RunnableConfig) -> dict[str, A
             history.append(history_record)
 
         # 2. Update profile with latest intent and geo
-        updated_profile = update_profile(profile, intent, geo, final)
+        updated_profile = update_profile(profile, intent, geo, final, plan)
 
         # 3. Save profile and history
         profile_file = memory_dir / f"user_{user_id}.json"

@@ -89,6 +89,23 @@ def _summarize_plan(plan: WorkflowPlan | dict[str, Any] | None) -> str:
     return ""
 
 
+def _safe_grounded_geography(
+    geo: dict[str, Any],
+    plan: WorkflowPlan | dict[str, Any] | None,
+) -> dict[str, Any]:
+    """Persist display text and grounded Chroma IDs, never executable filters."""
+    display_name = geo.get("display_name")
+    if not isinstance(display_name, str) or not display_name.strip():
+        return {}
+    candidate_ids: list[str] = []
+    if isinstance(plan, WorkflowPlan) and plan.grounded_plan and plan.grounded_plan.geography:
+        grounded = plan.grounded_plan.geography
+        candidate_ids = [grounded.hierarchy_candidate_id, *grounded.area_candidate_ids]
+    if not candidate_ids:
+        return {"display_name": display_name}
+    return {"candidate_ids": candidate_ids, "display_name": display_name}
+
+
 def build_history_record(
     messages: list[dict],
     final: dict[str, Any],
@@ -113,7 +130,7 @@ def build_history_record(
         "user_id": user_id,
         "question": user_question,
         "intent": intent,
-        "geo": geo,
+        "geo": _safe_grounded_geography(geo, plan),
         "plan_summary": plan_summary,
         "answer_type": final.get("type", "Unknown"),
         "success": "error" not in final,
@@ -125,17 +142,23 @@ def update_profile(
     intent: dict[str, Any],
     geo: dict[str, Any],
     final: dict[str, Any],
+    plan: WorkflowPlan | dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Update the profile with new information"""
 
     updated_profile = profile.copy()
+    legacy_default = updated_profile.get("default_geo")
+    if isinstance(legacy_default, dict):
+        display = legacy_default.get("display_name") or legacy_default.get("note") or legacy_default.get("name")
+        updated_profile["default_geo"] = {"display_name": display} if isinstance(display, str) and display else {}
 
     # Update default geography if this was successful
     if final and "error" not in final and geo:
-        geo_name = geo.get("display_name", "Unknown")
+        safe_geo = _safe_grounded_geography(geo, plan)
+        geo_name = safe_geo.get("display_name")
 
         if geo_name:
-            updated_profile["default_geo"] = geo
+            updated_profile["default_geo"] = safe_geo
             updated_profile["last_geo"] = geo_name
 
     # Update preferred dataset if user specific terms
