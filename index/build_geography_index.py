@@ -1,5 +1,9 @@
 """
-Build the census_geography_hierarchies Chroma collection from Census example tables.
+Build the census_dataset_geographies Chroma collection from Census geography.html pages.
+
+The orchestrated / preferred path delete/recreates census_dataset_geographies only.
+Legacy census_geography_hierarchies upsert remains in this module for debugging but is
+not called by rebuild_catalog or the default CLI path (retired in Phase D).
 """
 
 from __future__ import annotations
@@ -11,16 +15,19 @@ import logging
 import os
 import sys
 from collections import defaultdict
-from collections.abc import Iterable
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 from time import monotonic
+from typing import Any, cast
+from urllib.parse import urlparse
 
 import chromadb
 import requests
 from bs4 import BeautifulSoup, Tag
 from chromadb.api import ClientAPI
+from chromadb.api.types import Metadata
 from chromadb.config import Settings
 from chromadb.utils.embedding_functions import OpenAIEmbeddingFunction
 from dotenv import load_dotenv
@@ -29,6 +36,7 @@ from dotenv import load_dotenv
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from config import (
+    CATALOG_YEAR_START,
     CENSUS_CATALOG_INDEX_VERSION,
     CENSUS_CATALOG_SCHEMA_VERSION,
     CHROMA_DATASET_GEOGRAPHIES_COLLECTION_NAME,
@@ -36,6 +44,7 @@ from config import (
     CHROMA_GEOGRAPHY_HIERARCHY_COLLECTION_NAME,
     CHROMA_PERSIST_DIRECTORY,
     DEFAULT_DATASETS,
+    LATEST_AVAILABLE_YEAR,
 )
 from src.domain.geography_catalog import IndexManifest
 
@@ -88,6 +97,23 @@ def build_logger(log_dir: Path) -> logging.Logger:
     return logger
 
 
+def datasets_for_year_range(
+    datasets: Sequence[tuple[str, Iterable[int]]] | None = None,
+    *,
+    year_start: int,
+    year_end: int,
+) -> list[tuple[str, list[int]]]:
+    """Intersect configured dataset years with the catalog year window."""
+    if year_end < year_start:
+        raise ValueError("year_end must be >= year_start")
+    selected: list[tuple[str, list[int]]] = []
+    for dataset, years in datasets or DEFAULT_DATASETS:
+        filtered = sorted({int(year) for year in years if year_start <= int(year) <= year_end})
+        if filtered:
+            selected.append((dataset, filtered))
+    return selected
+
+
 def iter_source_pages(
     datasets: Iterable[tuple[str, Iterable[int]]],
 ) -> Iterable[tuple[str, str, int, str]]:
@@ -114,30 +140,36 @@ def iter_example_pages(
 
 def extract_cell_text(cell: Tag, base_url: str) -> str:
     link = cell.find("a", href=True)
-    if link and link["href"].strip():
-        href = link["href"].strip()
-        if href.startswith(("http://", "https://")):
-            return href
-        return f"https://{requests.utils.urlparse(base_url).netloc}{href}"
+    if isinstance(link, Tag):
+        href_value = link.get("href")
+        href = href_value.strip() if isinstance(href_value, str) else ""
+        if href:
+            if href.startswith(("http://", "https://")):
+                return href
+            return f"https://{urlparse(base_url).netloc}{href}"
     code = cell.find("code")
-    if code:
+    if isinstance(code, Tag):
         return code.get_text(" ", strip=True)
     return cell.get_text(" ", strip=True)
 
 
 def parse_table(category: str, dataset: str, year: int, table: Tag, base_url: str) -> list[ExampleRow]:
-    rows = table.find_all("tr")
+    rows = [row for row in table.find_all("tr") if isinstance(row, Tag)]
     if not rows:
         return []
 
-    headers = [cell.get_text(" ", strip=True).lower() for cell in rows[0].find_all(["th", "td"])]
+    headers = [cell.get_text(" ", strip=True).lower() for cell in rows[0].find_all(["th", "td"]) if isinstance(cell, Tag)]
     notes: list[str] = []
     parsed_rows: list[ExampleRow] = []
 
     current_hierarchy = ""
     current_level = ""
     for row in rows[1:]:
-        cells = [extract_cell_text(cell, base_url) for cell in row.find_all(["th", "td"]) if cell.get_text(strip=True)]
+        cells = [
+            extract_cell_text(cell, base_url)
+            for cell in row.find_all(["th", "td"])
+            if isinstance(cell, Tag) and cell.get_text(strip=True)
+        ]
         if not cells:
             continue
         if len(cells) == 1 and len(headers) > 1:
@@ -188,13 +220,13 @@ def parse_geography_table(
     table: Tag,
     source_url: str,
 ) -> list[GeographyRow]:
-    rows = table.find_all("tr")
+    rows = [row for row in table.find_all("tr") if isinstance(row, Tag)]
     if not rows:
         return []
-    headers = [cell.get_text(" ", strip=True).lower() for cell in rows[0].find_all(["th", "td"])]
+    headers = [cell.get_text(" ", strip=True).lower() for cell in rows[0].find_all(["th", "td"]) if isinstance(cell, Tag)]
     parsed: list[GeographyRow] = []
     for row in rows[1:]:
-        values = [cell.get_text(" ", strip=True) for cell in row.find_all(["th", "td"])]
+        values = [cell.get_text(" ", strip=True) for cell in row.find_all(["th", "td"]) if isinstance(cell, Tag)]
         if not any(values):
             continue
         record = dict(zip(headers, values))
@@ -233,7 +265,8 @@ def fetch_examples(category: str, dataset: str, year: int, url: str, logger: log
 
     rows: list[ExampleRow] = []
     for table in tables:
-        rows.extend(parse_table(category, dataset, year, table, url))
+        if isinstance(table, Tag):
+            rows.extend(parse_table(category, dataset, year, table, url))
 
     logger.info(
         "FETCH_SUCCESS category=%s year=%s count=%s duration=%.2fs",
@@ -257,7 +290,12 @@ def fetch_geographies(
     response = requests.get(url, timeout=30)
     response.raise_for_status()
     soup = BeautifulSoup(response.text, "html.parser")
-    rows = [item for table in soup.find_all("table") for item in parse_geography_table(category, dataset, year, table, url)]
+    rows = [
+        item
+        for table in soup.find_all("table")
+        if isinstance(table, Tag)
+        for item in parse_geography_table(category, dataset, year, table, url)
+    ]
     if not rows:
         raise RuntimeError("no authoritative geography rows found")
     logger.info(
@@ -338,7 +376,7 @@ def build_document(hierarchy: str, ordering: list[str], level_code: str, example
     )
 
 
-def build_metadata(dataset: str, year: int, hierarchy: str, level_code: str, examples: list[str]) -> dict[str, object]:
+def build_metadata(dataset: str, year: int, hierarchy: str, level_code: str, examples: list[str]) -> Metadata:
     parts = hierarchy_tokens(hierarchy)
     for_level = parts[-1] if parts else ""
     candidate_id = stable_geography_id(dataset, year, hierarchy, for_level)
@@ -382,16 +420,17 @@ def _create_embedding_function():
 
 
 def upsert_documents(client: ClientAPI, docs: dict[tuple[str, int, str], dict]) -> None:
+    """Legacy writer for census_geography_hierarchies. Not used by the orchestrator path."""
     embedding_function = _create_embedding_function()
     collection = client.get_or_create_collection(
         CHROMA_GEOGRAPHY_HIERARCHY_COLLECTION_NAME,
         metadata={"description": "Census geography hierarchy ordering examples"},
-        embedding_function=embedding_function,
+        embedding_function=cast(Any, embedding_function),
     )
 
     ids: list[str] = []
     documents: list[str] = []
-    metadatas: list[dict[str, object]] = []
+    metadatas: list[Metadata] = []
 
     for (dataset, year, hierarchy), payload in docs.items():
         hierarchy_parts = [part.strip() for part in hierarchy.split("›") if part.strip()]
@@ -399,44 +438,48 @@ def upsert_documents(client: ClientAPI, docs: dict[tuple[str, int, str], dict]) 
         ids.append(doc_id)
 
         ordering_parts = hierarchy_parts
-        canonical_example = payload["examples"][0] if payload["examples"] else ""
+        examples = payload["examples"]
+        canonical_example = examples[0] if isinstance(examples, list) and examples else ""
 
         documents.append(
             build_document(
-                hierarchy=payload["hierarchy"],
+                hierarchy=str(payload["hierarchy"]),
                 ordering=ordering_parts[:-1],
-                level_code=payload["level_code"],
-                example_url=canonical_example,
+                level_code=str(payload["level_code"]),
+                example_url=str(canonical_example),
             )
         )
         metadatas.append(
             build_metadata(
-                dataset=payload["dataset"],
-                year=payload["year"],
-                hierarchy=payload["hierarchy"],
-                level_code=payload["level_code"],
-                examples=payload["examples"],
+                dataset=str(payload["dataset"]),
+                year=int(str(payload["year"])),
+                hierarchy=str(payload["hierarchy"]),
+                level_code=str(payload["level_code"]),
+                examples=[str(item) for item in examples] if isinstance(examples, list) else [],
             )
         )
 
     collection.upsert(ids=ids, documents=documents, metadatas=metadatas)
 
 
-def _geography_level_metadata(payload: dict[str, object]) -> dict[str, object]:
+def _geography_level_metadata(payload: dict[str, object]) -> Metadata:
     hierarchy = str(payload["hierarchy"])
     parents = hierarchy_tokens(hierarchy)[:-1]
+    aliases = payload.get("aliases")
+    example_urls = payload.get("example_urls")
     return {
         "candidate_id": str(payload["candidate_id"]),
         "dataset": str(payload["dataset"]),
         "table_category": str(payload["category"]),
-        "year": int(payload["year"]),
+        "year": int(str(payload["year"])),
+        "display_name": hierarchy,
         "geography_hierarchy": hierarchy,
         "summary_level": str(payload["summary_level"]),
         "census_token": str(payload["census_token"]),
         "friendly_level": str(payload["friendly_level"]),
         "parent_census_tokens": json.dumps(parents),
-        "aliases": json.dumps(payload["aliases"]),
-        "example_urls": json.dumps(payload["example_urls"]),
+        "aliases": json.dumps(aliases if isinstance(aliases, list) else []),
+        "example_urls": json.dumps(example_urls if isinstance(example_urls, list) else []),
         "source_url": str(payload["source_url"]),
         "provenance": "census_geography",
         "examples_provenance": "census_examples",
@@ -445,26 +488,62 @@ def _geography_level_metadata(payload: dict[str, object]) -> dict[str, object]:
     }
 
 
-def upsert_geography_levels(
+def ensure_dataset_geographies_collection(
     client: ClientAPI,
-    docs: dict[str, dict[str, object]],
     *,
-    batch_size: int = 500,
-) -> int:
-    if batch_size < 1:
-        raise ValueError("batch_size must be at least 1")
-    collection = client.get_or_create_collection(
+    delete_existing: bool = True,
+    embedding_function: object | None = None,
+):
+    """Create census_dataset_geographies; optionally delete first for clean rebuilds."""
+    embedder = cast(Any, embedding_function or _create_embedding_function())
+    if delete_existing:
+        try:
+            client.get_collection(CHROMA_DATASET_GEOGRAPHIES_COLLECTION_NAME)
+            client.delete_collection(CHROMA_DATASET_GEOGRAPHIES_COLLECTION_NAME)
+            LOGGER.info("Deleted existing collection: %s", CHROMA_DATASET_GEOGRAPHIES_COLLECTION_NAME)
+        except Exception:
+            LOGGER.info("No existing %s collection to delete", CHROMA_DATASET_GEOGRAPHIES_COLLECTION_NAME)
+        return client.create_collection(
+            name=CHROMA_DATASET_GEOGRAPHIES_COLLECTION_NAME,
+            metadata={
+                "description": "Authoritative Census dataset geography levels",
+                "hnsw:space": "cosine",
+                "schema_version": CENSUS_CATALOG_SCHEMA_VERSION,
+                "index_version": CENSUS_CATALOG_INDEX_VERSION,
+                "built_at": datetime.now(UTC).isoformat(),
+            },
+            embedding_function=embedder,
+        )
+    return client.get_or_create_collection(
         CHROMA_DATASET_GEOGRAPHIES_COLLECTION_NAME,
         metadata={
             "description": "Authoritative Census dataset geography levels",
             "schema_version": CENSUS_CATALOG_SCHEMA_VERSION,
             "index_version": CENSUS_CATALOG_INDEX_VERSION,
         },
-        embedding_function=_create_embedding_function(),
+        embedding_function=embedder,
+    )
+
+
+def upsert_geography_levels(
+    client: ClientAPI,
+    docs: dict[str, dict[str, object]],
+    *,
+    batch_size: int = 500,
+    delete_existing: bool = True,
+    embedding_function: object | None = None,
+) -> int:
+    if batch_size < 1:
+        raise ValueError("batch_size must be at least 1")
+    collection = ensure_dataset_geographies_collection(
+        client,
+        delete_existing=delete_existing,
+        embedding_function=embedding_function,
     )
     items = sorted(docs.items())
     for start in range(0, len(items), batch_size):
         batch = items[start : start + batch_size]
+        metadatas: list[Metadata] = [_geography_level_metadata(payload) for _, payload in batch]
         collection.upsert(
             ids=[candidate_id for candidate_id, _ in batch],
             documents=[
@@ -472,11 +551,11 @@ def upsert_geography_levels(
                     hierarchy=str(payload["hierarchy"]),
                     ordering=hierarchy_tokens(str(payload["hierarchy"]))[:-1],
                     level_code=str(payload["summary_level"]),
-                    example_url=next(iter(payload["example_urls"]), ""),
+                    example_url=str(next(iter(cast(list[object], payload.get("example_urls") or [])), "")),
                 )
                 for _, payload in batch
             ],
-            metadatas=[_geography_level_metadata(payload) for _, payload in batch],
+            metadatas=metadatas,
         )
     return len(items)
 
@@ -493,12 +572,80 @@ def write_manifest(
         index_version=CENSUS_CATALOG_INDEX_VERSION,
         document_count=document_count,
         datasets=sorted({str(payload["dataset"]) for payload in docs.values()}),
-        years=sorted({int(payload["year"]) for payload in docs.values()}),
+        years=sorted({int(str(payload["year"])) for payload in docs.values()}),
         source_urls=sorted({str(payload["source_url"]) for payload in docs.values()}),
     )
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(manifest.model_dump_json(indent=2), encoding="utf-8")
     return manifest
+
+
+def build_dataset_geographies_index(
+    persist_dir: str | Path,
+    *,
+    year_start: int = CATALOG_YEAR_START,
+    year_end: int = LATEST_AVAILABLE_YEAR,
+    delete_existing: bool = True,
+    manifest_path: Path | None = None,
+    datasets: Sequence[tuple[str, Iterable[int]]] | None = None,
+    client: ClientAPI | None = None,
+    embedding_function: object | None = None,
+    logger: logging.Logger | None = None,
+) -> int:
+    """Fetch, delete/recreate, and index census_dataset_geographies for a year window."""
+    log = logger or LOGGER
+    persist = Path(persist_dir)
+    persist.mkdir(parents=True, exist_ok=True)
+    selected = datasets_for_year_range(datasets, year_start=year_start, year_end=year_end)
+    if not selected:
+        raise ValueError(f"no dataset/year partitions in range {year_start}-{year_end}")
+
+    resolved_client = client or chromadb.PersistentClient(
+        path=str(persist),
+        settings=Settings(anonymized_telemetry=False),
+    )
+
+    geography_rows: list[GeographyRow] = []
+    for category, dataset, year, url in iter_source_pages(selected):
+        try:
+            geography_rows.extend(fetch_geographies(category, dataset, year, url, log))
+        except Exception as exc:
+            log.error(
+                "FETCH_FAILURE category=%s year=%s url=%s error=%s",
+                category,
+                year,
+                url,
+                exc,
+            )
+
+    if not geography_rows:
+        raise RuntimeError("no authoritative geography rows fetched; refusing empty index")
+
+    example_rows: list[ExampleRow] = []
+    for category, dataset, year, url in iter_example_pages(selected):
+        try:
+            example_rows.extend(fetch_examples(category, dataset, year, url, log))
+        except Exception as exc:
+            log.warning(
+                "EXAMPLES_FETCH_FAILURE category=%s year=%s url=%s error=%s",
+                category,
+                year,
+                url,
+                exc,
+            )
+
+    docs = summarize_geography_levels(geography_rows, example_rows)
+    log.info("UPSERT_START docs=%s years=%s-%s", len(docs), year_start, year_end)
+    count = upsert_geography_levels(
+        resolved_client,
+        docs,
+        delete_existing=delete_existing,
+        embedding_function=embedding_function,
+    )
+    target_manifest = manifest_path or (persist / f"{CHROMA_DATASET_GEOGRAPHIES_COLLECTION_NAME}.manifest.json")
+    write_manifest(target_manifest, document_count=count, docs=docs)
+    log.info("UPSERT_DONE docs=%s manifest=%s", count, target_manifest)
+    return count
 
 
 def main() -> None:
@@ -508,48 +655,32 @@ def main() -> None:
     parser.add_argument(
         "--manifest",
         type=Path,
-        default=Path(CHROMA_PERSIST_DIRECTORY) / f"{CHROMA_DATASET_GEOGRAPHIES_COLLECTION_NAME}.manifest.json",
+        default=None,
+        help="Manifest path (default: <persist-dir>/census_dataset_geographies.manifest.json)",
+    )
+    parser.add_argument("--year-start", type=int, default=CATALOG_YEAR_START)
+    parser.add_argument("--year-end", type=int, default=LATEST_AVAILABLE_YEAR)
+    parser.add_argument(
+        "--delete-existing",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Delete/recreate census_dataset_geographies before upsert (default: true).",
     )
     args = parser.parse_args()
 
+    if args.year_end < args.year_start:
+        raise SystemExit("--year-end must be >= --year-start")
+
     logger = build_logger(args.log_dir)
-
-    client = chromadb.PersistentClient(
-        path=str(args.persist_dir),
-        settings=Settings(anonymized_telemetry=False),
+    manifest = args.manifest or (args.persist_dir / f"{CHROMA_DATASET_GEOGRAPHIES_COLLECTION_NAME}.manifest.json")
+    build_dataset_geographies_index(
+        args.persist_dir,
+        year_start=args.year_start,
+        year_end=args.year_end,
+        delete_existing=args.delete_existing,
+        manifest_path=manifest,
+        logger=logger,
     )
-
-    geography_rows: list[GeographyRow] = []
-    for category, dataset, year, url in iter_source_pages(DEFAULT_DATASETS):
-        try:
-            geography_rows.extend(fetch_geographies(category, dataset, year, url, logger))
-        except Exception as exc:
-            logger.error(
-                "FETCH_FAILURE category=%s year=%s url=%s error=%s",
-                category,
-                year,
-                url,
-                exc,
-            )
-
-    example_rows: list[ExampleRow] = []
-    for category, dataset, year, url in iter_example_pages(DEFAULT_DATASETS):
-        try:
-            example_rows.extend(fetch_examples(category, dataset, year, url, logger))
-        except Exception as exc:
-            logger.warning(
-                "EXAMPLES_FETCH_FAILURE category=%s year=%s url=%s error=%s",
-                category,
-                year,
-                url,
-                exc,
-            )
-
-    docs = summarize_geography_levels(geography_rows, example_rows)
-    logger.info("UPSERT_START docs=%s", len(docs))
-    count = upsert_geography_levels(client, docs)
-    write_manifest(args.manifest, document_count=count, docs=docs)
-    logger.info("UPSERT_DONE docs=%s manifest=%s", count, args.manifest)
 
 
 if __name__ == "__main__":

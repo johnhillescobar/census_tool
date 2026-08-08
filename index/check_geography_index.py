@@ -1,4 +1,4 @@
-"""Offline health checks for the build-time Census geography collections."""
+"""Offline health checks for the active Census Chroma catalog collections."""
 
 from __future__ import annotations
 
@@ -23,10 +23,18 @@ from config import (
     CHROMA_DATASET_GEOGRAPHIES_COLLECTION_NAME,
     CHROMA_GEOGRAPHY_AREAS_COLLECTION_NAME,
     CHROMA_PERSIST_DIRECTORY,
+    CHROMA_TABLE_COLLECTION_NAME,
 )
 from src.domain.geography_catalog import IndexManifest
 
+# Geography-only default kept for backward-compatible CLI/tests.
 DEFAULT_COLLECTIONS = (
+    CHROMA_DATASET_GEOGRAPHIES_COLLECTION_NAME,
+    CHROMA_GEOGRAPHY_AREAS_COLLECTION_NAME,
+)
+
+ACTIVE_CATALOG_COLLECTIONS = (
+    CHROMA_TABLE_COLLECTION_NAME,
     CHROMA_DATASET_GEOGRAPHIES_COLLECTION_NAME,
     CHROMA_GEOGRAPHY_AREAS_COLLECTION_NAME,
 )
@@ -89,9 +97,19 @@ def check_index_health(
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Check local Census geography Chroma indexes.")
+    parser = argparse.ArgumentParser(description="Check local Census Chroma catalog indexes.")
     parser.add_argument("--persist-dir", type=Path, default=Path(CHROMA_PERSIST_DIRECTORY))
-    parser.add_argument("--collection", action="append", choices=DEFAULT_COLLECTIONS)
+    parser.add_argument(
+        "--collection",
+        action="append",
+        choices=ACTIVE_CATALOG_COLLECTIONS,
+        help="Repeatable. Default without --all: geography collections only.",
+    )
+    parser.add_argument(
+        "--all",
+        action="store_true",
+        help="Check all active catalog collections (tables + geography).",
+    )
     parser.add_argument("--max-age-seconds", type=int, default=CENSUS_GEOGRAPHY_INDEX_MAX_AGE_SECONDS)
     args = parser.parse_args()
 
@@ -99,7 +117,12 @@ def main() -> None:
         path=str(args.persist_dir),
         settings=Settings(anonymized_telemetry=False),
     )
-    collections = args.collection or list(DEFAULT_COLLECTIONS)
+    if args.collection:
+        collections = args.collection
+    elif args.all:
+        collections = list(ACTIVE_CATALOG_COLLECTIONS)
+    else:
+        collections = list(DEFAULT_COLLECTIONS)
     results = [
         check_index_health(
             client,

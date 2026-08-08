@@ -11,22 +11,37 @@ If you see `TABLE_SCHEMA_MISMATCH` / legacy bare table ids (`B01003` without `ta
 - Run from the repository root.
 - `.env` loaded (or set keys manually):
   - `OPENAI_API_KEY` — required when the graph hits Chroma semantic retrieval
+  - Chroma collections expect `CHROMA_OPENAI_API_KEY`; the debug script bridges from `OPENAI_API_KEY` if unset
   - `CENSUS_API_KEY` — only needed for graph runs that reach Census API execution
-- Default planning year when the question omits a year: `LATEST_AVAILABLE_YEAR` in [`config.py`](../../config.py) (currently **2024** after the 2024 Chroma catalog update)
+- Default planning year when the question omits a year: `LATEST_AVAILABLE_YEAR` in [`config.py`](../config.py) (currently **2024** after the 2024 Chroma catalog update)
 
 ## Primary tool: `scripts/debug_geography_query.py`
 
-The script streams LangGraph node updates for one question and prints JSON patches. **Supported flags only:**
+Supports **table index inspection** (Chroma-only) and **LangGraph stream debug** (legacy planner path today).
 
-| Flag | Purpose |
-|------|---------|
-| `--question "..."` | Natural-language question (mutually exclusive with `--golden-row`) |
-| `--golden-row N` | Question from golden URL fixtures |
-| `--stop-after NODE` | Stop after the named node emits an update (e.g. `geography`) |
-| `--thread-id ID` | Checkpoint thread id (default: `vscode-geography-debug`) |
-| `--show-candidates` | Include retrieval `candidates` in printed JSON (omitted by default) |
+### Table index only (no LangGraph)
 
-### Golden row 3 (California counties population)
+Fastest way to diagnose `TABLE_SCHEMA_MISMATCH` before geography runs:
+
+```powershell
+uv run python scripts/debug_geography_query.py --inspect-only --table-query "total population"
+```
+
+Golden row 3 (California counties population), with year aligned to the question:
+
+```powershell
+uv run python scripts/debug_geography_query.py --inspect-only --golden-row 3 --planning-year 2023
+```
+
+### Inspect tables, then run the graph
+
+```powershell
+uv run python scripts/debug_geography_query.py --inspect-tables --golden-row 3 --show-candidates
+```
+
+### Graph stream debug
+
+Golden row 3:
 
 ```powershell
 uv run python scripts/debug_geography_query.py --golden-row 3 --show-candidates
@@ -38,67 +53,84 @@ Stop after the legacy geography planner node:
 uv run python scripts/debug_geography_query.py --golden-row 3 --stop-after geography --show-candidates
 ```
 
-### Custom question
+Custom question:
 
 ```powershell
 uv run python scripts/debug_geography_query.py --question "Show total population for all California counties in 2023." --show-candidates
 ```
 
-### Output format
+### Flags
 
-The script prints:
+| Flag | Purpose |
+|------|---------|
+| `--inspect-only` | Table Chroma diagnostics only; exit without graph |
+| `--inspect-tables` | Run diagnostics, then continue to LangGraph |
+| `--table-query "..."` | Override table search text (default: analyzer output from question) |
+| `--planning-year 2023` | Year filter for table retrieval inspection (default: `LATEST_AVAILABLE_YEAR`) |
+| `--peek-limit 5` | Rows sampled via `collection.peek()` |
+| `--question "..."` | Natural-language question (mutually exclusive with `--golden-row`) |
+| `--golden-row N` | Question from golden URL fixtures |
+| `--stop-after NODE` | Stop after the named node emits an update (e.g. `geography`) |
+| `--thread-id ID` | Checkpoint thread id (default: `vscode-geography-debug`) |
+| `--show-candidates` | Include retrieval `candidates` in graph JSON output |
+
+### Graph output format
 
 1. `question='...'` and `checkpoint=...` (temp SQLite path)
 2. For each node update: `[node_name]` followed by indented JSON from `graph.stream(..., stream_mode="updates")`
 
-Use `--show-candidates` to inspect `RetrievalEvidence.candidates` inside geography/table patches. Without it, large candidate lists are stripped for readability.
+Use `--show-candidates` to inspect `RetrievalEvidence.candidates` inside geography/table patches.
 
-## Table schema mismatches (no separate inspect mode)
+## What the inspection prints
 
-`debug_geography_query.py` does **not** implement `--inspect-only`, `--inspect-tables`, `--table-query`, `--planning-year`, or `--peek-limit`. For table index health:
+Four sections, in order:
 
-1. **Rebuild tables** — runbook Step 1 / orchestrator command above
-2. **Check geography collections** (not `census_tables`):
+1. **`[collection metadata]`** — `schema_version`, `index_version`, `built_at`, document count
+2. **`[chroma query: parse + embed]`** — `query_table_collection` result; **`reason`** is the smoking gun
+3. **`[grounded table retrieval: app path with year filter]`** — same path as legacy `geography_node` (`retrieve_table_candidates`)
+4. **`[peek sample]`** — raw stored rows without embedding
+
+## Interpreting common failures
+
+### Collection metadata OK, query `schema_mismatch`
+
+Old `census_tables` rows use ids like `B17015` and omit catalog contract fields. Fix: rebuild tables per runbook; expected id shape: `table:acs/acs5:B01003`.
+
+### Graph shows `GEOGRAPHY_NOT_FOUND` but trace says table failure
+
+Trust `retrieval_trace` → `TABLE_RETRIEVAL` and `pending_geography_clarification.requested_slot='table'`.
+
+### `planning_year` mismatch
+
+Golden row 3 asks for **2023**; unstated-year defaults use `LATEST_AVAILABLE_YEAR` (**2024**). Use `--planning-year 2023` for inspection or verify temporal resolution in the `[temporal]` patch.
+
+## Geography index health (separate from tables)
 
 ```powershell
 uv run python index/check_geography_index.py --persist-dir chroma
 ```
 
-3. **Re-run graph debug** with `--show-candidates` and inspect `[geography]` patch for `retrieval_trace`, `reason_code`, and `pending_geography_clarification`
+## Decision tree
 
-### Interpreting common failures in graph output
-
-**`TABLE_SCHEMA_MISMATCH` / old Chroma ids**
-
-- Symptom in trace: `reason_code=TABLE_SCHEMA_MISMATCH` or parse errors mentioning `candidate_id`
-- Cause: Old `census_tables` rows use bare ids like `B17015` without catalog contract metadata
-- Fix: Rebuild tables per runbook; expected id shape: `table:acs/acs5:B01003`
-
-**`GEOGRAPHY_NOT_FOUND` when trace says table failed first**
-
-- `normalize_geography_reason()` may map table failures to geography-not-found copy
-- Trust `retrieval_trace` → `TABLE_RETRIEVAL` and `pending_geography_clarification.requested_slot='table'`
-
-**Year mismatch (question says 2023, default catalog year is `LATEST_AVAILABLE_YEAR`)**
-
-- Golden row 3 asks for **2023**; unstated-year defaults use `config.LATEST_AVAILABLE_YEAR` (**2024**)
-- Symptom: empty table hits or wrong-year candidates — not `schema_mismatch`
-- Fix: include the year in the question (row 3 already does) or verify temporal resolution in the `[temporal]` patch
+```
+debug_geography_query.py --inspect-only ...
+│
+├─ schema_version_ok=False  → rebuild/promote collection metadata
+├─ chroma query reason mentions candidate_id  → rebuild census_tables (old document schema)
+├─ chroma query status=empty (reason None)    → re-embed / wrong query text / empty index
+├─ grounded status=empty after hit            → year filter (--planning-year)
+└─ table hit, geography fails                 → geography index / areas (see operator runbook)
+```
 
 ## VS Code integration
 
-Launch profiles (`.vscode/launch.json`):
-
-- **Geography: Golden row 3**
-- **Geography: Choose golden row**
-
-Both load `.env` and set `PYTHONPATH`. Breakpoint map: [`.vscode/geography-breakpoints.md`](../.vscode/geography-breakpoints.md) (legacy planner path).
+Launch profiles (`.vscode/launch.json`): **Geography: Golden row 3**, **Geography: Choose golden row**. Breakpoint map: [`.vscode/geography-breakpoints.md`](../.vscode/geography-breakpoints.md) (legacy planner path).
 
 ## Related files
 
 | File | Role |
 |------|------|
-| `scripts/debug_geography_query.py` | Graph stream debugger |
+| `scripts/debug_geography_query.py` | Table inspection + graph stream debugger |
 | `src/clients/chroma_utils.py` | Collection health and candidate parsing |
 | `src/workflows/geography.py` | Legacy pre-agent table/geo retrieval |
 | `docs/chroma_geography_operator_runbook.md` | Build, promote, rollback |
