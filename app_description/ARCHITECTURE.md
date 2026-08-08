@@ -52,7 +52,7 @@ The agent — via tools — owns the decision space in [`CENSUS_DISCUSSION.md`](
 
 | Step | Owner (target) | Harness |
 | --- | --- | --- |
-| Resolve year | `temporal_node` (default latest e.g. 2024 when unstated) | `TemporalIntent` contract |
+| Resolve year | `temporal_node` (default `LATEST_AVAILABLE_YEAR` from `config.py` when unstated) | `TemporalIntent` contract |
 | Semantic table/geo retrieval | Agent tools (`TableSearchTool`, `GeographyDiscoveryTool`, …) | Year/dataset filters; `RetrievalEvidence` |
 | Category, table, variables, `for`/`in` | Agent reasoning + API composition | `validate_grounded_plan`; strict Census API tool |
 | Multi-call loops (enumerate → disambiguate → fetch) | Agent tool loop | Fail-closed on ungrounded codes |

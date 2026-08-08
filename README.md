@@ -56,7 +56,7 @@ turns.
 
 ## Grounded geography behavior
 
-- Temporal intent resolves before catalog retrieval (default year e.g. 2024 when unstated — after `temporal_node`).
+- Temporal intent resolves before catalog retrieval (default **`LATEST_AVAILABLE_YEAR`** from `config.py` when unstated — after `temporal_node`).
 - **Target:** agent queries Chroma via tools for tables and geography; composes and executes Census API calls in multi-step loops.
 - **Legacy (current code):** `geography_node` pre-selects table/geo before agent; may skip agent on clarification — migration in progress.
 - Table and geography candidate IDs, exact Census tokens, parent order, and table compatibility are validated before execution (harness).

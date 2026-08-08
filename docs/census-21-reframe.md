@@ -18,7 +18,7 @@ July tier3 label `geography_blocked` is **stale** for this repro.
 
 **Architecture principle:** Deterministic layers **harness** the agent — they do not pre-answer “which population table” via code allowlists (`B01001`/`B01003`). When Chroma returns multiple grounded table candidates, **user or agent** chooses; geography proceeds **after** table is locked.
 
-**Do not use:** retired `geography_policy.py`; planner `_CANONICAL_POPULATION_TABLE_CODES` allowlist.
+**Do not use:** retired planner allowlist patterns (e.g. hard-coded B01001/B01003 table-code preference in the pre-agent selector). Those approaches were rejected as deterministic policy, not harnessing.
 
 ---
 
@@ -107,7 +107,7 @@ Row 3 is blocked at the **correct** harness point (table ambiguity) but the **re
 ### Remove / demote
 
 - `selected_table.table_code == B01001` at geography_node when pending was table ambiguous on turn 1
-- Planner unit test for `_CANONICAL_POPULATION_TABLE_CODES`
+- Planner unit tests that assert `_CANONICAL_POPULATION_TABLE_CODES` or hard-coded population table preference
 - Chroma-shaped fake that expects auto B01001 without user turn
 
 ### PR verification block

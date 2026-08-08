@@ -28,8 +28,9 @@ Reconciled architecture documentation so **agent-first** (reason â†’ retrieve â†
 | `.cursor/rules/general.mdc` | **Add** agent-first ticket guidance |
 | `.cursor/rules/jira-ticket-workflow.mdc` | **Add** migration epic preference |
 | `docs/jira-ticket-structure.md` | **Add** agent-first migration tier + references |
+| `config.py` | **Update** `LATEST_AVAILABLE_YEAR=2024`, `CATALOG_YEAR_START`, year ranges through 2024 (2024 Chroma catalog) |
 
-## Phase 1 inventory (all repo `*.md` scanned)
+## Phase 1 inventory (docs/ and app_description/ `*.md` scanned; `.cursor/rules/*.mdc` noted separately)
 
 | Path | Stance | Conflict | Action | Priority |
 | --- | --- | --- | --- | --- |

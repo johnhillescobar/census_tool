@@ -27,13 +27,13 @@ The user builds an AI Census assistant where:
 
 ### Reasoning and retrieval
 1. The **AGENT** reasons about the natural-language question (topic, geography scope, comparison intent, time).
-2. The **AGENT** (via tools) queries Chroma vector collections for semantic similarity, filtered by dataset/year (default **2024** when no year is stated, after `temporal_node`).
+2. The **AGENT** (via tools) queries Chroma vector collections for semantic similarity, filtered by dataset/year (defaults to **`LATEST_AVAILABLE_YEAR`** in `config.py` when no year is stated, after `temporal_node`).
 3. The **AGENT** chooses **data category** (Detail B/C, Subject S, Profile DP, etc.), table/group, variables, and **geography level** from **grounded** retrieval evidence — using the decision space documented in `app_description/CENSUS_DISCUSSION.md` (categories, hierarchy, `for`/`in` patterns, crosswalk queries). That doc is not fully exhaustive but defines the API-construction model.
 
 ### API call ownership (critical — do not soft-pedal)
 4. The **AGENT composes Census Bureau API parameters** — dataset path (`/{year}/acs/acs5`, subject, profile, …), `get=` variables, `for=` geography level, `in=` parent chains — based on its reasoning about category, geography, and table. This is **agent analysis**, not a pre-agent planner emitting a frozen URL.
 5. The **AGENT executes** those API calls via tools (`StrictCensusApiTool`, `CensusAPITool`, geography enumeration tools, etc.). Execution is part of the agent loop, not a separate batch job after a non-agent node finishes.
-6. The **AGENT may call tools multiple times** in one session as reasoning requires — e.g. enumerate CBSAs → pick code → build `in=` chain → resolve variables → fetch → compare counties with a second fetch. Multi-step loops are a feature, not an failure mode.
+6. The **AGENT may call tools multiple times** in one session as reasoning requires — e.g. enumerate CBSAs → pick code → build `in=` chain → resolve variables → fetch → compare counties with a second fetch. Multi-step loops are a feature, not a failure mode.
 
 ### Answer and follow-ups
 7. The **AGENT** analyzes returned data and answers the question — stating assumptions (e.g. broad Detail table when category unspecified) and suggesting finer-grained follow-ups (race, age, subject tables, etc.).

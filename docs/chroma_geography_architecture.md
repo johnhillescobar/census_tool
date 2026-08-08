@@ -7,7 +7,7 @@
 
 At runtime, the **agent** — not a pre-agent workflow node — owns semantic retrieval and API composition:
 
-1. **Temporal year** resolves first (`temporal_node`; default latest e.g. 2024 when unstated).
+1. **Temporal year** resolves first (`temporal_node`; default `LATEST_AVAILABLE_YEAR` from `config.py` when unstated).
 2. **Agent tools** query Chroma collections with agent-authored semantic queries filtered by dataset/year.
 3. Agent selects table/group, geography level, and area IDs from **grounded** candidates (or asks a clarifying question with readable labels).
 4. Agent **composes** Census API parameters (`get`, `for`, `in`, dataset path) per `CENSUS_DISCUSSION.md` and **executes** via Census tools — including multi-call loops (enumerate CBSAs → pick code → build `in=` chain → fetch).

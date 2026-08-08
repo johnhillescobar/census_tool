@@ -9,7 +9,7 @@
 - The assistant **reasons** about your question in natural language — topic, geography, time, comparisons.
 - It may **ask clarifying questions** when multiple grounded table or geography options exist (target: readable labels and a recommended default — not only `table_0` codes).
 - When you do not specify a data category, it may answer with a **broad measure** (e.g. Detail table) and suggest finer follow-ups (race, age, Subject tables, etc.).
-- Year defaults to **latest available** (e.g. 2024) when you do not state a year, after temporal normalization.
+- Year defaults to **`LATEST_AVAILABLE_YEAR`** from `config.py` (latest available ACS catalog year) when you do not state a year, after temporal normalization.
 - Multi-step queries (enumerate areas → pick code → fetch → compare) are normal agent behavior.
 
 ## 🚀 Quick Start

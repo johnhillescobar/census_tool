@@ -11,9 +11,9 @@
 The product goal is an **AI agent** that:
 
 1. Reasons about the user's question in natural language
-2. Queries the vector catalog (Chroma) for **semantic** similarity, filtered by dataset/year (default **2024** when no year is given, after temporal normalization)
+2. Queries the vector catalog (Chroma) for **semantic** similarity, filtered by dataset/year (defaults to **`LATEST_AVAILABLE_YEAR`** / latest available from [`config.py`](../config.py) when no year is given, after temporal normalization)
 3. Chooses **data category** (Detail B/C, Subject S, Profile DP, etc.), **table/group**, **variables**, and **geography level** from grounded retrieval evidence — see [`app_description/CENSUS_DISCUSSION.md`](../app_description/CENSUS_DISCUSSION.md)
-4. **Composes and executes** Census Bureau API calls itself: builds `get=`, `for=`, `in=`, dataset path (`/{year}/acs/acs5`, subject, profile, …), and issues the request via tools — **not** receiving a pre-assembled URL from a upstream planner node
+4. **Composes and executes** Census Bureau API calls itself: builds `get=`, `for=`, `in=`, dataset path (`/{year}/acs/acs5`, subject, profile, …), and issues the request via tools — **not** receiving a pre-assembled URL from an upstream planner node
 5. Runs a **multi-step tool loop** as reasoning requires (e.g. list CBSAs → pick code → build `in=` chain → resolve variables → fetch data → optional follow-up calls)
 6. Analyzes returned data and answers — narrating assumptions and suggesting finer-grained follow-ups when the user did not specify a category
 
@@ -32,7 +32,7 @@ That drift frustrates the core value proposition: the agent should **own reasoni
 | **Agent reasons** | Interpret question, choose search queries, select among retrieved candidates, decide when to clarify vs proceed with a stated assumption |
 | **Harness validates** | Pydantic contracts, candidate-ID grounding, strict Census API tool, retrieval traces — reject invented FIPS, table codes, or geo tokens |
 | **Chroma is evidence, not authority** | Retrieval returns candidates + metadata; only **selected candidate IDs** attached to evidence become execution authority after validation |
-| **Temporal year gates retrieval** | Resolved year (from `temporal_node`, default latest e.g. 2024) filters table/geo collections; agent uses that year in tool calls |
+| **Temporal year gates retrieval** | Resolved year (from `temporal_node`, default `LATEST_AVAILABLE_YEAR` in `config.py`) filters table/geo collections; agent uses that year in tool calls |
 | **Clarification is agent dialogue** | When truly ambiguous among same-tier grounded options, agent asks — with readable labels and recommended default — not raw `table_0` dumps with agent skipped |
 | **Breadth-first defaults** | Underspecified topic → agent picks the broad measure for that domain from catalog metadata, answers, then suggests granular breakdowns as follow-ups |
 | **Deterministic math stays deterministic** | Comparison metrics, benchmark compute, temporal normalization — repeatable formulas remain code, not LLM |
