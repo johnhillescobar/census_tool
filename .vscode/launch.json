@@ -8,10 +8,12 @@
             "program": "${workspaceFolder}/main.py",
             "console": "integratedTerminal",
             "justMyCode": false,
+            "python": "${workspaceFolder}/.venv/Scripts/python.exe",
             "cwd": "${workspaceFolder}",
             "envFile": "${workspaceFolder}/.env",
             "env": {
                 "PYTHONPATH": "${workspaceFolder}",
+                "PYTHONNOUSERSITE": "1",
                 "CENSUS_CHECKPOINT_DB": "${workspaceFolder}/.debug/cli-checkpoints.db",
                 "CENSUS_TELEMETRY_STRICT": "1"
             }
@@ -29,10 +31,12 @@
             ],
             "console": "integratedTerminal",
             "justMyCode": false,
+            "python": "${workspaceFolder}/.venv/Scripts/python.exe",
             "cwd": "${workspaceFolder}",
             "envFile": "${workspaceFolder}/.env",
             "env": {
                 "PYTHONPATH": "${workspaceFolder}",
+                "PYTHONNOUSERSITE": "1",
                 "CENSUS_CHECKPOINT_DB": "${workspaceFolder}/.debug/streamlit-checkpoints.db",
                 "CENSUS_TELEMETRY_STRICT": "1"
             }
@@ -51,10 +55,12 @@
             ],
             "console": "integratedTerminal",
             "justMyCode": false,
+            "python": "${workspaceFolder}/.venv/Scripts/python.exe",
             "cwd": "${workspaceFolder}",
             "envFile": "${workspaceFolder}/.env",
             "env": {
                 "PYTHONPATH": "${workspaceFolder}",
+                "PYTHONNOUSERSITE": "1",
                 "CENSUS_CHECKPOINT_DB": "${workspaceFolder}/.debug/api-checkpoints.db",
                 "CENSUS_TELEMETRY_STRICT": "1"
             }
@@ -71,10 +77,12 @@
             ],
             "console": "integratedTerminal",
             "justMyCode": false,
+            "python": "${workspaceFolder}/.venv/Scripts/python.exe",
             "cwd": "${workspaceFolder}",
             "envFile": "${workspaceFolder}/.env",
             "env": {
                 "PYTHONPATH": "${workspaceFolder}",
+                "PYTHONNOUSERSITE": "1",
                 "CENSUS_TELEMETRY_STRICT": "1"
             }
         },
@@ -90,10 +98,12 @@
             ],
             "console": "integratedTerminal",
             "justMyCode": false,
+            "python": "${workspaceFolder}/.venv/Scripts/python.exe",
             "cwd": "${workspaceFolder}",
             "envFile": "${workspaceFolder}/.env",
             "env": {
                 "PYTHONPATH": "${workspaceFolder}",
+                "PYTHONNOUSERSITE": "1",
                 "CENSUS_TELEMETRY_STRICT": "1"
             }
         },
@@ -110,10 +120,12 @@
             ],
             "console": "integratedTerminal",
             "justMyCode": false,
+            "python": "${workspaceFolder}/.venv/Scripts/python.exe",
             "cwd": "${workspaceFolder}",
             "envFile": "${workspaceFolder}/.env",
             "env": {
                 "PYTHONPATH": "${workspaceFolder}",
+                "PYTHONNOUSERSITE": "1",
                 "CENSUS_TELEMETRY_STRICT": "1"
             }
         },
@@ -132,9 +144,11 @@
             ],
             "console": "integratedTerminal",
             "justMyCode": false,
+            "python": "${workspaceFolder}/.venv/Scripts/python.exe",
             "cwd": "${workspaceFolder}",
             "env": {
                 "PYTHONPATH": "${workspaceFolder}",
+                "PYTHONNOUSERSITE": "1",
                 "CENSUS_TELEMETRY_STRICT": "1"
             }
         },
@@ -153,10 +167,12 @@
             ],
             "console": "integratedTerminal",
             "justMyCode": false,
+            "python": "${workspaceFolder}/.venv/Scripts/python.exe",
             "cwd": "${workspaceFolder}",
             "envFile": "${workspaceFolder}/.env",
             "env": {
                 "PYTHONPATH": "${workspaceFolder}",
+                "PYTHONNOUSERSITE": "1",
                 "CENSUS_TELEMETRY_STRICT": "1"
             }
         }

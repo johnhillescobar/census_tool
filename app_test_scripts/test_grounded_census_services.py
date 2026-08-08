@@ -1,3 +1,5 @@
+from typing import Any, cast
+
 import pytest
 from pydantic import ValidationError
 
@@ -16,7 +18,7 @@ class FakeCollection:
 
     def __init__(self, payload):
         self.payload = payload
-        self.call = None
+        self.call: dict[str, Any] | None = None
 
     def query(self, **kwargs):
         self.call = kwargs
@@ -119,26 +121,31 @@ def test_typed_chroma_query_reports_hit_empty_unavailable_stale_and_schema_misma
     hit_collection = FakeCollection(
         {"ids": [["table:1"]], "metadatas": [[metadata]], "documents": [["doc"]], "distances": [[0.1]]}
     )
-    hit = query_table_collection(FakeClient(hit_collection), "population")
+    hit = query_table_collection(cast(Any, FakeClient(hit_collection)), "population")
     assert hit.status == "hit"
     assert hit.candidate_ids == ["table:1"]
     assert hit.candidates[0].score == pytest.approx(0.9)
 
     empty = query_table_collection(
-        FakeClient(FakeCollection({"ids": [[]], "metadatas": [[]], "documents": [[]], "distances": [[]]})),
+        cast(Any, FakeClient(FakeCollection({"ids": [[]], "metadatas": [[]], "documents": [[]], "distances": [[]]}))),
         "population",
     )
     assert empty.status == "empty"
-    assert query_table_collection(FakeClient(error="offline"), "population").status == "unavailable"
+    assert query_table_collection(cast(Any, FakeClient(error="offline")), "population").status == "unavailable"
 
     stale_collection = FakeCollection({})
     stale_collection.metadata = {"schema_version": "1.0", "index_version": "0.9"}
-    assert query_table_collection(FakeClient(stale_collection), "population").status == "stale"
+    assert query_table_collection(cast(Any, FakeClient(stale_collection)), "population").status == "stale"
 
     malformed = dict(metadata, candidate_id="different")
     mismatch = query_table_collection(
-        FakeClient(
-            FakeCollection({"ids": [["table:1"]], "metadatas": [[malformed]], "documents": [["doc"]], "distances": [[0.1]]})
+        cast(
+            Any,
+            FakeClient(
+                FakeCollection(
+                    {"ids": [["table:1"]], "metadatas": [[malformed]], "documents": [["doc"]], "distances": [[0.1]]}
+                )
+            ),
         ),
         "population",
     )
@@ -227,9 +234,11 @@ def test_geography_retrieval_always_constrains_dataset_and_year():
         }
     )
     analysis = analyze_retrieval_request("Population by county in California")
-    result = retrieve_geography_candidates(analysis, dataset="acs/acs5", year=2023, client=client)
+    result = retrieve_geography_candidates(analysis, dataset="acs/acs5", year=2023, client=cast(Any, client))
     assert result.hierarchy_evidence.status == "hit"
     expected_partition = [{"dataset": {"$eq": "acs/acs5"}}, {"year": {"$eq": 2023}}]
+    assert hierarchy_collection.call is not None
+    assert area_collection.call is not None
     assert hierarchy_collection.call["where"] == {"$and": expected_partition}
     assert area_collection.call["where"] == {"$and": expected_partition}
 
@@ -260,6 +269,76 @@ def test_planner_uses_scores_and_ids_not_prompt_like_candidate_content():
     assert select_grounded_plan(ambiguous_evidence, ambiguity_margin=0.05).status == "ambiguous"
 
 
+def test_planner_auto_selects_exact_table_label_despite_thin_margin():
+    top = TableCandidate(
+        candidate_id="table:acs/acs5:B01003",
+        dataset="acs/acs5",
+        year=2023,
+        display_name="TOTAL POPULATION",
+        score=0.54,
+        provenance="census_groups",
+        schema_version="1.0",
+        table_code="B01003",
+        table_name="TOTAL POPULATION",
+        category="detail",
+        years_available=[2023],
+    )
+    close = TableCandidate(
+        candidate_id="table:acs/acs5:B98012",
+        dataset="acs/acs5",
+        year=2023,
+        display_name="TOTAL POPULATION COVERAGE RATE BY SEX",
+        score=0.53,
+        provenance="census_groups",
+        schema_version="1.0",
+        table_code="B98012",
+        table_name="TOTAL POPULATION COVERAGE RATE BY SEX",
+        category="detail",
+        years_available=[2023],
+    )
+    table_evidence = RetrievalEvidence(
+        evidence_id="tables",
+        collection_name="census_tables",
+        status="hit",
+        query_text="total population",
+        schema_version="1.0",
+        index_version="1.0",
+        candidate_ids=[top.candidate_id, close.candidate_id],
+        candidates=[top, close],
+    )
+    selected = select_grounded_plan(table_evidence, ambiguity_margin=0.05)
+    assert selected.status == "selected"
+    assert selected.selected_table_ids == [top.candidate_id]
+
+
+def test_planner_keeps_ambiguity_when_two_tables_exact_match_label():
+    first = table(candidate_id="table:a", score=0.9, name="Population")
+    second = TableCandidate(
+        candidate_id="table:b",
+        dataset="acs/acs5",
+        year=2023,
+        display_name="Population",
+        score=0.89,
+        provenance="census_groups",
+        schema_version="1.0",
+        table_code="B99001",
+        table_name="Population",
+        category="detail",
+        years_available=[2023],
+    )
+    table_evidence = RetrievalEvidence(
+        evidence_id="tables",
+        collection_name="census_tables",
+        status="hit",
+        query_text="population",
+        schema_version="1.0",
+        index_version="1.0",
+        candidate_ids=[first.candidate_id, second.candidate_id],
+        candidates=[first, second],
+    )
+    assert select_grounded_plan(table_evidence, ambiguity_margin=0.05).status == "ambiguous"
+
+
 def test_validator_rejects_invented_ids_and_materializes_only_evidence_values():
     table_evidence = evidence("tables", table())
     hierarchy_evidence = evidence("hierarchies", hierarchy())
@@ -271,6 +350,8 @@ def test_validator_rejects_invented_ids_and_materializes_only_evidence_values():
     selection = select_grounded_plan(table_evidence, geo)
     result = validate_grounded_plan(selection, [table_evidence, hierarchy_evidence, area_evidence])
     assert result.status == "valid"
+    assert result.plan is not None
+    assert result.plan.geography is not None
     assert result.plan.table.table_code == "B01003"
     assert result.plan.geography.geo_for == {"county": "*"}
     assert result.plan.geography.geo_in == [("state", "06")]

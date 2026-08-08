@@ -3,13 +3,19 @@
 from __future__ import annotations
 
 import re
-from typing import Literal
+from typing import Literal, cast
 
 from pydantic import BaseModel, ConfigDict
 
-from src.domain.clarification_templates import render_geography_clarification
+from src.domain.clarification_templates import render_slot_clarification
 from src.domain.geography_catalog import AreaCandidate, HierarchyCandidate, TableCandidate
-from src.domain.geography_contract import ClarificationOption, GeographyIntent, GeographyResolved
+from src.domain.geography_contract import (
+    CensusGeographyToken,
+    ClarificationOption,
+    GeographyIntent,
+    GeographyLevel,
+    GeographyResolved,
+)
 from src.domain.retrieval_plan import GroundedSelection, RetrievalEvidence
 from src.services.grounded_plan_validator import validate_grounded_plan
 from src.state.workflow_plan import PendingGeographyOption, WorkflowPlan
@@ -34,9 +40,10 @@ def _render_pending(plan: WorkflowPlan, message: str | None = None) -> Geography
     pending = plan.pending_geography_clarification
     if pending is None:
         raise ValueError("pending geography clarification is required")
-    prompt = render_geography_clarification(
+    prompt = render_slot_clarification(
         pending.reason_code,
         [ClarificationOption(option_id=item.option_id, label=item.label) for item in pending.options],
+        requested_slot=pending.requested_slot,
     )
     lines = [prompt.question_text, *(f"{item.option_id}: {item.label}" for item in prompt.options)]
     if message:
@@ -112,8 +119,11 @@ def _selection_for_option(
 
     if table_id is None or hierarchy_id is None:
         return None
+    pending = plan.pending_geography_clarification
+    if pending is None:
+        return None
     return GroundedSelection(
-        selection_id=f"resume:{plan.pending_geography_clarification.trace_id}",
+        selection_id=f"resume:{pending.trace_id}",
         status="selected",
         evidence_ids=[item.evidence_id for item in evidence],
         selected_table_ids=[table_id],
@@ -155,11 +165,11 @@ def resume_geography_clarification(plan: WorkflowPlan, selection: str) -> Geogra
     if grounded_selection is None:
         return _render_pending(plan, "That option does not complete a compatible geography selection.")
     validation = validate_grounded_plan(grounded_selection, plan.retrieval_evidence)
-    if validation.status != "valid" or validation.plan is None or validation.plan.geography is None:
+    grounded = validation.plan
+    canonical = None if grounded is None else grounded.geography
+    if validation.status != "valid" or grounded is None or canonical is None:
         return _render_pending(plan, "That option is incompatible with the preserved Census evidence.")
 
-    grounded = validation.plan
-    canonical = grounded.geography
     candidates = [candidate for item in plan.retrieval_evidence for candidate in item.candidates]
     hierarchy = next(
         candidate
@@ -172,13 +182,13 @@ def resume_geography_clarification(plan: WorkflowPlan, selection: str) -> Geogra
         if isinstance(candidate, AreaCandidate) and candidate.candidate_id in canonical.area_candidate_ids
     ]
     geography = GeographyIntent(
-        level=hierarchy.friendly_level,
+        level=cast(GeographyLevel, hierarchy.friendly_level),
         geo_for=canonical.geo_for,
         geo_in=dict(canonical.geo_in),
         display_name=", ".join(area.display_name for area in areas) or hierarchy.display_name,
         source="chroma",
         requested_text=pending.original_query,
-        census_token=canonical.census_token,
+        census_token=cast(CensusGeographyToken, canonical.census_token),
     )
     resolved_plan = plan.model_copy(
         update={

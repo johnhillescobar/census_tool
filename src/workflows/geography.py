@@ -1,21 +1,20 @@
 import logging
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, cast
 
 from langchain_core.runnables import RunnableConfig
 
 from config import LATEST_AVAILABLE_YEAR
 from src.clients.telemetry import record_event
-from src.domain.clarification_templates import (
-    normalize_geography_reason,
-    render_geography_clarification,
-)
-from src.domain.geography_catalog import AreaCandidate, TableCandidate
+from src.domain.clarification_templates import render_slot_clarification
+from src.domain.geography_catalog import AreaCandidate, HierarchyCandidate, TableCandidate
 from src.domain.geography_contract import (
+    CensusGeographyToken,
     ClarificationOption,
     GeographyClarificationRequired,
     GeographyIntent,
+    GeographyLevel,
     GeographyResolved,
 )
 from src.domain.retrieval_plan import GroundedSelection, RetrievalEvidence
@@ -115,15 +114,12 @@ def _clarification(
     original_query: str,
     requested_slot: GeographyClarificationSlot,
 ) -> dict[str, Any]:
-    normalized_reason = normalize_geography_reason(reason_code)
     candidate_types: tuple[type, ...]
     if requested_slot == "table":
         candidate_types = (TableCandidate,)
     elif requested_slot == "area":
         candidate_types = (AreaCandidate,)
     elif requested_slot == "hierarchy":
-        from src.domain.geography_catalog import HierarchyCandidate
-
         candidate_types = (HierarchyCandidate,)
     else:
         candidate_types = (AreaCandidate,)
@@ -134,18 +130,21 @@ def _clarification(
         for candidate in item.candidates
         if isinstance(candidate, candidate_types)
     ]
+    option_prefix = "table" if requested_slot == "table" else "geo"
     pending_options = [
         PendingGeographyOption(
-            option_id=f"geo_{index}",
+            option_id=f"{option_prefix}_{index}",
             candidate_id=candidate.candidate_id,
             label=candidate.display_name,
         )
         for index, candidate in enumerate(retrieved)
     ]
-    prompt = render_geography_clarification(
-        normalized_reason,
+    prompt = render_slot_clarification(
+        reason_code,
         [ClarificationOption(option_id=option.option_id, label=option.label) for option in pending_options],
+        requested_slot=requested_slot,
     )
+    normalized_reason = prompt.reason_code
     clarification_text = "\n".join(
         [prompt.question_text, *(f"{option.option_id}: {option.label}" for option in prompt.options)]
     )
@@ -199,7 +198,7 @@ def _clarification(
         ),
         final=FinalResponseState(
             answer_text=clarification_text,
-            clarification_type="geography",
+            clarification_type="table" if requested_slot == "table" else "geography",
             reason_code=normalized_reason,
             trace_id=trace.trace_id,
         ),
@@ -216,6 +215,7 @@ def geography_node(
     user_question = state.messages[-1]["content"]
     existing = state.plan or WorkflowPlan()
     configured = config.get("configurable", {}).get("grounded_geography_dependencies")
+    # Prefer explicit deps, then graph config, then defaults.
     deps = dependencies or configured or GroundedGeographyDependencies()
     trace = RetrievalTrace(prompt_version="grounded-geography-v1")
     evidence: list[RetrievalEvidence] = []
@@ -383,10 +383,11 @@ def geography_node(
 
     grounded = validation.plan
     canonical_geo = grounded.geography
+    assert canonical_geo is not None  # validated above
     hierarchy_candidate = next(
         candidate
         for candidate in geography_result.hierarchy_evidence.candidates
-        if candidate.candidate_id == canonical_geo.hierarchy_candidate_id
+        if isinstance(candidate, HierarchyCandidate) and candidate.candidate_id == canonical_geo.hierarchy_candidate_id
     )
     selected_areas = [
         candidate
@@ -397,13 +398,13 @@ def geography_node(
     display_name = ", ".join(area.display_name for area in selected_areas) or hierarchy_candidate.display_name
     try:
         geography = GeographyIntent(
-            level=hierarchy_candidate.friendly_level,
+            level=cast(GeographyLevel, hierarchy_candidate.friendly_level),
             geo_for=canonical_geo.geo_for,
             geo_in=dict(canonical_geo.geo_in),
             display_name=display_name,
             source="chroma",
             requested_text=analysis.geography_search_text,
-            census_token=canonical_geo.census_token,
+            census_token=cast(CensusGeographyToken, canonical_geo.census_token),
         )
     except ValueError:
         return _clarification(
@@ -452,11 +453,12 @@ def geography_resume_node(state: CensusState, config: RunnableConfig) -> dict[st
             logs=[f"geography: resumed from trace {pending.trace_id}"],
         ).as_langgraph_update()
     reason_code = "GEOGRAPHY_CANCELLED" if result.status == "cancelled" else pending.reason_code
+    clarification_type = "table" if pending.requested_slot == "table" else "geography"
     return CensusGraphPatch(
         plan=result.plan,
         final=FinalResponseState(
             answer_text=result.answer_text,
-            clarification_type="geography",
+            clarification_type=clarification_type,
             reason_code=reason_code,
             trace_id=pending.trace_id,
         ),
