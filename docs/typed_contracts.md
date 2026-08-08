@@ -105,16 +105,18 @@ For example:
 
 ## Why This Matters Here
 
-This track is about a **deterministic planning layer**.
+This track is about a **typed harness** — strict data shapes at trust boundaries — **not** a replacement for agent reasoning, retrieval, or API composition.
 
-That means they want the software to behave predictably:
+That means the software gets predictable **validation and math**:
 
-- same input → same plan
-- no guessing
-- no fuzzy interpretation
-- no loose, malformed data
+- same **grounded ID choices** → same validated plan and API URLs (harness repeatability)
+- agent natural-language wording may vary turn to turn
+- no invented FIPS or table codes past the validator
+- no loose, malformed data crossing node boundaries
 
-Typed contracts help with that because they remove ambiguity.
+**Do not confuse with legacy "deterministic planning layer":** regex search-text analysis, score-rank table auto-select, and pre-agent `geography_node` halts are **planner-first migration debt**, not harness. See [`agent-first-grounded-planning.md`](agent-first-grounded-planning.md).
+
+Typed contracts help because they remove ambiguity at **boundaries**:
 
 If a user asks something messy like:
 
@@ -124,10 +126,12 @@ the system will turn that into a **strict internal object** with exact fields an
 
 That makes planning:
 
-- safer
-- repeatable
+- safer at trust boundaries
+- repeatable for **validated plans** (not necessarily identical agent prose)
 - easier to test
 - easier to debug
+
+**Agent-owned (not typed-contract scope):** semantic Chroma queries, category/table/geo selection, Census `get`/`for`/`in` composition, multi-call tool loops. Domain reference: [`../app_description/CENSUS_DISCUSSION.md`](../app_description/CENSUS_DISCUSSION.md).
 
 ---
 
@@ -173,11 +177,11 @@ This prevents inconsistent wording and helps guarantee deterministic behavior.
 
 Because they’re building a system where:
 
-1. User request gets converted into structured intent
-2. Intent gets turned into a comparison plan
-3. That plan must always be the same for the same input
+1. User request gets converted into structured intent (temporal/benchmark harness)
+2. **Agent** retrieves evidence, composes API parameters, and executes Census tools
+3. Harness validates grounded IDs; comparison **math** stays deterministic
 
-Typed contracts make that possible.
+Typed contracts make steps 1 and 3 possible without replacing step 2.
 
 Without them, each step might interpret the data differently.
 
@@ -221,9 +225,7 @@ Example:
 - compare to prior year
 
 ### `ComparisonPlan`
-This is the final structured plan for **what data to fetch, what comparisons to run, and what derived metrics to calculate**.
-
-It acts like the blueprint for the deterministic computation flow.
+This is the structured plan for **what comparisons to run and what derived metrics to calculate** (deterministic math). It does **not** replace agent retrieval, table selection, or Census API composition.
 
 ---
 

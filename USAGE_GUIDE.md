@@ -1,8 +1,16 @@
 # 🏛️ Census Data Assistant - Usage Guide
 
-**Status**: ✅ Fully operational with agent-first architecture
+**Status:** Operational — **target** is agent-first grounded planning; **current code** still uses legacy pre-agent `geography_node` on some paths (see [`docs/agent-first-grounded-planning.md`](docs/agent-first-grounded-planning.md)).
 
-> **📋 Technical Documentation**: For detailed architecture information, see **[ARCHITECTURE.md](app_description/ARCHITECTURE.md)** - the design specification. This guide reflects the actual working implementation.
+> **📋 Technical Documentation**: [`ARCHITECTURE.md`](app_description/ARCHITECTURE.md) (system design) · [`CENSUS_DISCUSSION.md`](app_description/CENSUS_DISCUSSION.md) (Census API decision space) · [`agent-first-grounded-planning.md`](docs/agent-first-grounded-planning.md) (target vs legacy)
+
+## What to expect
+
+- The assistant **reasons** about your question in natural language — topic, geography, time, comparisons.
+- It may **ask clarifying questions** when multiple grounded table or geography options exist (target: readable labels and a recommended default — not only `table_0` codes).
+- When you do not specify a data category, it may answer with a **broad measure** (e.g. Detail table) and suggest finer follow-ups (race, age, Subject tables, etc.).
+- Year defaults to **latest available** (e.g. 2024) when you do not state a year, after temporal normalization.
+- Multi-step queries (enumerate areas → pick code → fetch → compare) are normal agent behavior.
 
 ## 🚀 Quick Start
 
@@ -69,7 +77,7 @@ Then open http://localhost:8501 in your browser.
 ## 🔄 Both Interfaces Share
 
 ### Core Functionality
-- Same agent-first LangGraph workflow with multi-step reasoning
+- Same LangGraph workflow with multi-step agent reasoning (target: agent owns retrieval and API execution end-to-end)
 - Identical data processing using CensusQueryAgent and specialized tools
 - Same caching system and conversation memory
 - Agent-based query processing with dynamic geography discovery
@@ -112,31 +120,31 @@ Then open http://localhost:8501 in your browser.
 
 ## 🔧 Technical Details
 
-### Architecture (Verified Working)
-Both interfaces use the same agent-first architecture:
-- **`app.py`** - LangGraph workflow: `memory_load → agent → output → memory_write`
-- **`src/nodes/agent.py`** - `agent_reasoning_node` calls CensusQueryAgent.solve()
-- **`src/nodes/output.py`** - `output_node` generates charts/tables from agent results
-- **`src/utils/agents/census_query_agent.py`** - ReAct agent with 8 specialized tools
-- **`src/tools/`** - All 8 agent tools actively registered and used:
-  - GeographyDiscoveryTool, AreaResolutionTool, TableSearchTool, TableValidationTool
-  - PatternBuilderTool, CensusAPITool, ChartTool, TableTool
-- **`config.py`** - Configuration settings (retention, API limits, performance)
-- **SQLite checkpoints** - Conversation persistence (`checkpoints.db`)
+### Architecture (current code vs target)
 
-### Agent-Based Data Flow (Actual Implementation)
-1. **User input** → `memory_load_node` loads user profile/history
-2. **Agent reasoning** → `agent_reasoning_node`:
-   - Calls `CensusQueryAgent.solve(user_query, intent)`
-   - Agent uses ReAct pattern with multi-step tool execution
-   - Tools: Geography discovery → Table search → Validation → API execution
-   - Returns: `census_data`, `answer_text`, `charts_needed`, `tables_needed`, `footnotes`
-3. **Output generation** → `output_node`:
-   - Generates charts using ChartTool (if `charts_needed` specified)
-   - Generates tables using TableTool (if `tables_needed` specified)
-   - Combines with agent's `answer_text` and `footnotes`
-4. **Memory write** → `memory_write_node` saves conversation state
-5. **Display** → CLI (`displays.py`) or Web (Streamlit components)
+**Target graph:** `memory_load → temporal → agent (plan + execute) → validate → comparison_metrics → output → memory_write` — see [`docs/agent-first-grounded-planning.md`](docs/agent-first-grounded-planning.md).
+
+**Current graph (legacy):** `memory_load → temporal → geography → benchmark → comparison → agent → comparison_metrics → output → memory_write`
+
+Both interfaces use the same LangGraph workflow in `app.py`. Key modules:
+
+- **`src/workflows/agent.py`** — `agent_reasoning_node`; **legacy:** skipped when `requires_clarification=True`
+- **`src/workflows/geography.py`** — **legacy:** pre-agent planner (`geography_node`); target: validator harness only
+- **`src/agents/census_query_agent.py`** — agent tools: Chroma search, geography enumeration, **Census API composition and execution**
+- **`src/tools/`** — `TableSearchTool`, `GeographyDiscoveryTool`, `StrictCensusApiTool`, etc.
+- **SQLite checkpoints** — conversation and pending clarification state
+
+### Agent-based data flow (target)
+
+1. **User input** → `memory_load_node` loads profile/history
+2. **Temporal** → resolve year (default latest when unstated)
+3. **Agent planning** → semantic Chroma retrieval; select table/geo/category or ask grounded clarification
+4. **Validate** → harness rejects invented FIPS/table codes
+5. **Agent execute** → compose `get`/`for`/`in`/dataset path; call Census tools (possibly multiple times)
+6. **Output** → charts/tables from typed agent output; natural-language answer with assumptions and follow-up suggestions
+7. **Memory write** → persist turn
+
+> **Legacy path:** steps 3–5 may be partially performed by `geography_node` before the agent runs. Migration in progress.
 
 ### Test Evidence
 ```bash
@@ -148,7 +156,7 @@ uv run pytest app_test_scripts/test_e2e_workflows.py -v
 # Output: 6 passed in 0.03s
 ```
 
-> **Detailed Flow**: See [ARCHITECTURE.md](app_description/ARCHITECTURE.md) for design specifications. Note: ARCHITECTURE.md describes the intended design; this guide reflects actual working code.
+> **Detailed flow:** [`ARCHITECTURE.md`](app_description/ARCHITECTURE.md) · [`agent-first-grounded-planning.md`](docs/agent-first-grounded-planning.md)
 
 ### Caching
 - 90-day retention policy
@@ -201,5 +209,4 @@ uv run pytest app_test_scripts/test_e2e_workflows.py -v
 - **Export to Parquet** - High-performance data formats
 - **API endpoint** - Programmatic access to agent capabilities
 
-> **Current Architecture**: The agent-first architecture supports these enhancements through additional tools and agent capabilities. See [ARCHITECTURE.md](app_description/ARCHITECTURE.md) for implementation details.
-
+> **Architecture direction:** Agent-first grounded planning supports these enhancements through additional tools and agent capabilities. See [`docs/agent-first-grounded-planning.md`](docs/agent-first-grounded-planning.md).

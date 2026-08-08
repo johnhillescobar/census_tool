@@ -2,7 +2,11 @@
 
 **Purpose**: This document provides new programmers with essential knowledge about the Census Tool architecture, coding patterns, and required skills to successfully contribute to this project.
 
-**Last Updated**: July 17, 2026 (aligned with Track 2 workflow in repo)
+**Last Updated**: August 8, 2026 (aligned with agent-first grounded planning target)
+
+**Authoritative target:** [`docs/agent-first-grounded-planning.md`](docs/agent-first-grounded-planning.md)
+
+> **Documentation drift warning:** Sections below describe **both** target agent-first behavior and **legacy planner-first code** still in the graph (`geography_node` before agent, agent skip on clarification). Read `app_description/ARCHITECTURE.md` for the canonical split.
 
 ---
 
@@ -21,35 +25,39 @@
 
 ### Core Design Philosophy
 
-**Agent-First Architecture**: This project uses an **agent-first architecture** where a reasoning agent (CensusQueryAgent) handles complex multi-step queries internally, rather than a deterministic pipeline of nodes.
-**Reasoning-Node-First Deterministic Principle**: Deterministic contracts and workflow/service steps are reliability scaffolding that empower AI reasoning nodes/components and must not replace AI reasoning nodes/components. Temporal/benchmark/comparison nodes clarify and gate ambiguous input early, while the reasoning node remains the execution owner, performs repeated strict typed Census tool calls as needed, and drives answer/table/chart directives.
+**Agent-First Architecture (target)**: The **agent** reasons about natural-language questions, queries Chroma semantically, **composes Census API parameters**, **executes** tools (multi-call when needed), and narrates answers. Deterministic contracts and validators are **harness only** — they do not replace retrieval, table/geo selection, or API composition.
 
-**Key Principle**: 
+**Key Principle (target)**: 
 ```
-User Question → Agent Reasons (multi-step) → Tools Execute → Agent Validates → Output Tools → Result
+User Question → Temporal (year) → Agent (retrieve → select → compose API → execute loop) → Validate → Output
 ```
 
-**NOT**: `User Question → Node1 → Node2 → Node3 → Done` (old deterministic approach)
+**Legacy code (current graph)**: Pre-agent `geography_node` may plan table/geo and halt before the agent. Do not extend that path; see migration phases in `docs/agent-first-grounded-planning.md`.
+
+**NOT the target**: `User Question → Planner selects everything → Agent only executes frozen plan`
 
 ### System Flow
 
-The application uses a **9-node LangGraph workflow** with conditional routing:
+The application uses a **LangGraph workflow** with conditional routing.
+
+**Target graph:** `memory_load → temporal → agent_plan → validate → agent_execute → comparison_metrics → output → memory_write`
+
+**Current graph (legacy — shipped in `app.py`):**
 
 ```
-memory_load → geography → temporal → benchmark → comparison → agent → comparison_metrics → output → memory_write
+memory_load → temporal → geography → benchmark → comparison → agent → comparison_metrics → output → memory_write
 ```
 
-Planning nodes (`geography`, `temporal`, `benchmark`, `comparison`) produce typed artifacts on `state.plan` and may short-circuit to `output` with a clarification prompt when `requires_clarification` is true. When no comparison is requested, `benchmark` routes directly to `agent`.
+Legacy planning nodes (`geography`, and clarification paths on `temporal`/`benchmark`/`comparison`) may short-circuit to `output` with `requires_clarification=True` **before** the agent runs. **Target:** agent-driven clarification instead of agent skip.
 
-1. **memory_load**: Loads user profile and conversation history from JSON (`memory/user_{id}.json`)
-2. **geography**: Resolves `GeographyIntent` via `geography_policy`; writes typed `state.geo`
-3. **temporal**: Resolves `TemporalIntent` via `temporal_policy` service
-4. **benchmark**: Resolves `BenchmarkIntent` or marks benchmark not applicable
-5. **comparison**: Builds `ComparisonPlan` from resolved temporal + benchmark
-6. **agent**: Calls `CensusQueryAgent` with optional `AgentPlanContext` from the plan; validates agent output via `plan_result_validator`
-7. **comparison_metrics**: Deterministic derived metrics from `comparison_input_rows`
-8. **output**: Generates charts/tables only when `is_census_data_renderable()`; writes typed `generated_files` artifacts
-9. **memory_write**: Persists user profile/history to JSON (`memory/user_{id}.json`); LangGraph thread checkpoints remain in SQLite
+1. **memory_load**: Loads user profile and conversation history; may route to `geography_resume` (legacy)
+2. **temporal**: Resolves `TemporalIntent` — year gates Chroma retrieval (harness)
+3. **geography (legacy)**: Pre-agent planner — retrieve, score-select, validate; **target:** validator harness after agent planning
+4. **benchmark / comparison**: Resolve comparison intents and `ComparisonPlan` (harness math inputs)
+5. **agent**: CensusQueryAgent — **target:** owns retrieval, API composition, multi-call execution; **legacy:** may receive immutable `GroundedCensusPlan`
+6. **comparison_metrics**: Deterministic derived metrics from `comparison_input_rows`
+7. **output**: Charts/tables when `is_census_data_renderable()`
+8. **memory_write**: Persists profile/history; checkpoints in SQLite
 
 ### Component Hierarchy
 
@@ -633,11 +641,10 @@ Before submitting code:
 
 ## Summary
 
-**Core Architecture**: Track 2 planning nodes + agent execution + deterministic metrics/output  
-**Key Pattern**: Typed contracts → services → workflow nodes → agent tool loops → rendered artifacts  
-**State Management**: Pydantic `CensusState` with LangGraph reducers; `WorkflowPlan` on `state.plan`  
-**Testing**: 281 tests collected; pytest contract and routing suites in `app_test_scripts/`  
-**Skills Needed**: Python, LangChain/LangGraph, Pydantic, APIs, Testing
+**Core Architecture (target)**: Agent retrieval + API composition + execution; harness validates; deterministic comparison math  
+**Legacy (current code)**: Pre-agent `geography_node` + agent execute within validated plan — migration in progress  
+**Key Pattern**: Typed contracts → harness validation → agent tool loops → rendered artifacts  
+**Domain reference**: `app_description/CENSUS_DISCUSSION.md` (Census API decision space)
 
 **Golden Rule**: Follow existing patterns. When in doubt, look at similar code in the codebase.
 
