@@ -1,6 +1,7 @@
 import uuid
 from unittest.mock import patch
 
+from config import LATEST_AVAILABLE_YEAR
 from app import create_census_graph
 from app_test_scripts.grounded_planning_fakes import FakeGroundedRetrieval
 from src.domain.comparison_artifacts import ComparisonInputRow
@@ -23,32 +24,33 @@ def _state(question: str) -> CensusState:
 
 def test_graph_invoke_comparison_path_with_stubbed_agent():
     graph = create_census_graph()
+    latest_year = LATEST_AVAILABLE_YEAR
 
     stub_result = {
-        "answer_text": "County population comparison for 2023.",
+        "answer_text": f"County population comparison for {latest_year}.",
         "census_data": {
             "success": True,
             "data": [
                 ["year", "geo_id", "population"],
-                [2023, "06001", 100000],
-                [2023, "06002", 90000],
+                [latest_year, "06001", 100000],
+                [latest_year, "06002", 90000],
             ],
         },
-        "data_summary": "Population data for counties in 2023.",
+        "data_summary": f"Population data for counties in {latest_year}.",
         "reasoning_trace": "stubbed",
         "charts_needed": [],
         "tables_needed": [],
         "footnotes": [],
         "comparison_input_rows": [
             ComparisonInputRow(
-                year=2023,
+                year=latest_year,
                 geo_id="06001",
                 metric="population",
                 value=100000.0,
                 benchmark_value=90000.0,
             ),
             ComparisonInputRow(
-                year=2023,
+                year=latest_year,
                 geo_id="06002",
                 metric="population",
                 value=90000.0,
