@@ -31,7 +31,11 @@ from src.services.chroma_catalog_retriever import (
     retrieve_geography_candidates,
     retrieve_table_candidates,
 )
-from src.services.geography_clarification_resume import resume_geography_clarification
+from src.services.geography_clarification_resume import (
+    GeographyResumeResult,
+    prepare_table_resume,
+    resume_geography_clarification,
+)
 from src.services.grounded_census_planner import select_grounded_plan
 from src.services.grounded_plan_validator import GroundedPlanValidationResult, validate_grounded_plan
 from src.state.types import CensusState, FinalResponseState
@@ -206,6 +210,170 @@ def _clarification(
     ).as_langgraph_update()
 
 
+def _locked_table_evidence(table_evidence: RetrievalEvidence, selected_table: TableCandidate) -> RetrievalEvidence:
+    """Reduce table evidence to one grounded candidate so selection cannot re-open table ambiguity."""
+    return table_evidence.model_copy(
+        update={
+            "candidates": [selected_table],
+            "candidate_ids": [selected_table.candidate_id],
+        }
+    )
+
+
+def _continue_after_table_locked(
+    existing: WorkflowPlan,
+    trace: RetrievalTrace,
+    evidence: list[RetrievalEvidence],
+    analysis: CensusRetrievalAnalysis,
+    selected_table: TableCandidate,
+    table_evidence: RetrievalEvidence,
+    deps: GroundedGeographyDependencies,
+    *,
+    original_query: str,
+) -> dict[str, Any]:
+    """Run geography retrieval and validation after the user locks a grounded table."""
+    requested_year = _planning_year(existing)
+    locked_table_evidence = _locked_table_evidence(table_evidence, selected_table)
+    evidence = [
+        locked_table_evidence if item.evidence_id == table_evidence.evidence_id else item for item in evidence
+    ]
+
+    if not analysis.geography_explicit:
+        return _clarification(
+            existing,
+            trace,
+            "MISSING_EXPLICIT_GEOGRAPHY",
+            evidence,
+            original_query=original_query,
+            requested_slot="geography",
+        )
+
+    geography_result = deps.retrieve_geographies(
+        analysis,
+        dataset=selected_table.dataset,
+        year=requested_year,
+    )
+    evidence.extend(geography_result.evidence)
+    for item in geography_result.evidence:
+        status = RetrievalStatus.HIT if item.status == "hit" else RetrievalStatus.EMPTY
+        _trace_event(
+            trace,
+            RetrievalStage.GEOGRAPHY_RETRIEVAL,
+            status,
+            evidence=item,
+            reason_code=None if item.status == "hit" else f"GEOGRAPHY_{item.status.upper()}",
+            filters={"dataset": selected_table.dataset, "year": requested_year},
+        )
+    unusable = next((item for item in geography_result.evidence if item.status != "hit"), None)
+    if unusable is not None:
+        reason = f"GEOGRAPHY_{unusable.status.upper()}"
+        return _clarification(
+            existing,
+            trace,
+            reason,
+            evidence,
+            original_query=original_query,
+            requested_slot="geography",
+        )
+
+    selection = deps.select(locked_table_evidence, geography_result)
+    if selection.status != "selected":
+        reason = selection.reason_code or "GEOGRAPHY_AMBIGUOUS"
+        _trace_event(trace, RetrievalStage.GROUNDED_SELECTION, RetrievalStatus.REJECTED, reason_code=reason)
+        requested_slot: GeographyClarificationSlot = "geography"
+        if len(geography_result.hierarchy_evidence.candidates) > 1:
+            requested_slot = "hierarchy"
+        elif any(len(item.candidates) > 1 for item in geography_result.area_evidence):
+            requested_slot = "area"
+        return _clarification(
+            existing,
+            trace,
+            reason,
+            evidence,
+            original_query=original_query,
+            requested_slot=requested_slot,
+        )
+    _trace_event(
+        trace,
+        RetrievalStage.GROUNDED_SELECTION,
+        RetrievalStatus.RESOLVED,
+        selected_ids=[
+            *selection.selected_table_ids,
+            *([selection.selected_hierarchy_id] if selection.selected_hierarchy_id else []),
+            *selection.selected_area_ids,
+        ],
+    )
+
+    validation = deps.validate(selection, evidence)
+    if validation.status != "valid" or validation.plan is None or validation.plan.geography is None:
+        reason = validation.failures[0].reason_code if validation.failures else "PLAN_VALIDATION_FAILED"
+        _trace_event(trace, RetrievalStage.PLAN_VALIDATION, RetrievalStatus.REJECTED, reason_code=reason)
+        return _clarification(
+            existing,
+            trace,
+            reason,
+            evidence,
+            original_query=original_query,
+            requested_slot="geography",
+        )
+
+    grounded = validation.plan
+    canonical_geo = grounded.geography
+    assert canonical_geo is not None  # validated above
+    hierarchy_candidate = next(
+        candidate
+        for candidate in geography_result.hierarchy_evidence.candidates
+        if isinstance(candidate, HierarchyCandidate) and candidate.candidate_id == canonical_geo.hierarchy_candidate_id
+    )
+    selected_areas = [
+        candidate
+        for item in geography_result.area_evidence
+        for candidate in item.candidates
+        if isinstance(candidate, AreaCandidate) and candidate.candidate_id in canonical_geo.area_candidate_ids
+    ]
+    display_name = ", ".join(area.display_name for area in selected_areas) or hierarchy_candidate.display_name
+    try:
+        geography = GeographyIntent(
+            level=cast(GeographyLevel, hierarchy_candidate.friendly_level),
+            geo_for=canonical_geo.geo_for,
+            geo_in=dict(canonical_geo.geo_in),
+            display_name=display_name,
+            source="chroma",
+            requested_text=analysis.geography_search_text,
+            census_token=cast(CensusGeographyToken, canonical_geo.census_token),
+        )
+    except ValueError:
+        return _clarification(
+            existing,
+            trace,
+            "UNSUPPORTED_GEOGRAPHY_CONTRACT",
+            evidence,
+            original_query=original_query,
+            requested_slot="geography",
+        )
+    _trace_event(trace, RetrievalStage.PLAN_VALIDATION, RetrievalStatus.RESOLVED)
+    resolution = GeographyResolved(geography=geography)
+    return CensusGraphPatch(
+        plan=existing.model_copy(
+            update={
+                "geography": resolution,
+                "selected_table": grounded.table,
+                "retrieval_evidence": evidence,
+                "grounded_plan": grounded,
+                "retrieval_trace": trace,
+                "pending_geography_clarification": None,
+                "requires_clarification": False,
+                "workflow_cancelled": False,
+            }
+        ),
+        geo=geography,
+        logs=[
+            f"geography: grounded resolved ({geography.source})",
+            f"retrieval: {' -> '.join(trace.compact_summary())}",
+        ],
+    ).as_langgraph_update()
+
+
 def geography_node(
     state: CensusState,
     config: RunnableConfig,
@@ -312,129 +480,73 @@ def geography_node(
             requested_slot="geography",
         )
 
-    geography_result = deps.retrieve_geographies(
-        analysis,
-        dataset=selected_table.dataset,
-        year=requested_year,
-    )
-    evidence.extend(geography_result.evidence)
-    for item in geography_result.evidence:
-        status = RetrievalStatus.HIT if item.status == "hit" else RetrievalStatus.EMPTY
-        _trace_event(
-            trace,
-            RetrievalStage.GEOGRAPHY_RETRIEVAL,
-            status,
-            evidence=item,
-            reason_code=None if item.status == "hit" else f"GEOGRAPHY_{item.status.upper()}",
-            filters={"dataset": selected_table.dataset, "year": requested_year},
-        )
-    unusable = next((item for item in geography_result.evidence if item.status != "hit"), None)
-    if unusable is not None:
-        reason = f"GEOGRAPHY_{unusable.status.upper()}"
-        return _clarification(
-            existing,
-            trace,
-            reason,
-            evidence,
-            original_query=user_question,
-            requested_slot="geography",
-        )
-
-    selection = deps.select(table_evidence, geography_result)
-    if selection.status != "selected":
-        reason = selection.reason_code or "GEOGRAPHY_AMBIGUOUS"
-        _trace_event(trace, RetrievalStage.GROUNDED_SELECTION, RetrievalStatus.REJECTED, reason_code=reason)
-        requested_slot: GeographyClarificationSlot = "geography"
-        if len(geography_result.hierarchy_evidence.candidates) > 1:
-            requested_slot = "hierarchy"
-        elif any(len(item.candidates) > 1 for item in geography_result.area_evidence):
-            requested_slot = "area"
-        return _clarification(
-            existing,
-            trace,
-            reason,
-            evidence,
-            original_query=user_question,
-            requested_slot=requested_slot,
-        )
-    _trace_event(
+    return _continue_after_table_locked(
+        existing,
         trace,
-        RetrievalStage.GROUNDED_SELECTION,
-        RetrievalStatus.RESOLVED,
-        selected_ids=[
-            *selection.selected_table_ids,
-            *([selection.selected_hierarchy_id] if selection.selected_hierarchy_id else []),
-            *selection.selected_area_ids,
-        ],
+        evidence,
+        analysis,
+        selected_table,
+        table_evidence,
+        deps,
+        original_query=user_question,
     )
 
-    validation = deps.validate(selection, evidence)
-    if validation.status != "valid" or validation.plan is None or validation.plan.geography is None:
-        reason = validation.failures[0].reason_code if validation.failures else "PLAN_VALIDATION_FAILED"
-        _trace_event(trace, RetrievalStage.PLAN_VALIDATION, RetrievalStatus.REJECTED, reason_code=reason)
-        return _clarification(
-            existing,
-            trace,
-            reason,
-            evidence,
-            original_query=user_question,
-            requested_slot="geography",
-        )
 
-    grounded = validation.plan
-    canonical_geo = grounded.geography
-    assert canonical_geo is not None  # validated above
-    hierarchy_candidate = next(
-        candidate
-        for candidate in geography_result.hierarchy_evidence.candidates
-        if isinstance(candidate, HierarchyCandidate) and candidate.candidate_id == canonical_geo.hierarchy_candidate_id
-    )
-    selected_areas = [
-        candidate
-        for item in geography_result.area_evidence
-        for candidate in item.candidates
-        if isinstance(candidate, AreaCandidate) and candidate.candidate_id in canonical_geo.area_candidate_ids
-    ]
-    display_name = ", ".join(area.display_name for area in selected_areas) or hierarchy_candidate.display_name
+def _resume_table_clarification(
+    state: CensusState,
+    config: RunnableConfig,
+    *,
+    plan: WorkflowPlan,
+    pending: PendingGeographyClarification,
+    selection: str,
+    deps: GroundedGeographyDependencies,
+) -> dict[str, Any]:
+    prepared = prepare_table_resume(plan, selection)
+    if isinstance(prepared, GeographyResumeResult):
+        reason_code = "GEOGRAPHY_CANCELLED" if prepared.status == "cancelled" else pending.reason_code
+        return CensusGraphPatch(
+            plan=prepared.plan,
+            final=FinalResponseState(
+                answer_text=prepared.answer_text,
+                clarification_type="table",
+                reason_code=reason_code,
+                trace_id=pending.trace_id,
+            ),
+            logs=[f"geography: clarification {prepared.status} ({reason_code})"],
+        ).as_langgraph_update()
+
+    trace = plan.retrieval_trace or RetrievalTrace(prompt_version="grounded-geography-v1")
+    evidence = list(plan.retrieval_evidence)
     try:
-        geography = GeographyIntent(
-            level=cast(GeographyLevel, hierarchy_candidate.friendly_level),
-            geo_for=canonical_geo.geo_for,
-            geo_in=dict(canonical_geo.geo_in),
-            display_name=display_name,
-            source="chroma",
-            requested_text=analysis.geography_search_text,
-            census_token=cast(CensusGeographyToken, canonical_geo.census_token),
-        )
-    except ValueError:
+        analysis = deps.analyze(prepared.pending.original_query)
+    except Exception as exc:
+        logger.warning("Grounded request analysis failed on table resume: %s", exc)
+        _trace_event(trace, RetrievalStage.ANALYSIS, RetrievalStatus.ERROR, reason_code="ANALYSIS_FAILED")
         return _clarification(
-            existing,
+            plan,
             trace,
-            "UNSUPPORTED_GEOGRAPHY_CONTRACT",
+            "ANALYSIS_FAILED",
             evidence,
-            original_query=user_question,
+            original_query=prepared.pending.original_query,
             requested_slot="geography",
         )
-    _trace_event(trace, RetrievalStage.PLAN_VALIDATION, RetrievalStatus.RESOLVED)
-    resolution = GeographyResolved(geography=geography)
+    _trace_event(trace, RetrievalStage.ANALYSIS, RetrievalStatus.RESOLVED)
+    continuation = _continue_after_table_locked(
+        plan,
+        trace,
+        evidence,
+        analysis,
+        prepared.selected_table,
+        prepared.table_evidence,
+        deps,
+        original_query=prepared.pending.original_query,
+    )
+    if continuation.get("final") is not None:
+        return continuation
     return CensusGraphPatch(
-        plan=existing.model_copy(
-            update={
-                "geography": resolution,
-                "selected_table": grounded.table,
-                "retrieval_evidence": evidence,
-                "grounded_plan": grounded,
-                "retrieval_trace": trace,
-                "pending_geography_clarification": None,
-                "requires_clarification": False,
-                "workflow_cancelled": False,
-            }
-        ),
-        geo=geography,
-        logs=[
-            f"geography: grounded resolved ({geography.source})",
-            f"retrieval: {' -> '.join(trace.compact_summary())}",
-        ],
+        plan=continuation["plan"],
+        geo=continuation.get("geo"),
+        logs=[*continuation.get("logs", []), f"geography: resumed table from trace {pending.trace_id}"],
     ).as_langgraph_update()
 
 
@@ -445,6 +557,19 @@ def geography_resume_node(state: CensusState, config: RunnableConfig) -> dict[st
         raise ValueError("geography resume requires pending clarification context")
     pending = plan.pending_geography_clarification
     selection = state.messages[-1]["content"]
+    configured = config.get("configurable", {}).get("grounded_geography_dependencies")
+    deps = configured or GroundedGeographyDependencies()
+
+    if pending.requested_slot == "table":
+        return _resume_table_clarification(
+            state,
+            config,
+            plan=plan,
+            pending=pending,
+            selection=selection,
+            deps=deps,
+        )
+
     result = resume_geography_clarification(plan, selection)
     if result.status == "resolved":
         return CensusGraphPatch(

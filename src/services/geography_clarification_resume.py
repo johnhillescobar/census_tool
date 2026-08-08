@@ -18,9 +18,18 @@ from src.domain.geography_contract import (
 )
 from src.domain.retrieval_plan import GroundedSelection, RetrievalEvidence
 from src.services.grounded_plan_validator import validate_grounded_plan
-from src.state.workflow_plan import PendingGeographyOption, WorkflowPlan
+from src.state.workflow_plan import PendingGeographyClarification, PendingGeographyOption, WorkflowPlan
 
 _NON_WORD = re.compile(r"[^\w]+")
+
+
+class TableResumePrepared(BaseModel):
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    option: PendingGeographyOption
+    selected_table: TableCandidate
+    table_evidence: RetrievalEvidence
+    pending: PendingGeographyClarification
 
 
 class GeographyResumeResult(BaseModel):
@@ -132,11 +141,31 @@ def _selection_for_option(
     )
 
 
-def resume_geography_clarification(plan: WorkflowPlan, selection: str) -> GeographyResumeResult:
-    """Resolve one option against the exact candidate records saved in the pending plan."""
+def _validate_resume_option(plan: WorkflowPlan, selection: str) -> GeographyResumeResult | PendingGeographyOption:
     pending = plan.pending_geography_clarification
     if pending is None:
         raise ValueError("no pending geography clarification")
+
+    option = _select_option(selection, pending.options)
+    if option is None or option.candidate_id not in pending.retrieved_candidate_ids:
+        return _render_pending(plan, "That selection does not match one of the retrieved options.")
+    containing_evidence = [item for item in plan.retrieval_evidence if option.candidate_id in item.candidate_ids]
+    if (
+        len(containing_evidence) != 1
+        or containing_evidence[0].status != "hit"
+        or (pending.index_version is not None and containing_evidence[0].index_version != pending.index_version)
+    ):
+        return _render_pending(plan, "That retrieved option is no longer valid in the preserved evidence.")
+    return option
+
+
+def prepare_table_resume(plan: WorkflowPlan, selection: str) -> GeographyResumeResult | TableResumePrepared:
+    """Validate a table-slot resume selection before geography retrieval continues."""
+    pending = plan.pending_geography_clarification
+    if pending is None:
+        raise ValueError("no pending geography clarification")
+    if pending.requested_slot != "table":
+        raise ValueError("prepare_table_resume requires table-slot pending clarification")
     if _normalized(selection) in {"cancel", "stop", "never mind", "nevermind"}:
         return GeographyResumeResult(
             status="cancelled",
@@ -150,16 +179,48 @@ def resume_geography_clarification(plan: WorkflowPlan, selection: str) -> Geogra
             answer_text="Cancelled the pending geography request.",
         )
 
-    option = _select_option(selection, pending.options)
-    if option is None or option.candidate_id not in pending.retrieved_candidate_ids:
-        return _render_pending(plan, "That selection does not match one of the retrieved options.")
-    containing_evidence = [item for item in plan.retrieval_evidence if option.candidate_id in item.candidate_ids]
-    if (
-        len(containing_evidence) != 1
-        or containing_evidence[0].status != "hit"
-        or (pending.index_version is not None and containing_evidence[0].index_version != pending.index_version)
-    ):
-        return _render_pending(plan, "That retrieved option is no longer valid in the preserved evidence.")
+    validated = _validate_resume_option(plan, selection)
+    if isinstance(validated, GeographyResumeResult):
+        return validated
+
+    chosen = _candidate_for_option(validated, plan.retrieval_evidence)
+    if not isinstance(chosen, TableCandidate):
+        return _render_pending(plan, "That option does not complete a compatible geography selection.")
+    table_evidence = next(
+        item for item in plan.retrieval_evidence if validated.candidate_id in item.candidate_ids
+    )
+    return TableResumePrepared(
+        option=validated,
+        selected_table=chosen,
+        table_evidence=table_evidence,
+        pending=pending,
+    )
+
+
+def resume_geography_clarification(plan: WorkflowPlan, selection: str) -> GeographyResumeResult:
+    """Resolve one option against the exact candidate records saved in the pending plan."""
+    pending = plan.pending_geography_clarification
+    if pending is None:
+        raise ValueError("no pending geography clarification")
+    if pending.requested_slot == "table":
+        raise ValueError("table-slot resume requires prepare_table_resume and geography continuation")
+    if _normalized(selection) in {"cancel", "stop", "never mind", "nevermind"}:
+        return GeographyResumeResult(
+            status="cancelled",
+            plan=plan.model_copy(
+                update={
+                    "pending_geography_clarification": None,
+                    "requires_clarification": False,
+                    "workflow_cancelled": True,
+                }
+            ),
+            answer_text="Cancelled the pending geography request.",
+        )
+
+    validated = _validate_resume_option(plan, selection)
+    if isinstance(validated, GeographyResumeResult):
+        return validated
+    option = validated
 
     grounded_selection = _selection_for_option(plan, option)
     if grounded_selection is None:
@@ -203,4 +264,9 @@ def resume_geography_clarification(plan: WorkflowPlan, selection: str) -> Geogra
     return GeographyResumeResult(status="resolved", plan=resolved_plan, geography=geography)
 
 
-__all__ = ["GeographyResumeResult", "resume_geography_clarification"]
+__all__ = [
+    "GeographyResumeResult",
+    "TableResumePrepared",
+    "prepare_table_resume",
+    "resume_geography_clarification",
+]

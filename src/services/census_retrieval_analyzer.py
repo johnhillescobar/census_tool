@@ -20,6 +20,9 @@ _GEO_LEVEL = re.compile(
 )
 _AREA_TAIL = re.compile(r"\b(?:in|within|across|for|of)\s+(.+)$", re.IGNORECASE)
 _AREA_SPLIT = re.compile(r"\s*(?:,|;|\band\b|\bversus\b|\bvs\.?)\s*", re.IGNORECASE)
+# Bare population intent only — do not expand "population by sex", median income, etc.
+_BARE_POPULATION_INTENT = re.compile(r"^(?:total\s+)?population$", re.IGNORECASE)
+_POPULATION_TABLE_SEARCH_HINT = "sex by age B01001 total population"
 
 
 class CensusRetrievalAnalysis(BaseModel):
@@ -44,8 +47,16 @@ def _clean(text: str) -> str:
     return _SPACE.sub(" ", text).strip(" \t\n,;?.")
 
 
+def _expand_table_search_text(table_text: str) -> str:
+    """Bias bare population queries toward canonical ACS sex-by-age / total-population tables."""
+    cleaned = _clean(table_text)
+    if _BARE_POPULATION_INTENT.fullmatch(cleaned):
+        return _POPULATION_TABLE_SEARCH_HINT
+    return cleaned
+
+
 class DeterministicCensusRetrievalAnalyzer:
-    """Conservative offline baseline; it never emits identifiers or API tokens."""
+    """Conservative offline baseline; it never emits FIPS or geo_for/geo_in tokens."""
 
     def analyze(self, question: str) -> CensusRetrievalAnalysis:
         normalized = _clean(question)
@@ -74,7 +85,7 @@ class DeterministicCensusRetrievalAnalyzer:
         table_text = _YEAR.sub("", table_text)
         table_text = _GEO_LEVEL.sub("", table_text)
         table_text = re.sub(r"\b(?:for|in|during)\s*$", "", table_text, flags=re.IGNORECASE)
-        table_text = _clean(table_text) or normalized
+        table_text = _expand_table_search_text(_clean(table_text) or normalized)
 
         return CensusRetrievalAnalysis(
             question=normalized,

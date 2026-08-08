@@ -192,6 +192,16 @@ def test_baseline_analyzer_contract_contains_search_language_not_canonical_field
     assert analyze_retrieval_request("Population for 2023").geography_explicit is False
 
 
+def test_analyzer_expands_bare_total_population_for_row3_question():
+    result = analyze_retrieval_request("Show total population for all California counties in 2023.")
+    assert result.table_search_text == "sex by age B01001 total population"
+    assert result.geography_search_text == "counties"
+    assert "California" in " ".join(result.area_search_texts)
+    assert result.geography_explicit is True
+    # Competing metric phrases must not expand.
+    assert analyze_retrieval_request("Show median income for California in 2023").table_search_text == "median income"
+
+
 def test_geography_retrieval_always_constrains_dataset_and_year():
     hierarchy_metadata = {
         "candidate_id": "hierarchy:1",
