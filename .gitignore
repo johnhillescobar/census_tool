@@ -11,6 +11,9 @@ wheels/
 chroma/
 chroma/*
 
+# Chroma rebuild/promote backups and staging (local only)
+chroma-previous-*/
+chroma-staging/
 
 # .env file
 .env
@@ -57,3 +60,17 @@ logs/
 memory/user_checkpoint-test.json
 memory/user_golden-url-e2e.json
 memory/user_track2-graph-test.json
+
+# Session-local memory profiles (debug/CLI; not golden fixtures)
+memory/user_vscode-debug.json
+memory/cache_index_vscode-debug.json
+memory/user_adam.json
+memory/cache_index_adam.json
+memory/user_cosmicA.json
+memory/cache_index_cosmicA.json
+memory/user_kimchi.json
+memory/cache_index_kimchi.json
+memory/user_torak.json
+memory/cache_index_torak.json
+memory/user_tuku.json
+memory/cache_index_tuku.json
