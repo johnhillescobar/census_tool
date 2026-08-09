@@ -6,7 +6,7 @@ from src.domain.benchmark_contract import BenchmarkClarificationRequired
 from src.domain.comparison_plan import ComparisonPlan
 from src.domain.execution_spec import build_execution_spec, resolve_execution_geography
 from src.domain.geography_contract import GeographyClarificationRequired
-from src.domain.temporal_contract import TemporalClarificationRequired
+from src.domain.temporal_contract import TemporalClarificationRequired, TemporalIntent
 from src.services.agent_clarification_copy import format_readable_option_label
 from src.state.workflow_plan import BenchmarkNotApplicable, WorkflowPlan
 
@@ -15,6 +15,20 @@ logger = logging.getLogger(__name__)
 
 def is_table_only_grounded_plan(plan: WorkflowPlan) -> bool:
     return plan.grounded_plan is not None and plan.grounded_plan.geography is None
+
+
+def _build_table_only_plan_context(plan: WorkflowPlan, temporal_intent: TemporalIntent) -> AgentPlanContext:
+    grounded = plan.grounded_plan
+    assert grounded is not None
+    return AgentPlanContext(
+        geography=None,
+        temporal=temporal_intent,
+        benchmark=None,
+        comparison=None,
+        selected_table=plan.selected_table or grounded.table,
+        grounded_plan=grounded,
+        has_comparison_plan=False,
+    )
 
 
 def is_geography_clarification_flow(plan: WorkflowPlan | None) -> bool:
@@ -139,6 +153,9 @@ def build_agent_plan_context(plan: WorkflowPlan | None) -> AgentPlanContext | No
     if isinstance(plan.temporal, TemporalClarificationRequired):
         return None
 
+    if temporal_intent is not None and is_table_only_grounded_plan(plan):
+        return _build_table_only_plan_context(plan, temporal_intent)
+
     if isinstance(plan.benchmark, BenchmarkNotApplicable):
         if temporal_intent is None or geography_intent is None:
             return None
@@ -174,17 +191,6 @@ def build_agent_plan_context(plan: WorkflowPlan | None) -> AgentPlanContext | No
             benchmark=benchmark_intent,
             comparison=None,
             selected_table=plan.selected_table,
-            grounded_plan=plan.grounded_plan,
-            has_comparison_plan=False,
-        )
-
-    if temporal_intent is not None and is_table_only_grounded_plan(plan):
-        return AgentPlanContext(
-            geography=None,
-            temporal=temporal_intent,
-            benchmark=benchmark_intent,
-            comparison=None,
-            selected_table=plan.selected_table or plan.grounded_plan.table,
             grounded_plan=plan.grounded_plan,
             has_comparison_plan=False,
         )

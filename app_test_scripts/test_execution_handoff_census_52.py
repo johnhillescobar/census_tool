@@ -13,7 +13,7 @@ from src.services.grounded_execution_context import (
 )
 from src.services.grounded_plan_validator import CanonicalTable, ValidatedGroundedPlan
 from src.state.types import CensusState
-from src.state.workflow_plan import WorkflowPlan
+from src.state.workflow_plan import BenchmarkNotApplicable, WorkflowPlan
 from src.workflows.agent import agent_reasoning_node
 
 
@@ -45,14 +45,17 @@ def _table_only_grounded_plan() -> ValidatedGroundedPlan:
     )
 
 
-def _table_only_workflow_plan() -> WorkflowPlan:
+def _table_only_workflow_plan(*, benchmark_not_applicable: bool = False) -> WorkflowPlan:
     grounded = _table_only_grounded_plan()
-    return WorkflowPlan(
-        temporal=TemporalResolved(time=_median_income_temporal()),
-        selected_table=grounded.table,
-        grounded_plan=grounded,
-        requires_clarification=False,
-    )
+    plan_kwargs: dict = {
+        "temporal": TemporalResolved(time=_median_income_temporal()),
+        "selected_table": grounded.table,
+        "grounded_plan": grounded,
+        "requires_clarification": False,
+    }
+    if benchmark_not_applicable:
+        plan_kwargs["benchmark"] = BenchmarkNotApplicable(reason="no_comparison_intent")
+    return WorkflowPlan(**plan_kwargs)
 
 
 def test_build_agent_plan_context_table_only_grounded_plan():
@@ -61,6 +64,16 @@ def test_build_agent_plan_context_table_only_grounded_plan():
     assert context.geography is None
     assert context.grounded_plan is not None
     assert context.grounded_plan.geography is None
+    assert context.selected_table is not None
+    assert context.selected_table.table_code == "B19013"
+
+
+def test_build_agent_plan_context_table_only_with_benchmark_not_applicable():
+    """Median-income path: benchmark skipped + table-only grounded plan must still hand off."""
+    context = build_agent_plan_context(_table_only_workflow_plan(benchmark_not_applicable=True))
+    assert context is not None
+    assert context.geography is None
+    assert context.grounded_plan is not None
     assert context.selected_table is not None
     assert context.selected_table.table_code == "B19013"
 

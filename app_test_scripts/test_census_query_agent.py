@@ -507,6 +507,25 @@ class TestAgentPlanConsumption:
         assert "dataset" not in parsed["census_data"]
         assert "geo_for" not in parsed["census_data"]
 
+    def test_parse_solution_coerces_list_reasoning_trace_and_empty_data_summary(self):
+        agent = CensusQueryAgent(allow_offline=True)
+        payload = {
+            "census_data": {"success": False, "data": []},
+            "data_summary": {},
+            "reasoning_trace": ["Step one.", "Step two."],
+            "answer_text": "Could not complete the request without planning directives.",
+            "charts_needed": [],
+            "tables_needed": [],
+            "footnotes": [],
+            "comparison_input_rows": [],
+        }
+
+        parsed = agent._parse_solution({"output": json.dumps(payload)})
+
+        assert parsed["data_summary"] == ""
+        assert parsed["reasoning_trace"] == "Step one.\nStep two."
+        assert parsed["answer_text"] == "Could not complete the request without planning directives."
+
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
