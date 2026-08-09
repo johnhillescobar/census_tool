@@ -95,7 +95,8 @@ def validate_grounded_plan(
         return _failure("SELECTION_NOT_SELECTED", "Only a selected plan can be validated")
     if len(evidence_by_id) != len(evidence_items):
         return _failure("DUPLICATE_EVIDENCE_ID", "Evidence IDs must be unique")
-    unknown_evidence = next((item for item in selection.evidence_ids if item not in evidence_by_id), None)
+    unique_evidence_ids = list(dict.fromkeys(selection.evidence_ids))
+    unknown_evidence = next((item for item in unique_evidence_ids if item not in evidence_by_id), None)
     if unknown_evidence is not None:
         return _failure(
             "UNKNOWN_EVIDENCE_ID",
@@ -103,7 +104,7 @@ def validate_grounded_plan(
             evidence_id=unknown_evidence,
             field_path="evidence_ids",
         )
-    referenced_evidence = [evidence_by_id[evidence_id] for evidence_id in selection.evidence_ids]
+    referenced_evidence = [evidence_by_id[evidence_id] for evidence_id in unique_evidence_ids]
     if any(item.status != "hit" for item in referenced_evidence):
         item = next(item for item in referenced_evidence if item.status != "hit")
         return _failure(

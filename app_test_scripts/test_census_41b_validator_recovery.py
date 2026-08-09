@@ -56,6 +56,16 @@ def test_unknown_evidence_id_is_retryable_routes_to_agent_planning():
     assert _route_after_plan_validator(retry_state) == "agent_planning"
 
 
+def test_duplicate_evidence_ids_do_not_trigger_duplicate_candidate_id():
+    selection, evidence_items = _grounded_evidence()
+    duplicated_selection = selection.model_copy(
+        update={"evidence_ids": [*selection.evidence_ids, selection.evidence_ids[0]]},
+    )
+    result = validate_grounded_plan(duplicated_selection, evidence_items)
+    assert result.status == "valid"
+    assert result.plan is not None
+
+
 def test_subset_evidence_ids_validates_when_candidates_grounded():
     selection, evidence_items = _grounded_evidence()
     unused = evidence(
