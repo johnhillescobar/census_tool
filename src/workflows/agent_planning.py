@@ -13,7 +13,7 @@ from src.services.agent_plan_context import (
     build_agent_planning_context,
     should_skip_agent_for_upstream_clarification,
 )
-from src.services.agent_planning_artifacts import collect_planning_artifacts
+from src.services.agent_planning_artifacts import collect_planning_artifacts, merge_retrieval_evidence
 from src.state.types import CensusState, FinalResponseState
 from src.state.workflow_plan import WorkflowPlan
 from src.workflows.graph_patch import CensusGraphPatch
@@ -118,7 +118,7 @@ def agent_planning_node(state: CensusState, config: RunnableConfig) -> dict[str,
     evidence_items, proposed_selection = collect_planning_artifacts(result.get("intermediate_steps"))
     plan_updates: dict[str, Any] = {}
     if evidence_items:
-        plan_updates["retrieval_evidence"] = evidence_items
+        plan_updates["retrieval_evidence"] = merge_retrieval_evidence(existing.retrieval_evidence, evidence_items)
     if proposed_selection is not None:
         plan_updates["proposed_selection"] = proposed_selection
 

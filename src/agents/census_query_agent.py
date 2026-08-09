@@ -24,7 +24,11 @@ from src.services.agent_clarification_copy import (
     build_agent_clarification_copy,
     format_clarification_options_for_writer,
 )
-from src.services.agent_plan_context import format_clarification_directives, format_plan_directives
+from src.services.agent_plan_context import (
+    format_clarification_directives,
+    format_plan_directives,
+    format_planning_retry_directives,
+)
 from src.tools.area_resolution_tool import AreaResolutionTool
 from src.tools.census_api_tool import CensusAPITool
 from src.tools.chart_tool import ChartTool
@@ -164,6 +168,15 @@ class CensusQueryAgent:
                 ]
             )
         if plan_context is not None:
+            retry_directives = format_planning_retry_directives(plan_context)
+            if retry_directives:
+                sections.extend(
+                    [
+                        "Planning retry context (MUST address validator failures):",
+                        retry_directives,
+                        "",
+                    ]
+                )
             sections.extend(
                 [
                     "Planning artifacts (MUST follow these constraints):",
