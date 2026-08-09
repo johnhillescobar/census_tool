@@ -26,7 +26,9 @@ from src.tools.geography_discovery_tool import GeographyDiscoveryTool
 from src.tools.geography_hierarchy_tool import GeographyHierarchyTool
 from src.tools.geography_validation_tool import GeographyValidationTool
 from src.tools.pattern_builder_tool import PatternBuilderTool
+from src.tools.propose_grounded_plan_tool import ProposeGroundedPlanTool
 from src.tools.strict_census_api_tool import StrictCensusApiTool
+from src.tools.table_catalog_retrieval_tool import TableCatalogRetrievalTool
 from src.tools.table_search_tool import TableSearchTool
 from src.tools.table_tool import TableTool
 from src.tools.variable_validation_tool import VariableValidationTool
@@ -43,7 +45,7 @@ PLANNING_EXCLUDED_TOOL_NAMES = frozenset(
     {
         "census_api_call",
         STRICT_CENSUS_TOOL_NAME,
-        "generate_chart",
+        "create_chart",
     }
 )
 
@@ -88,6 +90,8 @@ class CensusQueryAgent:
             GeographyDiscoveryTool(),
             GeographyValidationTool(),
             TableSearchTool(),
+            TableCatalogRetrievalTool(),
+            ProposeGroundedPlanTool(),
             CensusAPITool(),
             StrictCensusApiTool(),
             TableTool(),
@@ -99,10 +103,9 @@ class CensusQueryAgent:
         ]
         if self.mode == "planning":
             self.tools = [tool for tool in all_tools if tool.name not in PLANNING_EXCLUDED_TOOL_NAMES]
-            system_prompt = build_planning_agent_prompt(tool.name for tool in self.tools)
         else:
             self.tools = all_tools
-            system_prompt = build_execution_agent_prompt(tool.name for tool in self.tools)
+        system_prompt = self._build_modern_system_prompt()
 
         self.backend = build_agent_backend(
             llm=self.llm,
@@ -210,15 +213,12 @@ class CensusQueryAgent:
         )
         intermediate_steps = execution.intermediate_steps or []
         output = (execution.output or "").strip()
-        tool_names = [
-            getattr(step[0], "tool", None)
-            for step in intermediate_steps
-            if step and len(step) >= 1
-        ]
+        tool_names = [getattr(step[0], "tool", None) for step in intermediate_steps if step and len(step) >= 1]
         return {
             "reasoning_trace": f"Planning tool steps: {len(intermediate_steps)} ({', '.join(name for name in tool_names if name)})",
             "data_summary": output[:1000] if output else "Planning turn completed without text output.",
             "answer_text": output or "Planning turn completed.",
+            "intermediate_steps": intermediate_steps,
         }
 
     def _coerce_strict_census_response(self, observation: Any) -> StrictCensusApiResponse | None:

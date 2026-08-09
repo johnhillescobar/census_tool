@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 
-from app import _route_after_agent_planning, _route_after_geography, _route_after_temporal
+from app import _route_after_agent_planning, _route_after_geography, _route_after_plan_validator, _route_after_temporal
 from app_test_scripts.grounded_planning_fakes import FakeGroundedRetrieval
 from src.services.graph_session import build_fresh_thread_state
 from src.services.grounded_execution_context import (
@@ -27,12 +27,13 @@ def _grounded_state(question: str = "Show total population for all California co
     return state.model_copy(update={"plan": geography_result["plan"], "geo": geography_result.get("geo")}), fake
 
 
-def test_graph_routes_temporal_before_agent_planning_then_grounded_geography():
+def test_graph_routes_temporal_before_agent_planning_then_plan_validator():
     state = build_fresh_thread_state("Population in California in 2023")
     temporal_result = temporal_node(state, {})
     temporal_state = state.model_copy(update={"plan": temporal_result["plan"]})
     assert _route_after_temporal(temporal_state) == "agent_planning"
-    assert _route_after_agent_planning(temporal_state) == "geography"
+    assert _route_after_agent_planning(temporal_state) == "plan_validator"
+    assert _route_after_plan_validator(temporal_state) == "geography"
 
     fake = FakeGroundedRetrieval()
     geography_result = geography_node(temporal_state, {}, dependencies=fake.dependencies())

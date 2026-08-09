@@ -22,7 +22,9 @@ from src.workflows import (
     memory_write_node,
     output_node,
     temporal_node,
+    validate_grounded_plan_node,
 )
+from src.workflows.plan_validator import MAX_PLAN_VALIDATION_ATTEMPTS
 
 logger = logging.getLogger(__name__)
 
@@ -63,6 +65,23 @@ def _route_after_temporal(state: CensusState) -> str:
 
 def _route_after_agent_planning(state: CensusState) -> str:
     if state.plan and state.plan.requires_clarification:
+        return "output"
+
+    return "plan_validator"
+
+
+def _route_after_plan_validator(state: CensusState) -> str:
+    if state.plan and state.plan.requires_clarification:
+        return "output"
+
+    if state.plan and state.plan.grounded_plan is not None:
+        return "benchmark"
+
+    if state.plan and state.plan.plan_validation_failures:
+        if state.plan.plan_validation_attempts < MAX_PLAN_VALIDATION_ATTEMPTS and any(
+            failure.retryable for failure in state.plan.plan_validation_failures
+        ):
+            return "agent_planning"
         return "output"
 
     return "geography"
@@ -108,6 +127,8 @@ def create_census_graph():
 
     workflow.add_node("agent_planning", agent_planning_node)
 
+    workflow.add_node("plan_validator", validate_grounded_plan_node)
+
     workflow.add_node("benchmark", benchmark_node)
 
     workflow.add_node("comparison", comparison_node)
@@ -148,7 +169,18 @@ def create_census_graph():
     workflow.add_conditional_edges(
         "agent_planning",
         _route_after_agent_planning,
-        {"geography": "geography", "output": "output"},
+        {"plan_validator": "plan_validator", "output": "output"},
+    )
+
+    workflow.add_conditional_edges(
+        "plan_validator",
+        _route_after_plan_validator,
+        {
+            "benchmark": "benchmark",
+            "geography": "geography",
+            "agent_planning": "agent_planning",
+            "output": "output",
+        },
     )
 
     workflow.add_conditional_edges(

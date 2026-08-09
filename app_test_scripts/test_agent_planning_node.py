@@ -36,10 +36,12 @@ def test_build_agent_planning_context_returns_none_when_clarification_required()
 
 @patch("src.workflows.agent_planning.CensusQueryAgent")
 def test_agent_planning_node_runs_retrieval_turn(mock_agent_cls):
+    mock_agent_cls.return_value.offline_mode = False
     mock_agent_cls.return_value.solve.return_value = {
         "reasoning_trace": "Planning tool steps: 2 (table_search, geography_discovery)",
         "data_summary": "Found population tables for 2023.",
         "answer_text": "Recommend B01003 for total population.",
+        "intermediate_steps": [],
     }
     state = CensusState(
         messages=[{"role": "user", "content": "population of California in 2023"}],
@@ -54,6 +56,24 @@ def test_agent_planning_node_runs_retrieval_turn(mock_agent_cls):
     assert kwargs["plan_context"].temporal.anchor_year == 2023
     assert result["logs"] == ["agent_planning: completed retrieval planning turn"]
     assert result["artifacts"]["planning_trace"].startswith("Planning tool steps")
+
+
+@patch("src.workflows.agent_planning.CensusQueryAgent")
+def test_agent_planning_node_logs_skipped_when_offline(mock_agent_cls):
+    mock_agent_cls.return_value.offline_mode = True
+    mock_agent_cls.return_value.solve.return_value = {
+        "reasoning_trace": "Agent planning skipped because OPENAI_API_KEY is not configured",
+        "data_summary": "Planning turn offline",
+        "answer_text": "Planning turn skipped (no LLM credentials).",
+    }
+    state = CensusState(
+        messages=[{"role": "user", "content": "population of California in 2023"}],
+        plan=_temporal_plan(),
+    )
+
+    result = agent_planning_node(state, config={})
+
+    assert result["logs"] == ["agent_planning: skipped (no LLM credentials)"]
 
 
 @patch("src.workflows.agent_planning.CensusQueryAgent")

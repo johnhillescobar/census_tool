@@ -15,19 +15,21 @@ def test_route_after_temporal_goes_to_agent_planning():
     assert _route_after_temporal(temporal_state) == "agent_planning"
 
 
-def test_route_after_agent_planning_goes_to_geography():
+def test_route_after_agent_planning_goes_to_plan_validator():
     state = build_fresh_thread_state("population of california")
     temporal_result = temporal_node(state, {})
     temporal_state = state.model_copy(update={"plan": temporal_result["plan"]})
-    assert _route_after_agent_planning(temporal_state) == "geography"
+    assert _route_after_agent_planning(temporal_state) == "plan_validator"
 
 
 @patch("src.workflows.agent_planning.CensusQueryAgent")
 def test_turn1_table_ambiguity_reaches_agent_planning_before_geography_halt(mock_agent_cls):
+    mock_agent_cls.return_value.offline_mode = False
     mock_agent_cls.return_value.solve.return_value = {
         "reasoning_trace": "Planning tool steps: 1 (table_search)",
         "data_summary": "Two population-related tables found.",
         "answer_text": "Table choice is ambiguous; recommend B01003.",
+        "intermediate_steps": [],
     }
     fake = AmbiguousTablesFake()
     state = build_fresh_thread_state("Show total population for all California counties in 2023.")

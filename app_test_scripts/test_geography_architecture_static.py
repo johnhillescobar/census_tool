@@ -49,5 +49,21 @@ def test_active_runtime_does_not_import_retired_geography_modules():
 def test_graph_is_temporal_first_and_golden_acceptance_has_124_questions():
     source = (ROOT / "app.py").read_text(encoding="utf-8")
     assert 'return "temporal"' in source
-    assert '{"geography": "geography", "output": "output"}' in source
+    assert 'workflow.add_node("agent_planning", agent_planning_node)' in source
+    assert 'workflow.add_node("plan_validator", validate_grounded_plan_node)' in source
+    assert '{"agent_planning": "agent_planning", "output": "output"}' in source
+    assert '{"plan_validator": "plan_validator", "output": "output"}' in source
+    assert 'return "plan_validator"' in source
+    assert 'return "geography"' in source
+    temporal_block = source.split("_route_after_temporal", 1)[1].split("_route_after_agent_planning", 1)[0]
+    assert 'return "agent_planning"' in temporal_block
+    assert 'return "geography"' not in temporal_block
+    plan_validator_block = source.split("_route_after_plan_validator", 1)[1].split("def _route_after_benchmark", 1)[0]
+    assert 'return "benchmark"' in plan_validator_block
+    assert 'return "agent_planning"' in plan_validator_block
+    assert '"geography": "geography"' in source
+    assert '"benchmark": "benchmark"' in source
+    assert "_route_after_temporal" in source
+    assert "_route_after_agent_planning" in source
+    assert "_route_after_plan_validator" in source
     assert len(load_golden_questions()) == 124
