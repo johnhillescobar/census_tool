@@ -25,6 +25,7 @@ from src.domain.retrieval_trace import (
     RetrievalTrace,
     RetrievalTraceEvent,
 )
+from src.services.agent_plan_context import should_skip_agent_for_upstream_clarification
 from src.services.grounded_plan_validator import (
     GroundedPlanValidationResult,
     ValidatedGroundedPlan,
@@ -206,7 +207,7 @@ def validate_grounded_plan_node(
     configured = config.get("configurable", {}).get("plan_validator_dependencies")
     deps = dependencies or configured or PlanValidatorDependencies()
 
-    if existing.requires_clarification:
+    if should_skip_agent_for_upstream_clarification(existing):
         return {"logs": ["plan_validator: skipped (clarification required)"]}
 
     if existing.proposed_selection is None:

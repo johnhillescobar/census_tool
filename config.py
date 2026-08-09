@@ -3,7 +3,12 @@ Configuration constants for Census Graph App
 Centralized settings for retention, API limits, and dataset configurations
 """
 
+import os
+
 LATEST_AVAILABLE_YEAR = 2024
+
+# CENSUS-44 Phase 3: route turn-2 clarification through agent path (set "0" for legacy geography_resume).
+CENSUS_AGENT_CLARIFICATION_RESUME = os.environ.get("CENSUS_AGENT_CLARIFICATION_RESUME", "1") == "1"
 # Hard floor for catalog rebuilds (tables, dataset geographies, areas).
 CATALOG_YEAR_START = 2014
 

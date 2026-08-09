@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 from pydantic import ValidationError
 
 from src.agents.runtime.factory import build_agent_backend, resolve_agent_runtime
+from src.domain.agent_clarification_context import AgentClarificationContext
 from src.domain.agent_output_contract import (
     AgentPlanOutput,
     agent_output_to_legacy_dict,
@@ -16,9 +17,14 @@ from src.domain.agent_plan_context import AgentPlanContext
 from src.domain.census_tool_contract import StrictCensusApiResponse
 from src.llm.config import LLM_CONFIG
 from src.llm.factory import create_llm
+from src.llm.prompts.clarification_writer import build_clarification_writer_prompt
 from src.llm.prompts.execution_agent import build_execution_agent_prompt
 from src.llm.prompts.planning_agent import build_planning_agent_prompt
-from src.services.agent_plan_context import format_plan_directives
+from src.services.agent_clarification_copy import (
+    build_agent_clarification_copy,
+    format_clarification_options_for_writer,
+)
+from src.services.agent_plan_context import format_clarification_directives, format_plan_directives
 from src.tools.area_resolution_tool import AreaResolutionTool
 from src.tools.census_api_tool import CensusAPITool
 from src.tools.chart_tool import ChartTool
@@ -27,6 +33,7 @@ from src.tools.geography_hierarchy_tool import GeographyHierarchyTool
 from src.tools.geography_validation_tool import GeographyValidationTool
 from src.tools.pattern_builder_tool import PatternBuilderTool
 from src.tools.propose_grounded_plan_tool import ProposeGroundedPlanTool
+from src.tools.select_clarification_option_tool import SelectClarificationOptionTool
 from src.tools.strict_census_api_tool import StrictCensusApiTool
 from src.tools.table_catalog_retrieval_tool import TableCatalogRetrievalTool
 from src.tools.table_search_tool import TableSearchTool
@@ -70,6 +77,7 @@ class CensusQueryAgent:
         self.mode = mode
         self.offline_mode = False
         self._active_plan_context: AgentPlanContext | None = None
+        self._select_clarification_tool = SelectClarificationOptionTool()
         self.runtime = resolve_agent_runtime()
 
         missing_api_key = not os.getenv("OPENAI_API_KEY")
@@ -102,7 +110,14 @@ class CensusQueryAgent:
             VariableValidationTool(),
         ]
         if self.mode == "planning":
-            self.tools = [tool for tool in all_tools if tool.name not in PLANNING_EXCLUDED_TOOL_NAMES]
+            self.tools = [
+                *[
+                    tool
+                    for tool in all_tools
+                    if tool.name not in PLANNING_EXCLUDED_TOOL_NAMES
+                ],
+                self._select_clarification_tool,
+            ]
         else:
             self.tools = all_tools
         system_prompt = self._build_modern_system_prompt()
@@ -123,8 +138,17 @@ class CensusQueryAgent:
         user_query: str,
         intent: dict,
         plan_context: AgentPlanContext | None,
+        clarification_context: AgentClarificationContext | None = None,
     ) -> str:
         sections = []
+        if clarification_context is not None:
+            sections.extend(
+                [
+                    "Clarification resume context (MUST ground selection in these options):",
+                    format_clarification_directives(clarification_context),
+                    "",
+                ]
+            )
         if plan_context is not None:
             sections.extend(
                 [
@@ -146,12 +170,13 @@ class CensusQueryAgent:
         user_query: str,
         intent: dict,
         plan_context: AgentPlanContext | None = None,
+        clarification_context: AgentClarificationContext | None = None,
     ) -> dict:
         """
         Reason through the query and return structured data
         """
         if self.mode == "planning":
-            return self._solve_planning(user_query, intent, plan_context)
+            return self._solve_planning(user_query, intent, plan_context, clarification_context)
 
         if self.offline_mode:
             logger.warning("CensusQueryAgent.solve called in offline mode without API credentials.")
@@ -178,6 +203,7 @@ class CensusQueryAgent:
                 user_query=user_query,
                 intent=intent,
                 plan_context=plan_context,
+                clarification_context=clarification_context,
             )
         )
         result = {
@@ -192,23 +218,37 @@ class CensusQueryAgent:
         user_query: str,
         intent: dict,
         plan_context: AgentPlanContext | None = None,
+        clarification_context: AgentClarificationContext | None = None,
     ) -> dict[str, Any]:
         if self.offline_mode:
+            trace = (
+                "Agent clarification skipped because OPENAI_API_KEY is not configured"
+                if clarification_context is not None
+                else "Agent planning skipped because OPENAI_API_KEY is not configured"
+            )
+            summary = "Clarification turn offline" if clarification_context is not None else "Planning turn offline"
+            answer = (
+                "Clarification turn skipped (no LLM credentials)."
+                if clarification_context is not None
+                else "Planning turn skipped (no LLM credentials)."
+            )
             return {
-                "reasoning_trace": "Agent planning skipped because OPENAI_API_KEY is not configured",
-                "data_summary": "Planning turn offline",
-                "answer_text": "Planning turn skipped (no LLM credentials).",
+                "reasoning_trace": trace,
+                "data_summary": summary,
+                "answer_text": answer,
             }
 
         if self.backend is None:
             raise RuntimeError("Agent backend is not initialized. Set OPENAI_API_KEY or enable offline mode.")
 
         self._active_plan_context = plan_context
+        self._select_clarification_tool.bind_context(clarification_context)
         execution = self.backend.invoke(
             self._build_executor_input(
                 user_query=user_query,
                 intent=intent,
                 plan_context=plan_context,
+                clarification_context=clarification_context,
             )
         )
         intermediate_steps = execution.intermediate_steps or []
@@ -219,6 +259,32 @@ class CensusQueryAgent:
             "data_summary": output[:1000] if output else "Planning turn completed without text output.",
             "answer_text": output or "Planning turn completed.",
             "intermediate_steps": intermediate_steps,
+        }
+
+    def compose_clarification_prompt(self, clarification_context: AgentClarificationContext) -> dict[str, Any]:
+        """Generate turn-1 clarification copy with readable labels and recommended default."""
+        fallback = build_agent_clarification_copy(clarification_context)
+        if self.offline_mode or self.llm is None:
+            return {
+                "answer_text": fallback,
+                "reasoning_trace": "Clarification copy: deterministic fallback (agent offline)",
+            }
+
+        prompt = build_clarification_writer_prompt(
+            user_question=clarification_context.original_query,
+            clarification_needed=f"{clarification_context.requested_slot} ({clarification_context.reason_code})",
+            available_options=format_clarification_options_for_writer(clarification_context),
+        )
+        response = self.llm.invoke(prompt)
+        content = getattr(response, "content", None)
+        if isinstance(content, str) and content.strip():
+            return {
+                "answer_text": content.strip(),
+                "reasoning_trace": "Clarification copy: agent clarification_writer prompt",
+            }
+        return {
+            "answer_text": fallback,
+            "reasoning_trace": "Clarification copy: deterministic fallback (empty agent response)",
         }
 
     def _coerce_strict_census_response(self, observation: Any) -> StrictCensusApiResponse | None:

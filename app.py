@@ -7,10 +7,14 @@ from langgraph.checkpoint.sqlite import SqliteSaver
 from langgraph.graph import StateGraph
 
 # Import state and routing
+from config import CENSUS_AGENT_CLARIFICATION_RESUME
+from src.services.agent_plan_context import should_skip_agent_for_upstream_clarification
 from src.state.types import CensusState
 
 # Import all workflows
 from src.workflows import (
+    agent_clarification_prompt_node,
+    agent_clarification_resume_node,
     agent_planning_node,
     agent_reasoning_node,
     benchmark_node,
@@ -44,7 +48,11 @@ def create_viz_graph(compiled_graph):
 
 
 def _route_after_geography(state: CensusState) -> str:
-    if state.plan and (state.plan.requires_clarification or state.plan.workflow_cancelled):
+    if state.plan and state.plan.workflow_cancelled:
+        return "output"
+    if state.plan and state.plan.requires_clarification:
+        if CENSUS_AGENT_CLARIFICATION_RESUME:
+            return "agent_clarification_prompt"
         return "output"
 
     return "benchmark"
@@ -52,26 +60,28 @@ def _route_after_geography(state: CensusState) -> str:
 
 def _route_after_memory(state: CensusState) -> str:
     if state.plan and state.plan.pending_geography_clarification:
+        if CENSUS_AGENT_CLARIFICATION_RESUME:
+            return "agent_clarification_resume"
         return "geography_resume"
     return "temporal"
 
 
 def _route_after_temporal(state: CensusState) -> str:
-    if state.plan and state.plan.requires_clarification:
+    if should_skip_agent_for_upstream_clarification(state.plan):
         return "output"
 
     return "agent_planning"
 
 
 def _route_after_agent_planning(state: CensusState) -> str:
-    if state.plan and state.plan.requires_clarification:
+    if should_skip_agent_for_upstream_clarification(state.plan):
         return "output"
 
     return "plan_validator"
 
 
 def _route_after_plan_validator(state: CensusState) -> str:
-    if state.plan and state.plan.requires_clarification:
+    if should_skip_agent_for_upstream_clarification(state.plan):
         return "output"
 
     if state.plan and state.plan.grounded_plan is not None:
@@ -122,6 +132,8 @@ def create_census_graph():
 
     workflow.add_node("geography", geography_node)
     workflow.add_node("geography_resume", geography_resume_node)
+    workflow.add_node("agent_clarification_prompt", agent_clarification_prompt_node)
+    workflow.add_node("agent_clarification_resume", agent_clarification_resume_node)
 
     workflow.add_node("temporal", temporal_node)
 
@@ -146,19 +158,38 @@ def create_census_graph():
     workflow.add_conditional_edges(
         "memory_load",
         _route_after_memory,
-        {"temporal": "temporal", "geography_resume": "geography_resume"},
+        {
+            "temporal": "temporal",
+            "geography_resume": "geography_resume",
+            "agent_clarification_resume": "agent_clarification_resume",
+        },
+    )
+    workflow.add_conditional_edges(
+        "agent_clarification_resume",
+        _route_after_geography,
+        {
+            "benchmark": "benchmark",
+            "output": "output",
+            "agent_clarification_prompt": "agent_clarification_prompt",
+        },
     )
     workflow.add_conditional_edges(
         "geography_resume",
         _route_after_geography,
-        {"benchmark": "benchmark", "output": "output"},
+        {
+            "benchmark": "benchmark",
+            "output": "output",
+            "agent_clarification_prompt": "agent_clarification_prompt",
+        },
     )
 
     workflow.add_conditional_edges(
         "geography",
         _route_after_geography,
-        {"benchmark": "benchmark", "output": "output"},
+        {"benchmark": "benchmark", "output": "output", "agent_clarification_prompt": "agent_clarification_prompt"},
     )
+
+    workflow.add_edge("agent_clarification_prompt", "output")
 
     workflow.add_conditional_edges(
         "temporal",

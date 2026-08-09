@@ -1,20 +1,78 @@
 import logging
 
+from src.domain.agent_clarification_context import AgentClarificationContext
 from src.domain.agent_plan_context import AgentPlanContext
 from src.domain.benchmark_contract import BenchmarkClarificationRequired
 from src.domain.comparison_plan import ComparisonPlan
 from src.domain.execution_spec import build_execution_spec
 from src.domain.geography_contract import GeographyClarificationRequired
 from src.domain.temporal_contract import TemporalClarificationRequired
+from src.services.agent_clarification_copy import format_readable_option_label
 from src.state.workflow_plan import BenchmarkNotApplicable, WorkflowPlan
 
 logger = logging.getLogger(__name__)
 
 
+def is_geography_clarification_flow(plan: WorkflowPlan | None) -> bool:
+    """True when clarification is table/geo pending state rather than temporal/benchmark."""
+    if plan is None:
+        return False
+    if plan.pending_geography_clarification is not None:
+        return True
+    return isinstance(plan.geography, GeographyClarificationRequired)
+
+
+def should_skip_agent_for_upstream_clarification(plan: WorkflowPlan | None) -> bool:
+    """Skip agent nodes only for non-geography clarifications."""
+    if plan is None or not plan.requires_clarification:
+        return False
+    return not is_geography_clarification_flow(plan)
+
+
+def build_agent_clarification_context(plan: WorkflowPlan | None) -> AgentClarificationContext | None:
+    """Build checkpointed clarification context for agent turn-2 resume (CENSUS-44)."""
+
+    if plan is None or plan.pending_geography_clarification is None:
+        return None
+
+    pending = plan.pending_geography_clarification
+    return AgentClarificationContext(
+        original_query=pending.original_query,
+        requested_slot=pending.requested_slot,
+        pending_options=list(pending.options),
+        retrieval_evidence=list(plan.retrieval_evidence),
+        reason_code=pending.reason_code,
+        trace_id=pending.trace_id,
+    )
+
+
+def format_clarification_directives(ctx: AgentClarificationContext) -> str:
+    """Render grounded clarification options for the agent clarification turn."""
+
+    lines = [
+        "Pending clarification (grounded options from preserved retrieval evidence):",
+        f"- Original query: {ctx.original_query}",
+        f"- Requested slot: {ctx.requested_slot}",
+        f"- Reason code: {ctx.reason_code}",
+        f"- Trace id: {ctx.trace_id}",
+        "- Options (select one grounded candidate):",
+    ]
+    for option in ctx.pending_options:
+        readable = format_readable_option_label(option, ctx)
+        lines.append(f"  - {readable} [candidate_id={option.candidate_id}]")
+    lines.extend(
+        [
+            "- Map the user reply to one grounded option using select_clarification_option.",
+            "- Call select_clarification_option with candidate_id; do not invent ids.",
+        ]
+    )
+    return "\n".join(lines)
+
+
 def build_agent_planning_context(plan: WorkflowPlan | None) -> AgentPlanContext | None:
     """Build temporal-only context for the retrieval planning turn after temporal_node."""
 
-    if plan is None or plan.requires_clarification:
+    if plan is None or should_skip_agent_for_upstream_clarification(plan):
         return None
 
     if isinstance(plan.temporal, TemporalClarificationRequired):
@@ -38,7 +96,7 @@ def build_agent_planning_context(plan: WorkflowPlan | None) -> AgentPlanContext 
 def build_agent_plan_context(plan: WorkflowPlan | None) -> AgentPlanContext | None:
     """Parse workflow planning artifacts into a typed agent context."""
 
-    if plan is None or plan.requires_clarification:
+    if plan is None or should_skip_agent_for_upstream_clarification(plan):
         return None
 
     geography_intent = plan.resolved_geography_intent()

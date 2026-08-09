@@ -33,6 +33,8 @@ from src.services.chroma_catalog_retriever import (
 )
 from src.services.geography_clarification_resume import (
     GeographyResumeResult,
+    TableResumePrepared,
+    format_pending_option_label,
     prepare_table_resume,
     resume_geography_clarification,
 )
@@ -150,7 +152,10 @@ def _clarification(
     )
     normalized_reason = prompt.reason_code
     clarification_text = "\n".join(
-        [prompt.question_text, *(f"{option.option_id}: {option.label}" for option in prompt.options)]
+        [
+            prompt.question_text,
+            *(format_pending_option_label(option, evidence) for option in pending_options),
+        ]
     )
     option_candidate_ids = {option.candidate_id for option in pending_options}
     relevant_evidence = [
@@ -490,6 +495,56 @@ def geography_node(
     )
 
 
+def continue_table_clarification_from_prepared(
+    state: CensusState,
+    config: RunnableConfig,
+    prepared: TableResumePrepared,
+    *,
+    deps: GroundedGeographyDependencies | None = None,
+) -> dict[str, Any]:
+    """Continue geography planning after an agent-validated table selection."""
+    plan = state.plan
+    if plan is None:
+        raise ValueError("table clarification continuation requires plan state")
+    pending = prepared.pending
+    configured = config.get("configurable", {}).get("grounded_geography_dependencies")
+    resolved_deps = deps or configured or GroundedGeographyDependencies()
+
+    trace = plan.retrieval_trace or RetrievalTrace(prompt_version="grounded-geography-v1")
+    evidence = list(plan.retrieval_evidence)
+    try:
+        analysis = resolved_deps.analyze(pending.original_query)
+    except Exception as exc:
+        logger.warning("Grounded request analysis failed on table resume: %s", exc)
+        _trace_event(trace, RetrievalStage.ANALYSIS, RetrievalStatus.ERROR, reason_code="ANALYSIS_FAILED")
+        return _clarification(
+            plan,
+            trace,
+            "ANALYSIS_FAILED",
+            evidence,
+            original_query=pending.original_query,
+            requested_slot="geography",
+        )
+    _trace_event(trace, RetrievalStage.ANALYSIS, RetrievalStatus.RESOLVED)
+    continuation = _continue_after_table_locked(
+        plan,
+        trace,
+        evidence,
+        analysis,
+        prepared.selected_table,
+        prepared.table_evidence,
+        resolved_deps,
+        original_query=pending.original_query,
+    )
+    if continuation.get("final") is not None:
+        return continuation
+    return CensusGraphPatch(
+        plan=continuation["plan"],
+        geo=continuation.get("geo"),
+        logs=[*continuation.get("logs", []), f"geography: resumed table from trace {pending.trace_id}"],
+    ).as_langgraph_update()
+
+
 def _resume_table_clarification(
     state: CensusState,
     config: RunnableConfig,
@@ -513,39 +568,7 @@ def _resume_table_clarification(
             logs=[f"geography: clarification {prepared.status} ({reason_code})"],
         ).as_langgraph_update()
 
-    trace = plan.retrieval_trace or RetrievalTrace(prompt_version="grounded-geography-v1")
-    evidence = list(plan.retrieval_evidence)
-    try:
-        analysis = deps.analyze(prepared.pending.original_query)
-    except Exception as exc:
-        logger.warning("Grounded request analysis failed on table resume: %s", exc)
-        _trace_event(trace, RetrievalStage.ANALYSIS, RetrievalStatus.ERROR, reason_code="ANALYSIS_FAILED")
-        return _clarification(
-            plan,
-            trace,
-            "ANALYSIS_FAILED",
-            evidence,
-            original_query=prepared.pending.original_query,
-            requested_slot="geography",
-        )
-    _trace_event(trace, RetrievalStage.ANALYSIS, RetrievalStatus.RESOLVED)
-    continuation = _continue_after_table_locked(
-        plan,
-        trace,
-        evidence,
-        analysis,
-        prepared.selected_table,
-        prepared.table_evidence,
-        deps,
-        original_query=prepared.pending.original_query,
-    )
-    if continuation.get("final") is not None:
-        return continuation
-    return CensusGraphPatch(
-        plan=continuation["plan"],
-        geo=continuation.get("geo"),
-        logs=[*continuation.get("logs", []), f"geography: resumed table from trace {pending.trace_id}"],
-    ).as_langgraph_update()
+    return continue_table_clarification_from_prepared(state, config, prepared, deps=deps)
 
 
 def geography_resume_node(state: CensusState, config: RunnableConfig) -> dict[str, Any]:
@@ -589,4 +612,9 @@ def geography_resume_node(state: CensusState, config: RunnableConfig) -> dict[st
     ).as_langgraph_update()
 
 
-__all__ = ["GroundedGeographyDependencies", "geography_node", "geography_resume_node"]
+__all__ = [
+    "GroundedGeographyDependencies",
+    "continue_table_clarification_from_prepared",
+    "geography_node",
+    "geography_resume_node",
+]

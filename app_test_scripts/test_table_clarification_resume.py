@@ -2,12 +2,17 @@
 
 from __future__ import annotations
 
+from unittest.mock import MagicMock, patch
+
+from app import _route_after_memory
 from app_test_scripts.grounded_planning_fakes import FakeGroundedRetrieval
 from app_test_scripts.test_table_clarification_slot import AmbiguousTablesFake
 from src.domain.geography_catalog import TableCandidate
 from src.domain.retrieval_plan import RetrievalEvidence
+from src.services.agent_plan_context import build_agent_clarification_context
 from src.services.census_retrieval_analyzer import CensusRetrievalAnalysis
 from src.services.graph_session import build_fresh_thread_state
+from src.workflows.agent_clarification_resume import agent_clarification_resume_node
 from src.workflows.geography import geography_node, geography_resume_node
 from src.workflows.temporal import temporal_node
 
@@ -77,7 +82,49 @@ def _turn1_state(question: str = ROW_3_QUESTION):
     return state.model_copy(update={"plan": temporal["plan"]})
 
 
-def test_table_resume_resolves_geography_after_ambiguous_table_pick():
+def _resume_turn2(plan, selection: str, fake: FakeGroundedRetrieval, *, use_agent_path: bool = True):
+    resume_state = _turn1_state().model_copy(update={"plan": plan, "messages": [{"role": "user", "content": selection}]})
+    config = {"configurable": {"grounded_geography_dependencies": fake.dependencies()}}
+    if use_agent_path:
+        return agent_clarification_resume_node(resume_state, config)
+    return geography_resume_node(resume_state, config)
+
+
+def test_route_after_memory_routes_pending_clarification_to_agent_resume():
+    turn1 = geography_node(_turn1_state(), {}, dependencies=AmbiguousTablesFake().dependencies())
+    state = _turn1_state().model_copy(update={"plan": turn1["plan"]})
+    assert _route_after_memory(state) == "agent_clarification_resume"
+
+
+def test_build_agent_clarification_context_exposes_checkpoint_contract():
+    turn1 = geography_node(_turn1_state(), {}, dependencies=AmbiguousTablesFake().dependencies())
+    plan = turn1["plan"]
+    pending = plan.pending_geography_clarification
+    assert pending is not None
+
+    context = build_agent_clarification_context(plan)
+    assert context is not None
+    assert context.original_query == pending.original_query
+    assert context.requested_slot == pending.requested_slot
+    assert context.pending_options == pending.options
+    assert context.retrieval_evidence == plan.retrieval_evidence
+    assert context.reason_code == pending.reason_code
+    assert context.trace_id == pending.trace_id
+
+
+def _agent_tool_step(plan, option_id: str):
+    pending = plan.pending_geography_clarification
+    assert pending is not None
+    option = next(item for item in pending.options if item.option_id == option_id)
+    payload = (
+        f'{{"status": "accepted", "option_id": "{option.option_id}", '
+        f'"candidate_id": "{option.candidate_id}", "label": "{option.label}"}}'
+    )
+    return (MagicMock(tool="select_clarification_option"), payload)
+
+
+@patch("src.workflows.agent_clarification_resume.CensusQueryAgent")
+def test_table_resume_resolves_geography_after_ambiguous_table_pick(mock_agent_cls):
     fake = AmbiguousTablesFake()
     turn1 = geography_node(_turn1_state(), {}, dependencies=fake.dependencies())
     plan = turn1["plan"]
@@ -85,10 +132,23 @@ def test_table_resume_resolves_geography_after_ambiguous_table_pick():
     assert pending is not None
     assert pending.requested_slot == "table"
 
-    resume_state = _turn1_state().model_copy(update={"plan": plan, "messages": [{"role": "user", "content": "table_0"}]})
-    turn2 = geography_resume_node(resume_state, {"configurable": {"grounded_geography_dependencies": fake.dependencies()}})
+    mock_agent_cls.return_value.offline_mode = False
+    mock_agent_cls.return_value.solve.return_value = {
+        "reasoning_trace": "Clarification tool steps: 1 (select_clarification_option)",
+        "data_summary": "User selected table_0.",
+        "answer_text": "Proceeding with SEX BY AGE.",
+        "intermediate_steps": [_agent_tool_step(plan, "table_0")],
+    }
+
+    turn2 = _resume_turn2(plan, "table_0", fake)
     resumed = turn2["plan"]
     geography = resumed.resolved_geography_intent()
+
+    mock_agent_cls.assert_called_once_with(mode="planning")
+    _, kwargs = mock_agent_cls.return_value.solve.call_args
+    assert kwargs["clarification_context"] is not None
+    assert kwargs["clarification_context"].original_query == pending.original_query
+    assert turn2["logs"][0] == "agent_clarification_resume: completed clarification turn"
 
     assert resumed.requires_clarification is False
     assert resumed.pending_geography_clarification is None
@@ -100,11 +160,20 @@ def test_table_resume_resolves_geography_after_ambiguous_table_pick():
     assert ("geography", ("acs/acs5", 2023)) in fake.calls
 
 
-def test_row3_two_turn_chroma_shaped_table_then_geography():
+@patch("src.workflows.agent_clarification_resume.CensusQueryAgent")
+def test_row3_two_turn_chroma_shaped_table_then_geography(mock_agent_cls):
     fake = ChromaShapedRow3Retrieval()
     turn1 = geography_node(_turn1_state(), {}, dependencies=fake.dependencies())
     plan = turn1["plan"]
     pending = plan.pending_geography_clarification
+
+    mock_agent_cls.return_value.offline_mode = False
+    mock_agent_cls.return_value.solve.return_value = {
+        "reasoning_trace": "Clarification tool steps: 1 (select_clarification_option)",
+        "data_summary": "User selected table_2 (SEX BY AGE).",
+        "answer_text": "Proceeding with B01001 for total population by age and sex.",
+        "intermediate_steps": [_agent_tool_step(plan, "table_2")],
+    }
 
     assert plan.requires_clarification is True
     assert pending is not None
@@ -117,10 +186,12 @@ def test_row3_two_turn_chroma_shaped_table_then_geography():
     ]
     assert ("geography", ("acs/acs5", 2023)) not in fake.calls
 
-    resume_state = _turn1_state().model_copy(update={"plan": plan, "messages": [{"role": "user", "content": "table_2"}]})
-    turn2 = geography_resume_node(resume_state, {"configurable": {"grounded_geography_dependencies": fake.dependencies()}})
+    turn2 = _resume_turn2(plan, "table_2", fake)
     resumed = turn2["plan"]
     geography = resumed.resolved_geography_intent()
+
+    mock_agent_cls.assert_called_once_with(mode="planning")
+    assert turn2["logs"][0] == "agent_clarification_resume: completed clarification turn"
 
     assert resumed.requires_clarification is False
     assert geography is not None
@@ -129,3 +200,18 @@ def test_row3_two_turn_chroma_shaped_table_then_geography():
     assert resumed.selected_table is not None
     assert resumed.selected_table.table_code == "B01001"
     assert ("geography", ("acs/acs5", 2023)) in fake.calls
+
+
+def test_legacy_geography_resume_fallback_still_resolves_table_pick():
+    fake = AmbiguousTablesFake()
+    turn1 = geography_node(_turn1_state(), {}, dependencies=fake.dependencies())
+    plan = turn1["plan"]
+
+    turn2 = _resume_turn2(plan, "table_0", fake, use_agent_path=False)
+    resumed = turn2["plan"]
+    geography = resumed.resolved_geography_intent()
+
+    assert resumed.requires_clarification is False
+    assert geography is not None
+    assert resumed.selected_table is not None
+    assert resumed.selected_table.table_code == "B01001"
