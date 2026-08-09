@@ -11,6 +11,7 @@ from src.state.types import CensusState
 
 # Import all workflows
 from src.workflows import (
+    agent_planning_node,
     agent_reasoning_node,
     benchmark_node,
     comparison_metrics_node,
@@ -57,6 +58,13 @@ def _route_after_temporal(state: CensusState) -> str:
     if state.plan and state.plan.requires_clarification:
         return "output"
 
+    return "agent_planning"
+
+
+def _route_after_agent_planning(state: CensusState) -> str:
+    if state.plan and state.plan.requires_clarification:
+        return "output"
+
     return "geography"
 
 
@@ -98,6 +106,8 @@ def create_census_graph():
 
     workflow.add_node("temporal", temporal_node)
 
+    workflow.add_node("agent_planning", agent_planning_node)
+
     workflow.add_node("benchmark", benchmark_node)
 
     workflow.add_node("comparison", comparison_node)
@@ -132,6 +142,12 @@ def create_census_graph():
     workflow.add_conditional_edges(
         "temporal",
         _route_after_temporal,
+        {"agent_planning": "agent_planning", "output": "output"},
+    )
+
+    workflow.add_conditional_edges(
+        "agent_planning",
+        _route_after_agent_planning,
         {"geography": "geography", "output": "output"},
     )
 

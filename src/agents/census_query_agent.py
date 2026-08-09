@@ -17,6 +17,7 @@ from src.domain.census_tool_contract import StrictCensusApiResponse
 from src.llm.config import LLM_CONFIG
 from src.llm.factory import create_llm
 from src.llm.prompts.execution_agent import build_execution_agent_prompt
+from src.llm.prompts.planning_agent import build_planning_agent_prompt
 from src.services.agent_plan_context import format_plan_directives
 from src.tools.area_resolution_tool import AreaResolutionTool
 from src.tools.census_api_tool import CensusAPITool
@@ -38,6 +39,13 @@ logger = logging.getLogger(__name__)
 COMPARISON_INPUT_ROW_FIELDS = frozenset({"year", "geo_id", "metric", "value", "benchmark_value"})
 CENSUS_DATA_FIELDS = frozenset({"success", "data", "variables", "url"})
 STRICT_CENSUS_TOOL_NAME = "strict_census_api_call"
+PLANNING_EXCLUDED_TOOL_NAMES = frozenset(
+    {
+        "census_api_call",
+        STRICT_CENSUS_TOOL_NAME,
+        "generate_chart",
+    }
+)
 
 
 class AgentOutput(AgentPlanOutput):
@@ -53,7 +61,11 @@ class CensusQueryAgent:
     def __init__(
         self,
         allow_offline: bool = True,
+        mode: str = "execution",
     ):
+        if mode not in {"execution", "planning"}:
+            raise ValueError(f"unsupported agent mode: {mode}")
+        self.mode = mode
         self.offline_mode = False
         self._active_plan_context: AgentPlanContext | None = None
         self.runtime = resolve_agent_runtime()
@@ -72,8 +84,7 @@ class CensusQueryAgent:
 
         self.llm = create_llm(temperature=LLM_CONFIG["temperature"])
 
-        # Initialize tools
-        self.tools = [
+        all_tools = [
             GeographyDiscoveryTool(),
             GeographyValidationTool(),
             TableSearchTool(),
@@ -86,14 +97,22 @@ class CensusQueryAgent:
             GeographyHierarchyTool(),
             VariableValidationTool(),
         ]
+        if self.mode == "planning":
+            self.tools = [tool for tool in all_tools if tool.name not in PLANNING_EXCLUDED_TOOL_NAMES]
+            system_prompt = build_planning_agent_prompt(tool.name for tool in self.tools)
+        else:
+            self.tools = all_tools
+            system_prompt = build_execution_agent_prompt(tool.name for tool in self.tools)
 
         self.backend = build_agent_backend(
             llm=self.llm,
             tools=self.tools,
-            system_prompt=self._build_modern_system_prompt(),
+            system_prompt=system_prompt,
         )
 
     def _build_modern_system_prompt(self) -> str:
+        if self.mode == "planning":
+            return build_planning_agent_prompt(tool.name for tool in self.tools)
         return build_execution_agent_prompt(tool.name for tool in self.tools)
 
     def _build_executor_input(
@@ -128,6 +147,9 @@ class CensusQueryAgent:
         """
         Reason through the query and return structured data
         """
+        if self.mode == "planning":
+            return self._solve_planning(user_query, intent, plan_context)
+
         if self.offline_mode:
             logger.warning("CensusQueryAgent.solve called in offline mode without API credentials.")
             return {
@@ -161,6 +183,43 @@ class CensusQueryAgent:
         }
 
         return self._parse_solution(result)
+
+    def _solve_planning(
+        self,
+        user_query: str,
+        intent: dict,
+        plan_context: AgentPlanContext | None = None,
+    ) -> dict[str, Any]:
+        if self.offline_mode:
+            return {
+                "reasoning_trace": "Agent planning skipped because OPENAI_API_KEY is not configured",
+                "data_summary": "Planning turn offline",
+                "answer_text": "Planning turn skipped (no LLM credentials).",
+            }
+
+        if self.backend is None:
+            raise RuntimeError("Agent backend is not initialized. Set OPENAI_API_KEY or enable offline mode.")
+
+        self._active_plan_context = plan_context
+        execution = self.backend.invoke(
+            self._build_executor_input(
+                user_query=user_query,
+                intent=intent,
+                plan_context=plan_context,
+            )
+        )
+        intermediate_steps = execution.intermediate_steps or []
+        output = (execution.output or "").strip()
+        tool_names = [
+            getattr(step[0], "tool", None)
+            for step in intermediate_steps
+            if step and len(step) >= 1
+        ]
+        return {
+            "reasoning_trace": f"Planning tool steps: {len(intermediate_steps)} ({', '.join(name for name in tool_names if name)})",
+            "data_summary": output[:1000] if output else "Planning turn completed without text output.",
+            "answer_text": output or "Planning turn completed.",
+        }
 
     def _coerce_strict_census_response(self, observation: Any) -> StrictCensusApiResponse | None:
         if isinstance(observation, StrictCensusApiResponse):

@@ -2,6 +2,7 @@ from langchain_core.runnables import RunnableConfig
 
 from app import (
     _route_after_agent,
+    _route_after_agent_planning,
     _route_after_benchmark,
     _route_after_comparison,
     _route_after_temporal,
@@ -65,8 +66,13 @@ def _apply_node(state: CensusState, node_fn) -> CensusState:
     return state
 
 
+def _stub_agent_planning_node(state: CensusState, config: RunnableConfig) -> dict:
+    return {"logs": ["agent_planning: completed retrieval planning turn"]}
+
+
 def _run_planning_chain(state: CensusState) -> CensusState:
     state = _apply_node(state, temporal_node)
+    state = _apply_node(state, _stub_agent_planning_node)
     state = _apply_node(state, geography_node)
     return state
 
@@ -90,7 +96,7 @@ def test_temporal_resolved_defaults_latest_available():
     assert result["plan"].requires_clarification is False
     assert isinstance(result["plan"].temporal, TemporalResolved)
     assert result["plan"].temporal.time.mode == "latest_available"
-    assert _route_after_temporal(state.model_copy(update={"plan": result["plan"]})) == "geography"
+    assert _route_after_temporal(state.model_copy(update={"plan": result["plan"]})) == "agent_planning"
 
 
 def test_benchmark_skip_when_no_compare_intent():
