@@ -40,4 +40,6 @@ def test_planning_prompt_directs_catalog_retrieval_not_table_search():
     lowered = prompt.lower()
     assert "table_catalog_retrieval" in lowered
     assert "do not use table_search" in lowered
+    assert "resolve_area_name" in lowered
+    assert "area_evidence" in lowered
     assert "dataset" in lowered and "year" in lowered

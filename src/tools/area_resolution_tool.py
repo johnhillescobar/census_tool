@@ -5,12 +5,77 @@ from typing import Any
 from langchain_core.tools import BaseTool
 from pydantic import ConfigDict, Field
 
+from src.domain.geography_catalog import AreaCandidate
+from src.domain.retrieval_plan import RetrievalEvidence
 from src.services.census_retrieval_analyzer import CensusRetrievalAnalysis
 from src.services.chroma_catalog_retriever import retrieve_geography_candidates
 from src.tools.geography_schemas import GeographyLevel
 from src.tools.json_parse import parse_first_json
 
 logger = logging.getLogger(__name__)
+
+
+def _filter_area_candidates(
+    area_evidence: RetrievalEvidence,
+    *,
+    geo_token: str,
+    parent: dict[str, str] | None,
+) -> list[AreaCandidate]:
+    candidates = [
+        candidate
+        for candidate in area_evidence.candidates
+        if isinstance(candidate, AreaCandidate)
+        and (candidate.friendly_level == geo_token or candidate.census_token == geo_token)
+    ]
+    if parent:
+        expected_codes = set(parent.values())
+        candidates = [
+            candidate
+            for candidate in candidates
+            if not candidate.parent_geo_ids or expected_codes.intersection(candidate.parent_geo_ids)
+        ]
+    return candidates
+
+
+def _filtered_area_evidence(
+    source: RetrievalEvidence,
+    candidates: list[AreaCandidate],
+) -> RetrievalEvidence:
+    if not candidates:
+        return source.model_copy(
+            update={
+                "status": "empty",
+                "candidate_ids": [],
+                "candidates": [],
+            }
+        )
+    return source.model_copy(
+        update={
+            "status": "hit",
+            "candidate_ids": [candidate.candidate_id for candidate in candidates],
+            "candidates": candidates,
+        }
+    )
+
+
+def _area_resolution_payload(
+    *,
+    status: str,
+    area_evidence: RetrievalEvidence,
+    hierarchy_evidence: RetrievalEvidence,
+    resolved: dict[str, str] | None = None,
+) -> dict[str, Any]:
+    payload: dict[str, Any] = {
+        "status": status,
+        "source": "chroma",
+        "area_evidence": area_evidence.model_dump(mode="json"),
+        "hierarchy_evidence": hierarchy_evidence.model_dump(mode="json"),
+    }
+    if resolved is not None:
+        payload.update(resolved)
+    if status == "ambiguous":
+        payload["count"] = len(area_evidence.candidates)
+    return payload
 
 
 class AreaResolutionTool(BaseTool):
@@ -28,6 +93,10 @@ class AreaResolutionTool(BaseTool):
     - dataset: Census dataset (default: "acs/acs5")
     - year: Year (default: 2023)
     - parent: Parent geography dict (optional)
+    
+    Returns area_evidence as typed RetrievalEvidence. On an unambiguous hit,
+    includes resolved code fields. On ambiguous matches, returns multiple
+    candidates in area_evidence for propose_grounded_plan selection.
     
     Examples:
     - {"name": "California", "geography_type": "state"}
@@ -82,35 +151,68 @@ class AreaResolutionTool(BaseTool):
             year=year,
             client=self.chroma_client,
         )
-        area_evidence = retrieved.area_evidence[0]
-        candidates = [
-            candidate
-            for candidate in area_evidence.candidates
-            if candidate.friendly_level == geo_token or candidate.census_token == geo_token
-        ]
-        if parent:
-            expected_codes = set(parent.values())
-            candidates = [
-                candidate
-                for candidate in candidates
-                if not candidate.parent_geo_ids or expected_codes.intersection(candidate.parent_geo_ids)
-            ]
-        if area_evidence.status != "hit" or len(candidates) != 1:
-            error_msg = (
-                f"No unambiguous Chroma match found for '{name}' in {geo_token} "
-                f"(status={area_evidence.status}, candidates={len(candidates)})"
+        if not retrieved.area_evidence:
+            empty_evidence = RetrievalEvidence(
+                evidence_id=f"area-evidence:{name}",
+                collection_name="census_geography_areas",
+                status="empty",
+                query_text=name,
             )
-            logger.warning(error_msg)
-            return error_msg
+            return json.dumps(
+                _area_resolution_payload(
+                    status="empty",
+                    area_evidence=empty_evidence,
+                    hierarchy_evidence=retrieved.hierarchy_evidence,
+                )
+            )
+
+        source_evidence = retrieved.area_evidence[0]
+        candidates = _filter_area_candidates(source_evidence, geo_token=geo_token, parent=parent)
+        area_evidence = _filtered_area_evidence(source_evidence, candidates)
+        hierarchy_evidence = retrieved.hierarchy_evidence
+
+        if area_evidence.status == "empty":
+            logger.info(
+                "No Chroma match for '%s' in %s (source_status=%s)",
+                name,
+                geo_token,
+                source_evidence.status,
+            )
+            return json.dumps(
+                _area_resolution_payload(
+                    status="empty",
+                    area_evidence=area_evidence,
+                    hierarchy_evidence=hierarchy_evidence,
+                )
+            )
+
+        if len(candidates) > 1:
+            logger.info(
+                "Ambiguous Chroma matches for '%s' in %s (candidates=%s)",
+                name,
+                geo_token,
+                len(candidates),
+            )
+            return json.dumps(
+                _area_resolution_payload(
+                    status="ambiguous",
+                    area_evidence=area_evidence,
+                    hierarchy_evidence=hierarchy_evidence,
+                )
+            )
 
         candidate = candidates[0]
         return json.dumps(
-            {
-                "code": candidate.geography_code,
-                "geo_id": candidate.geo_id,
-                "full_name": candidate.display_name,
-                "geography_type": candidate.friendly_level,
-                "candidate_id": candidate.candidate_id,
-                "source": "chroma",
-            }
+            _area_resolution_payload(
+                status="resolved",
+                area_evidence=area_evidence,
+                hierarchy_evidence=hierarchy_evidence,
+                resolved={
+                    "code": candidate.geography_code,
+                    "geo_id": candidate.geo_id,
+                    "full_name": candidate.display_name,
+                    "geography_type": candidate.friendly_level,
+                    "candidate_id": candidate.candidate_id,
+                },
+            )
         )
