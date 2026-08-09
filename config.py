@@ -9,6 +9,8 @@ LATEST_AVAILABLE_YEAR = 2024
 
 # CENSUS-44 Phase 3: route turn-2 clarification through agent path (set "0" for legacy geography_resume).
 CENSUS_AGENT_CLARIFICATION_RESUME = os.environ.get("CENSUS_AGENT_CLARIFICATION_RESUME", "1") == "1"
+# CENSUS-44b: route turn-1 table/geo ambiguity through agent_planning (set "1" to enable).
+CENSUS_AGENT_TURN1_PLANNING = os.environ.get("CENSUS_AGENT_TURN1_PLANNING", "0") == "1"
 # Hard floor for catalog rebuilds (tables, dataset geographies, areas).
 CATALOG_YEAR_START = 2014
 
