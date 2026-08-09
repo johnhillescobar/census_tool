@@ -1,6 +1,5 @@
 from langchain_core.runnables import RunnableConfig
 
-from config import LATEST_AVAILABLE_YEAR
 from app import (
     _route_after_agent,
     _route_after_benchmark,
@@ -8,6 +7,7 @@ from app import (
     _route_after_temporal,
 )
 from app_test_scripts.grounded_planning_fakes import FakeGroundedRetrieval
+from config import LATEST_AVAILABLE_YEAR
 from src.domain.benchmark_contract import BenchmarkClarificationRequired, BenchmarkResolved
 from src.domain.comparison_plan import ComparisonPlan
 from src.domain.temporal_contract import (

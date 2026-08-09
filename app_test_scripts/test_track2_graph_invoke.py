@@ -1,9 +1,9 @@
 import uuid
 from unittest.mock import patch
 
-from config import LATEST_AVAILABLE_YEAR
 from app import create_census_graph
 from app_test_scripts.grounded_planning_fakes import FakeGroundedRetrieval
+from config import LATEST_AVAILABLE_YEAR
 from src.domain.comparison_artifacts import ComparisonInputRow
 from src.domain.geography_contract import GeographyIntent
 from src.state.types import CensusState, coerce_geography_intent
