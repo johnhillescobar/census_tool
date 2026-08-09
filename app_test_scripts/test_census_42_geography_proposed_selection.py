@@ -55,7 +55,6 @@ def test_geography_node_validates_proposed_selection_without_score_rank():
 
 def test_geography_node_clarifies_when_no_proposal_in_production_path():
     fake = FakeGroundedRetrieval()
-    score_rank = MagicMock(side_effect=AssertionError("score-rank must not run in production path"))
     deps = GroundedGeographyDependencies(
         analyze=fake.analyze,
         retrieve_tables=fake.retrieve_tables,
