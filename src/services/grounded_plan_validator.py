@@ -95,23 +95,24 @@ def validate_grounded_plan(
         return _failure("SELECTION_NOT_SELECTED", "Only a selected plan can be validated")
     if len(evidence_by_id) != len(evidence_items):
         return _failure("DUPLICATE_EVIDENCE_ID", "Evidence IDs must be unique")
-    if set(selection.evidence_ids) != set(evidence_by_id):
-        unknown = next((item for item in selection.evidence_ids if item not in evidence_by_id), None)
+    unknown_evidence = next((item for item in selection.evidence_ids if item not in evidence_by_id), None)
+    if unknown_evidence is not None:
         return _failure(
             "UNKNOWN_EVIDENCE_ID",
-            "Selection evidence IDs do not exactly match supplied evidence",
-            evidence_id=unknown,
+            "Selection evidence ID was not supplied by retrieval evidence",
+            evidence_id=unknown_evidence,
             field_path="evidence_ids",
         )
-    if any(item.status != "hit" for item in evidence_items):
-        item = next(item for item in evidence_items if item.status != "hit")
+    referenced_evidence = [evidence_by_id[evidence_id] for evidence_id in selection.evidence_ids]
+    if any(item.status != "hit" for item in referenced_evidence):
+        item = next(item for item in referenced_evidence if item.status != "hit")
         return _failure(
             "EVIDENCE_NOT_USABLE",
             f"Evidence status is {item.status}",
             evidence_id=item.evidence_id,
         )
 
-    candidates = [candidate for item in evidence_items for candidate in item.candidates]
+    candidates = [candidate for item in referenced_evidence for candidate in item.candidates]
     counts = Counter(candidate.candidate_id for candidate in candidates)
     duplicate = next((candidate_id for candidate_id, count in counts.items() if count > 1), None)
     if duplicate:
