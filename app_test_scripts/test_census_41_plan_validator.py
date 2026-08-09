@@ -134,7 +134,7 @@ def test_plan_validator_accepts_grounded_selection_and_skips_geography():
     assert _route_after_plan_validator(validated_state) == "benchmark"
 
 
-def test_plan_validator_exhausted_retries_route_to_output():
+def test_plan_validator_exhausted_retries_route_to_plan_validation_exhaust():
     selection, evidence_items = _grounded_evidence()
     bad_selection = selection.model_copy(update={"selected_table_ids": ["table:missing"]})
     plan = WorkflowPlan(
@@ -150,7 +150,7 @@ def test_plan_validator_exhausted_retries_route_to_output():
         ],
     )
     state = build_fresh_thread_state("Population in California in 2023").model_copy(update={"plan": plan})
-    assert _route_after_plan_validator(state) == "output"
+    assert _route_after_plan_validator(state) == "plan_validation_exhaust"
 
 
 def test_legacy_geography_still_runs_when_validator_skips():

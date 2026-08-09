@@ -16,6 +16,11 @@ from src.services.geography_clarification_resume import (
     apply_agent_clarification_selection,
     render_pending_clarification_retry,
 )
+from src.services.plan_validation_exhaust_clarification import (
+    PlanValidationExhaustResumePrepared,
+    apply_plan_validation_exhaust_selection,
+    is_plan_validation_exhaust_pending,
+)
 from src.state.types import CensusState
 from src.workflows.geography import continue_table_clarification_from_prepared
 from src.workflows.graph_patch import CensusGraphPatch, FinalResponseState
@@ -100,8 +105,16 @@ def agent_clarification_resume_node(state: CensusState, config: RunnableConfig) 
             requested_slot=pending.requested_slot,
         )
     else:
-        resolved = apply_agent_clarification_selection(plan, selection.candidate_id)
-        if isinstance(resolved, TableResumePrepared):
+        if is_plan_validation_exhaust_pending(pending):
+            resolved = apply_plan_validation_exhaust_selection(plan, selection.candidate_id)
+        else:
+            resolved = apply_agent_clarification_selection(plan, selection.candidate_id)
+        if isinstance(resolved, PlanValidationExhaustResumePrepared):
+            resume_update = CensusGraphPatch(
+                plan=resolved.plan,
+                logs=[f"agent_clarification_resume: plan validation exhaust selection applied ({pending.trace_id})"],
+            ).as_langgraph_update()
+        elif isinstance(resolved, TableResumePrepared):
             resume_update = continue_table_clarification_from_prepared(state, config, resolved)
         else:
             resume_update = _patch_from_geography_resume_result(
