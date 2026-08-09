@@ -108,6 +108,30 @@ def test_plan_validation_exhaust_builds_pending_clarification_from_evidence():
     assert {option.candidate_id for option in pending.options}.issubset({"table:pop", "table:age"})
 
 
+def test_plan_validation_exhaust_falls_back_when_preferred_slot_has_no_candidates():
+    table_bundle = _ambiguous_table_evidence()[0]
+    plan = _temporal_plan(
+        retrieval_evidence=[table_bundle],
+        plan_validation_attempts=MAX_PLAN_VALIDATION_ATTEMPTS,
+        plan_validation_failures=[
+            ValidationFailure(
+                reason_code="UNKNOWN_EVIDENCE_ID",
+                message="Selection evidence ID was not supplied by retrieval evidence",
+                field_path="evidence_ids",
+                evidence_id="bundle:missing",
+                retryable=True,
+            )
+        ],
+    )
+
+    update = prepare_plan_validation_exhaust_clarification(plan, original_query="population in California")
+    pending = update["plan"].pending_geography_clarification
+
+    assert pending is not None
+    assert pending.requested_slot == "table"
+    assert len(pending.options) >= 2
+
+
 @patch("src.workflows.agent_planning.CensusQueryAgent")
 def test_plan_validation_exhaust_emits_non_empty_clarification_copy(mock_agent_cls):
     mock_agent_cls.return_value.offline_mode = True

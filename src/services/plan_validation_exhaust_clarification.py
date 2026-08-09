@@ -101,6 +101,24 @@ def _build_pending_options(
     ]
 
 
+def _resolve_clarification_slot_with_evidence(
+    failures: list[ValidationFailure],
+    evidence: list[RetrievalEvidence],
+) -> tuple[GeographyClarificationSlot, list[PendingGeographyOption]]:
+    """Pick a slot with grounded options, falling back when the primary slot has no candidates."""
+
+    preferred = _resolve_clarification_slot(failures)
+    fallback_order: tuple[GeographyClarificationSlot, ...] = ("table", "area", "hierarchy", "geography")
+    slots_to_try = [preferred, *[slot for slot in fallback_order if slot != preferred]]
+
+    for slot in slots_to_try:
+        options = _build_pending_options(evidence, slot, failures)
+        if options:
+            return slot, options
+
+    return preferred, _build_pending_options(evidence, preferred, failures)
+
+
 def prepare_plan_validation_exhaust_clarification(
     plan: WorkflowPlan,
     *,
@@ -111,8 +129,7 @@ def prepare_plan_validation_exhaust_clarification(
     failures = list(plan.plan_validation_failures)
     evidence = list(plan.retrieval_evidence)
     trace = plan.retrieval_trace or RetrievalTrace(prompt_version="plan-validation-exhaust-v1")
-    slot = _resolve_clarification_slot(failures)
-    pending_options = _build_pending_options(evidence, slot, failures)
+    slot, pending_options = _resolve_clarification_slot_with_evidence(failures, evidence)
 
     primary_reason = failures[0].reason_code if failures else "PLAN_VALIDATION_FAILED"
     reason_code = f"{PLAN_VALIDATION_EXHAUST_PREFIX}_{primary_reason}"
