@@ -19,6 +19,10 @@ def agent_planning_node(state: CensusState, config: RunnableConfig) -> dict[str,
     if state.plan and state.plan.requires_clarification:
         return {"logs": ["agent_planning: skipped (clarification required)"]}
 
+    if state.plan and state.plan.plan_validation_failures:
+        codes = ", ".join(failure.reason_code for failure in state.plan.plan_validation_failures)
+        logger.info("agent_planning: retry after validation failures (%s)", codes)
+
     plan_context = build_agent_planning_context(state.plan)
     if plan_context is None:
         return {"logs": ["agent_planning: skipped (no temporal context)"]}
