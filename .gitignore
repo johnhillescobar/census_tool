@@ -6,6 +6,9 @@ dist/
 wheels/
 *.egg-info
 
+# Git worktrees (local parallel branches; see docs/census-39-parallel-worktrees.md)
+.worktree/
+
 # Virtual environments
 .venv
 chroma/
