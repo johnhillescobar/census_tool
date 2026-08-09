@@ -106,6 +106,49 @@ def _proposed_ids_are_grounded(
     )
 
 
+def _evidence_bundle(
+    table_evidence: RetrievalEvidence,
+    geography_evidence: GeographyRetrievalResult | None,
+) -> tuple[list[str], str]:
+    evidence = [table_evidence]
+    if geography_evidence is not None:
+        evidence.extend(geography_evidence.evidence)
+    evidence_ids = [item.evidence_id for item in evidence]
+    return evidence_ids, _selection_id(evidence)
+
+
+def validate_proposed_grounded_ids(
+    proposed: CandidateIdSelection,
+    table_evidence: RetrievalEvidence,
+    geography_evidence: GeographyRetrievalResult | None = None,
+) -> GroundedSelection:
+    """Verify agent-proposed candidate IDs are grounded in retrieval evidence."""
+    evidence_ids, selection_id = _evidence_bundle(table_evidence, geography_evidence)
+
+    if not proposed.table_id:
+        return GroundedSelection(
+            selection_id=selection_id,
+            status="rejected",
+            evidence_ids=evidence_ids,
+            reason_code="TABLE_SELECTION_REQUIRED",
+        )
+    if not _proposed_ids_are_grounded(proposed, table_evidence, geography_evidence):
+        return GroundedSelection(
+            selection_id=selection_id,
+            status="rejected",
+            evidence_ids=evidence_ids,
+            reason_code="UNKNOWN_CANDIDATE_ID",
+        )
+    return GroundedSelection(
+        selection_id=selection_id,
+        status="selected",
+        evidence_ids=evidence_ids,
+        selected_table_ids=[proposed.table_id],
+        selected_hierarchy_id=proposed.hierarchy_id,
+        selected_area_ids=proposed.area_ids,
+    )
+
+
 def select_grounded_plan(
     table_evidence: RetrievalEvidence,
     geography_evidence: GeographyRetrievalResult | None = None,
@@ -115,35 +158,10 @@ def select_grounded_plan(
     ambiguity_margin: float = CHROMA_RETRIEVAL_AMBIGUITY_MARGIN,
 ) -> GroundedSelection:
     """Select only opaque IDs supplied by retrieval evidence."""
-    evidence = [table_evidence]
-    if geography_evidence is not None:
-        evidence.extend(geography_evidence.evidence)
-    evidence_ids = [item.evidence_id for item in evidence]
-    selection_id = _selection_id(evidence)
-
     if proposed is not None:
-        if not proposed.table_id:
-            return GroundedSelection(
-                selection_id=selection_id,
-                status="rejected",
-                evidence_ids=evidence_ids,
-                reason_code="TABLE_SELECTION_REQUIRED",
-            )
-        if not _proposed_ids_are_grounded(proposed, table_evidence, geography_evidence):
-            return GroundedSelection(
-                selection_id=selection_id,
-                status="rejected",
-                evidence_ids=evidence_ids,
-                reason_code="UNKNOWN_CANDIDATE_ID",
-            )
-        return GroundedSelection(
-            selection_id=selection_id,
-            status="selected",
-            evidence_ids=evidence_ids,
-            selected_table_ids=[proposed.table_id],
-            selected_hierarchy_id=proposed.hierarchy_id,
-            selected_area_ids=proposed.area_ids,
-        )
+        return validate_proposed_grounded_ids(proposed, table_evidence, geography_evidence)
+
+    evidence_ids, selection_id = _evidence_bundle(table_evidence, geography_evidence)
 
     table_id, reason = _ranked_id(
         table_evidence,
@@ -201,4 +219,4 @@ def select_grounded_plan(
     )
 
 
-__all__ = ["CandidateIdSelection", "select_grounded_plan"]
+__all__ = ["CandidateIdSelection", "select_grounded_plan", "validate_proposed_grounded_ids"]

@@ -3,16 +3,17 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from src.domain.geography_catalog import AreaCandidate, HierarchyCandidate, TableCandidate
-from src.domain.retrieval_plan import RetrievalEvidence
+from src.domain.retrieval_plan import EvidenceStatus, RetrievalEvidence
 from src.services.census_retrieval_analyzer import CensusRetrievalAnalysis, analyze_retrieval_request
 from src.services.chroma_catalog_retriever import GeographyRetrievalResult
+from src.services.grounded_census_planner import select_grounded_plan
 from src.workflows.geography import GroundedGeographyDependencies
 
 
 @dataclass
 class FakeGroundedRetrieval:
-    table_status: str = "hit"
-    geography_status: str = "hit"
+    table_status: EvidenceStatus = "hit"
+    geography_status: EvidenceStatus = "hit"
     calls: list[tuple[str, object]] = field(default_factory=list)
 
     def analyze(self, question: str) -> CensusRetrievalAnalysis:
@@ -110,6 +111,6 @@ class FakeGroundedRetrieval:
             analyze=self.analyze,
             retrieve_tables=self.retrieve_tables,
             retrieve_geographies=self.retrieve_geographies,
-            select=defaults.select,
+            select=select_grounded_plan,
             validate=defaults.validate,
         )

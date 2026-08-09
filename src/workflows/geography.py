@@ -38,7 +38,10 @@ from src.services.geography_clarification_resume import (
     prepare_table_resume,
     resume_geography_clarification,
 )
-from src.services.grounded_census_planner import select_grounded_plan
+from src.services.grounded_census_planner import (
+    CandidateIdSelection,
+    validate_proposed_grounded_ids,
+)
 from src.services.grounded_plan_validator import GroundedPlanValidationResult, validate_grounded_plan
 from src.state.types import CensusState, FinalResponseState
 from src.state.workflow_plan import (
@@ -57,8 +60,61 @@ class GroundedGeographyDependencies:
     analyze: Callable[[str], CensusRetrievalAnalysis] = analyze_retrieval_request
     retrieve_tables: Callable[..., RetrievalEvidence] = retrieve_table_candidates
     retrieve_geographies: Callable[..., GeographyRetrievalResult] = retrieve_geography_candidates
-    select: Callable[..., GroundedSelection] = select_grounded_plan
+    # Score-rank auto-select is test/replay harness only; production validates agent proposals.
+    select: Callable[..., GroundedSelection] | None = None
     validate: Callable[..., GroundedPlanValidationResult] = validate_grounded_plan
+
+
+def _table_evidence_from_attached(evidence: list[RetrievalEvidence]) -> RetrievalEvidence | None:
+    return next((item for item in evidence if item.collection_name == "census_tables"), None)
+
+
+def _geography_result_from_attached(evidence: list[RetrievalEvidence]) -> GeographyRetrievalResult | None:
+    hierarchy = next((item for item in evidence if item.collection_name == "census_dataset_geographies"), None)
+    if hierarchy is None:
+        return None
+    area_evidence = [item for item in evidence if item.collection_name == "census_geography_areas"]
+    return GeographyRetrievalResult(hierarchy_evidence=hierarchy, area_evidence=area_evidence)
+
+
+def _candidate_ids_from_proposal(
+    proposed: GroundedSelection,
+    *,
+    table_only: bool = False,
+) -> CandidateIdSelection:
+    table_id = proposed.selected_table_ids[0] if proposed.selected_table_ids else None
+    if table_only:
+        return CandidateIdSelection(table_id=table_id)
+    return CandidateIdSelection(
+        table_id=table_id,
+        hierarchy_id=proposed.selected_hierarchy_id,
+        area_ids=list(proposed.selected_area_ids),
+    )
+
+
+def _resolve_grounded_selection(
+    table_evidence: RetrievalEvidence,
+    geography_evidence: GeographyRetrievalResult | None,
+    *,
+    proposed: GroundedSelection | None,
+    deps: GroundedGeographyDependencies,
+) -> GroundedSelection:
+    """Validate agent-proposed IDs in production; score-rank only when deps.select is injected."""
+    if proposed is not None:
+        return validate_proposed_grounded_ids(
+            _candidate_ids_from_proposal(proposed, table_only=geography_evidence is None),
+            table_evidence,
+            geography_evidence,
+        )
+    if deps.select is not None:
+        return deps.select(table_evidence, geography_evidence)
+    if geography_evidence is not None and len(table_evidence.candidate_ids) == 1:
+        return validate_proposed_grounded_ids(
+            CandidateIdSelection(table_id=table_evidence.candidate_ids[0]),
+            table_evidence,
+            geography_evidence,
+        )
+    return validate_proposed_grounded_ids(CandidateIdSelection(), table_evidence, geography_evidence)
 
 
 def _planning_year(plan: WorkflowPlan | None) -> int:
@@ -260,22 +316,36 @@ def _continue_after_table_locked(
             requested_slot="geography",
         )
 
-    geography_result = deps.retrieve_geographies(
-        analysis,
-        dataset=selected_table.dataset,
-        year=requested_year,
-    )
-    evidence.extend(geography_result.evidence)
-    for item in geography_result.evidence:
-        status = RetrievalStatus.HIT if item.status == "hit" else RetrievalStatus.EMPTY
-        _trace_event(
-            trace,
-            RetrievalStage.GEOGRAPHY_RETRIEVAL,
-            status,
-            evidence=item,
-            reason_code=None if item.status == "hit" else f"GEOGRAPHY_{item.status.upper()}",
-            filters={"dataset": selected_table.dataset, "year": requested_year},
+    geography_result = _geography_result_from_attached(evidence)
+    if geography_result is None:
+        geography_result = deps.retrieve_geographies(
+            analysis,
+            dataset=selected_table.dataset,
+            year=requested_year,
         )
+        evidence.extend(geography_result.evidence)
+        for item in geography_result.evidence:
+            status = RetrievalStatus.HIT if item.status == "hit" else RetrievalStatus.EMPTY
+            _trace_event(
+                trace,
+                RetrievalStage.GEOGRAPHY_RETRIEVAL,
+                status,
+                evidence=item,
+                reason_code=None if item.status == "hit" else f"GEOGRAPHY_{item.status.upper()}",
+                filters={"dataset": selected_table.dataset, "year": requested_year},
+            )
+    else:
+        for item in geography_result.evidence:
+            status = RetrievalStatus.HIT if item.status == "hit" else RetrievalStatus.EMPTY
+            _trace_event(
+                trace,
+                RetrievalStage.GEOGRAPHY_RETRIEVAL,
+                status,
+                evidence=item,
+                reason_code=None if item.status == "hit" else f"GEOGRAPHY_{item.status.upper()}",
+                filters={"dataset": selected_table.dataset, "year": requested_year, "source": "attached_evidence"},
+            )
+
     unusable = next((item for item in geography_result.evidence if item.status != "hit"), None)
     if unusable is not None:
         reason = f"GEOGRAPHY_{unusable.status.upper()}"
@@ -288,7 +358,12 @@ def _continue_after_table_locked(
             requested_slot="geography",
         )
 
-    selection = deps.select(locked_table_evidence, geography_result)
+    selection = _resolve_grounded_selection(
+        locked_table_evidence,
+        geography_result,
+        proposed=existing.proposed_selection,
+        deps=deps,
+    )
     if selection.status != "selected":
         reason = selection.reason_code or "GEOGRAPHY_AMBIGUOUS"
         _trace_event(trace, RetrievalStage.GROUNDED_SELECTION, RetrievalStatus.REJECTED, reason_code=reason)
@@ -398,7 +473,7 @@ def geography_node(
     # Prefer explicit deps, then graph config, then defaults.
     deps = dependencies or configured or GroundedGeographyDependencies()
     trace = RetrievalTrace(prompt_version="grounded-geography-v1")
-    evidence: list[RetrievalEvidence] = []
+    evidence: list[RetrievalEvidence] = list(existing.retrieval_evidence)
 
     try:
         analysis = deps.analyze(user_question)
@@ -430,17 +505,29 @@ def geography_node(
             )
 
     requested_year = _planning_year(existing)
-    table_evidence = deps.retrieve_tables(analysis, year=requested_year)
-    evidence.append(table_evidence)
-    table_status = RetrievalStatus.HIT if table_evidence.status == "hit" else RetrievalStatus.EMPTY
-    _trace_event(
-        trace,
-        RetrievalStage.TABLE_RETRIEVAL,
-        table_status,
-        evidence=table_evidence,
-        reason_code=None if table_evidence.status == "hit" else f"TABLE_{table_evidence.status.upper()}",
-        filters={"year": requested_year},
-    )
+    attached_table = _table_evidence_from_attached(evidence)
+    if attached_table is not None:
+        table_evidence = attached_table
+        _trace_event(
+            trace,
+            RetrievalStage.TABLE_RETRIEVAL,
+            RetrievalStatus.HIT if table_evidence.status == "hit" else RetrievalStatus.EMPTY,
+            evidence=table_evidence,
+            reason_code=None if table_evidence.status == "hit" else f"TABLE_{table_evidence.status.upper()}",
+            filters={"year": requested_year, "source": "attached_evidence"},
+        )
+    else:
+        table_evidence = deps.retrieve_tables(analysis, year=requested_year)
+        evidence.append(table_evidence)
+        table_status = RetrievalStatus.HIT if table_evidence.status == "hit" else RetrievalStatus.EMPTY
+        _trace_event(
+            trace,
+            RetrievalStage.TABLE_RETRIEVAL,
+            table_status,
+            evidence=table_evidence,
+            reason_code=None if table_evidence.status == "hit" else f"TABLE_{table_evidence.status.upper()}",
+            filters={"year": requested_year},
+        )
     if table_evidence.status != "hit":
         reason = f"TABLE_{table_evidence.status.upper()}"
         return _clarification(
@@ -452,7 +539,12 @@ def geography_node(
             requested_slot="table",
         )
 
-    table_selection = deps.select(table_evidence)
+    table_selection = _resolve_grounded_selection(
+        table_evidence,
+        None,
+        proposed=existing.proposed_selection,
+        deps=deps,
+    )
     if table_selection.status != "selected":
         reason = table_selection.reason_code or "TABLE_AMBIGUOUS"
         _trace_event(trace, RetrievalStage.GROUNDED_SELECTION, RetrievalStatus.REJECTED, reason_code=reason)

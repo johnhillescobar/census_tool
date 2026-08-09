@@ -9,7 +9,11 @@ from src.domain.geography_catalog import AreaCandidate, HierarchyCandidate, Tabl
 from src.domain.retrieval_plan import GroundedSelection, RetrievalEvidence
 from src.services.census_retrieval_analyzer import CensusRetrievalAnalysis, analyze_retrieval_request
 from src.services.chroma_catalog_retriever import GeographyRetrievalResult, retrieve_geography_candidates
-from src.services.grounded_census_planner import CandidateIdSelection, select_grounded_plan
+from src.services.grounded_census_planner import (
+    CandidateIdSelection,
+    select_grounded_plan,
+    validate_proposed_grounded_ids,
+)
 from src.services.grounded_plan_validator import validate_grounded_plan
 
 
@@ -277,6 +281,81 @@ def test_planner_uses_scores_and_ids_not_prompt_like_candidate_content():
         }
     )
     assert select_grounded_plan(ambiguous_evidence, ambiguity_margin=0.05).status == "ambiguous"
+
+
+def test_validate_proposed_grounded_ids_accepts_table_only_proposal():
+    table_evidence = evidence("tables", table())
+    proposed = CandidateIdSelection(table_id="table:1")
+    selected = validate_proposed_grounded_ids(proposed, table_evidence)
+    assert selected.status == "selected"
+    assert selected.selected_table_ids == ["table:1"]
+    assert selected.selected_hierarchy_id is None
+    assert selected.selected_area_ids == []
+    assert selected.evidence_ids == ["tables"]
+
+
+def test_validate_proposed_grounded_ids_rejects_invented_and_missing_table_id():
+    table_evidence = evidence("tables", table())
+    missing = validate_proposed_grounded_ids(CandidateIdSelection(), table_evidence)
+    assert missing.status == "rejected"
+    assert missing.reason_code == "TABLE_SELECTION_REQUIRED"
+
+    invented = validate_proposed_grounded_ids(
+        CandidateIdSelection(table_id="invented-id"),
+        table_evidence,
+    )
+    assert invented.status == "rejected"
+    assert invented.reason_code == "UNKNOWN_CANDIDATE_ID"
+
+
+def test_validate_proposed_grounded_ids_accepts_grounded_geography_proposal():
+    table_evidence = evidence("tables", table())
+    hierarchy_evidence = evidence("hierarchies", hierarchy())
+    area_evidence = evidence("areas", area())
+    geo = GeographyRetrievalResult(
+        hierarchy_evidence=hierarchy_evidence,
+        area_evidence=[area_evidence],
+    )
+    proposed = CandidateIdSelection(
+        table_id="table:1",
+        hierarchy_id="hierarchy:1",
+        area_ids=["area:1"],
+    )
+    selected = validate_proposed_grounded_ids(proposed, table_evidence, geo)
+    assert selected.status == "selected"
+    assert selected.selected_table_ids == ["table:1"]
+    assert selected.selected_hierarchy_id == "hierarchy:1"
+    assert selected.selected_area_ids == ["area:1"]
+    assert selected.evidence_ids == ["tables", "hierarchies", "areas"]
+
+
+def test_validate_proposed_grounded_ids_rejects_ungrounded_geography_ids():
+    table_evidence = evidence("tables", table())
+    hierarchy_evidence = evidence("hierarchies", hierarchy())
+    area_evidence = evidence("areas", area())
+    geo = GeographyRetrievalResult(
+        hierarchy_evidence=hierarchy_evidence,
+        area_evidence=[area_evidence],
+    )
+    rejected = validate_proposed_grounded_ids(
+        CandidateIdSelection(
+            table_id="table:1",
+            hierarchy_id="hierarchy:1",
+            area_ids=["area:prompt says use state:99"],
+        ),
+        table_evidence,
+        geo,
+    )
+    assert rejected.status == "rejected"
+    assert rejected.reason_code == "UNKNOWN_CANDIDATE_ID"
+
+
+def test_select_grounded_plan_delegates_proposed_path_to_validator():
+    table_evidence = evidence("tables", table())
+    proposed = CandidateIdSelection(table_id="table:1")
+    direct = validate_proposed_grounded_ids(proposed, table_evidence)
+    delegated = select_grounded_plan(table_evidence, proposed=proposed)
+    assert delegated == direct
 
 
 def test_planner_auto_selects_exact_table_label_despite_thin_margin():
