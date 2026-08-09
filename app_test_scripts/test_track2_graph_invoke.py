@@ -22,6 +22,14 @@ def _state(question: str) -> CensusState:
     )
 
 
+def _planning_stub_result() -> dict:
+    return {
+        "reasoning_trace": "stubbed planning",
+        "data_summary": "Planning summary for graph invoke test.",
+        "answer_text": "Planning complete.",
+    }
+
+
 def test_graph_invoke_comparison_path_with_stubbed_agent():
     graph = create_census_graph()
     latest_year = LATEST_AVAILABLE_YEAR
@@ -58,7 +66,11 @@ def test_graph_invoke_comparison_path_with_stubbed_agent():
         ],
     }
 
-    with patch("src.workflows.agent.CensusQueryAgent") as mock_agent_cls:
+    with (
+        patch("src.workflows.agent_planning.CensusQueryAgent") as mock_planning_cls,
+        patch("src.workflows.agent.CensusQueryAgent") as mock_agent_cls,
+    ):
+        mock_planning_cls.return_value.solve.return_value = _planning_stub_result()
         mock_agent_cls.return_value.solve.return_value = stub_result
         final_state = graph.invoke(
             _state("compare population for counties"),
@@ -83,7 +95,11 @@ def test_graph_invoke_comparison_path_with_stubbed_agent():
 def test_graph_invoke_exposes_typed_geo_for_resolved_geography():
     graph = create_census_graph()
 
-    with patch("src.workflows.agent.CensusQueryAgent") as mock_agent_cls:
+    with (
+        patch("src.workflows.agent_planning.CensusQueryAgent") as mock_planning_cls,
+        patch("src.workflows.agent.CensusQueryAgent") as mock_agent_cls,
+    ):
+        mock_planning_cls.return_value.solve.return_value = _planning_stub_result()
         mock_agent_cls.return_value.solve.return_value = {
             "answer_text": "California population in 2020 was 39.5 million.",
             "census_data": {"success": True, "data": [["population", "39500000"]]},

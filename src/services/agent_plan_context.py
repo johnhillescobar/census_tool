@@ -11,6 +11,30 @@ from src.state.workflow_plan import BenchmarkNotApplicable, WorkflowPlan
 logger = logging.getLogger(__name__)
 
 
+def build_agent_planning_context(plan: WorkflowPlan | None) -> AgentPlanContext | None:
+    """Build temporal-only context for the retrieval planning turn after temporal_node."""
+
+    if plan is None or plan.requires_clarification:
+        return None
+
+    if isinstance(plan.temporal, TemporalClarificationRequired):
+        return None
+
+    temporal_intent = plan.resolved_temporal_intent()
+    if temporal_intent is None:
+        return None
+
+    return AgentPlanContext(
+        geography=None,
+        temporal=temporal_intent,
+        benchmark=None,
+        comparison=None,
+        selected_table=None,
+        grounded_plan=None,
+        has_comparison_plan=False,
+    )
+
+
 def build_agent_plan_context(plan: WorkflowPlan | None) -> AgentPlanContext | None:
     """Parse workflow planning artifacts into a typed agent context."""
 
