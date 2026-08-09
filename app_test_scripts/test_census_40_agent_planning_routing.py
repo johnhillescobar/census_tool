@@ -24,10 +24,12 @@ def test_route_after_agent_planning_goes_to_plan_validator():
 
 @patch("src.workflows.agent_planning.CensusQueryAgent")
 def test_turn1_table_ambiguity_reaches_agent_planning_before_geography_halt(mock_agent_cls):
+    mock_agent_cls.return_value.offline_mode = False
     mock_agent_cls.return_value.solve.return_value = {
         "reasoning_trace": "Planning tool steps: 1 (table_search)",
         "data_summary": "Two population-related tables found.",
         "answer_text": "Table choice is ambiguous; recommend B01003.",
+        "intermediate_steps": [],
     }
     fake = AmbiguousTablesFake()
     state = build_fresh_thread_state("Show total population for all California counties in 2023.")

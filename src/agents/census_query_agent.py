@@ -26,7 +26,9 @@ from src.tools.geography_discovery_tool import GeographyDiscoveryTool
 from src.tools.geography_hierarchy_tool import GeographyHierarchyTool
 from src.tools.geography_validation_tool import GeographyValidationTool
 from src.tools.pattern_builder_tool import PatternBuilderTool
+from src.tools.propose_grounded_plan_tool import ProposeGroundedPlanTool
 from src.tools.strict_census_api_tool import StrictCensusApiTool
+from src.tools.table_catalog_retrieval_tool import TableCatalogRetrievalTool
 from src.tools.table_search_tool import TableSearchTool
 from src.tools.table_tool import TableTool
 from src.tools.variable_validation_tool import VariableValidationTool
@@ -88,6 +90,8 @@ class CensusQueryAgent:
             GeographyDiscoveryTool(),
             GeographyValidationTool(),
             TableSearchTool(),
+            TableCatalogRetrievalTool(),
+            ProposeGroundedPlanTool(),
             CensusAPITool(),
             StrictCensusApiTool(),
             TableTool(),
@@ -219,6 +223,7 @@ class CensusQueryAgent:
             "reasoning_trace": f"Planning tool steps: {len(intermediate_steps)} ({', '.join(name for name in tool_names if name)})",
             "data_summary": output[:1000] if output else "Planning turn completed without text output.",
             "answer_text": output or "Planning turn completed.",
+            "intermediate_steps": intermediate_steps,
         }
 
     def _coerce_strict_census_response(self, observation: Any) -> StrictCensusApiResponse | None:

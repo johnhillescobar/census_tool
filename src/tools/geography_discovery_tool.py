@@ -96,7 +96,14 @@ class GeographyDiscoveryTool(BaseTool):
             )
             hierarchy = retrieved.hierarchy_evidence
             if hierarchy.status != "hit":
-                return json.dumps({"status": hierarchy.status, "available_levels": [], "source": "chroma"})
+                return json.dumps(
+                    {
+                        "status": hierarchy.status,
+                        "available_levels": [],
+                        "source": "chroma",
+                        "hierarchy_evidence": hierarchy.model_dump(mode="json"),
+                    }
+                )
             levels = list(dict.fromkeys(candidate.friendly_level for candidate in hierarchy.candidates))
             return json.dumps(
                 {
@@ -104,6 +111,7 @@ class GeographyDiscoveryTool(BaseTool):
                     "year": year,
                     "available_levels": levels,
                     "source": "chroma",
+                    "hierarchy_evidence": hierarchy.model_dump(mode="json"),
                 }
             )
 
@@ -150,6 +158,8 @@ class GeographyDiscoveryTool(BaseTool):
                     "count": len(areas),
                     "areas": areas,
                     "source": "chroma",
+                    "hierarchy_evidence": retrieved.hierarchy_evidence.model_dump(mode="json"),
+                    "area_evidence": [item.model_dump(mode="json") for item in retrieved.area_evidence],
                 }
             )
 

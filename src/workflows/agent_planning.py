@@ -5,7 +5,10 @@ from langchain_core.runnables import RunnableConfig
 
 from src.agents.census_query_agent import CensusQueryAgent
 from src.services.agent_plan_context import build_agent_planning_context
+from src.services.agent_planning_artifacts import collect_planning_artifacts
 from src.state.types import CensusState
+from src.state.workflow_plan import WorkflowPlan
+from src.workflows.graph_patch import CensusGraphPatch
 
 logger = logging.getLogger(__name__)
 
@@ -28,17 +31,34 @@ def agent_planning_node(state: CensusState, config: RunnableConfig) -> dict[str,
         return {"logs": ["agent_planning: skipped (no temporal context)"]}
 
     agent = CensusQueryAgent(mode="planning")
+    if agent.offline_mode:
+        return {"logs": ["agent_planning: skipped (no LLM credentials)"]}
+
     result = agent.solve(
         user_query=user_question,
         intent=intent,
         plan_context=plan_context,
     )
 
+    existing = state.plan or WorkflowPlan()
+    evidence_items, proposed_selection = collect_planning_artifacts(result.get("intermediate_steps"))
+    plan_updates: dict[str, Any] = {}
+    if evidence_items:
+        plan_updates["retrieval_evidence"] = evidence_items
+    if proposed_selection is not None:
+        plan_updates["proposed_selection"] = proposed_selection
+
+    updated_plan = existing.model_copy(update=plan_updates) if plan_updates else existing
+    logs = ["agent_planning: completed retrieval planning turn"]
+    if proposed_selection is not None:
+        logs.append("agent_planning: captured grounded selection proposal")
+    elif evidence_items:
+        logs.append("agent_planning: captured retrieval evidence without proposal")
+
     logger.info("agent_planning: completed retrieval planning turn")
-    return {
-        "artifacts": {
-            "planning_trace": result.get("reasoning_trace", ""),
-            "planning_summary": result.get("data_summary", ""),
-        },
-        "logs": ["agent_planning: completed retrieval planning turn"],
+    update = CensusGraphPatch(plan=updated_plan, logs=logs).as_langgraph_update()
+    update["artifacts"] = {
+        "planning_trace": result.get("reasoning_trace", ""),
+        "planning_summary": result.get("data_summary", ""),
     }
+    return update
