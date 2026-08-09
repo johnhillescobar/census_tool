@@ -4,13 +4,17 @@ from src.domain.agent_clarification_context import AgentClarificationContext
 from src.domain.agent_plan_context import AgentPlanContext
 from src.domain.benchmark_contract import BenchmarkClarificationRequired
 from src.domain.comparison_plan import ComparisonPlan
-from src.domain.execution_spec import build_execution_spec
+from src.domain.execution_spec import build_execution_spec, resolve_execution_geography
 from src.domain.geography_contract import GeographyClarificationRequired
 from src.domain.temporal_contract import TemporalClarificationRequired
 from src.services.agent_clarification_copy import format_readable_option_label
 from src.state.workflow_plan import BenchmarkNotApplicable, WorkflowPlan
 
 logger = logging.getLogger(__name__)
+
+
+def is_table_only_grounded_plan(plan: WorkflowPlan) -> bool:
+    return plan.grounded_plan is not None and plan.grounded_plan.geography is None
 
 
 def is_geography_clarification_flow(plan: WorkflowPlan | None) -> bool:
@@ -174,6 +178,17 @@ def build_agent_plan_context(plan: WorkflowPlan | None) -> AgentPlanContext | No
             has_comparison_plan=False,
         )
 
+    if temporal_intent is not None and is_table_only_grounded_plan(plan):
+        return AgentPlanContext(
+            geography=None,
+            temporal=temporal_intent,
+            benchmark=benchmark_intent,
+            comparison=None,
+            selected_table=plan.selected_table or plan.grounded_plan.table,
+            grounded_plan=plan.grounded_plan,
+            has_comparison_plan=False,
+        )
+
     return None
 
 
@@ -230,19 +245,26 @@ def format_plan_directives(ctx: AgentPlanContext) -> str:
             ]
         )
 
-    if ctx.geography is not None:
-        geo = ctx.geography
-
-        lines.extend(
-            [
-                f"- Geography level: {geo.level}",
-                f"- Geography display name: {geo.display_name}",
-                f"- Geography source: {geo.source}",
-                f"- geo_for: {geo.geo_for}",
-                f"- geo_in: {geo.geo_in}",
-                "- Do NOT ask the user for geography again; use the resolved geography above.",
-            ]
-        )
+    execution_geography = resolve_execution_geography(ctx)
+    if execution_geography is not None:
+        geo = execution_geography
+        geo_lines = [
+            f"- Geography level: {geo.level}",
+            f"- Geography display name: {geo.display_name}",
+            f"- Geography source: {geo.source}",
+            f"- geo_for: {geo.geo_for}",
+            f"- geo_in: {geo.geo_in}",
+        ]
+        if ctx.geography is None and ctx.grounded_plan is not None and ctx.grounded_plan.geography is None:
+            geo_lines.extend(
+                [
+                    "- Validated plan is table-only (no geography evidence); use the national default above.",
+                    "- Compose Census API geo_for/geo_in from these values; do not broaden beyond national scope.",
+                ]
+            )
+        else:
+            geo_lines.append("- Do NOT ask the user for geography again; use the resolved geography above.")
+        lines.extend(geo_lines)
 
     if ctx.temporal is not None:
         temporal = ctx.temporal

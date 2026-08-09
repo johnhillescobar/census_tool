@@ -52,16 +52,25 @@ def validate_grounded_api_request(
     table = grounded.table
     geography = grounded.geography
     if geography is None:
-        return "Validated plan does not contain geography"
-    if dataset != table.dataset or dataset != geography.dataset:
+        if dataset != table.dataset:
+            return f"Dataset {dataset!r} is outside validated plan dataset {table.dataset!r}"
+        allowed_years = set(context.allowed_years or table.years_available)
+        if year not in allowed_years or year not in table.years_available:
+            return f"Year {year} is outside validated table/year constraints"
+        if geo_for != {"us": "1"} or geo_in:
+            return "Table-only plan requires national geography geo_for={'us': '1'} with empty geo_in"
+        if geo_in_chained:
+            return "Chained geography values are outside the validated plan"
+    elif dataset != table.dataset or dataset != geography.dataset:
         return f"Dataset {dataset!r} is outside validated plan dataset {table.dataset!r}"
-    allowed_years = set(context.allowed_years or table.years_available or [geography.year])
-    if year not in allowed_years or year not in table.years_available:
-        return f"Year {year} is outside validated table/year constraints"
-    if geo_for != geography.geo_for or geo_in != dict(geography.geo_in):
-        return "Geography values are outside the validated plan"
-    if geo_in_chained:
-        return "Chained geography values are outside the validated plan"
+    else:
+        allowed_years = set(context.allowed_years or table.years_available or [geography.year])
+        if year not in allowed_years or year not in table.years_available:
+            return f"Year {year} is outside validated table/year constraints"
+        if geo_for != geography.geo_for or geo_in != dict(geography.geo_in):
+            return "Geography values are outside the validated plan"
+        if geo_in_chained:
+            return "Chained geography values are outside the validated plan"
 
     table_code = table.table_code.upper()
     allowed_literals = {"NAME"}
