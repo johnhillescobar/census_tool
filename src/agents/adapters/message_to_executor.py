@@ -9,6 +9,36 @@ from langchain_core.messages import AIMessage, BaseMessage, ToolMessage
 
 from src.agents.runtime.contracts import AgentExecutionResult
 
+_TEXT_BLOCK_TYPES = frozenset({"text", "output_text"})
+
+
+def _extract_text_from_message_content(content: Any) -> str:
+    """Normalize AIMessage.content from str or Responses API block lists."""
+    if isinstance(content, str):
+        return content
+    if not isinstance(content, list):
+        return str(content)
+
+    text_parts: list[str] = []
+    for block in content:
+        if isinstance(block, str):
+            if block:
+                text_parts.append(block)
+            continue
+        if not isinstance(block, dict):
+            continue
+        block_type = block.get("type")
+        if block_type == "reasoning":
+            continue
+        if block_type in _TEXT_BLOCK_TYPES or "text" in block:
+            text = block.get("text", "")
+            if text:
+                text_parts.append(text)
+
+    if text_parts:
+        return "\n".join(text_parts)
+    return str(content)
+
 
 def _tool_action(tool_name: str, tool_input: Any, tool_call_id: str | None):
     class _Action:
@@ -30,10 +60,7 @@ def message_trace_to_executor_result(messages: list[BaseMessage]) -> AgentExecut
     for message in messages:
         if isinstance(message, AIMessage):
             if message.content and not message.tool_calls:
-                if isinstance(message.content, str):
-                    final_text = message.content
-                else:
-                    final_text = str(message.content)
+                final_text = _extract_text_from_message_content(message.content)
             for call in message.tool_calls or []:
                 tool_name = str(call.get("name", ""))
                 tool_input = call.get("args") or {}
@@ -56,7 +83,7 @@ def message_trace_to_executor_result(messages: list[BaseMessage]) -> AgentExecut
     if not final_text:
         for message in reversed(messages):
             if isinstance(message, AIMessage) and message.content:
-                final_text = str(message.content)
+                final_text = _extract_text_from_message_content(message.content)
                 break
 
     return AgentExecutionResult(output=final_text, intermediate_steps=intermediate_steps)
