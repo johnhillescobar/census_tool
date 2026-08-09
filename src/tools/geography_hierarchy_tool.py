@@ -4,8 +4,7 @@ import logging
 from langchain_core.tools import BaseTool
 from pydantic import BaseModel, ConfigDict, Field
 
-from config import CHROMA_GEOGRAPHY_HIERARCHY_COLLECTION_NAME
-from src.clients.chroma_utils import get_hierarchy_ordering, initialize_chroma_client
+from src.clients.chroma_utils import get_hierarchy_ordering_result
 from src.tools.json_parse import parse_first_json
 
 logger = logging.getLogger(__name__)
@@ -60,43 +59,21 @@ class GeographyHierarchyTool(BaseTool):
         if payload.action != "get_hierarchy_ordering":
             return f"Error: Unsupported action '{payload.action}'"
 
-        ordered_parents = get_hierarchy_ordering(payload.dataset, payload.year, payload.for_level)
+        lookup = get_hierarchy_ordering_result(payload.dataset, payload.year, payload.for_level)
+        ordered_parents = lookup.ordering if lookup.status == "hit" else []
+        geography_hierarchy = lookup.geography_hierarchy
+        example_url = lookup.example_url
 
         warnings: list[str] = []
         metadata = None
-        example_url = None
-        geography_hierarchy = None
 
         if not ordered_parents:
             warnings.append(
                 "No hierarchy ordering found for dataset "
                 f"{payload.dataset}, year {payload.year}, for_level {payload.for_level}."
             )
-        else:
-            # fetch extra metadata from collection for example URL / hierarchy string
-            client = initialize_chroma_client()
-            if isinstance(client, dict):
-                warnings.append("Unable to connect to Chroma for metadata lookup.")
-            else:
-                try:
-                    collection = client.get_collection(CHROMA_GEOGRAPHY_HIERARCHY_COLLECTION_NAME)
-                    result = collection.get(
-                        where={
-                            "$and": [
-                                {"dataset": {"$eq": payload.dataset}},
-                                {"year": {"$eq": payload.year}},
-                                {"for_level": {"$eq": payload.for_level}},
-                            ]
-                        },
-                        include=["metadatas"],
-                    )
-                    metadatas = result.get("metadatas") or []
-                    if metadatas:
-                        metadata = metadatas[0]
-                        geography_hierarchy = metadata.get("geography_hierarchy")
-                        example_url = metadata.get("example_url")
-                except Exception as exc:
-                    warnings.append(f"Metadata lookup failed: {exc}")
+        elif lookup.reason:
+            warnings.append(lookup.reason)
 
         if payload.parent_hint:
             hint = [hint.strip() for hint in payload.parent_hint]
@@ -113,7 +90,13 @@ class GeographyHierarchyTool(BaseTool):
             "warnings": warnings,
         }
 
-        if payload.include_metadata and metadata:
+        if payload.include_metadata and lookup.hierarchy_id:
+            metadata = {
+                "candidate_id": lookup.hierarchy_id,
+                "geography_hierarchy": geography_hierarchy,
+                "example_url": example_url,
+                "ordering": ordered_parents,
+            }
             response["metadata"] = metadata
 
         return json.dumps(response)

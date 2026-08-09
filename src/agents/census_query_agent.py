@@ -25,6 +25,7 @@ from src.services.agent_clarification_copy import (
     format_clarification_options_for_writer,
 )
 from src.services.agent_plan_context import format_clarification_directives, format_plan_directives
+from src.clients.chroma_utils import initialize_chroma_client
 from src.tools.area_resolution_tool import AreaResolutionTool
 from src.tools.census_api_tool import CensusAPITool
 from src.tools.chart_tool import ChartTool
@@ -95,17 +96,28 @@ class CensusQueryAgent:
 
         self.llm = create_llm(temperature=LLM_CONFIG["temperature"])
 
+        shared_chroma_client = None
+        if self.mode == "planning":
+            initialized = initialize_chroma_client()
+            if not isinstance(initialized, dict):
+                shared_chroma_client = initialized
+
+        def _with_shared_chroma(tool):
+            if shared_chroma_client is not None and "chroma_client" in tool.__class__.model_fields:
+                return tool.model_copy(update={"chroma_client": shared_chroma_client})
+            return tool
+
         all_tools = [
-            GeographyDiscoveryTool(),
+            _with_shared_chroma(GeographyDiscoveryTool()),
             GeographyValidationTool(),
             TableSearchTool(),
-            TableCatalogRetrievalTool(),
+            _with_shared_chroma(TableCatalogRetrievalTool()),
             ProposeGroundedPlanTool(),
             CensusAPITool(),
             StrictCensusApiTool(),
             TableTool(),
             PatternBuilderTool(),
-            AreaResolutionTool(),
+            _with_shared_chroma(AreaResolutionTool()),
             ChartTool(),
             GeographyHierarchyTool(),
             VariableValidationTool(),

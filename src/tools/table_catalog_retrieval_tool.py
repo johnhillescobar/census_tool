@@ -4,9 +4,10 @@ from __future__ import annotations
 
 import json
 import logging
+from typing import Any
 
 from langchain_core.tools import BaseTool
-from pydantic import ConfigDict
+from pydantic import ConfigDict, Field
 
 from src.services.chroma_catalog_retriever import retrieve_table_candidates
 from src.tools.json_parse import parse_first_json
@@ -29,6 +30,7 @@ class TableCatalogRetrievalTool(BaseTool):
     """
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
+    chroma_client: Any = Field(default=None, exclude=True)
 
     def _run(self, tool_input: str) -> str:
         try:
@@ -47,7 +49,12 @@ class TableCatalogRetrievalTool(BaseTool):
         except (TypeError, ValueError):
             return f"Error: 'year' must be an integer, got {raw_year!r}"
         logger.info("TableCatalogRetrievalTool query=%r dataset=%s year=%s", query, dataset, year)
-        evidence = retrieve_table_candidates(query, dataset=dataset, year=year)
+        evidence = retrieve_table_candidates(
+            query,
+            dataset=dataset,
+            year=year,
+            client=self.chroma_client,
+        )
         return json.dumps({"retrieval_evidence": evidence.model_dump(mode="json")})
 
 

@@ -2,6 +2,7 @@ from .census_api_utils import build_geo_filters, fetch_census_data
 from .chroma_utils import (
     get_hierarchy_ordering,
     initialize_chroma_client,
+    reset_chroma_client,
     validate_and_fix_geo_params,
 )
 from .file_utils import load_json_file, save_json_file
@@ -15,6 +16,7 @@ __all__ = [
     "fetch_census_data",
     "build_geo_filters",
     "initialize_chroma_client",
+    "reset_chroma_client",
     "get_hierarchy_ordering",
     "validate_and_fix_geo_params",
     "StdoutLogger",
