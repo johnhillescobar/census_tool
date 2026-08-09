@@ -25,8 +25,6 @@ def _state(question: str) -> CensusState:
 def test_graph_invoke_comparison_path_with_stubbed_agent():
     graph = create_census_graph()
     latest_year = LATEST_AVAILABLE_YEAR
-
-    latest_year = LATEST_AVAILABLE_YEAR
     stub_result = {
         "answer_text": f"County population comparison for {latest_year}.",
         "census_data": {

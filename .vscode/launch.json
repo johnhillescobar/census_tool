@@ -8,7 +8,7 @@
             "program": "${workspaceFolder}/main.py",
             "console": "integratedTerminal",
             "justMyCode": false,
-            "python": "${workspaceFolder}/.venv/Scripts/python.exe",
+            "python": "${command:python.interpreterPath}",
             "cwd": "${workspaceFolder}",
             "envFile": "${workspaceFolder}/.env",
             "env": {
@@ -31,7 +31,7 @@
             ],
             "console": "integratedTerminal",
             "justMyCode": false,
-            "python": "${workspaceFolder}/.venv/Scripts/python.exe",
+            "python": "${command:python.interpreterPath}",
             "cwd": "${workspaceFolder}",
             "envFile": "${workspaceFolder}/.env",
             "env": {
@@ -55,7 +55,7 @@
             ],
             "console": "integratedTerminal",
             "justMyCode": false,
-            "python": "${workspaceFolder}/.venv/Scripts/python.exe",
+            "python": "${command:python.interpreterPath}",
             "cwd": "${workspaceFolder}",
             "envFile": "${workspaceFolder}/.env",
             "env": {
@@ -77,7 +77,7 @@
             ],
             "console": "integratedTerminal",
             "justMyCode": false,
-            "python": "${workspaceFolder}/.venv/Scripts/python.exe",
+            "python": "${command:python.interpreterPath}",
             "cwd": "${workspaceFolder}",
             "envFile": "${workspaceFolder}/.env",
             "env": {
@@ -98,7 +98,7 @@
             ],
             "console": "integratedTerminal",
             "justMyCode": false,
-            "python": "${workspaceFolder}/.venv/Scripts/python.exe",
+            "python": "${command:python.interpreterPath}",
             "cwd": "${workspaceFolder}",
             "envFile": "${workspaceFolder}/.env",
             "env": {
@@ -120,7 +120,7 @@
             ],
             "console": "integratedTerminal",
             "justMyCode": false,
-            "python": "${workspaceFolder}/.venv/Scripts/python.exe",
+            "python": "${command:python.interpreterPath}",
             "cwd": "${workspaceFolder}",
             "envFile": "${workspaceFolder}/.env",
             "env": {
@@ -144,7 +144,7 @@
             ],
             "console": "integratedTerminal",
             "justMyCode": false,
-            "python": "${workspaceFolder}/.venv/Scripts/python.exe",
+            "python": "${command:python.interpreterPath}",
             "cwd": "${workspaceFolder}",
             "env": {
                 "PYTHONPATH": "${workspaceFolder}",
@@ -167,7 +167,7 @@
             ],
             "console": "integratedTerminal",
             "justMyCode": false,
-            "python": "${workspaceFolder}/.venv/Scripts/python.exe",
+            "python": "${command:python.interpreterPath}",
             "cwd": "${workspaceFolder}",
             "envFile": "${workspaceFolder}/.env",
             "env": {
