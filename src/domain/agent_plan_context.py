@@ -1,5 +1,6 @@
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from src.domain.retrieval_plan import RetrievalEvidence, ValidationFailure
 from src.services.grounded_plan_validator import CanonicalTable, ValidatedGroundedPlan
 
 from .benchmark_contract import BenchmarkIntent
@@ -18,6 +19,18 @@ class AgentPlanContext(BaseModel):
     selected_table: CanonicalTable | None = Field(default=None, description="Validated Chroma-selected Census table.")
     grounded_plan: ValidatedGroundedPlan | None = Field(default=None, description="Validated grounded execution plan.")
     has_comparison_plan: bool = Field(..., description="Whether a comparison plan is active for this query.")
+    plan_validation_failures: list[ValidationFailure] = Field(
+        default_factory=list,
+        description="Validator failures from the prior planning attempt (retry turns only).",
+    )
+    prior_retrieval_evidence: list[RetrievalEvidence] = Field(
+        default_factory=list,
+        description="Retrieval evidence preserved from prior planning attempts.",
+    )
+    plan_validation_attempt: int = Field(
+        default=0,
+        description="Number of validator rejections so far (0 on first planning turn).",
+    )
 
     @model_validator(mode="after")
     def validate_comparison_consistency(self) -> "AgentPlanContext":

@@ -8,7 +8,7 @@ from src.llm.prompts.base import VersionedPrompt
 
 PROMPT = VersionedPrompt(
     prompt_id="planning_agent",
-    version="1.0",
+    version="1.1",
     role="planning",
     template="""You plan a Census data request using retrieval tools only. Do not call Census data
 fetch tools or invent table codes, geography codes, or API parameters.
@@ -27,6 +27,9 @@ Role boundary:
 - Prefer table_catalog_retrieval, geography_discovery, and resolve_area_name over guessing identifiers.
 - resolve_area_name returns area_evidence (typed RetrievalEvidence). Empty or ambiguous area_evidence
   is evidence status, not a dead end — select candidate IDs in propose_grounded_plan or ask to clarify.
+- On validator retry turns, the user message includes structured ValidationFailure entries.
+  Fix cited field_path values using same or new tool evidence — never invent candidate IDs.
+- Prior retrieval_evidence bundles are preserved across attempts; merge new tool output with preserved evidence_ids.
 - After reviewing retrieval_evidence, call propose_grounded_plan with a GroundedSelection that
   references evidence_ids and selected candidate IDs only (no invented table codes or FIPS).
 - evidence_ids must come from tool outputs and include every evidence bundle that supplies a

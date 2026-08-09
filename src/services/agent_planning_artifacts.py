@@ -116,4 +116,15 @@ def collect_planning_artifacts(
     return list(evidence_by_id.values()), selection
 
 
-__all__ = ["PROPOSE_GROUNDED_PLAN_TOOL", "collect_planning_artifacts"]
+def merge_retrieval_evidence(
+    existing: list[RetrievalEvidence] | None,
+    new_items: list[RetrievalEvidence],
+) -> list[RetrievalEvidence]:
+    """Union retrieval evidence by evidence_id across planning attempts (CENSUS-49)."""
+    by_id: dict[str, RetrievalEvidence] = {item.evidence_id: item for item in existing or []}
+    for item in new_items:
+        by_id[item.evidence_id] = item
+    return list(by_id.values())
+
+
+__all__ = ["PROPOSE_GROUNDED_PLAN_TOOL", "collect_planning_artifacts", "merge_retrieval_evidence"]

@@ -106,6 +106,9 @@ def build_agent_planning_context(plan: WorkflowPlan | None) -> AgentPlanContext 
         selected_table=None,
         grounded_plan=None,
         has_comparison_plan=False,
+        plan_validation_failures=list(plan.plan_validation_failures),
+        prior_retrieval_evidence=list(plan.retrieval_evidence),
+        plan_validation_attempt=plan.plan_validation_attempts,
     )
 
 
@@ -172,6 +175,43 @@ def build_agent_plan_context(plan: WorkflowPlan | None) -> AgentPlanContext | No
         )
 
     return None
+
+
+def format_planning_retry_directives(ctx: AgentPlanContext) -> str:
+    """Render validator feedback and preserved evidence for planning retry turns (CENSUS-49)."""
+
+    if not ctx.plan_validation_failures:
+        return ""
+
+    lines = [
+        "Validator rejected the prior grounded selection (fix using tool evidence only):",
+        f"- Validation attempt: {ctx.plan_validation_attempt}",
+    ]
+    for failure in ctx.plan_validation_failures:
+        detail = f"- {failure.reason_code}: {failure.message}"
+        if failure.field_path:
+            detail += f" (field_path={failure.field_path})"
+        if failure.candidate_id:
+            detail += f" (candidate_id={failure.candidate_id})"
+        if failure.evidence_id:
+            detail += f" (evidence_id={failure.evidence_id})"
+        lines.append(detail)
+
+    if ctx.prior_retrieval_evidence:
+        lines.append("- Preserved retrieval evidence from prior attempt:")
+        for item in ctx.prior_retrieval_evidence:
+            lines.append(
+                f"  - evidence_id={item.evidence_id} collection={item.collection_name} "
+                f"status={item.status} candidate_count={len(item.candidate_ids)}"
+            )
+
+    lines.extend(
+        [
+            "- Fix cited field paths using same or new tool evidence; do not invent candidate IDs.",
+            "- evidence_ids in propose_grounded_plan must reference preserved or newly retrieved evidence bundles.",
+        ]
+    )
+    return "\n".join(lines)
 
 
 def format_plan_directives(ctx: AgentPlanContext) -> str:
