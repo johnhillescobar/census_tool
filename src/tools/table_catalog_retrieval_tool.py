@@ -41,7 +41,11 @@ class TableCatalogRetrievalTool(BaseTool):
             return "Error: 'query' parameter is required"
 
         dataset = params.get("dataset", "acs/acs5")
-        year = int(params.get("year", 2023))
+        raw_year = params.get("year", 2023)
+        try:
+            year = int(raw_year)
+        except (TypeError, ValueError):
+            return f"Error: 'year' must be an integer, got {raw_year!r}"
         logger.info("TableCatalogRetrievalTool query=%r dataset=%s year=%s", query, dataset, year)
         evidence = retrieve_table_candidates(query, dataset=dataset, year=year)
         return json.dumps({"retrieval_evidence": evidence.model_dump(mode="json")})

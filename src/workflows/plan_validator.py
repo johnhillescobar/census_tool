@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from typing import Any, cast
 
 from langchain_core.runnables import RunnableConfig
+from pydantic import ValidationError
 
 from src.clients.telemetry import record_event
 from src.domain.geography_catalog import AreaCandidate, HierarchyCandidate
@@ -125,7 +126,7 @@ def _geography_intent_from_validated(
             requested_text=requested_text,
             census_token=cast(CensusGeographyToken, canonical_geo.census_token),
         )
-    except ValueError:
+    except ValidationError:
         return None
 
 
@@ -153,6 +154,7 @@ def _apply_validated_plan(
                 update={
                     "plan_validation_failures": failures,
                     "plan_validation_attempts": existing.plan_validation_attempts + 1,
+                    "retrieval_trace": trace,
                     "proposed_selection": None,
                 }
             ),
@@ -228,6 +230,7 @@ def validate_grounded_plan_node(
                 update={
                     "plan_validation_failures": failures,
                     "plan_validation_attempts": existing.plan_validation_attempts + 1,
+                    "retrieval_trace": trace,
                     "proposed_selection": None,
                 }
             ),
