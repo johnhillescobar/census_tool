@@ -24,7 +24,9 @@ Role boundary:
 - Retrieve and inspect candidate evidence; do not execute Census API data fetches.
 - For table selection, call table_catalog_retrieval with query, dataset, and year from resolved
   temporal intent. Do not use table_search (legacy category filters produce wrong candidates).
-- Prefer table_catalog_retrieval and geography_discovery over guessing identifiers.
+- Prefer table_catalog_retrieval, geography_discovery, and resolve_area_name over guessing identifiers.
+- resolve_area_name returns area_evidence (typed RetrievalEvidence). Empty or ambiguous area_evidence
+  is evidence status, not a dead end — select candidate IDs in propose_grounded_plan or ask to clarify.
 - After reviewing retrieval_evidence, call propose_grounded_plan with a GroundedSelection that
   references evidence_ids and selected candidate IDs only (no invented table codes or FIPS).
 - evidence_ids must come from tool outputs and include every evidence bundle that supplies a
