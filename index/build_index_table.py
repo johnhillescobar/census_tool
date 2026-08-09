@@ -32,6 +32,7 @@ from config import (
     CHROMA_TABLE_COLLECTION_NAME,
     LATEST_AVAILABLE_YEAR,
 )
+from index.table_metadata import enrich_table_info
 from src.domain.census_groups import CensusGroupsAPI
 from src.domain.geography_catalog import IndexManifest
 
@@ -131,11 +132,15 @@ class CensusTableIndexBuilder:
 
     def build_document_text(self, table_info: dict) -> str:
         """Build searchable document text from table metadata."""
+        phase5 = enrich_table_info(table_info)
         parts = [
             table_info.get("table_code", ""),
             table_info.get("table_name", ""),
             table_info.get("description", ""),
             " ".join(table_info.get("data_types", [])),
+            phase5["primary_topic"],
+            phase5["breadth"],
+            phase5["universe"],
             f"dataset {table_info.get('dataset', '')}",
         ]
         years = table_info.get("years_available", [])
@@ -163,6 +168,7 @@ class CensusTableIndexBuilder:
                 raise ValueError(f"table {candidate_id} has no years_available")
             source_year = years[-1]
             data_types = [str(item) for item in table_info.get("data_types", [])]
+            phase5 = enrich_table_info(table_info)
 
             metadata: Metadata = {
                 "candidate_id": candidate_id,
@@ -172,6 +178,9 @@ class CensusTableIndexBuilder:
                 "description": str(table_info.get("description", "")),
                 "dataset": dataset,
                 "category": str(table_info.get("category", "detail")),
+                "primary_topic": phase5["primary_topic"],
+                "breadth": phase5["breadth"],
+                "universe": phase5["universe"],
                 "uses_groups": bool(table_info.get("uses_groups", False)),
                 "year": source_year,
                 "years_available": ",".join(map(str, years)),
