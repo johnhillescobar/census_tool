@@ -45,7 +45,7 @@ PLANNING_EXCLUDED_TOOL_NAMES = frozenset(
     {
         "census_api_call",
         STRICT_CENSUS_TOOL_NAME,
-        "generate_chart",
+        "create_chart",
     }
 )
 
@@ -103,10 +103,9 @@ class CensusQueryAgent:
         ]
         if self.mode == "planning":
             self.tools = [tool for tool in all_tools if tool.name not in PLANNING_EXCLUDED_TOOL_NAMES]
-            system_prompt = build_planning_agent_prompt(tool.name for tool in self.tools)
         else:
             self.tools = all_tools
-            system_prompt = build_execution_agent_prompt(tool.name for tool in self.tools)
+        system_prompt = self._build_modern_system_prompt()
 
         self.backend = build_agent_backend(
             llm=self.llm,
