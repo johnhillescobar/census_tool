@@ -36,6 +36,7 @@ from index.rebuild_catalog import (
     collections_built_by_components,
     missing_active_collections,
 )
+from index.table_metadata import enrich_table_info, infer_breadth, infer_primary_topic
 from src.domain.census_groups import CensusGroupsAPI
 from src.domain.geography_catalog import IndexManifest
 
@@ -190,7 +191,9 @@ def test_table_index_metadata_has_grounding_fields():
                 "table_code": "B01003",
                 "table_name": "Total Population",
                 "dataset": "acs/acs5",
+                "category": "detail",
                 "years_available": [2023],
+                "data_types": ["population"],
             }
         }
     )
@@ -203,7 +206,33 @@ def test_table_index_metadata_has_grounding_fields():
     assert metadata["schema_version"] == CENSUS_CATALOG_SCHEMA_VERSION
     assert metadata["year"] == 2023
     assert metadata["years_available"] == "2023"
+    assert metadata["primary_topic"] == "population"
+    assert metadata["breadth"] == "broad"
+    assert metadata["universe"] == "Total Population"
     assert json.loads(json.dumps(metadata)) == metadata
+
+
+def test_table_metadata_distinguishes_population_from_housing():
+    population = enrich_table_info(
+        {
+            "table_code": "B01003",
+            "table_name": "Total Population",
+            "category": "detail",
+        }
+    )
+    housing = enrich_table_info(
+        {
+            "table_code": "B25003",
+            "table_name": "Tenure",
+            "category": "detail",
+        }
+    )
+    assert population["primary_topic"] == "population"
+    assert population["breadth"] == "broad"
+    assert housing["primary_topic"] == "housing"
+    assert housing["breadth"] == "detailed"
+    assert infer_primary_topic("B01001", "Sex by Age") == "population"
+    assert infer_breadth("B01001", "Sex by Age", "detail") == "detailed"
 
 
 def test_table_builder_delete_recreates_and_writes_manifest(tmp_path: Path):
