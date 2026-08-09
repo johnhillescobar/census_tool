@@ -11,8 +11,8 @@ from src.llm.prompts.grounded_selector import PROMPT as GROUNDED_SELECTOR_PROMPT
 from src.llm.prompts.retrieval_analyzer import PROMPT as RETRIEVAL_ANALYZER_PROMPT
 
 # "active" means invoked by current runtime code. Retrieval analysis and grounded
-# selector prompts are staged; production still score-ranks via select_grounded_plan
-# until CENSUS-42 increment 2 switches geography_node to validate_proposed_grounded_ids.
+# selector prompts are staged; production geography validates agent-proposed IDs via
+# validate_proposed_grounded_ids (score-rank remains test/replay harness only).
 PROMPT_INVENTORY = MappingProxyType(
     {
         "retrieval_analyzer": {

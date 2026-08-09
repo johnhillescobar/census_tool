@@ -38,7 +38,10 @@ from src.services.geography_clarification_resume import (
     prepare_table_resume,
     resume_geography_clarification,
 )
-from src.services.grounded_census_planner import select_grounded_plan
+from src.services.grounded_census_planner import (
+    CandidateIdSelection,
+    validate_proposed_grounded_ids,
+)
 from src.services.grounded_plan_validator import GroundedPlanValidationResult, validate_grounded_plan
 from src.state.types import CensusState, FinalResponseState
 from src.state.workflow_plan import (
@@ -57,8 +60,49 @@ class GroundedGeographyDependencies:
     analyze: Callable[[str], CensusRetrievalAnalysis] = analyze_retrieval_request
     retrieve_tables: Callable[..., RetrievalEvidence] = retrieve_table_candidates
     retrieve_geographies: Callable[..., GeographyRetrievalResult] = retrieve_geography_candidates
-    select: Callable[..., GroundedSelection] = select_grounded_plan
+    # Score-rank auto-select is test/replay harness only; production validates agent proposals.
+    select: Callable[..., GroundedSelection] | None = None
     validate: Callable[..., GroundedPlanValidationResult] = validate_grounded_plan
+
+
+def _candidate_ids_from_proposal(
+    proposed: GroundedSelection,
+    *,
+    table_only: bool = False,
+) -> CandidateIdSelection:
+    table_id = proposed.selected_table_ids[0] if proposed.selected_table_ids else None
+    if table_only:
+        return CandidateIdSelection(table_id=table_id)
+    return CandidateIdSelection(
+        table_id=table_id,
+        hierarchy_id=proposed.selected_hierarchy_id,
+        area_ids=list(proposed.selected_area_ids),
+    )
+
+
+def _resolve_grounded_selection(
+    table_evidence: RetrievalEvidence,
+    geography_evidence: GeographyRetrievalResult | None,
+    *,
+    proposed: GroundedSelection | None,
+    deps: GroundedGeographyDependencies,
+) -> GroundedSelection:
+    """Validate agent-proposed IDs in production; score-rank only when deps.select is injected."""
+    if proposed is not None:
+        return validate_proposed_grounded_ids(
+            _candidate_ids_from_proposal(proposed, table_only=geography_evidence is None),
+            table_evidence,
+            geography_evidence,
+        )
+    if deps.select is not None:
+        return deps.select(table_evidence, geography_evidence)
+    if geography_evidence is not None and len(table_evidence.candidate_ids) == 1:
+        return validate_proposed_grounded_ids(
+            CandidateIdSelection(table_id=table_evidence.candidate_ids[0]),
+            table_evidence,
+            geography_evidence,
+        )
+    return validate_proposed_grounded_ids(CandidateIdSelection(), table_evidence, geography_evidence)
 
 
 def _planning_year(plan: WorkflowPlan | None) -> int:
@@ -288,7 +332,12 @@ def _continue_after_table_locked(
             requested_slot="geography",
         )
 
-    selection = deps.select(locked_table_evidence, geography_result)
+    selection = _resolve_grounded_selection(
+        locked_table_evidence,
+        geography_result,
+        proposed=existing.proposed_selection,
+        deps=deps,
+    )
     if selection.status != "selected":
         reason = selection.reason_code or "GEOGRAPHY_AMBIGUOUS"
         _trace_event(trace, RetrievalStage.GROUNDED_SELECTION, RetrievalStatus.REJECTED, reason_code=reason)
@@ -452,7 +501,12 @@ def geography_node(
             requested_slot="table",
         )
 
-    table_selection = deps.select(table_evidence)
+    table_selection = _resolve_grounded_selection(
+        table_evidence,
+        None,
+        proposed=existing.proposed_selection,
+        deps=deps,
+    )
     if table_selection.status != "selected":
         reason = table_selection.reason_code or "TABLE_AMBIGUOUS"
         _trace_event(trace, RetrievalStage.GROUNDED_SELECTION, RetrievalStatus.REJECTED, reason_code=reason)

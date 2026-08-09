@@ -6,6 +6,7 @@ from src.domain.geography_catalog import AreaCandidate, HierarchyCandidate, Tabl
 from src.domain.retrieval_plan import RetrievalEvidence
 from src.services.census_retrieval_analyzer import CensusRetrievalAnalysis, analyze_retrieval_request
 from src.services.chroma_catalog_retriever import GeographyRetrievalResult
+from src.services.grounded_census_planner import select_grounded_plan
 from src.workflows.geography import GroundedGeographyDependencies
 
 
@@ -110,6 +111,6 @@ class FakeGroundedRetrieval:
             analyze=self.analyze,
             retrieve_tables=self.retrieve_tables,
             retrieve_geographies=self.retrieve_geographies,
-            select=defaults.select,
+            select=select_grounded_plan,
             validate=defaults.validate,
         )
