@@ -1,13 +1,21 @@
 # What I checked first
 I searched your Track 2 plan, the full migration plan sections for deterministic planning/canonical suite, and your current src/domain, src/services, and src/workflows layout.
 
+**Authoritative target (2026-08):** [`agent-first-grounded-planning.md`](agent-first-grounded-planning.md) — agent reasons, retrieves, **composes API params**, **executes** Census tools (multi-call when needed); deterministic code is **harness only**.
+
 # Non-negotiable migration intent
 Typed contracts and workflow nodes are built to empower the reasoning node with deterministic, validated artifacts. They are reliability scaffolding for the reasoning node, not a replacement for reasoning-node task execution.
 
+**Scope "deterministic" correctly:**
+- **Harness (keep):** Pydantic contracts, temporal/benchmark/comparison **math**, fail-closed validation, retrieval traces, repeatable comparison formulas.
+- **Agent-owned (not deterministic):** semantic Chroma retrieval, table/geo/category selection, Census API parameter composition, multi-call tool loops, clarification dialogue.
+
+Do **NOT** use "deterministic planning layer" to mean regex search, score-rank auto-select, or pre-agent URL assembly. Those are **legacy planner-first** paths marked migration debt.
+
 # Locked execution decision
 - Canonical principle: deterministic contracts and workflow/service steps are reliability scaffolding that empower AI reasoning nodes/components and must not replace AI reasoning nodes/components.
-- Temporal/benchmark/comparison nodes clarify and gate ambiguous input early.
-- The reasoning node remains the execution owner, performs repeated strict typed Census tool calls as needed, and drives answer/table/chart directives.
+- Temporal/benchmark/comparison nodes normalize time and comparison **math**; they may gate ambiguous **temporal/benchmark** input early — **not** replace agent retrieval or table/geo selection.
+- The reasoning node remains the execution owner: composes Census API parameters, performs repeated strict typed Census tool calls as needed, and drives answer/table/chart directives.
 
 What exists already
 
@@ -45,13 +53,13 @@ Use **Option A**. Here is the step-by-step sequence to follow now (no code chang
     - Explicitly decide how ambiguous inputs are represented (clarification-needed vs hard fail).
     - Output: contract table (field, type, allowed values, validation rule).
 
-4. Design deterministic planning flow before coding
+4. Design harness + agent responsibility matrix before coding
 
-    - Map: raw request -> temporal normalization -> benchmark planning -> query expansion -> deterministic compute.
-    - Mark where each transformation lives (domain validation vs services logic vs workflows orchestration).
-    - Explicitly verify each new node/service strengthens reasoning-node reliability and does not displace reasoning-node ownership.
-    - Explicitly verify locked execution behavior: early nodes clarify/gate; reasoning node executes typed tool loops.
-    - Output: node/service responsibility matrix.
+    - Map: raw request → temporal normalization (harness) → **agent** retrieval/table/geo/API composition → validate grounded plan (harness) → agent execute → deterministic comparison compute (harness).
+    - Mark where each transformation lives (domain validation vs services logic vs workflows orchestration vs agent tools).
+    - Explicitly verify each new node/service strengthens reasoning-node reliability and does **not** displace agent retrieval, API composition, or multi-call execution.
+    - Explicitly verify locked execution behavior: harness clarifies/gates only at trust boundaries (contracts, math); reasoning node executes typed tool loops including Chroma search and Census fetches.
+    - Output: node/service responsibility matrix (agent vs harness columns).
 
 5. Define deterministic math rules explicitly
 
@@ -67,8 +75,8 @@ Output: test case table with expected TemporalIntent/BenchmarkIntent/ComparisonP
 
 7. Define repeatability proof
 
-    - Decide your deterministic assertion: same input run N times => same planning artifacts (stable ordering included).
-    - Include one complex benchmark case and one failure-to-clarify case.
+    - Decide harness repeatability: same **grounded ID choices** run N times => same validated plan and API URLs (stable ordering included). Agent **wording** may vary.
+    - Include one complex benchmark case and one agent-clarification case (grounded options, not raw enum dumps).
     - Output: repeatability protocol (what to run, what must be identical).
 
 8. Dependency freeze checkpoint
@@ -87,6 +95,7 @@ Output: test case table with expected TemporalIntent/BenchmarkIntent/ComparisonP
    - Fail to clarification with a deterministic clarification question.
 
 3. Scope implication for Track 2:
-   - Agent clarification behavior may require refactoring so deterministic planning can return structured clarification-required outcomes.
-   - This refactor is in-scope for Track 2 only where needed to support deterministic fail-to-clarification behavior.
+   - Agent clarification behavior may require refactoring so the **agent** (not pre-agent planner halt) returns structured clarification with grounded options.
+   - Track 2 in-scope: typed clarification contracts and harness fail-closed — **not** extending `geography_node` score-select or regex analyzer authority.
    - Provenance gate behavior remains out of scope for Track 2 (Track 3).
+   - Long-term migration epic: **Agent-first grounded planning** — see [`agent-first-grounded-planning.md`](agent-first-grounded-planning.md).

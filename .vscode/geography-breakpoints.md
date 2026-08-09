@@ -1,5 +1,7 @@
 # Geography debugger breakpoint map
 
+> **Legacy path map (2026-08):** Breakpoints below trace the **current planner-first graph** (`geography_node` before agent). Target architecture: agent retrieval tools + validator harness — see [`docs/agent-first-grounded-planning.md`](../docs/agent-first-grounded-planning.md). Keep using this map until the graph is migrated.
+
 Use `Geography: Golden row 3` for the canonical county-in-state failure or
 `Geography: Choose golden row` for another fixture. VS Code stores source
 breakpoints in user workspace state, so they cannot be committed in
@@ -16,7 +18,7 @@ breakpoints in user workspace state, so they cannot be committed in
 | Geography retrieval | `src/services/chroma_catalog_retriever.py:retrieve_geography_candidates` | dataset/year filters, levels, areas, hierarchy |
 | Selection | `src/services/grounded_census_planner.py:select_grounded_plan` | supplied IDs versus selected IDs |
 | Validation | `src/services/grounded_plan_validator.py:validate_grounded_plan` | unknown IDs, parent ordering, compatibility |
-| Agent boundary | `src/workflows/agent.py:agent_reasoning_node` | immutable plan context and skip reason |
+| Agent boundary | `src/workflows/agent.py:agent_reasoning_node` | plan context; **legacy:** skip when `requires_clarification` |
 | Model call | `src/agents/runtime/modern_backend.py:ModernBackend.invoke` | messages and tool calls |
 | Tool trace | `src/agents/adapters/message_to_executor.py:message_trace_to_executor_result` | tool name, arguments, observation |
 | API guard | `src/tools/strict_census_api_tool.py:StrictCensusApiTool._run` | grounded evidence and request |

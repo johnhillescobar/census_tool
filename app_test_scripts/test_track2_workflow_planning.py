@@ -7,6 +7,7 @@ from app import (
     _route_after_temporal,
 )
 from app_test_scripts.grounded_planning_fakes import FakeGroundedRetrieval
+from config import LATEST_AVAILABLE_YEAR
 from src.domain.benchmark_contract import BenchmarkClarificationRequired, BenchmarkResolved
 from src.domain.comparison_plan import ComparisonPlan
 from src.domain.temporal_contract import (
@@ -177,7 +178,7 @@ def test_historical_baseline_merges_latest_available_with_anchor():
         requires_clarification=False,
     )
     result = comparison_node(_state("compare population vs 2019 baseline", plan=plan), CONFIG)
-    assert result["plan"].comparison.query_years == [2019, 2023]
+    assert result["plan"].comparison.query_years == [2019, LATEST_AVAILABLE_YEAR]
 
 
 def test_comparison_metrics_node_computes_rows():
@@ -189,7 +190,7 @@ def test_comparison_metrics_node_computes_rows():
             "artifacts": {
                 "comparison_input_rows": [
                     {
-                        "year": 2023,
+                        "year": LATEST_AVAILABLE_YEAR,
                         "geo_id": "06001",
                         "metric": "population",
                         "value": 100.0,

@@ -4,16 +4,17 @@ A local US Census question-answering application built with LangGraph, ChromaDB,
 
 ## Architecture
 
-The graph is temporal-first:
+**Target (authoritative):** [`docs/agent-first-grounded-planning.md`](docs/agent-first-grounded-planning.md) — the agent reasons, retrieves semantically from Chroma, **composes Census API parameters**, **executes** tools (multi-call when needed), analyzes results, and may ask clarifying questions with grounded options.
+
+**Current code (legacy):** temporal-first graph with pre-agent `geography_node` that can halt before the agent runs:
 
 `memory_load → temporal → geography → benchmark → comparison → agent → comparison_metrics → output → memory_write`
 
-Deterministic nodes normalize and validate planning contracts. Geography is resolved only from versioned Chroma table,
-hierarchy, and area candidates constrained by dataset and year. Missing or unhealthy evidence produces clarification; there is
-no mapping fallback or implicit national default. The reasoning agent remains execution owner and uses strict typed Census API
-tools under the validated plan.
+Harness nodes validate typed contracts and fail closed on ungrounded IDs. Geography evidence comes from versioned Chroma table, hierarchy, and area candidates constrained by dataset and year. Missing or unhealthy evidence produces clarification; there is no mapping fallback or implicit national default.
 
-- Current system reference: `app_description/ARCHITECTURE.md`
+- Target architecture: `docs/agent-first-grounded-planning.md`
+- System reference: `app_description/ARCHITECTURE.md`
+- Census API decision space (categories, `for`/`in`, multi-step): `app_description/CENSUS_DISCUSSION.md`
 - Geography schemas and invariants: `docs/chroma_geography_architecture.md`
 - Build, health, rollout, rollback, and debugging: `docs/chroma_geography_operator_runbook.md`
 - Golden URL evidence: `migration_evidence/golden_urls/README.md`
@@ -55,13 +56,13 @@ turns.
 
 ## Grounded geography behavior
 
-- Temporal intent resolves before geography retrieval.
-- Table search is mandatory for every data plan.
-- Geography retrieval is filtered by selected table dataset and resolved year.
-- Candidate IDs, exact Census tokens, parent order, and table compatibility are validated before execution.
+- Temporal intent resolves before catalog retrieval (default **`LATEST_AVAILABLE_YEAR`** from `config.py` when unstated — after `temporal_node`).
+- **Target:** agent queries Chroma via tools for tables and geography; composes and executes Census API calls in multi-step loops.
+- **Legacy (current code):** `geography_node` pre-selects table/geo before agent; may skip agent on clarification — migration in progress.
+- Table and geography candidate IDs, exact Census tokens, parent order, and table compatibility are validated before execution (harness).
 - Profile geography is a retrieval hint, not authority.
 - Empty, unavailable, stale, mismatched, or ambiguous evidence fails closed.
-- Build-time Census `NAME,GEO_ID` enumeration remains supported for Chroma area population.
+- Build-time Census `NAME,GEO_ID` enumeration populates Chroma area documents (index build — not runtime planner authority).
 
 Supported contracts include nation, state, county, place, tract, block group, CBSA, metropolitan division, ZCTA, PUMA,
 congressional and legislative districts, school districts, urban areas, and tribal hierarchies represented in the Census
@@ -69,8 +70,7 @@ catalog. Actual availability is dataset/year-specific.
 
 ## Acceptance
 
-The golden corpus has 124 natural-language questions. The deterministic grounded replay validates 122 data rows through
-candidate-ID selection and plan validation; two catalog URL rows are intentionally bypassed.
+The golden corpus has 124 natural-language questions. The **URL replay harness** validates 122 data rows through grounded candidate-ID selection and plan validation; two catalog URL rows are intentionally bypassed. Tier 3 NL UX follows agent-first intent (see `docs/agent-first-grounded-planning.md`).
 
 Run the offline URL contract:
 

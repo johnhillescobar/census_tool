@@ -3,7 +3,9 @@ Configuration constants for Census Graph App
 Centralized settings for retention, API limits, and dataset configurations
 """
 
-LATEST_AVAILABLE_YEAR = 2023
+LATEST_AVAILABLE_YEAR = 2024
+# Hard floor for catalog rebuilds (tables, dataset geographies, areas).
+CATALOG_YEAR_START = 2014
 
 # Retention Settings
 RETENTION_DAYS = 90
@@ -45,15 +47,15 @@ CENSUS_GEOGRAPHY_INDEX_MAX_AGE_SECONDS = CHROMA_INDEX_MAX_AGE_SECONDS
 # Census Datasets Configuration
 DEFAULT_DATASETS = [
     # Detail Tables (B/C codes)
-    ("acs/acs5", list(range(2012, 2024))),
+    ("acs/acs5", list(range(2012, 2025))),
     # Subject Tables (S codes)
-    ("acs/acs5/subject", list(range(2012, 2024))),
+    ("acs/acs5/subject", list(range(2012, 2025))),
     # Profile Tables (DP codes)
-    ("acs/acs1/profile", list(range(2012, 2024))),
+    ("acs/acs1/profile", list(range(2012, 2025))),
     # Comparison Tables (CP codes)
-    ("acs/acs5/cprofile", list(range(2014, 2024))),
+    ("acs/acs5/cprofile", list(range(2014, 2025))),
     # Selected Population Profiles
-    ("acs/acs1/spp", list(range(2014, 2024))),
+    ("acs/acs1/spp", list(range(2014, 2025))),
 ]
 
 
@@ -66,7 +68,7 @@ CENSUS_CATEGORIES = {
         "description": "Detailed demographic tables with high granularity",
         "use_cases": ["specific breakdowns", "detailed demographics", "granular data"],
         "uses_groups": False,  # Individual variables
-        "years": list(range(2012, 2024)),
+        "years": list(range(2012, 2025)),
         "groups_endpoint": "https://api.census.gov/data/{year}/acs/acs5/groups.json",
     },
     "subject": {
@@ -76,7 +78,7 @@ CENSUS_CATEGORIES = {
         "description": "Topic-specific summary tables",
         "use_cases": ["overview", "summary", "topic overview", "demographic overview"],
         "uses_groups": True,  # Use group() function
-        "years": list(range(2012, 2024)),
+        "years": list(range(2012, 2025)),
         "groups_endpoint": "https://api.census.gov/data/{year}/acs/acs5/subject/groups.json",
     },
     "profile": {
@@ -86,7 +88,7 @@ CENSUS_CATEGORIES = {
         "description": "Comprehensive demographic profiles",
         "use_cases": ["profile", "comprehensive", "full demographics"],
         "uses_groups": True,
-        "years": list(range(2012, 2024)),
+        "years": list(range(2012, 2025)),
         "groups_endpoint": "https://api.census.gov/data/{year}/acs/acs1/profile/groups.json",
     },
     "cprofile": {
@@ -96,7 +98,7 @@ CENSUS_CATEGORIES = {
         "description": "Multi-year comparison tables",
         "use_cases": ["compare", "comparison", "change over time", "trends"],
         "uses_groups": True,
-        "years": list(range(2014, 2024)),  # Note: starts 2014
+        "years": list(range(2014, 2025)),  # Note: starts 2014
         "groups_endpoint": "https://api.census.gov/data/{year}/acs/acs5/cprofile/groups.json",
     },
     "spp": {
@@ -106,7 +108,7 @@ CENSUS_CATEGORIES = {
         "description": "Race and ethnicity-specific profiles",
         "use_cases": ["hispanic", "latino", "asian", "race", "ethnicity specific"],
         "uses_groups": True,
-        "years": list(range(2014, 2024)),  # Note: starts 2014
+        "years": list(range(2014, 2025)),  # Note: starts 2014
         "groups_endpoint": "https://api.census.gov/data/{year}/acs/acs1/spp/groups.json",
     },
 }

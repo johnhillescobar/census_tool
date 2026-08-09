@@ -1,6 +1,8 @@
 
 ## Explaining the Census APIs
 
+> **Runtime ownership (target):** This document describes the **decision space for agent API composition** — dataset categories, groups, variables, geography hierarchy, `for`/`in` patterns, and crosswalk queries. At runtime the **agent** (not a pre-agent planner) reasons over this space, queries Chroma for grounded table/geo candidates, **composes** Census API parameters, and **executes** tools in multi-step loops (enumerate → disambiguate → fetch → optional refetch). Harness code validates grounded IDs only. Authoritative architecture: [`docs/agent-first-grounded-planning.md`](../docs/agent-first-grounded-planning.md).
+
 The following explanation can be expanded in this link:
 
 https://www.census.gov/programs-surveys/acs/data/data-tables/table-ids-explained.html 

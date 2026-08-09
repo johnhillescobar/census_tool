@@ -1,3 +1,4 @@
+from config import LATEST_AVAILABLE_YEAR
 from src.domain.benchmark_contract import BenchmarkIntent
 from src.domain.temporal_contract import TemporalIntent, TemporalMode
 from src.services.comparison_plan_policy import resolve_comparison_plan
@@ -70,7 +71,7 @@ def test_latest_available():
         _build_benchmark_intent(),
         _build_temporal_intent("latest_available", None, None, None),
     )
-    assert result.query_years == [2023]
+    assert result.query_years == [LATEST_AVAILABLE_YEAR]
     _assert_common_plan_fields(result)
 
 
@@ -105,7 +106,7 @@ def test_historical_baseline_merges_temporal_and_baseline_years():
         _build_historical_baseline_intent(),
         _build_temporal_intent("latest_available", None, None, None),
     )
-    assert result.query_years == [2019, 2023]
+    assert result.query_years == [2019, LATEST_AVAILABLE_YEAR]
     assert result.benchmark_geo_level is None
     assert result.benchmark_geos == []
     assert result.metric == "population"

@@ -1,5 +1,7 @@
 # Chroma geography operator runbook
 
+**Runtime note:** At query time the **agent** (target) issues semantic searches against these same collections via tools, filtered by resolved dataset/year. This runbook covers **index build, health, and promotion** only — not planner-first `geography_node` selection policy. See [`agent-first-grounded-planning.md`](agent-first-grounded-planning.md).
+
 ## Preconditions
 
 - Run commands from the repository root with Python 3.12 and `uv`.

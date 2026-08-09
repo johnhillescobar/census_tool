@@ -4,9 +4,7 @@ This directory stores release evidence for the temporal-first, Chroma-grounded C
 
 ## Corpus and verdicts
 
-`test_questions/test_questions_new.csv` contains 124 friendly questions and expected Census URLs. Grounded deterministic replay
-validates 122 data rows through retrieved candidate IDs and plan validation. Rows 9 and 10 are catalog URLs and are intentionally
-bypassed.
+`test_questions/test_questions_new.csv` contains 124 friendly questions and expected Census URLs. **Grounded replay (Tier 1 harness)** validates 122 data rows through retrieved candidate IDs and plan validation — deterministic ID replay, not NL agent UX. Rows 9 and 10 are catalog URLs and are intentionally bypassed. **Tier 3** exercises full NL graph (agent-first target; legacy planner path may still apply).
 
 - `url_verdict`: any successful Census call semantically matches the expected URL; failed retries are ignored.
 - `delivery_verdict`: the user-visible answer and data are acceptable.
