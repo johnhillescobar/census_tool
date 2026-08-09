@@ -701,6 +701,22 @@ class CensusQueryAgent:
             logger.error(f"[PARSE DEBUG] JSON parse or Pydantic validation failed: {type(e).__name__}: {str(e)[:300]}")
         return None
 
+    @staticmethod
+    def _coerce_string_field(value: Any, *, default: str = "") -> str:
+        """Harness normalization: coerce LLM drift into AgentOutput string fields."""
+        if isinstance(value, str):
+            return value
+        if value is None:
+            return default
+        if isinstance(value, list):
+            parts = [str(item).strip() for item in value if str(item).strip()]
+            return "\n".join(parts) if parts else default
+        if isinstance(value, dict):
+            if not value:
+                return default
+            return json.dumps(value, sort_keys=True)
+        return str(value)
+
     def _normalize_parsed_output_contract(self, parsed: dict[str, Any]) -> dict[str, Any]:
         """
         Normalize common LLM contract drift before strict Pydantic validation.
@@ -711,7 +727,15 @@ class CensusQueryAgent:
           {"NAME": "NAME", "B01003_001E": "B01003_001E"}.
         - census_data may include API metadata (dataset, year, geo_for, geo_in).
           Strip to the canonical payload fields and synthesize url when possible.
+        - data_summary and reasoning_trace may arrive as {} or list[str]; coerce to str.
         """
+        for field_name in ("data_summary", "reasoning_trace"):
+            if field_name in parsed:
+                coerced = self._coerce_string_field(parsed.get(field_name))
+                if coerced != parsed.get(field_name):
+                    logger.warning("Normalized %s to string for contract compatibility", field_name)
+                parsed[field_name] = coerced
+
         census_data = parsed.get("census_data")
         if not isinstance(census_data, dict):
             return parsed

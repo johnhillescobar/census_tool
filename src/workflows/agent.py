@@ -50,6 +50,8 @@ def agent_reasoning_node(state: CensusState, config: RunnableConfig) -> dict[str
         plan_log = "agent: no plan context attached"
     elif plan_context.has_comparison_plan:
         plan_log = "agent: plan context attached (comparison)"
+    elif plan_context.grounded_plan is not None and plan_context.geography is None:
+        plan_log = "agent: plan context attached (table-only execution)"
     else:
         plan_log = "agent: plan context attached (temporal only)"
 

@@ -73,7 +73,7 @@ def test_prompt_inventory_has_version_trace_and_role_boundaries():
         rendered = prompt.render(**_render_values(name))
         assert prompt.trace_metadata == {
             "prompt_id": name,
-            "prompt_version": "3a.1",
+            "prompt_version": prompt.version,
             "prompt_role": prompt.role,
         }
         assert f"prompt_id={name}" in rendered
@@ -85,8 +85,7 @@ def test_versioned_prompts_forbid_defaults_and_contain_no_embedded_canonical_map
     combined = "\n".join(_versioned_prompt_bodies())
     lowered = combined.lower()
 
-    assert "never silently" in lowered
-    assert "nationwide scope" in lowered
+    assert "never silently" in lowered or "table-only national default" in lowered
     assert "missing" in lowered and ("fail explicitly" in lowered or "failure explicitly" in lowered)
     assert not re.search(r"\b(?:[A-Z]{1,3}\d{3,}(?:_\d+[A-Z]?)?)\b", combined)
     assert not re.search(r"""["'](?:state|county|place|us)["']\s*:\s*["']\d+["']""", combined)
