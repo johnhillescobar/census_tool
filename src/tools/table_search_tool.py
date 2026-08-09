@@ -33,7 +33,14 @@ class TableSearchTool(BaseTool):
 
         logger.info(f"Running TableSearchTool with query: {query} and category: {category}")
         client = initialize_chroma_client()
+        if isinstance(client, dict):
+            logger.error(client.get("error", "Chroma is unavailable"))
+            return client
+
         chroma = get_chroma_collection_tables(client)
+        if isinstance(chroma, dict):
+            logger.error(chroma.get("error", "Chroma table collection unavailable"))
+            return chroma
 
         logger.info(f"Searching ChromaDB for tables matching query: {query} and category: {category}")
         results = chroma.query(

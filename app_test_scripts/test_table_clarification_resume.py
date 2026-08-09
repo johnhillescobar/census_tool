@@ -13,6 +13,7 @@ from src.services.agent_plan_context import build_agent_clarification_context
 from src.services.census_retrieval_analyzer import CensusRetrievalAnalysis
 from src.services.graph_session import build_fresh_thread_state
 from src.workflows.agent_clarification_resume import agent_clarification_resume_node
+from src.workflows.agent_planning import agent_planning_node
 from src.workflows.geography import geography_node, geography_resume_node
 from src.workflows.temporal import temporal_node
 
@@ -110,6 +111,31 @@ def test_build_agent_clarification_context_exposes_checkpoint_contract():
     assert context.retrieval_evidence == plan.retrieval_evidence
     assert context.reason_code == pending.reason_code
     assert context.trace_id == pending.trace_id
+    assert context.turn1_prompt_text is None
+
+
+@patch("src.workflows.agent_planning.CensusQueryAgent")
+def test_build_agent_clarification_context_restores_turn1_prompt_from_checkpoint(mock_agent_cls, monkeypatch):
+    import config as config_module
+
+    monkeypatch.setattr(config_module, "CENSUS_AGENT_TURN1_PLANNING", True)
+    import src.workflows.geography as geography_module
+
+    monkeypatch.setattr(geography_module, "CENSUS_AGENT_TURN1_PLANNING", True)
+    mock_agent_cls.return_value.offline_mode = True
+
+    state = _turn1_state()
+    temporal = temporal_node(state, {})
+    state = state.model_copy(update={"plan": temporal["plan"]})
+    turn1 = geography_node(state, {}, dependencies=AmbiguousTablesFake().dependencies())
+    state = state.model_copy(update={"plan": turn1["plan"]})
+    clarify = agent_planning_node(state, {})
+    plan = clarify["plan"]
+
+    context = build_agent_clarification_context(plan)
+    assert context is not None
+    assert context.turn1_prompt_text is not None
+    assert "SEX BY AGE (B01001)" in context.turn1_prompt_text
 
 
 def _agent_tool_step(plan, option_id: str):

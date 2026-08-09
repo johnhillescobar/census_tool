@@ -36,6 +36,15 @@ def build_agent_clarification_context(plan: WorkflowPlan | None) -> AgentClarifi
         return None
 
     pending = plan.pending_geography_clarification
+    checkpoint = plan.agent_clarification_checkpoint
+    if checkpoint is not None and checkpoint.trace_id == pending.trace_id:
+        return checkpoint.model_copy(
+            update={
+                "pending_options": list(pending.options),
+                "retrieval_evidence": list(plan.retrieval_evidence),
+            }
+        )
+
     return AgentClarificationContext(
         original_query=pending.original_query,
         requested_slot=pending.requested_slot,
@@ -55,8 +64,15 @@ def format_clarification_directives(ctx: AgentClarificationContext) -> str:
         f"- Requested slot: {ctx.requested_slot}",
         f"- Reason code: {ctx.reason_code}",
         f"- Trace id: {ctx.trace_id}",
-        "- Options (select one grounded candidate):",
     ]
+    if ctx.turn1_prompt_text:
+        lines.extend(
+            [
+                "- Turn-1 clarification shown to the user:",
+                ctx.turn1_prompt_text,
+            ]
+        )
+    lines.append("- Options (select one grounded candidate):")
     for option in ctx.pending_options:
         readable = format_readable_option_label(option, ctx)
         lines.append(f"  - {readable} [candidate_id={option.candidate_id}]")

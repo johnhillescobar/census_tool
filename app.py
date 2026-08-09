@@ -7,7 +7,7 @@ from langgraph.checkpoint.sqlite import SqliteSaver
 from langgraph.graph import StateGraph
 
 # Import state and routing
-from config import CENSUS_AGENT_CLARIFICATION_RESUME
+from config import CENSUS_AGENT_CLARIFICATION_RESUME, CENSUS_AGENT_TURN1_PLANNING
 from src.services.agent_plan_context import should_skip_agent_for_upstream_clarification
 from src.state.types import CensusState
 
@@ -52,6 +52,8 @@ def _route_after_geography(state: CensusState) -> str:
         return "output"
     if state.plan and state.plan.requires_clarification:
         if CENSUS_AGENT_CLARIFICATION_RESUME:
+            if CENSUS_AGENT_TURN1_PLANNING:
+                return "agent_planning"
             return "agent_clarification_prompt"
         return "output"
 
@@ -75,6 +77,14 @@ def _route_after_temporal(state: CensusState) -> str:
 
 def _route_after_agent_planning(state: CensusState) -> str:
     if should_skip_agent_for_upstream_clarification(state.plan):
+        return "output"
+
+    if (
+        CENSUS_AGENT_TURN1_PLANNING
+        and state.plan
+        and state.plan.pending_geography_clarification is not None
+        and state.plan.requires_clarification
+    ):
         return "output"
 
     return "plan_validator"
@@ -171,6 +181,7 @@ def create_census_graph():
             "benchmark": "benchmark",
             "output": "output",
             "agent_clarification_prompt": "agent_clarification_prompt",
+            "agent_planning": "agent_planning",
         },
     )
     workflow.add_conditional_edges(
@@ -180,13 +191,19 @@ def create_census_graph():
             "benchmark": "benchmark",
             "output": "output",
             "agent_clarification_prompt": "agent_clarification_prompt",
+            "agent_planning": "agent_planning",
         },
     )
 
     workflow.add_conditional_edges(
         "geography",
         _route_after_geography,
-        {"benchmark": "benchmark", "output": "output", "agent_clarification_prompt": "agent_clarification_prompt"},
+        {
+            "benchmark": "benchmark",
+            "output": "output",
+            "agent_clarification_prompt": "agent_clarification_prompt",
+            "agent_planning": "agent_planning",
+        },
     )
 
     workflow.add_edge("agent_clarification_prompt", "output")

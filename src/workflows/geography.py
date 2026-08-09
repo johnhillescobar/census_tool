@@ -5,7 +5,7 @@ from typing import Any, cast
 
 from langchain_core.runnables import RunnableConfig
 
-from config import LATEST_AVAILABLE_YEAR
+from config import CENSUS_AGENT_CLARIFICATION_RESUME, CENSUS_AGENT_TURN1_PLANNING, LATEST_AVAILABLE_YEAR
 from src.clients.telemetry import record_event
 from src.domain.clarification_templates import render_slot_clarification
 from src.domain.geography_catalog import AreaCandidate, HierarchyCandidate, TableCandidate
@@ -194,25 +194,34 @@ def _clarification(
         index_version=index_version,
         reason_code=normalized_reason,
     )
-    return CensusGraphPatch(
-        plan=existing.model_copy(
-            update={
-                "geography": resolution,
-                "retrieval_evidence": evidence,
-                "retrieval_trace": trace,
-                "pending_geography_clarification": pending,
-                "requires_clarification": True,
-                "workflow_cancelled": False,
-            }
-        ),
-        final=FinalResponseState(
+    updated_plan = existing.model_copy(
+        update={
+            "geography": resolution,
+            "retrieval_evidence": evidence,
+            "retrieval_trace": trace,
+            "pending_geography_clarification": pending,
+            "requires_clarification": True,
+            "workflow_cancelled": False,
+        }
+    )
+    patch_kwargs: dict[str, Any] = {
+        "plan": updated_plan,
+        "logs": [f"geography: grounded clarification required ({normalized_reason})"],
+    }
+    defer_to_agent_planning = CENSUS_AGENT_TURN1_PLANNING and CENSUS_AGENT_CLARIFICATION_RESUME
+    if not defer_to_agent_planning:
+        patch_kwargs["final"] = FinalResponseState(
             answer_text=clarification_text,
             clarification_type="table" if requested_slot == "table" else "geography",
             reason_code=normalized_reason,
             trace_id=trace.trace_id,
-        ),
-        logs=[f"geography: grounded clarification required ({normalized_reason})"],
-    ).as_langgraph_update()
+        )
+    else:
+        patch_kwargs["logs"] = [
+            *patch_kwargs["logs"],
+            "geography: deferred clarification copy to agent_planning (turn-1 authority)",
+        ]
+    return CensusGraphPatch(**patch_kwargs).as_langgraph_update()
 
 
 def _locked_table_evidence(table_evidence: RetrievalEvidence, selected_table: TableCandidate) -> RetrievalEvidence:

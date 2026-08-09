@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import Annotated, Literal
 
 from pydantic import BaseModel, Field
@@ -62,6 +64,7 @@ class WorkflowPlan(BaseModel):
     grounded_plan: ValidatedGroundedPlan | None = None
     retrieval_trace: RetrievalTrace | None = None
     pending_geography_clarification: PendingGeographyClarification | None = None
+    agent_clarification_checkpoint: AgentClarificationContext | None = None
     requires_clarification: bool = False
     workflow_cancelled: bool = False
 
@@ -84,3 +87,8 @@ class WorkflowPlan(BaseModel):
         if isinstance(self.benchmark, BenchmarkResolved):
             return self.benchmark.benchmark
         return None
+
+
+from src.domain.agent_clarification_context import AgentClarificationContext  # noqa: E402
+
+WorkflowPlan.model_rebuild()
