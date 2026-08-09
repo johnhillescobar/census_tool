@@ -1,18 +1,18 @@
-"""CENSUS-41 — validate_grounded_plan gate after agent planning.
+"""CENSUS-41 - validate_grounded_plan gate after agent planning.
 
 Test case registry (also posted to Jira CENSUS-41):
 --------------------------------------------------------------------------------
 | Test | Verifies | Expected outcome |
 |------|----------|------------------|
-| test_route_after_agent_planning_goes_to_plan_validator | Graph routing after temporal+planning | _route_after_agent_planning → "plan_validator" |
-| test_plan_validator_skips_when_no_agent_proposal | Validator with no proposed_selection | Skips with log; routes to legacy "geography" |
-| test_plan_validator_rejects_invented_candidate_ids | Fail-closed on invented table ID | UNKNOWN_CANDIDATE_ID, retryable, routes to agent_planning |
-| test_plan_validator_accepts_grounded_selection_and_skips_geography | Valid agent proposal + evidence | grounded_plan set, B01003, routes to "benchmark" |
-| test_plan_validator_exhausted_retries_route_to_output | Max validation attempts exceeded | Routes to "output" (no further retry) |
-| test_legacy_geography_still_runs_when_validator_skips | Fallback when agent proposes nothing | geography_node still produces grounded_plan |
-| test_agent_planning_populates_proposal_from_tool_steps | agent_planning_node wires tool output | plan.proposed_selection + retrieval_evidence populated |
-| test_agent_planning_to_validator_accepts_grounded_flow | End-to-end mocked planning → validator | Validated plan routes to benchmark |
-| test_collect_planning_artifacts_merges_evidence_and_selection | Artifact collector unit behavior | Evidence deduped by ID; latest selection kept |
+| test_route_after_agent_planning_goes_to_plan_validator | Post-temporal routing | "plan_validator" |
+| test_plan_validator_skips_when_no_agent_proposal | No proposed_selection | Skip; route to "geography" |
+| test_plan_validator_rejects_invented_candidate_ids | Invented table ID | UNKNOWN_CANDIDATE_ID; retry planning |
+| test_plan_validator_accepts_grounded_selection_and_skips_geography | Valid proposal + evidence | grounded_plan; "benchmark" |
+| test_plan_validator_exhausted_retries_route_to_output | Max attempts exceeded | Route to "output" |
+| test_legacy_geography_still_runs_when_validator_skips | Agent proposes nothing | geography_node sets grounded_plan |
+| test_agent_planning_populates_proposal_from_tool_steps | Tool output wiring | proposed_selection + evidence on plan |
+| test_agent_planning_to_validator_accepts_grounded_flow | Mocked planning E2E | Validated plan to benchmark |
+| test_collect_planning_artifacts_merges_evidence_and_selection | Artifact collector | Dedupe evidence; latest selection |
 --------------------------------------------------------------------------------
 """
 

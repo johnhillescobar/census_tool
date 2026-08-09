@@ -213,11 +213,7 @@ class CensusQueryAgent:
         )
         intermediate_steps = execution.intermediate_steps or []
         output = (execution.output or "").strip()
-        tool_names = [
-            getattr(step[0], "tool", None)
-            for step in intermediate_steps
-            if step and len(step) >= 1
-        ]
+        tool_names = [getattr(step[0], "tool", None) for step in intermediate_steps if step and len(step) >= 1]
         return {
             "reasoning_trace": f"Planning tool steps: {len(intermediate_steps)} ({', '.join(name for name in tool_names if name)})",
             "data_summary": output[:1000] if output else "Planning turn completed without text output.",

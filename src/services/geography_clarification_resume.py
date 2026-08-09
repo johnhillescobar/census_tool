@@ -186,9 +186,7 @@ def prepare_table_resume(plan: WorkflowPlan, selection: str) -> GeographyResumeR
     chosen = _candidate_for_option(validated, plan.retrieval_evidence)
     if not isinstance(chosen, TableCandidate):
         return _render_pending(plan, "That option does not complete a compatible geography selection.")
-    table_evidence = next(
-        item for item in plan.retrieval_evidence if validated.candidate_id in item.candidate_ids
-    )
+    table_evidence = next(item for item in plan.retrieval_evidence if validated.candidate_id in item.candidate_ids)
     return TableResumePrepared(
         option=validated,
         selected_table=chosen,

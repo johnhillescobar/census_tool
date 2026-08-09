@@ -83,10 +83,7 @@ def _trace_event(
 
 
 def _retryable_failures(failures: list[ValidationFailure]) -> list[ValidationFailure]:
-    return [
-        failure.model_copy(update={"retryable": failure.reason_code in _RETRYABLE_REASON_CODES})
-        for failure in failures
-    ]
+    return [failure.model_copy(update={"retryable": failure.reason_code in _RETRYABLE_REASON_CODES}) for failure in failures]
 
 
 def _geography_intent_from_validated(
@@ -104,8 +101,7 @@ def _geography_intent_from_validated(
             candidate
             for item in evidence
             for candidate in item.candidates
-            if isinstance(candidate, HierarchyCandidate)
-            and candidate.candidate_id == canonical_geo.hierarchy_candidate_id
+            if isinstance(candidate, HierarchyCandidate) and candidate.candidate_id == canonical_geo.hierarchy_candidate_id
         ),
         None,
     )

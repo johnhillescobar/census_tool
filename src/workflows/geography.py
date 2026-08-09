@@ -234,9 +234,7 @@ def _continue_after_table_locked(
     """Run geography retrieval and validation after the user locks a grounded table."""
     requested_year = _planning_year(existing)
     locked_table_evidence = _locked_table_evidence(table_evidence, selected_table)
-    evidence = [
-        locked_table_evidence if item.evidence_id == table_evidence.evidence_id else item for item in evidence
-    ]
+    evidence = [locked_table_evidence if item.evidence_id == table_evidence.evidence_id else item for item in evidence]
 
     if not analysis.geography_explicit:
         return _clarification(
