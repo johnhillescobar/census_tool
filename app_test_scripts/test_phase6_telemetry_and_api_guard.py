@@ -9,9 +9,9 @@ from datetime import datetime
 import pytest
 
 from app_test_scripts.census_url_fixtures import load_golden_questions
-from app_test_scripts.golden_grounded_replay import build_golden_replay
+from app_test_scripts.golden_grounded_replay import build_golden_replay, explicit_golden_proposal
 from src.clients import telemetry
-from src.services.grounded_census_planner import select_grounded_plan
+from src.services.grounded_census_planner import validate_proposed_grounded_ids
 from src.services.grounded_execution_context import (
     GroundedExecutionContext,
     reset_grounded_execution_context,
@@ -90,7 +90,12 @@ def test_release_metrics_report_every_phase6_guard_signal():
 @pytest.mark.parametrize("status", ["unavailable", "stale", "schema_mismatch"])
 def test_validator_rejects_missing_or_stale_index_evidence(status):
     replay = _row3_replay()
-    selection = select_grounded_plan(replay.table_evidence, replay.geography_evidence)
+    proposed = explicit_golden_proposal(replay.row, replay.geography_evidence)
+    selection = validate_proposed_grounded_ids(
+        proposed,
+        replay.table_evidence,
+        replay.geography_evidence,
+    )
     evidence = deepcopy(replay.evidence)
     evidence[0] = evidence[0].model_copy(update={"status": status, "candidate_ids": [], "candidates": []})
     rejected = validate_grounded_plan(selection, evidence)

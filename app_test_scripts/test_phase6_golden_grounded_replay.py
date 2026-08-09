@@ -28,7 +28,7 @@ def test_golden_replay_fixture_covers_122_data_rows_and_bypasses_two_catalog_row
 
 
 @pytest.mark.parametrize("row", DATA_ROWS, ids=lambda row: f"row_{row.row_no}")
-def test_all_golden_data_rows_replay_through_candidate_id_selector_and_validator(row):
+def test_all_golden_data_rows_replay_through_explicit_proposed_ids_and_validator(row):
     replay = build_golden_replay(row)
     assert replay is not None
     assert replay.table_evidence.collection_name == "census_tables"

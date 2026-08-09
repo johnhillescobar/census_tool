@@ -65,6 +65,18 @@ class GroundedGeographyDependencies:
     validate: Callable[..., GroundedPlanValidationResult] = validate_grounded_plan
 
 
+def _table_evidence_from_attached(evidence: list[RetrievalEvidence]) -> RetrievalEvidence | None:
+    return next((item for item in evidence if item.collection_name == "census_tables"), None)
+
+
+def _geography_result_from_attached(evidence: list[RetrievalEvidence]) -> GeographyRetrievalResult | None:
+    hierarchy = next((item for item in evidence if item.collection_name == "census_dataset_geographies"), None)
+    if hierarchy is None:
+        return None
+    area_evidence = [item for item in evidence if item.collection_name == "census_geography_areas"]
+    return GeographyRetrievalResult(hierarchy_evidence=hierarchy, area_evidence=area_evidence)
+
+
 def _candidate_ids_from_proposal(
     proposed: GroundedSelection,
     *,
@@ -304,22 +316,36 @@ def _continue_after_table_locked(
             requested_slot="geography",
         )
 
-    geography_result = deps.retrieve_geographies(
-        analysis,
-        dataset=selected_table.dataset,
-        year=requested_year,
-    )
-    evidence.extend(geography_result.evidence)
-    for item in geography_result.evidence:
-        status = RetrievalStatus.HIT if item.status == "hit" else RetrievalStatus.EMPTY
-        _trace_event(
-            trace,
-            RetrievalStage.GEOGRAPHY_RETRIEVAL,
-            status,
-            evidence=item,
-            reason_code=None if item.status == "hit" else f"GEOGRAPHY_{item.status.upper()}",
-            filters={"dataset": selected_table.dataset, "year": requested_year},
+    geography_result = _geography_result_from_attached(evidence)
+    if geography_result is None:
+        geography_result = deps.retrieve_geographies(
+            analysis,
+            dataset=selected_table.dataset,
+            year=requested_year,
         )
+        evidence.extend(geography_result.evidence)
+        for item in geography_result.evidence:
+            status = RetrievalStatus.HIT if item.status == "hit" else RetrievalStatus.EMPTY
+            _trace_event(
+                trace,
+                RetrievalStage.GEOGRAPHY_RETRIEVAL,
+                status,
+                evidence=item,
+                reason_code=None if item.status == "hit" else f"GEOGRAPHY_{item.status.upper()}",
+                filters={"dataset": selected_table.dataset, "year": requested_year},
+            )
+    else:
+        for item in geography_result.evidence:
+            status = RetrievalStatus.HIT if item.status == "hit" else RetrievalStatus.EMPTY
+            _trace_event(
+                trace,
+                RetrievalStage.GEOGRAPHY_RETRIEVAL,
+                status,
+                evidence=item,
+                reason_code=None if item.status == "hit" else f"GEOGRAPHY_{item.status.upper()}",
+                filters={"dataset": selected_table.dataset, "year": requested_year, "source": "attached_evidence"},
+            )
+
     unusable = next((item for item in geography_result.evidence if item.status != "hit"), None)
     if unusable is not None:
         reason = f"GEOGRAPHY_{unusable.status.upper()}"
@@ -447,7 +473,7 @@ def geography_node(
     # Prefer explicit deps, then graph config, then defaults.
     deps = dependencies or configured or GroundedGeographyDependencies()
     trace = RetrievalTrace(prompt_version="grounded-geography-v1")
-    evidence: list[RetrievalEvidence] = []
+    evidence: list[RetrievalEvidence] = list(existing.retrieval_evidence)
 
     try:
         analysis = deps.analyze(user_question)
@@ -479,17 +505,29 @@ def geography_node(
             )
 
     requested_year = _planning_year(existing)
-    table_evidence = deps.retrieve_tables(analysis, year=requested_year)
-    evidence.append(table_evidence)
-    table_status = RetrievalStatus.HIT if table_evidence.status == "hit" else RetrievalStatus.EMPTY
-    _trace_event(
-        trace,
-        RetrievalStage.TABLE_RETRIEVAL,
-        table_status,
-        evidence=table_evidence,
-        reason_code=None if table_evidence.status == "hit" else f"TABLE_{table_evidence.status.upper()}",
-        filters={"year": requested_year},
-    )
+    attached_table = _table_evidence_from_attached(evidence)
+    if attached_table is not None:
+        table_evidence = attached_table
+        _trace_event(
+            trace,
+            RetrievalStage.TABLE_RETRIEVAL,
+            RetrievalStatus.HIT if table_evidence.status == "hit" else RetrievalStatus.EMPTY,
+            evidence=table_evidence,
+            reason_code=None if table_evidence.status == "hit" else f"TABLE_{table_evidence.status.upper()}",
+            filters={"year": requested_year, "source": "attached_evidence"},
+        )
+    else:
+        table_evidence = deps.retrieve_tables(analysis, year=requested_year)
+        evidence.append(table_evidence)
+        table_status = RetrievalStatus.HIT if table_evidence.status == "hit" else RetrievalStatus.EMPTY
+        _trace_event(
+            trace,
+            RetrievalStage.TABLE_RETRIEVAL,
+            table_status,
+            evidence=table_evidence,
+            reason_code=None if table_evidence.status == "hit" else f"TABLE_{table_evidence.status.upper()}",
+            filters={"year": requested_year},
+        )
     if table_evidence.status != "hit":
         reason = f"TABLE_{table_evidence.status.upper()}"
         return _clarification(

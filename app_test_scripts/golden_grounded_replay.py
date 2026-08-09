@@ -11,7 +11,7 @@ from app_test_scripts.census_url_fixtures import GoldenQuestionRow, parse_census
 from src.domain.geography_catalog import AreaCandidate, HierarchyCandidate, TableCandidate
 from src.domain.retrieval_plan import RetrievalEvidence
 from src.services.chroma_catalog_retriever import GeographyRetrievalResult
-from src.services.grounded_census_planner import select_grounded_plan
+from src.services.grounded_census_planner import CandidateIdSelection, validate_proposed_grounded_ids
 from src.services.grounded_plan_validator import GroundedPlanValidationResult, validate_grounded_plan
 
 _GROUP = re.compile(r"^GROUP\(([^)]+)\)$", re.IGNORECASE)
@@ -79,8 +79,20 @@ def _evidence(evidence_id: str, collection: str, candidate) -> RetrievalEvidence
     )
 
 
+def explicit_golden_proposal(
+    row: GoldenQuestionRow,
+    geography_evidence: GeographyRetrievalResult,
+) -> CandidateIdSelection:
+    """Return the grounded candidate IDs encoded in golden replay fixtures."""
+    return CandidateIdSelection(
+        table_id=f"golden:table:{row.row_no}",
+        hierarchy_id=f"golden:hierarchy:{row.row_no}",
+        area_ids=[item.candidate_ids[0] for item in geography_evidence.area_evidence],
+    )
+
+
 def build_golden_replay(row: GoldenQuestionRow) -> GoldenReplay | None:
-    """Create official-shaped fake evidence, then run the real selector and validator."""
+    """Create official-shaped fake evidence, then validate explicit golden ID choices."""
     parts = parse_census_url(row.expected_url)
     if parts.catalog_path is not None:
         return None
@@ -178,7 +190,8 @@ def build_golden_replay(row: GoldenQuestionRow) -> GoldenReplay | None:
         hierarchy_evidence=hierarchy_evidence,
         area_evidence=area_evidence,
     )
-    selection = select_grounded_plan(table_evidence, geography_evidence)
+    proposed = explicit_golden_proposal(row, geography_evidence)
+    selection = validate_proposed_grounded_ids(proposed, table_evidence, geography_evidence)
     evidence = [table_evidence, *geography_evidence.evidence]
     validation = validate_grounded_plan(selection, evidence)
     return GoldenReplay(
@@ -194,4 +207,5 @@ __all__ = [
     "build_golden_replay",
     "canonical_geo_for",
     "canonical_geo_in",
+    "explicit_golden_proposal",
 ]
