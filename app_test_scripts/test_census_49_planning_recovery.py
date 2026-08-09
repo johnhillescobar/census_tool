@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
 
+from app_test_scripts.test_grounded_census_services import area, evidence, hierarchy, table
 from src.agents.census_query_agent import CensusQueryAgent
 from src.domain.retrieval_plan import ValidationFailure
 from src.domain.temporal_contract import TemporalIntent, TemporalResolved
@@ -16,7 +17,6 @@ from src.services.agent_planning_artifacts import merge_retrieval_evidence
 from src.state.types import CensusState
 from src.state.workflow_plan import WorkflowPlan
 from src.workflows.agent_planning import agent_planning_node
-from app_test_scripts.test_grounded_census_services import area, evidence, hierarchy, table
 
 
 def _temporal_plan(**updates) -> WorkflowPlan:
