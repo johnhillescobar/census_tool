@@ -18,7 +18,7 @@ July tier3 label `geography_blocked` is **stale** for this repro.
 
 **Architecture principle:** Deterministic layers **harness** the agent — they do not pre-answer “which population table” via code allowlists (`B01001`/`B01003`). When Chroma returns multiple grounded table candidates, **user or agent** chooses; geography proceeds **after** table is locked.
 
-**Do not use:** retired planner allowlist patterns (e.g. hard-coded B01001/B01003 table-code preference in the pre-agent selector). Those approaches were rejected as deterministic policy, not harnessing.
+**Do not use:** retired planner allowlist patterns (e.g. hard-coded B01001/B01003 table-code preference in the pre-agent selector). Retired `geography_policy.py`. Those approaches were rejected as deterministic policy, not harnessing.
 
 ---
 

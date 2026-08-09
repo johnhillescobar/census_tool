@@ -13,6 +13,7 @@ from typing import Any, Literal
 
 import chromadb
 from chromadb.api import ClientAPI
+from chromadb.api.types import QueryResult
 from chromadb.config import Settings
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
 
@@ -195,7 +196,7 @@ def _collection_health(collection: Any) -> tuple[EvidenceStatus | None, str | No
     return None, str(schema_version), str(index_version), None
 
 
-def _first_query_list(payload: dict[str, Any], key: str) -> list[Any]:
+def _first_query_list(payload: QueryResult, key: str) -> list[Any]:
     value = payload.get(key) or []
     if value and isinstance(value[0], list):
         return list(value[0])
@@ -221,10 +222,14 @@ def _json_list(value: object) -> list[str]:
 
 def _years(value: object, fallback: object) -> list[int]:
     if isinstance(value, list):
-        return [int(item) for item in value]
+        return [int(item) for item in value if isinstance(item, int | str | float)]
     if isinstance(value, str):
         return [int(item) for item in value.split(",") if item.strip()]
-    return [int(fallback)] if fallback not in (None, "") else []
+    if fallback in (None, ""):
+        return []
+    if isinstance(fallback, int | str | float):
+        return [int(fallback)]
+    return []
 
 
 def _score(distance: object) -> float | None:

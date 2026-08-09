@@ -18,6 +18,18 @@ Harness nodes validate typed contracts and fail closed on ungrounded IDs. Geogra
 - Geography schemas and invariants: `docs/chroma_geography_architecture.md`
 - Build, health, rollout, rollback, and debugging: `docs/chroma_geography_operator_runbook.md`
 - Golden URL evidence: `migration_evidence/golden_urls/README.md`
+- Jira ticket structure (CENSUS backlog): `docs/jira-ticket-structure.md`
+- **Ticket execution workflow:** [Read → Reproduce → Plan → Implement → PR](docs/jira-ticket-structure.md#working-a-ticket-execution-workflow)
+
+## Backlog and Jira workflow
+
+When picking up a CENSUS issue, follow the pipeline in [Working a ticket](docs/jira-ticket-structure.md#working-a-ticket-execution-workflow):
+
+`Read ticket → Reproduce / investigate → Plan (if fork) → Implement → PR`
+
+- Hybrid ticket format (Context, Tasks, Acceptance criteria): `docs/jira-ticket-structure.md`
+- Golden URL failure buckets and fix PR mapping: `migration_evidence/golden_urls/fix_pr_backlog_plan.md`
+- One fix ticket → one PR; triage-only tickets (e.g. CENSUS-25) create Jira bugs, not code PRs
 
 ## Requirements and setup
 

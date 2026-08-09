@@ -1,4 +1,4 @@
-from typing import Annotated, Literal
+from typing import Annotated, Literal, cast
 
 from pydantic import BaseModel, Field
 
@@ -88,6 +88,14 @@ GeographyClarificationReason = Literal[
     "GEOGRAPHY_INCOMPATIBLE",
 ]
 
+TableClarificationReason = Literal[
+    "TABLE_AMBIGUOUS",
+    "TABLE_NOT_FOUND",
+    "TABLE_INDEX_UNAVAILABLE",
+    "TABLE_INDEX_STALE",
+    "TABLE_SCHEMA_MISMATCH",
+]
+
 GEOGRAPHY_REASON_TEMPLATES: dict[GeographyClarificationReason, tuple[str, str]] = {
     "GEOGRAPHY_AMBIGUOUS": (
         "geography.ambiguous.v1",
@@ -119,9 +127,34 @@ GEOGRAPHY_REASON_TEMPLATES: dict[GeographyClarificationReason, tuple[str, str]] 
     ),
 }
 
+TABLE_REASON_TEMPLATES: dict[TableClarificationReason, tuple[str, str]] = {
+    "TABLE_AMBIGUOUS": (
+        "table.ambiguous.v1",
+        "I found multiple Census tables that match that request. Choose one:",
+    ),
+    "TABLE_NOT_FOUND": (
+        "table.not_found.v1",
+        "I could not find a Census table matching that request. Please rephrase the statistic you need.",
+    ),
+    "TABLE_INDEX_UNAVAILABLE": (
+        "table.index_unavailable.v1",
+        "The Census table index is unavailable. Please try again later or cancel.",
+    ),
+    "TABLE_INDEX_STALE": (
+        "table.index_stale.v1",
+        "The Census table index is stale for this request. Please try another year or cancel.",
+    ),
+    "TABLE_SCHEMA_MISMATCH": (
+        "table.schema_mismatch.v1",
+        "The Census table index metadata is invalid for this request. Rebuild the table catalog or cancel.",
+    ),
+}
+
 
 def normalize_geography_reason(reason_code: str) -> GeographyClarificationReason:
     normalized = reason_code.upper()
+    if normalized in GEOGRAPHY_REASON_TEMPLATES:
+        return cast(GeographyClarificationReason, normalized)
     if "AMBIGUOUS" in normalized:
         return "GEOGRAPHY_AMBIGUOUS"
     if "UNAVAILABLE" in normalized:
@@ -130,11 +163,26 @@ def normalize_geography_reason(reason_code: str) -> GeographyClarificationReason
         return "GEOGRAPHY_INDEX_STALE"
     if "PARTITION" in normalized or "MISSING_EXPLICIT" in normalized:
         return "GEOGRAPHY_PARTITION_MISSING"
-    if "UNSUPPORTED" in normalized or normalized.startswith("TABLE_EMPTY"):
+    if "UNSUPPORTED" in normalized:
         return "GEOGRAPHY_UNSUPPORTED_DATASET"
     if "INCOMPATIBLE" in normalized or "VALIDATION" in normalized:
         return "GEOGRAPHY_INCOMPATIBLE"
     return "GEOGRAPHY_NOT_FOUND"
+
+
+def normalize_table_reason(reason_code: str) -> TableClarificationReason:
+    normalized = reason_code.upper()
+    if normalized in TABLE_REASON_TEMPLATES:
+        return cast(TableClarificationReason, normalized)
+    if "SCHEMA" in normalized:
+        return "TABLE_SCHEMA_MISMATCH"
+    if "AMBIGUOUS" in normalized:
+        return "TABLE_AMBIGUOUS"
+    if "UNAVAILABLE" in normalized:
+        return "TABLE_INDEX_UNAVAILABLE"
+    if "STALE" in normalized:
+        return "TABLE_INDEX_STALE"
+    return "TABLE_NOT_FOUND"
 
 
 def render_geography_clarification(
@@ -150,6 +198,33 @@ def render_geography_clarification(
         question_text=question,
         options=[*options, GeographyClarificationOption(option_id="cancel", label="Cancel")],
     )
+
+
+def render_table_clarification(
+    reason_code: str,
+    options: list[GeographyClarificationOption],
+) -> GeographyClarificationPrompt:
+    """Render a stable table-selection prompt (same prompt shape as geography)."""
+    normalized = normalize_table_reason(reason_code)
+    template_id, question = TABLE_REASON_TEMPLATES[normalized]
+    return GeographyClarificationPrompt(
+        template_id=template_id,
+        reason_code=normalized,
+        question_text=question,
+        options=[*options, GeographyClarificationOption(option_id="cancel", label="Cancel")],
+    )
+
+
+def render_slot_clarification(
+    reason_code: str,
+    options: list[GeographyClarificationOption],
+    *,
+    requested_slot: str,
+) -> GeographyClarificationPrompt:
+    """Dispatch clarification copy by pending slot (table vs geography)."""
+    if requested_slot == "table":
+        return render_table_clarification(reason_code, options)
+    return render_geography_clarification(reason_code, options)
 
 
 # Define the templates for the clarification prompt

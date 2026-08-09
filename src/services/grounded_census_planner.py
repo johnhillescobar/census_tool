@@ -3,13 +3,17 @@
 from __future__ import annotations
 
 import hashlib
+import re
 from collections.abc import Iterable
 
 from pydantic import BaseModel, ConfigDict, Field
 
 from config import CHROMA_RETRIEVAL_AMBIGUITY_MARGIN, CHROMA_RETRIEVAL_MIN_SCORE
+from src.domain.geography_catalog import TableCandidate
 from src.domain.retrieval_plan import GroundedSelection, RetrievalEvidence
 from src.services.chroma_catalog_retriever import GeographyRetrievalResult
+
+_NON_WORD = re.compile(r"[^\w]+")
 
 
 class CandidateIdSelection(BaseModel):
@@ -27,6 +31,36 @@ def _selection_id(evidence: Iterable[RetrievalEvidence]) -> str:
     return f"selection:{hashlib.sha256(ids.encode()).hexdigest()[:20]}"
 
 
+def _normalized_label(value: str) -> str:
+    return _NON_WORD.sub(" ", value.casefold()).strip()
+
+
+def _exact_table_match_id(evidence: RetrievalEvidence, *, minimum_score: float) -> str | None:
+    """Prefer a unique exact table_name/code match to the retrieval query over a thin score margin."""
+    if evidence.status != "hit":
+        return None
+    needle = _normalized_label(evidence.query_text)
+    if not needle:
+        return None
+    matches: list[tuple[float, str]] = []
+    for candidate in evidence.candidates:
+        if not isinstance(candidate, TableCandidate):
+            continue
+        score = candidate.score if candidate.score is not None else 0.0
+        if score < minimum_score:
+            continue
+        labels = {
+            _normalized_label(candidate.table_name),
+            _normalized_label(candidate.display_name),
+            _normalized_label(candidate.table_code),
+        }
+        if needle in labels:
+            matches.append((score, candidate.candidate_id))
+    if len(matches) != 1:
+        return None
+    return matches[0][1]
+
+
 def _ranked_id(
     evidence: RetrievalEvidence,
     *,
@@ -35,6 +69,9 @@ def _ranked_id(
 ) -> tuple[str | None, str | None]:
     if evidence.status != "hit":
         return None, f"{evidence.collection_name.upper()}_{evidence.status.upper()}"
+    exact_table_id = _exact_table_match_id(evidence, minimum_score=minimum_score)
+    if exact_table_id is not None:
+        return exact_table_id, None
     ranked = sorted(
         (
             (candidate.score if candidate.score is not None else 0.0, candidate.candidate_id)

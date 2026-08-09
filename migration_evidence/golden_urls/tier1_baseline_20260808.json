@@ -1,0 +1,1118 @@
+[
+  {
+    "row_no": 9,
+    "question": "List all available ACS 2023 5-year detail groups.",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs5/groups.json",
+    "rebuilt_url": null,
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "catalog_special_case"
+  },
+  {
+    "row_no": 10,
+    "question": "List all variables and labels in ACS 2023 5-year detail.",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs5/variables.json",
+    "rebuilt_url": null,
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "catalog_special_case"
+  },
+  {
+    "row_no": 1,
+    "question": "What's the total population/age summary for the U.S. in 2023?",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs1/subject?get=NAME,S0101_C01_001E&for=us:1",
+    "rebuilt_url": "https://api.census.gov/data/2023/acs/acs1/subject?get=NAME,S0101_C01_001E&for=us:1",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 2,
+    "question": "What's the median household income by state in 2022?",
+    "expected_url": "https://api.census.gov/data/2022/acs/acs1/subject?get=NAME,S1901_C01_012E&for=state:*",
+    "rebuilt_url": "https://api.census.gov/data/2022/acs/acs1/subject?get=NAME,S1901_C01_012E&for=state:*",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 3,
+    "question": "Show total population for all California counties in 2023.",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=county:*&in=state:06",
+    "rebuilt_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=county:*&in=state:06",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 4,
+    "question": "Give me the labor force comparison profile for Florida (2018 vs 2023).",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs5/cprofile?get=NAME,group(CP03)&for=state:12",
+    "rebuilt_url": "https://api.census.gov/data/2023/acs/acs5/cprofile?get=NAME,group(CP03)&for=state:12",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 5,
+    "question": "What are the housing characteristics for Chicago in 2022?",
+    "expected_url": "https://api.census.gov/data/2022/acs/acs5/profile?get=NAME,group(DP04)&for=place:14000&in=state:17",
+    "rebuilt_url": "https://api.census.gov/data/2022/acs/acs5/profile?get=NAME,group(DP04)&for=place:14000&in=state:17",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 6,
+    "question": "What languages are spoken at home across Massachusetts counties in 2023?",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs5/subject?get=NAME,group(S1601)&for=county:*&in=state:25",
+    "rebuilt_url": "https://api.census.gov/data/2023/acs/acs5/subject?get=NAME,group(S1601)&for=county:*&in=state:25",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 7,
+    "question": "What's the median gross rent in ZIP Code 60601 (2023)?",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B25064_001E&for=zip%20code%20tabulation%20area:60601",
+    "rebuilt_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B25064_001E&for=zip%20code%20tabulation%20area:60601",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 8,
+    "question": "Show poverty by age (full B17001) for all states (2021).",
+    "expected_url": "https://api.census.gov/data/2021/acs/acs5?get=NAME,group(B17001)&for=state:*",
+    "rebuilt_url": "https://api.census.gov/data/2021/acs/acs5?get=NAME,group(B17001)&for=state:*",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 11,
+    "question": "List all metro and micropolitan areas for 2023.",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,GEO_ID&for=metropolitan%20statistical%20area/micropolitan%20statistical%20area:*",
+    "rebuilt_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,GEO_ID&for=metropolitan%20statistical%20area/micropolitan%20statistical%20area:*",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 12,
+    "question": "List metropolitan divisions within CBSA 35620 for 2023.",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,GEO_ID&for=metropolitan%20division:*&in=metropolitan%20statistical%20area/micropolitan%20statistical%20area:35620",
+    "rebuilt_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,GEO_ID&for=metropolitan%20division:*&in=metropolitan%20statistical%20area/micropolitan%20statistical%20area:35620",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 13,
+    "question": "List all combined statistical areas (CSAs) for 2023.",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,GEO_ID&for=combined%20statistical%20area:*",
+    "rebuilt_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,GEO_ID&for=combined%20statistical%20area:*",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 14,
+    "question": "List Massachusetts county subdivisions for 2023.",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,GEO_ID&for=county%20subdivision:*&in=state:25",
+    "rebuilt_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,GEO_ID&for=county%20subdivision:*&in=state:25",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 15,
+    "question": "List all Urban Areas for 2023.",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,GEO_ID&for=urban%20area:*",
+    "rebuilt_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,GEO_ID&for=urban%20area:*",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 16,
+    "question": "Which New York counties are in CBSA 35620?",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,GEO_ID&for=county:*&in=metropolitan%20statistical%20area/micropolitan%20statistical%20area:35620%20state%20(or%20part):36",
+    "rebuilt_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,GEO_ID&for=county:*&in=metropolitan%20statistical%20area/micropolitan%20statistical%20area:35620%20state%20(or%20part):36",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 17,
+    "question": "Which states overlap CBSA 35620?",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,GEO_ID&for=state%20(or%20part):*&in=metropolitan%20statistical%20area/micropolitan%20statistical%20area:35620",
+    "rebuilt_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,GEO_ID&for=state%20(or%20part):*&in=metropolitan%20statistical%20area/micropolitan%20statistical%20area:35620",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 18,
+    "question": "Which New York counties are in Metro Division 35614?",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,GEO_ID&for=county:*&in=metropolitan%20statistical%20area/micropolitan%20statistical%20area:35620%20metropolitan%20division:35614%20state%20(or%20part):36",
+    "rebuilt_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,GEO_ID&for=county:*&in=metropolitan%20statistical%20area/micropolitan%20statistical%20area:35620%20metropolitan%20division:35614%20state%20(or%20part):36",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 19,
+    "question": "Show tract-level population for Los Angeles County, CA (2023).",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,GEO_ID,B01001_001E&for=tract:*&in=state:06%20county:037",
+    "rebuilt_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,GEO_ID,B01001_001E&for=tract:*&in=state:06%20county:037",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 20,
+    "question": "Show block-group median rent in Manhattan tract 003100 (2023).",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B25064_001E&for=block%20group:*&in=state:36%20county:061%20tract:003100",
+    "rebuilt_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B25064_001E&for=block%20group:*&in=state:36%20county:061%20tract:003100",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 21,
+    "question": "Population for all Arizona places (2022).",
+    "expected_url": "https://api.census.gov/data/2022/acs/acs5?get=NAME,B01001_001E&for=place:*&in=state:04",
+    "rebuilt_url": "https://api.census.gov/data/2022/acs/acs5?get=NAME,B01001_001E&for=place:*&in=state:04",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 22,
+    "question": "Population for Massachusetts county subdivisions (2021).",
+    "expected_url": "https://api.census.gov/data/2021/acs/acs5?get=NAME,B01001_001E&for=county%20subdivision:*&in=state:25",
+    "rebuilt_url": "https://api.census.gov/data/2021/acs/acs5?get=NAME,B01001_001E&for=county%20subdivision:*&in=state:25",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 23,
+    "question": "List tribal census tracts within AIANNH area 3000.",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,GEO_ID&for=tribal%20census%20tract:*&in=american%20indian%20area/alaska%20native%20area/hawaiian%20home%20land:3000",
+    "rebuilt_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,GEO_ID&for=tribal%20census%20tract:*&in=american%20indian%20area/alaska%20native%20area/hawaiian%20home%20land:3000",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 24,
+    "question": "Population by PUMA in New York (2023).",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=public%20use%20microdata%20area:*&in=state:36",
+    "rebuilt_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=public%20use%20microdata%20area:*&in=state:36",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 25,
+    "question": "Population by congressional district in Georgia (2023).",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=congressional%20district:*&in=state:13",
+    "rebuilt_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=congressional%20district:*&in=state:13",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 26,
+    "question": "Age profile for Michigan State Senate districts (2023).",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs5/subject?get=NAME,group(S0101)&for=state%20legislative%20district%20(upper%20chamber):*&in=state:26",
+    "rebuilt_url": "https://api.census.gov/data/2023/acs/acs5/subject?get=NAME,group(S0101)&for=state%20legislative%20district%20(upper%20chamber):*&in=state:26",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 27,
+    "question": "Education profile for NC State House districts (2022).",
+    "expected_url": "https://api.census.gov/data/2022/acs/acs5/subject?get=NAME,group(S1501)&for=state%20legislative%20district%20(lower%20chamber):*&in=state:37",
+    "rebuilt_url": "https://api.census.gov/data/2022/acs/acs5/subject?get=NAME,group(S1501)&for=state%20legislative%20district%20(lower%20chamber):*&in=state:37",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 28,
+    "question": "Health insurance coverage by state (2023).",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs5/subject?get=NAME,group(S2701)&for=state:*",
+    "rebuilt_url": "https://api.census.gov/data/2023/acs/acs5/subject?get=NAME,group(S2701)&for=state:*",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 29,
+    "question": "Educational attainment by state (2019).",
+    "expected_url": "https://api.census.gov/data/2019/acs/acs5/subject?get=NAME,group(S1501)&for=state:*",
+    "rebuilt_url": "https://api.census.gov/data/2019/acs/acs5/subject?get=NAME,group(S1501)&for=state:*",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 30,
+    "question": "What languages are spoken at home in Los Angeles (2023)?",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs5/subject?get=NAME,group(S1601)&for=place:44000&in=state:06",
+    "rebuilt_url": "https://api.census.gov/data/2023/acs/acs5/subject?get=NAME,group(S1601)&for=place:44000&in=state:06",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 31,
+    "question": "Show employment and income highlights for the U.S. (2023).",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs5/profile?get=NAME,group(DP03)&for=us:1",
+    "rebuilt_url": "https://api.census.gov/data/2023/acs/acs5/profile?get=NAME,group(DP03)&for=us:1",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 32,
+    "question": "Housing characteristics for California counties (2023).",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs5/profile?get=NAME,group(DP04)&for=county:*&in=state:06",
+    "rebuilt_url": "https://api.census.gov/data/2023/acs/acs5/profile?get=NAME,group(DP04)&for=county:*&in=state:06",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 33,
+    "question": "Show income stats for Ohio counties (2023).",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs5/subject?get=NAME,group(S1901)&for=county:*&in=state:39",
+    "rebuilt_url": "https://api.census.gov/data/2023/acs/acs5/subject?get=NAME,group(S1901)&for=county:*&in=state:39",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 34,
+    "question": "Poverty metrics for Texas unified school districts (2023).",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs5/subject?get=NAME,group(S1701)&for=school%20district%20(unified):*&in=state:48",
+    "rebuilt_url": "https://api.census.gov/data/2023/acs/acs5/subject?get=NAME,group(S1701)&for=school%20district%20(unified):*&in=state:48",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 35,
+    "question": "How do people commute to work by state (2022)?",
+    "expected_url": "https://api.census.gov/data/2022/acs/acs5/subject?get=NAME,group(S0801)&for=state:*",
+    "rebuilt_url": "https://api.census.gov/data/2022/acs/acs5/subject?get=NAME,group(S0801)&for=state:*",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 36,
+    "question": "Health insurance coverage for Florida counties (2023).",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs5/subject?get=NAME,group(S2701)&for=county:*&in=state:12",
+    "rebuilt_url": "https://api.census.gov/data/2023/acs/acs5/subject?get=NAME,group(S2701)&for=county:*&in=state:12",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 37,
+    "question": "Owner vs. renter counts for Washington counties (2023).",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,group(B25003)&for=county:*&in=state:53",
+    "rebuilt_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,group(B25003)&for=county:*&in=state:53",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 38,
+    "question": "Race counts by county in Washington (2022).",
+    "expected_url": "https://api.census.gov/data/2022/acs/acs5?get=NAME,group(B02001)&for=county:*&in=state:53",
+    "rebuilt_url": "https://api.census.gov/data/2022/acs/acs5?get=NAME,group(B02001)&for=county:*&in=state:53",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 39,
+    "question": "Hispanic population by state (2023).",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B03003_001E,B03003_003E&for=state:*",
+    "rebuilt_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B03003_001E,B03003_003E&for=state:*",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 40,
+    "question": "Veteran status for Virginia counties (2021).",
+    "expected_url": "https://api.census.gov/data/2021/acs/acs5/subject?get=NAME,group(S2101)&for=county:*&in=state:51",
+    "rebuilt_url": "https://api.census.gov/data/2021/acs/acs5/subject?get=NAME,group(S2101)&for=county:*&in=state:51",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 41,
+    "question": "Languages spoken at home by state (2018).",
+    "expected_url": "https://api.census.gov/data/2018/acs/acs5/subject?get=NAME,group(S1601)&for=state:*",
+    "rebuilt_url": "https://api.census.gov/data/2018/acs/acs5/subject?get=NAME,group(S1601)&for=state:*",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 42,
+    "question": "Social characteristics comparison profile for the U.S. (2023).",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs5/cprofile?get=NAME,group(CP02)&for=us:1",
+    "rebuilt_url": "https://api.census.gov/data/2023/acs/acs5/cprofile?get=NAME,group(CP02)&for=us:1",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 43,
+    "question": "Median home value by county in California (2023).",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B25077_001E&for=county:*&in=state:06",
+    "rebuilt_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B25077_001E&for=county:*&in=state:06",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 44,
+    "question": "Education by sex for Texas (2020).",
+    "expected_url": "https://api.census.gov/data/2020/acs/acs5?get=NAME,group(B15002)&for=state:48",
+    "rebuilt_url": "https://api.census.gov/data/2020/acs/acs5?get=NAME,group(B15002)&for=state:48",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 45,
+    "question": "Disability characteristics by state (2023).",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs5/subject?get=NAME,group(S1810)&for=state:*",
+    "rebuilt_url": "https://api.census.gov/data/2023/acs/acs5/subject?get=NAME,group(S1810)&for=state:*",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 46,
+    "question": "Internet subscription and computer use for NY counties (2022).",
+    "expected_url": "https://api.census.gov/data/2022/acs/acs5/subject?get=NAME,group(S2801)&for=county:*&in=state:36",
+    "rebuilt_url": "https://api.census.gov/data/2022/acs/acs5/subject?get=NAME,group(S2801)&for=county:*&in=state:36",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 47,
+    "question": "Social characteristics profile for the U.S. (2019).",
+    "expected_url": "https://api.census.gov/data/2019/acs/acs5/profile?get=NAME,group(DP02)&for=us:1",
+    "rebuilt_url": "https://api.census.gov/data/2019/acs/acs5/profile?get=NAME,group(DP02)&for=us:1",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 48,
+    "question": "Commuting patterns for Illinois counties (2023).",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs5/subject?get=NAME,group(S0801)&for=county:*&in=state:17",
+    "rebuilt_url": "https://api.census.gov/data/2023/acs/acs5/subject?get=NAME,group(S0801)&for=county:*&in=state:17",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 49,
+    "question": "Marital status by state (2023).",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs5/subject?get=NAME,group(S1201)&for=state:*",
+    "rebuilt_url": "https://api.census.gov/data/2023/acs/acs5/subject?get=NAME,group(S1201)&for=state:*",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 50,
+    "question": "Occupation distribution by state (2023).",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs5/subject?get=NAME,group(S2401)&for=state:*",
+    "rebuilt_url": "https://api.census.gov/data/2023/acs/acs5/subject?get=NAME,group(S2401)&for=state:*",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 51,
+    "question": "Show me median household income trends by state from 2015 to 2020.",
+    "expected_url": "https://api.census.gov/data/2020/acs/acs5/subject?get=NAME,S1901_C01_012E&for=state:*",
+    "rebuilt_url": "https://api.census.gov/data/2020/acs/acs5/subject?get=NAME,S1901_C01_012E&for=state:*",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 52,
+    "question": "Show population trends for California counties from 2010 to 2023.",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=county:*&in=state:06",
+    "rebuilt_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=county:*&in=state:06",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 53,
+    "question": "How did median age change by state from 2015 to 2023?",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs1?get=NAME,B01002_001E&for=state:*",
+    "rebuilt_url": "https://api.census.gov/data/2023/acs/acs1?get=NAME,B01002_001E&for=state:*",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 54,
+    "question": "Track median gross rent in New York City from 2012 to 2023.",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B25064_001E&for=place:51000&in=state:36",
+    "rebuilt_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B25064_001E&for=place:51000&in=state:36",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 55,
+    "question": "Show poverty trends for Texas counties from 2016 to 2023.",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs5/subject?get=NAME,group(S1701)&for=county:*&in=state:48",
+    "rebuilt_url": "https://api.census.gov/data/2023/acs/acs5/subject?get=NAME,group(S1701)&for=county:*&in=state:48",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 56,
+    "question": "How did educational attainment change by state since 2010?",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs5/subject?get=NAME,group(S1501)&for=state:*",
+    "rebuilt_url": "https://api.census.gov/data/2023/acs/acs5/subject?get=NAME,group(S1501)&for=state:*",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 57,
+    "question": "Show health insurance coverage trends by state from 2014 to 2023.",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs1/subject?get=NAME,group(S2701)&for=state:*",
+    "rebuilt_url": "https://api.census.gov/data/2023/acs/acs1/subject?get=NAME,group(S2701)&for=state:*",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 58,
+    "question": "Show unemployment and earnings trends for Florida from 2015 to 2023.",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs1/profile?get=NAME,group(DP03)&for=state:12",
+    "rebuilt_url": "https://api.census.gov/data/2023/acs/acs1/profile?get=NAME,group(DP03)&for=state:12",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 59,
+    "question": "Track housing indicators for Illinois counties from 2012 to 2023.",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs5/profile?get=NAME,group(DP04)&for=county:*&in=state:17",
+    "rebuilt_url": "https://api.census.gov/data/2023/acs/acs5/profile?get=NAME,group(DP04)&for=county:*&in=state:17",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 60,
+    "question": "How has race composition changed in Washington counties since 2010?",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,group(B02001)&for=county:*&in=state:53",
+    "rebuilt_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,group(B02001)&for=county:*&in=state:53",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 61,
+    "question": "How did languages spoken at home shift across Massachusetts counties since 2010?",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs5/subject?get=NAME,group(S1601)&for=county:*&in=state:25",
+    "rebuilt_url": "https://api.census.gov/data/2023/acs/acs5/subject?get=NAME,group(S1601)&for=county:*&in=state:25",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 62,
+    "question": "Track median home value by California county since 2010.",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B25077_001E&for=county:*&in=state:06",
+    "rebuilt_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B25077_001E&for=county:*&in=state:06",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 63,
+    "question": "Show per capita income trends across metro/micro areas since 2010.",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B19301_001E&for=metropolitan%20statistical%20area/micropolitan%20statistical%20area:*",
+    "rebuilt_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B19301_001E&for=metropolitan%20statistical%20area/micropolitan%20statistical%20area:*",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 64,
+    "question": "How did commute modes change in New York since 2010?",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs1/subject?get=NAME,group(S0801)&for=state:36",
+    "rebuilt_url": "https://api.census.gov/data/2023/acs/acs1/subject?get=NAME,group(S0801)&for=state:36",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 65,
+    "question": "Show veteran population trends for Virginia counties since 2010.",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs5/subject?get=NAME,group(S2101)&for=county:*&in=state:51",
+    "rebuilt_url": "https://api.census.gov/data/2023/acs/acs5/subject?get=NAME,group(S2101)&for=county:*&in=state:51",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 66,
+    "question": "How has the occupation mix changed by state since 2010?",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs1/subject?get=NAME,group(S2401)&for=state:*",
+    "rebuilt_url": "https://api.census.gov/data/2023/acs/acs1/subject?get=NAME,group(S2401)&for=state:*",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 67,
+    "question": "Show internet subscription trends for New York counties from 2013 to 2023.",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs5/subject?get=NAME,group(S2801)&for=county:*&in=state:36",
+    "rebuilt_url": "https://api.census.gov/data/2023/acs/acs5/subject?get=NAME,group(S2801)&for=county:*&in=state:36",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 68,
+    "question": "How has rent burden changed across Arizona places since 2010?",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,group(B25070)&for=place:*&in=state:04",
+    "rebuilt_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,group(B25070)&for=place:*&in=state:04",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 69,
+    "question": "Show changes in household types by state since 2010.",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs1/subject?get=NAME,group(S1101)&for=state:*",
+    "rebuilt_url": "https://api.census.gov/data/2023/acs/acs1/subject?get=NAME,group(S1101)&for=state:*",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 70,
+    "question": "Track educational attainment in Chicago since 2010.",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs5/subject?get=NAME,group(S1501)&for=place:14000&in=state:17",
+    "rebuilt_url": "https://api.census.gov/data/2023/acs/acs5/subject?get=NAME,group(S1501)&for=place:14000&in=state:17",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 71,
+    "question": "What is the total population by Census region in 2023?",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=region:*",
+    "rebuilt_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=region:*",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 72,
+    "question": "What is the population of the South Census region in 2023?",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=region:3",
+    "rebuilt_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=region:3",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 73,
+    "question": "Show population for all Census divisions in 2023.",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=division:*",
+    "rebuilt_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=division:*",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 74,
+    "question": "What is the population of Census division 5 in 2023?",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=division:5",
+    "rebuilt_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=division:5",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 75,
+    "question": "What is the population of county subdivision 91835 in Harris County, Texas?",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=county%20subdivision:91835&in=state:48%20county:201",
+    "rebuilt_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=county%20subdivision:91835&in=state:48%20county:201",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 76,
+    "question": "List the populations of subminor civil divisions in Guaynabo municipio, Puerto Rico.",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=subminor%20civil%20division:*&in=state:72%20county:127%20county%20subdivision:57247",
+    "rebuilt_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=subminor%20civil%20division:*&in=state:72%20county:127%20county%20subdivision:57247",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 77,
+    "question": "Show place and remainder populations within Chicago county subdivision, Cook County, Illinois.",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=place/remainder%20(or%20part):*&in=state:17%20county:031%20county%20subdivision:14000",
+    "rebuilt_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=place/remainder%20(or%20part):*&in=state:17%20county:031%20county%20subdivision:14000",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 78,
+    "question": "What is the population of tract 018700 in San Diego County, California?",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=tract:018700&in=state:06%20county:073",
+    "rebuilt_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=tract:018700&in=state:06%20county:073",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 79,
+    "question": "What is the population of block group 1 in tract 018700, San Diego County?",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=block%20group:1&in=state:06%20county:073%20tract:018700",
+    "rebuilt_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=block%20group:1&in=state:06%20county:073%20tract:018700",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 80,
+    "question": "Which counties contain part of Los Angeles city?",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=county%20(or%20part):*&in=state:06%20place:44000",
+    "rebuilt_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=county%20(or%20part):*&in=state:06%20place:44000",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 81,
+    "question": "What is the population of the Indianapolis consolidated city?",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=consolidated%20city:36000&in=state:18",
+    "rebuilt_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=consolidated%20city:36000&in=state:18",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 82,
+    "question": "Which places or place parts make up the Indianapolis consolidated city?",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=place%20(or%20part):*&in=state:18%20consolidated%20city:36000",
+    "rebuilt_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=place%20(or%20part):*&in=state:18%20consolidated%20city:36000",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 83,
+    "question": "What is the population of Alaska Native Regional Corporation 17140?",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=alaska%20native%20regional%20corporation:17140&in=state:02",
+    "rebuilt_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=alaska%20native%20regional%20corporation:17140&in=state:02",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 84,
+    "question": "List population for all American Indian areas Alaska Native areas and Hawaiian Home Lands.",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=american%20indian%20area/alaska%20native%20area/hawaiian%20home%20land:*",
+    "rebuilt_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=american%20indian%20area/alaska%20native%20area/hawaiian%20home%20land:*",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 85,
+    "question": "List population by tribal subdivision within AIANNH area 5550.",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=tribal%20subdivision/remainder:*&in=american%20indian%20area/alaska%20native%20area/hawaiian%20home%20land:5550",
+    "rebuilt_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=tribal%20subdivision/remainder:*&in=american%20indian%20area/alaska%20native%20area/hawaiian%20home%20land:5550",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 86,
+    "question": "What is the population of reservation or statistical entity 5620R?",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=american%20indian%20area/alaska%20native%20area%20(reservation%20or%20statistical%20entity%20only):5620R",
+    "rebuilt_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=american%20indian%20area/alaska%20native%20area%20(reservation%20or%20statistical%20entity%20only):5620R",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 87,
+    "question": "What is the population of off-reservation trust land 2430T?",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=american%20indian%20area%20(off-reservation%20trust%20land%20only)/hawaiian%20home%20land:2430T",
+    "rebuilt_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=american%20indian%20area%20(off-reservation%20trust%20land%20only)/hawaiian%20home%20land:2430T",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 88,
+    "question": "List the tribal census tracts within AIANNH area 3000.",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=tribal%20census%20tract:*&in=american%20indian%20area/alaska%20native%20area/hawaiian%20home%20land:3000",
+    "rebuilt_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=tribal%20census%20tract:*&in=american%20indian%20area/alaska%20native%20area/hawaiian%20home%20land:3000",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 89,
+    "question": "List tribal block groups within tribal tract T00500 in AIANNH area 2555.",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=tribal%20block%20group:*&in=american%20indian%20area/alaska%20native%20area/hawaiian%20home%20land:2555%20tribal%20census%20tract:T00500",
+    "rebuilt_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=tribal%20block%20group:*&in=american%20indian%20area/alaska%20native%20area/hawaiian%20home%20land:2555%20tribal%20census%20tract:T00500",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 90,
+    "question": "Which states overlap AIANNH area 5620?",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=state%20(or%20part):*&in=american%20indian%20area/alaska%20native%20area/hawaiian%20home%20land:5620",
+    "rebuilt_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=state%20(or%20part):*&in=american%20indian%20area/alaska%20native%20area/hawaiian%20home%20land:5620",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 91,
+    "question": "Which places or remainders overlap the Oklahoma portion of AIANNH area 5620?",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=place/remainder%20(or%20part):*&in=american%20indian%20area/alaska%20native%20area/hawaiian%20home%20land:5620%20state%20(or%20part):40",
+    "rebuilt_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=place/remainder%20(or%20part):*&in=american%20indian%20area/alaska%20native%20area/hawaiian%20home%20land:5620%20state%20(or%20part):40",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 92,
+    "question": "Which counties overlap the Oklahoma portion of AIANNH area 5620?",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=county%20(or%20part):*&in=american%20indian%20area/alaska%20native%20area/hawaiian%20home%20land:5620%20state%20(or%20part):40",
+    "rebuilt_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=county%20(or%20part):*&in=american%20indian%20area/alaska%20native%20area/hawaiian%20home%20land:5620%20state%20(or%20part):40",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 93,
+    "question": "Which American Indian areas overlap Oklahoma?",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=american%20indian%20area/alaska%20native%20area/hawaiian%20home%20land%20(or%20part):*&in=state:40",
+    "rebuilt_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=american%20indian%20area/alaska%20native%20area/hawaiian%20home%20land%20(or%20part):*&in=state:40",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 94,
+    "question": "Which reservation or statistical entity parts overlap Oklahoma?",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=american%20indian%20area/alaska%20native%20area%20(reservation%20or%20statistical%20entity%20only)%20(or%20part):*&in=state:40",
+    "rebuilt_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=american%20indian%20area/alaska%20native%20area%20(reservation%20or%20statistical%20entity%20only)%20(or%20part):*&in=state:40",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 95,
+    "question": "Which off-reservation trust land parts overlap New Mexico?",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=american%20indian%20area%20(off-reservation%20trust%20land%20only)/hawaiian%20home%20land%20(or%20part):*&in=state:35",
+    "rebuilt_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=american%20indian%20area%20(off-reservation%20trust%20land%20only)/hawaiian%20home%20land%20(or%20part):*&in=state:35",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 96,
+    "question": "List tribal census tract parts within reservation or statistical entity 3000R.",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=tribal%20census%20tract%20(or%20part):*&in=american%20indian%20area/alaska%20native%20area%20(reservation%20or%20statistical%20entity%20only):3000R",
+    "rebuilt_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=tribal%20census%20tract%20(or%20part):*&in=american%20indian%20area/alaska%20native%20area%20(reservation%20or%20statistical%20entity%20only):3000R",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 97,
+    "question": "List tribal census tract parts within off-reservation trust land 2430T.",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=tribal%20census%20tract%20(or%20part):*&in=american%20indian%20area%20(off-reservation%20trust%20land%20only)/hawaiian%20home%20land:2430T",
+    "rebuilt_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=tribal%20census%20tract%20(or%20part):*&in=american%20indian%20area%20(off-reservation%20trust%20land%20only)/hawaiian%20home%20land:2430T",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 98,
+    "question": "List tribal block group parts within tract T00500 and reservation 2555R.",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=tribal%20block%20group%20(or%20part):*&in=american%20indian%20area/alaska%20native%20area%20(reservation%20or%20statistical%20entity%20only):2555R%20tribal%20census%20tract%20(or%20part):T00500",
+    "rebuilt_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=tribal%20block%20group%20(or%20part):*&in=american%20indian%20area/alaska%20native%20area%20(reservation%20or%20statistical%20entity%20only):2555R%20tribal%20census%20tract%20(or%20part):T00500",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 99,
+    "question": "Which metropolitan divisions make up CBSA 35620?",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=metropolitan%20division:*&in=metropolitan%20statistical%20area/micropolitan%20statistical%20area:35620",
+    "rebuilt_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=metropolitan%20division:*&in=metropolitan%20statistical%20area/micropolitan%20statistical%20area:35620",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 100,
+    "question": "Which principal cities are in the New York portion of CBSA 35620?",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=principal%20city%20(or%20part):*&in=metropolitan%20statistical%20area/micropolitan%20statistical%20area:35620%20state%20(or%20part):36",
+    "rebuilt_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=principal%20city%20(or%20part):*&in=metropolitan%20statistical%20area/micropolitan%20statistical%20area:35620%20state%20(or%20part):36",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 101,
+    "question": "Which California counties are in CBSA 31080?",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=county:*&in=metropolitan%20statistical%20area/micropolitan%20statistical%20area:31080%20state%20(or%20part):06",
+    "rebuilt_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=county:*&in=metropolitan%20statistical%20area/micropolitan%20statistical%20area:31080%20state%20(or%20part):06",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 102,
+    "question": "Which states overlap metropolitan division 35614 within CBSA 35620?",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=state%20(or%20part):*&in=metropolitan%20statistical%20area/micropolitan%20statistical%20area:35620%20metropolitan%20division:35614",
+    "rebuilt_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=state%20(or%20part):*&in=metropolitan%20statistical%20area/micropolitan%20statistical%20area:35620%20metropolitan%20division:35614",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 103,
+    "question": "Which California counties are in metropolitan division 31084 within CBSA 31080?",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=county:*&in=metropolitan%20statistical%20area/micropolitan%20statistical%20area:31080%20metropolitan%20division:31084%20state%20(or%20part):06",
+    "rebuilt_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=county:*&in=metropolitan%20statistical%20area/micropolitan%20statistical%20area:31080%20metropolitan%20division:31084%20state%20(or%20part):06",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 104,
+    "question": "Which metropolitan and micropolitan areas overlap California?",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=metropolitan%20statistical%20area/micropolitan%20statistical%20area%20(or%20part):*&in=state:06",
+    "rebuilt_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=metropolitan%20statistical%20area/micropolitan%20statistical%20area%20(or%20part):*&in=state:06",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 105,
+    "question": "List principal cities in the New York portion of CBSA 35620.",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=principal%20city%20(or%20part):*&in=state:36%20metropolitan%20statistical%20area/micropolitan%20statistical%20area%20(or%20part):35620",
+    "rebuilt_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=principal%20city%20(or%20part):*&in=state:36%20metropolitan%20statistical%20area/micropolitan%20statistical%20area%20(or%20part):35620",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 106,
+    "question": "Which metropolitan divisions overlap New York within CBSA 35620?",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=metropolitan%20division%20(or%20part):*&in=state:36%20metropolitan%20statistical%20area/micropolitan%20statistical%20area%20(or%20part):35620",
+    "rebuilt_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=metropolitan%20division%20(or%20part):*&in=state:36%20metropolitan%20statistical%20area/micropolitan%20statistical%20area%20(or%20part):35620",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 107,
+    "question": "Which states overlap combined statistical area 348?",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=state%20(or%20part):*&in=combined%20statistical%20area:348",
+    "rebuilt_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=state%20(or%20part):*&in=combined%20statistical%20area:348",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 108,
+    "question": "Which metropolitan and micropolitan areas belong to combined statistical area 408?",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=metropolitan%20statistical%20area/micropolitan%20statistical%20area:*&in=combined%20statistical%20area:408",
+    "rebuilt_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=metropolitan%20statistical%20area/micropolitan%20statistical%20area:*&in=combined%20statistical%20area:408",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 109,
+    "question": "Which states overlap CBSA 31080 within combined statistical area 348?",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=state%20(or%20part):*&in=combined%20statistical%20area:348%20metropolitan%20statistical%20area/micropolitan%20statistical%20area:31080",
+    "rebuilt_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=state%20(or%20part):*&in=combined%20statistical%20area:348%20metropolitan%20statistical%20area/micropolitan%20statistical%20area:31080",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 110,
+    "question": "Which combined statistical areas overlap California?",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=combined%20statistical%20area%20(or%20part):*&in=state:06",
+    "rebuilt_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=combined%20statistical%20area%20(or%20part):*&in=state:06",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 111,
+    "question": "What is the population of urban area 63217?",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=urban%20area:63217",
+    "rebuilt_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=urban%20area:63217",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 112,
+    "question": "Which states does urban area 63217 span?",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=state%20(or%20part):*&in=urban%20area:63217",
+    "rebuilt_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=state%20(or%20part):*&in=urban%20area:63217",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 113,
+    "question": "Which California counties overlap urban area 51445?",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=county%20(or%20part):*&in=urban%20area:51445%20state%20(or%20part):06",
+    "rebuilt_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=county%20(or%20part):*&in=urban%20area:51445%20state%20(or%20part):06",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 114,
+    "question": "What is the population of Puerto Rico congressional district 98?",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=congressional%20district:98&in=state:72",
+    "rebuilt_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=congressional%20district:98&in=state:72",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 115,
+    "question": "Which counties overlap Arizona congressional district 4?",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=county%20(or%20part):*&in=state:04%20congressional%20district:04",
+    "rebuilt_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=county%20(or%20part):*&in=state:04%20congressional%20district:04",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 116,
+    "question": "What is the population of California State Senate district 39?",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=state%20legislative%20district%20(upper%20chamber):039&in=state:06",
+    "rebuilt_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=state%20legislative%20district%20(upper%20chamber):039&in=state:06",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 117,
+    "question": "Which counties overlap California State Senate district 39?",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=county%20(or%20part):*&in=state:06%20state%20legislative%20district%20(upper%20chamber):039",
+    "rebuilt_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=county%20(or%20part):*&in=state:06%20state%20legislative%20district%20(upper%20chamber):039",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 118,
+    "question": "What is the population of California State Assembly district 27?",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=state%20legislative%20district%20(lower%20chamber):027&in=state:06",
+    "rebuilt_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=state%20legislative%20district%20(lower%20chamber):027&in=state:06",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 119,
+    "question": "Which counties overlap California State Assembly district 10?",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=county%20(or%20part):*&in=state:06%20state%20legislative%20district%20(lower%20chamber):010",
+    "rebuilt_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=county%20(or%20part):*&in=state:06%20state%20legislative%20district%20(lower%20chamber):010",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 120,
+    "question": "List population for all ZIP Code Tabulation Areas.",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=zip%20code%20tabulation%20area:*",
+    "rebuilt_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=zip%20code%20tabulation%20area:*",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 121,
+    "question": "Show population by elementary school district in Texas.",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=school%20district%20(elementary):*&in=state:48",
+    "rebuilt_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=school%20district%20(elementary):*&in=state:48",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 122,
+    "question": "Show population by secondary school district in Texas.",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=school%20district%20(secondary):*&in=state:48",
+    "rebuilt_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=school%20district%20(secondary):*&in=state:48",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 123,
+    "question": "Return the 2023 national population using the Census nationwide geography wildcard.",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=us:*",
+    "rebuilt_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=us:*",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  },
+  {
+    "row_no": 124,
+    "question": "What is the population of PUMA 04412 in New York?",
+    "expected_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=public%20use%20microdata%20area:04412&in=state:36",
+    "rebuilt_url": "https://api.census.gov/data/2023/acs/acs5?get=NAME,B01001_001E&for=public%20use%20microdata%20area:04412&in=state:36",
+    "equivalent": true,
+    "mismatches": [],
+    "failure_class": "none"
+  }
+]

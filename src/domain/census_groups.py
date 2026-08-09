@@ -83,7 +83,7 @@ class CensusGroupsAPI:
             logger.error(f"Failed to fetch group details from {url}: {e}")
             return None
 
-    def aggregate_groups_across_years(self, dataset: str, years: list[int]) -> list[dict]:
+    def aggregate_groups_across_years(self, dataset: str, years: list[int]) -> dict[str, dict]:
         """
         Aggregate table/group information across multiple years
 
@@ -107,7 +107,7 @@ class CensusGroupsAPI:
             }
         """
 
-        aggregated = {}
+        aggregated: dict[str, dict] = {}
 
         for year in years:
             groups = self.fetch_groups_list(dataset, year)
@@ -185,54 +185,73 @@ class CensusGroupsAPI:
         return data_types if data_types else ["general"]
 
     def aggregate_all_categories(self, year: int = 2023) -> dict:
-        """
-        Fetch and aggregate groups from ALL 5 Census categories
+        """Fetch groups from all categories for a single year."""
+        return self.aggregate_all_categories_across_years(year_start=year, year_end=year)
 
-        Returns: {
-            "B01003": {
-                "table_code": "B01003",
-                "category": "detail",
-                "dataset": "acs/acs5",
-                ...
-            },
-            "S0101": {
-                "table_code": "S0101",
-                "category": "subject",
-                "dataset": "acs/acs5/subject",
-                ...
-            }
-        }
+    def aggregate_all_categories_across_years(
+        self,
+        *,
+        year_start: int,
+        year_end: int,
+    ) -> dict[str, dict]:
         """
+        Fetch and aggregate groups from ALL Census categories across a year range.
 
-        all_tables = {}
+        Keys are ``{dataset}:{table_code}`` so categories/datasets cannot collide.
+        Each value includes ``years_available`` for every year the table appeared
+        within the requested range ∩ category-configured years.
+        """
+        if year_end < year_start:
+            raise ValueError(f"year_end {year_end} must be >= year_start {year_start}")
+
+        all_tables: dict[str, dict] = {}
 
         for category_name, category_info in CENSUS_CATEGORIES.items():
-            logger.info(f"Fetching groups from {category_name} for year {year}")
+            dataset = str(category_info.get("path", ""))
+            configured_years = [int(year) for year in category_info.get("years", [])]
+            years = [year for year in configured_years if year_start <= year <= year_end]
+            if not years:
+                logger.warning(
+                    "Skipping %s: no configured years in [%s, %s]",
+                    category_name,
+                    year_start,
+                    year_end,
+                )
+                continue
 
-            # Get dataset path for this category
-            dataset = category_info.get("path", "")
+            logger.info(
+                "Fetching groups from %s for years %s-%s (%s years)",
+                category_name,
+                years[0],
+                years[-1],
+                len(years),
+            )
+            for year in years:
+                groups = self.fetch_groups_list(dataset, year)
+                logger.info("Found %s groups for %s %s", len(groups), category_name, year)
+                for group in groups:
+                    group_code = str(group.get("name", ""))
+                    if not group_code:
+                        continue
+                    key = f"{dataset}:{group_code}"
+                    if key not in all_tables:
+                        table_name = str(group.get("description", ""))
+                        all_tables[key] = {
+                            "table_code": group_code,
+                            "table_name": table_name,
+                            "description": table_name,
+                            "category": category_name,
+                            "dataset": dataset,
+                            "years_available": set(),
+                            "uses_groups": category_info["uses_groups"],
+                            "data_types": self._infer_data_types(group_code, table_name),
+                        }
+                    all_tables[key]["years_available"].add(year)
 
-            # Fetch groups for this category
-            groups = self.fetch_groups_list(dataset, year)
+        for table_info in all_tables.values():
+            table_info["years_available"] = sorted(table_info["years_available"])
 
-            logger.info(f"Found {len(groups)} groups for {category_name}")
-
-            for group in groups:
-                group_code = group.get("name", "")
-
-                # Store with category metadata
-                all_tables[group_code] = {
-                    "table_code": group_code,
-                    "table_name": group.get("description", ""),
-                    "description": group.get("description", ""),
-                    "category": category_name,  # ← NEW: Tag with category
-                    "dataset": dataset,
-                    "years_available": [year],
-                    "uses_groups": category_info["uses_groups"],  # ← NEW: Does it use group() function?
-                    "data_types": self._infer_data_types(group_code, group.get("description", "")),
-                }
-
-        logger.info(f"Total tables across all categories: {len(all_tables)}")
+        logger.info("Total tables across all categories: %s", len(all_tables))
         return all_tables
 
 
