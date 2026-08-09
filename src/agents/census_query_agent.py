@@ -53,6 +53,7 @@ PLANNING_EXCLUDED_TOOL_NAMES = frozenset(
         "census_api_call",
         STRICT_CENSUS_TOOL_NAME,
         "create_chart",
+        "table_search",
     }
 )
 
