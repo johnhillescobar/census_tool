@@ -33,6 +33,7 @@ BenchmarkPlanState = Annotated[
 
 
 GeographyClarificationSlot = Literal["table", "hierarchy", "area", "geography"]
+ClarificationOrigin = Literal["geography", "plan_validation_exhaust"]
 
 
 class PendingGeographyOption(BaseModel):
@@ -49,6 +50,7 @@ class PendingGeographyClarification(BaseModel):
     requested_slot: GeographyClarificationSlot
     index_version: str | None = None
     reason_code: str
+    clarification_origin: ClarificationOrigin = "geography"
 
 
 class WorkflowPlan(BaseModel):

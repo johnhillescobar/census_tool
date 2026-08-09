@@ -9,6 +9,7 @@ from langgraph.graph import StateGraph
 # Import state and routing
 from config import CENSUS_AGENT_CLARIFICATION_RESUME, CENSUS_AGENT_TURN1_PLANNING
 from src.services.agent_plan_context import should_skip_agent_for_upstream_clarification
+from src.services.plan_validation_exhaust_clarification import is_plan_validation_exhaust_pending
 from src.state.types import CensusState
 
 # Import all workflows
@@ -25,6 +26,7 @@ from src.workflows import (
     memory_load_node,
     memory_write_node,
     output_node,
+    plan_validation_exhaust_node,
     temporal_node,
     validate_grounded_plan_node,
 )
@@ -50,6 +52,13 @@ def create_viz_graph(compiled_graph):
 def _route_after_geography(state: CensusState) -> str:
     if state.plan and state.plan.workflow_cancelled:
         return "output"
+    if (
+        state.plan
+        and state.plan.proposed_selection is not None
+        and state.plan.grounded_plan is None
+        and not state.plan.requires_clarification
+    ):
+        return "plan_validator"
     if state.plan and state.plan.requires_clarification:
         if CENSUS_AGENT_CLARIFICATION_RESUME:
             if CENSUS_AGENT_TURN1_PLANNING:
@@ -80,10 +89,13 @@ def _route_after_agent_planning(state: CensusState) -> str:
         return "output"
 
     if (
-        CENSUS_AGENT_TURN1_PLANNING
-        and state.plan
+        state.plan
         and state.plan.pending_geography_clarification is not None
         and state.plan.requires_clarification
+        and (
+            is_plan_validation_exhaust_pending(state.plan.pending_geography_clarification)
+            or CENSUS_AGENT_TURN1_PLANNING
+        )
     ):
         return "output"
 
@@ -102,7 +114,7 @@ def _route_after_plan_validator(state: CensusState) -> str:
             failure.retryable for failure in state.plan.plan_validation_failures
         ):
             return "agent_planning"
-        return "output"
+        return "plan_validation_exhaust"
 
     return "geography"
 
@@ -151,6 +163,8 @@ def create_census_graph():
 
     workflow.add_node("plan_validator", validate_grounded_plan_node)
 
+    workflow.add_node("plan_validation_exhaust", plan_validation_exhaust_node)
+
     workflow.add_node("benchmark", benchmark_node)
 
     workflow.add_node("comparison", comparison_node)
@@ -182,6 +196,7 @@ def create_census_graph():
             "output": "output",
             "agent_clarification_prompt": "agent_clarification_prompt",
             "agent_planning": "agent_planning",
+            "plan_validator": "plan_validator",
         },
     )
     workflow.add_conditional_edges(
@@ -192,6 +207,7 @@ def create_census_graph():
             "output": "output",
             "agent_clarification_prompt": "agent_clarification_prompt",
             "agent_planning": "agent_planning",
+            "plan_validator": "plan_validator",
         },
     )
 
@@ -203,6 +219,7 @@ def create_census_graph():
             "output": "output",
             "agent_clarification_prompt": "agent_clarification_prompt",
             "agent_planning": "agent_planning",
+            "plan_validator": "plan_validator",
         },
     )
 
@@ -227,9 +244,12 @@ def create_census_graph():
             "benchmark": "benchmark",
             "geography": "geography",
             "agent_planning": "agent_planning",
+            "plan_validation_exhaust": "plan_validation_exhaust",
             "output": "output",
         },
     )
+
+    workflow.add_edge("plan_validation_exhaust", "agent_planning")
 
     workflow.add_conditional_edges(
         "benchmark",

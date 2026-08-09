@@ -14,6 +14,7 @@ from src.services.agent_plan_context import (
     should_skip_agent_for_upstream_clarification,
 )
 from src.services.agent_planning_artifacts import collect_planning_artifacts, merge_retrieval_evidence
+from src.services.plan_validation_exhaust_clarification import is_plan_validation_exhaust_pending
 from src.state.types import CensusState, FinalResponseState
 from src.state.workflow_plan import WorkflowPlan
 from src.workflows.graph_patch import CensusGraphPatch
@@ -22,12 +23,11 @@ logger = logging.getLogger(__name__)
 
 
 def _is_turn1_clarification_planning(plan: WorkflowPlan | None) -> bool:
-    return (
-        app_config.CENSUS_AGENT_TURN1_PLANNING
-        and plan is not None
-        and plan.pending_geography_clarification is not None
-        and plan.requires_clarification
-    )
+    if plan is None or plan.pending_geography_clarification is None or not plan.requires_clarification:
+        return False
+    if is_plan_validation_exhaust_pending(plan.pending_geography_clarification):
+        return True
+    return app_config.CENSUS_AGENT_TURN1_PLANNING
 
 
 def _run_turn1_clarification_planning(state: CensusState, intent: dict[str, Any]) -> dict[str, Any]:
@@ -42,7 +42,15 @@ def _run_turn1_clarification_planning(state: CensusState, intent: dict[str, Any]
 
     agent = CensusQueryAgent(mode="planning")
     if agent.offline_mode:
-        answer_text = build_agent_clarification_copy(clarification_context)
+        if clarification_context.pending_options:
+            answer_text = build_agent_clarification_copy(clarification_context)
+        else:
+            failure_codes = ", ".join(failure.reason_code for failure in plan.plan_validation_failures)
+            answer_text = (
+                "I couldn't finalize the Census plan from the retrieved evidence"
+                + (f" ({failure_codes})" if failure_codes else "")
+                + ". Please clarify which grounded option you want to use."
+            )
         source = "deterministic"
         logs = ["agent_planning: turn-1 clarification copy (agent offline)"]
     else:
