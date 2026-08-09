@@ -72,27 +72,40 @@ def test_select_clarification_option_tool_validates_grounded_option():
 
 
 def test_extract_clarification_selection_reads_accepted_tool_step():
+    payload = (
+        '{"status": "accepted", "option_id": "table_1", '
+        '"candidate_id": "table:acs/acs5:B01002", "label": "MEDIAN AGE BY SEX"}'
+    )
     agent_result = {
         "intermediate_steps": [
-            (MagicMock(tool="select_clarification_option"), '{"status": "accepted", "option_id": "table_1"}'),
+            (MagicMock(tool="select_clarification_option"), payload),
         ]
     }
-    assert extract_clarification_selection(agent_result) == "table_1"
+    selection = extract_clarification_selection(agent_result)
+    assert selection is not None
+    assert selection.option_id == "table_1"
 
 
 @patch("src.workflows.agent_clarification_resume.CensusQueryAgent")
 def test_turn2_prefers_agent_tool_selection_over_raw_user_text(mock_agent_cls):
+    fake = AmbiguousTablesFake()
+    state = _pending_state()
+    pending = state.plan.pending_geography_clarification
+    assert pending is not None
+    option = pending.options[0]
     mock_agent_cls.return_value.offline_mode = False
     mock_agent_cls.return_value.solve.return_value = {
         "reasoning_trace": "Clarification tool steps: 1 (select_clarification_option)",
         "data_summary": "Mapped reply to table_0.",
         "answer_text": "Proceeding with SEX BY AGE.",
         "intermediate_steps": [
-            (MagicMock(tool="select_clarification_option"), '{"status": "accepted", "option_id": "table_0"}'),
+            (
+                MagicMock(tool="select_clarification_option"),
+                f'{{"status": "accepted", "option_id": "{option.option_id}", '
+                f'"candidate_id": "{option.candidate_id}", "label": "{option.label}"}}',
+            ),
         ],
     }
-    fake = AmbiguousTablesFake()
-    state = _pending_state()
     resume_state = state.model_copy(
         update={"messages": [{"role": "user", "content": "the second one please"}]}
     )

@@ -8,6 +8,7 @@ from langgraph.graph import StateGraph
 
 # Import state and routing
 from config import CENSUS_AGENT_CLARIFICATION_RESUME
+from src.services.agent_plan_context import should_skip_agent_for_upstream_clarification
 from src.state.types import CensusState
 
 # Import all workflows
@@ -66,21 +67,21 @@ def _route_after_memory(state: CensusState) -> str:
 
 
 def _route_after_temporal(state: CensusState) -> str:
-    if state.plan and state.plan.requires_clarification:
+    if should_skip_agent_for_upstream_clarification(state.plan):
         return "output"
 
     return "agent_planning"
 
 
 def _route_after_agent_planning(state: CensusState) -> str:
-    if state.plan and state.plan.requires_clarification:
+    if should_skip_agent_for_upstream_clarification(state.plan):
         return "output"
 
     return "plan_validator"
 
 
 def _route_after_plan_validator(state: CensusState) -> str:
-    if state.plan and state.plan.requires_clarification:
+    if should_skip_agent_for_upstream_clarification(state.plan):
         return "output"
 
     if state.plan and state.plan.grounded_plan is not None:

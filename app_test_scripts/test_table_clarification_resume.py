@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from app import _route_after_memory
 from app_test_scripts.grounded_planning_fakes import FakeGroundedRetrieval
@@ -112,20 +112,33 @@ def test_build_agent_clarification_context_exposes_checkpoint_contract():
     assert context.trace_id == pending.trace_id
 
 
+def _agent_tool_step(plan, option_id: str):
+    pending = plan.pending_geography_clarification
+    assert pending is not None
+    option = next(item for item in pending.options if item.option_id == option_id)
+    payload = (
+        f'{{"status": "accepted", "option_id": "{option.option_id}", '
+        f'"candidate_id": "{option.candidate_id}", "label": "{option.label}"}}'
+    )
+    return (MagicMock(tool="select_clarification_option"), payload)
+
+
 @patch("src.workflows.agent_clarification_resume.CensusQueryAgent")
 def test_table_resume_resolves_geography_after_ambiguous_table_pick(mock_agent_cls):
-    mock_agent_cls.return_value.offline_mode = False
-    mock_agent_cls.return_value.solve.return_value = {
-        "reasoning_trace": "Clarification tool steps: 0",
-        "data_summary": "User selected table_0.",
-        "answer_text": "Proceeding with SEX BY AGE.",
-    }
     fake = AmbiguousTablesFake()
     turn1 = geography_node(_turn1_state(), {}, dependencies=fake.dependencies())
     plan = turn1["plan"]
     pending = plan.pending_geography_clarification
     assert pending is not None
     assert pending.requested_slot == "table"
+
+    mock_agent_cls.return_value.offline_mode = False
+    mock_agent_cls.return_value.solve.return_value = {
+        "reasoning_trace": "Clarification tool steps: 1 (select_clarification_option)",
+        "data_summary": "User selected table_0.",
+        "answer_text": "Proceeding with SEX BY AGE.",
+        "intermediate_steps": [_agent_tool_step(plan, "table_0")],
+    }
 
     turn2 = _resume_turn2(plan, "table_0", fake)
     resumed = turn2["plan"]
@@ -149,16 +162,18 @@ def test_table_resume_resolves_geography_after_ambiguous_table_pick(mock_agent_c
 
 @patch("src.workflows.agent_clarification_resume.CensusQueryAgent")
 def test_row3_two_turn_chroma_shaped_table_then_geography(mock_agent_cls):
-    mock_agent_cls.return_value.offline_mode = False
-    mock_agent_cls.return_value.solve.return_value = {
-        "reasoning_trace": "Clarification tool steps: 0",
-        "data_summary": "User selected table_2 (SEX BY AGE).",
-        "answer_text": "Proceeding with B01001 for total population by age and sex.",
-    }
     fake = ChromaShapedRow3Retrieval()
     turn1 = geography_node(_turn1_state(), {}, dependencies=fake.dependencies())
     plan = turn1["plan"]
     pending = plan.pending_geography_clarification
+
+    mock_agent_cls.return_value.offline_mode = False
+    mock_agent_cls.return_value.solve.return_value = {
+        "reasoning_trace": "Clarification tool steps: 1 (select_clarification_option)",
+        "data_summary": "User selected table_2 (SEX BY AGE).",
+        "answer_text": "Proceeding with B01001 for total population by age and sex.",
+        "intermediate_steps": [_agent_tool_step(plan, "table_2")],
+    }
 
     assert plan.requires_clarification is True
     assert pending is not None

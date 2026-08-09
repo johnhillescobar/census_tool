@@ -7,7 +7,7 @@ from src.agents.census_query_agent import CensusQueryAgent
 from src.domain.comparison_artifacts import ComparisonInputRowBuildRequest
 from src.domain.comparison_plan import ComparisonPlan
 from src.llm.intent_enhancer import generate_llm_answer
-from src.services.agent_plan_context import build_agent_plan_context
+from src.services.agent_plan_context import build_agent_plan_context, should_skip_agent_for_upstream_clarification
 from src.services.comparison_input_builder import (
     build_comparison_input_rows,
     extract_observations_from_census_data,
@@ -42,7 +42,7 @@ def agent_reasoning_node(state: CensusState, config: RunnableConfig) -> dict[str
 
     intent = state.intent or {"is_census": True, "topic": "general"}
 
-    if state.plan and state.plan.requires_clarification:
+    if should_skip_agent_for_upstream_clarification(state.plan):
         return {"logs": ["agent: skipped (clarification required)"]}
 
     plan_context = build_agent_plan_context(state.plan)

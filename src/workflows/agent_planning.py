@@ -4,7 +4,7 @@ from typing import Any
 from langchain_core.runnables import RunnableConfig
 
 from src.agents.census_query_agent import CensusQueryAgent
-from src.services.agent_plan_context import build_agent_planning_context
+from src.services.agent_plan_context import build_agent_planning_context, should_skip_agent_for_upstream_clarification
 from src.services.agent_planning_artifacts import collect_planning_artifacts
 from src.state.types import CensusState
 from src.state.workflow_plan import WorkflowPlan
@@ -19,7 +19,7 @@ def agent_planning_node(state: CensusState, config: RunnableConfig) -> dict[str,
     user_question = state.messages[-1]["content"]
     intent = state.intent or {"is_census": True, "topic": "general"}
 
-    if state.plan and state.plan.requires_clarification:
+    if should_skip_agent_for_upstream_clarification(state.plan):
         return {"logs": ["agent_planning: skipped (clarification required)"]}
 
     if state.plan and state.plan.plan_validation_failures:

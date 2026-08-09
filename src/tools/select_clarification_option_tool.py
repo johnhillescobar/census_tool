@@ -18,8 +18,8 @@ class SelectClarificationOptionTool(BaseTool):
     description: str = """
     Map the user's clarification reply to one grounded pending option.
     Input must be valid JSON with exactly one of:
-    - option_id: pending option id (e.g. "table_0", "geo_1")
-    - candidate_id: grounded candidate id from retrieval evidence
+    - candidate_id: grounded candidate id from retrieval evidence (preferred)
+    - option_id: internal pending option id (legacy harness key)
 
     The harness validates the selection against preserved evidence. Do not invent ids.
     """

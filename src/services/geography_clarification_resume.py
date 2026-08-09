@@ -45,6 +45,18 @@ def _normalized(value: str) -> str:
     return _NON_WORD.sub(" ", value.casefold()).strip()
 
 
+def format_pending_option_label(option: PendingGeographyOption, evidence: list[RetrievalEvidence]) -> str:
+    """Render a user-facing option label without synthetic option_id prefixes."""
+    for item in evidence:
+        for candidate in item.candidates:
+            if candidate.candidate_id != option.candidate_id:
+                continue
+            if isinstance(candidate, TableCandidate):
+                return f"{option.label} ({candidate.table_code})"
+            return option.label
+    return option.label
+
+
 def _render_pending(plan: WorkflowPlan, message: str | None = None) -> GeographyResumeResult:
     pending = plan.pending_geography_clarification
     if pending is None:
@@ -54,7 +66,10 @@ def _render_pending(plan: WorkflowPlan, message: str | None = None) -> Geography
         [ClarificationOption(option_id=item.option_id, label=item.label) for item in pending.options],
         requested_slot=pending.requested_slot,
     )
-    lines = [prompt.question_text, *(f"{item.option_id}: {item.label}" for item in prompt.options)]
+    lines = [
+        prompt.question_text,
+        *(format_pending_option_label(item, plan.retrieval_evidence) for item in pending.options),
+    ]
     if message:
         lines.insert(0, message)
     return GeographyResumeResult(
@@ -141,12 +156,15 @@ def _selection_for_option(
     )
 
 
-def _validate_resume_option(plan: WorkflowPlan, selection: str) -> GeographyResumeResult | PendingGeographyOption:
+def _validate_resume_option_by_candidate_id(
+    plan: WorkflowPlan,
+    candidate_id: str,
+) -> GeographyResumeResult | PendingGeographyOption:
     pending = plan.pending_geography_clarification
     if pending is None:
         raise ValueError("no pending geography clarification")
 
-    option = _select_option(selection, pending.options)
+    option = next((item for item in pending.options if item.candidate_id == candidate_id), None)
     if option is None or option.candidate_id not in pending.retrieved_candidate_ids:
         return _render_pending(plan, "That selection does not match one of the retrieved options.")
     containing_evidence = [item for item in plan.retrieval_evidence if option.candidate_id in item.candidate_ids]
@@ -157,6 +175,120 @@ def _validate_resume_option(plan: WorkflowPlan, selection: str) -> GeographyResu
     ):
         return _render_pending(plan, "That retrieved option is no longer valid in the preserved evidence.")
     return option
+
+
+def _validate_resume_option(plan: WorkflowPlan, selection: str) -> GeographyResumeResult | PendingGeographyOption:
+    pending = plan.pending_geography_clarification
+    if pending is None:
+        raise ValueError("no pending geography clarification")
+
+    option = _select_option(selection, pending.options)
+    if option is None:
+        return _render_pending(plan, "That selection does not match one of the retrieved options.")
+    return _validate_resume_option_by_candidate_id(plan, option.candidate_id)
+
+
+def apply_agent_clarification_selection(
+    plan: WorkflowPlan,
+    candidate_id: str,
+) -> GeographyResumeResult | TableResumePrepared:
+    """Apply an agent-validated candidate_id without legacy free-text parsing."""
+    pending = plan.pending_geography_clarification
+    if pending is None:
+        raise ValueError("no pending geography clarification")
+    if pending.requested_slot == "table":
+        return prepare_table_resume_by_candidate_id(plan, candidate_id)
+    return resume_geography_clarification_by_candidate_id(plan, candidate_id)
+
+
+def prepare_table_resume_by_candidate_id(
+    plan: WorkflowPlan,
+    candidate_id: str,
+) -> GeographyResumeResult | TableResumePrepared:
+    """Validate a table-slot resume selection by grounded candidate_id."""
+    pending = plan.pending_geography_clarification
+    if pending is None:
+        raise ValueError("no pending geography clarification")
+    if pending.requested_slot != "table":
+        raise ValueError("prepare_table_resume_by_candidate_id requires table-slot pending clarification")
+
+    validated = _validate_resume_option_by_candidate_id(plan, candidate_id)
+    if isinstance(validated, GeographyResumeResult):
+        return validated
+
+    chosen = _candidate_for_option(validated, plan.retrieval_evidence)
+    if not isinstance(chosen, TableCandidate):
+        return _render_pending(plan, "That option does not complete a compatible geography selection.")
+    table_evidence = next(item for item in plan.retrieval_evidence if validated.candidate_id in item.candidate_ids)
+    return TableResumePrepared(
+        option=validated,
+        selected_table=chosen,
+        table_evidence=table_evidence,
+        pending=pending,
+    )
+
+
+def resume_geography_clarification_by_candidate_id(
+    plan: WorkflowPlan,
+    candidate_id: str,
+) -> GeographyResumeResult:
+    """Resolve a non-table clarification using agent-validated candidate_id."""
+    pending = plan.pending_geography_clarification
+    if pending is None:
+        raise ValueError("no pending geography clarification")
+    if pending.requested_slot == "table":
+        raise ValueError("table-slot resume requires prepare_table_resume_by_candidate_id")
+
+    validated = _validate_resume_option_by_candidate_id(plan, candidate_id)
+    if isinstance(validated, GeographyResumeResult):
+        return validated
+    option = validated
+
+    grounded_selection = _selection_for_option(plan, option)
+    if grounded_selection is None:
+        return _render_pending(plan, "That option does not complete a compatible geography selection.")
+    validation = validate_grounded_plan(grounded_selection, plan.retrieval_evidence)
+    grounded = validation.plan
+    canonical = None if grounded is None else grounded.geography
+    if validation.status != "valid" or grounded is None or canonical is None:
+        return _render_pending(plan, "That option is incompatible with the preserved Census evidence.")
+
+    candidates = [candidate for item in plan.retrieval_evidence for candidate in item.candidates]
+    hierarchy = next(
+        candidate
+        for candidate in candidates
+        if isinstance(candidate, HierarchyCandidate) and candidate.candidate_id == canonical.hierarchy_candidate_id
+    )
+    areas = [
+        candidate
+        for candidate in candidates
+        if isinstance(candidate, AreaCandidate) and candidate.candidate_id in canonical.area_candidate_ids
+    ]
+    geography = GeographyIntent(
+        level=cast(GeographyLevel, hierarchy.friendly_level),
+        geo_for=canonical.geo_for,
+        geo_in=dict(canonical.geo_in),
+        display_name=", ".join(area.display_name for area in areas) or hierarchy.display_name,
+        source="chroma",
+        requested_text=pending.original_query,
+        census_token=cast(CensusGeographyToken, canonical.census_token),
+    )
+    resolved_plan = plan.model_copy(
+        update={
+            "geography": GeographyResolved(geography=geography),
+            "selected_table": grounded.table,
+            "grounded_plan": grounded,
+            "pending_geography_clarification": None,
+            "requires_clarification": False,
+            "workflow_cancelled": False,
+        }
+    )
+    return GeographyResumeResult(status="resolved", plan=resolved_plan, geography=geography)
+
+
+def render_pending_clarification_retry(plan: WorkflowPlan, message: str) -> GeographyResumeResult:
+    """Re-prompt the user when agent clarification mapping fails."""
+    return _render_pending(plan, message)
 
 
 def prepare_table_resume(plan: WorkflowPlan, selection: str) -> GeographyResumeResult | TableResumePrepared:
@@ -265,6 +397,10 @@ def resume_geography_clarification(plan: WorkflowPlan, selection: str) -> Geogra
 __all__ = [
     "GeographyResumeResult",
     "TableResumePrepared",
+    "apply_agent_clarification_selection",
+    "format_pending_option_label",
     "prepare_table_resume",
+    "render_pending_clarification_retry",
     "resume_geography_clarification",
+    "resume_geography_clarification_by_candidate_id",
 ]

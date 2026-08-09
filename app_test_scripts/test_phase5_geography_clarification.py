@@ -137,7 +137,29 @@ def test_checkpointed_graph_resumes_selection_instead_of_analyzing_it_as_fresh_q
             self.mode = mode
 
         def solve(self, **kwargs):
-            if self.mode == "planning" or kwargs.get("clarification_context") is not None:
+            clarification_context = kwargs.get("clarification_context")
+            if clarification_context is not None:
+                user_reply = kwargs.get("user_query", "")
+                option = next(
+                    (
+                        item
+                        for item in clarification_context.pending_options
+                        if item.label.casefold() in user_reply.casefold()
+                        or user_reply.casefold() in item.label.casefold()
+                    ),
+                    clarification_context.pending_options[-1],
+                )
+                payload = (
+                    f'{{"status": "accepted", "option_id": "{option.option_id}", '
+                    f'"candidate_id": "{option.candidate_id}", "label": "{option.label}"}}'
+                )
+                return {
+                    "reasoning_trace": "fake planning/clarification",
+                    "data_summary": "checkpoint resume",
+                    "answer_text": "fake planning",
+                    "intermediate_steps": [(MagicMock(tool="select_clarification_option"), payload)],
+                }
+            if self.mode == "planning":
                 return {
                     "reasoning_trace": "fake planning/clarification",
                     "data_summary": "checkpoint resume",
