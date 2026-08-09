@@ -30,13 +30,13 @@ from index.build_geography_index import (
     upsert_geography_levels,
 )
 from index.build_index_table import CensusTableIndexBuilder, stable_table_id, write_table_manifest
-from index.table_metadata import enrich_table_info, infer_breadth, infer_primary_topic
 from index.check_geography_index import ACTIVE_CATALOG_COLLECTIONS, check_index_health
 from index.rebuild_catalog import (
     _resolve_components,
     collections_built_by_components,
     missing_active_collections,
 )
+from index.table_metadata import enrich_table_info, infer_breadth, infer_primary_topic
 from src.domain.census_groups import CensusGroupsAPI
 from src.domain.geography_catalog import IndexManifest
 
