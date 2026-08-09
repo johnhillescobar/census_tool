@@ -12,6 +12,7 @@ from src.state.types import CensusState
 
 # Import all workflows
 from src.workflows import (
+    agent_clarification_prompt_node,
     agent_clarification_resume_node,
     agent_planning_node,
     agent_reasoning_node,
@@ -46,7 +47,11 @@ def create_viz_graph(compiled_graph):
 
 
 def _route_after_geography(state: CensusState) -> str:
-    if state.plan and (state.plan.requires_clarification or state.plan.workflow_cancelled):
+    if state.plan and state.plan.workflow_cancelled:
+        return "output"
+    if state.plan and state.plan.requires_clarification:
+        if CENSUS_AGENT_CLARIFICATION_RESUME:
+            return "agent_clarification_prompt"
         return "output"
 
     return "benchmark"
@@ -126,6 +131,7 @@ def create_census_graph():
 
     workflow.add_node("geography", geography_node)
     workflow.add_node("geography_resume", geography_resume_node)
+    workflow.add_node("agent_clarification_prompt", agent_clarification_prompt_node)
     workflow.add_node("agent_clarification_resume", agent_clarification_resume_node)
 
     workflow.add_node("temporal", temporal_node)
@@ -171,8 +177,10 @@ def create_census_graph():
     workflow.add_conditional_edges(
         "geography",
         _route_after_geography,
-        {"benchmark": "benchmark", "output": "output"},
+        {"benchmark": "benchmark", "output": "output", "agent_clarification_prompt": "agent_clarification_prompt"},
     )
+
+    workflow.add_edge("agent_clarification_prompt", "output")
 
     workflow.add_conditional_edges(
         "temporal",

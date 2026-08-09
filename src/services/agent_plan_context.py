@@ -42,8 +42,11 @@ def format_clarification_directives(ctx: AgentClarificationContext) -> str:
     ]
     for option in ctx.pending_options:
         lines.append(f"  - {option.option_id}: {option.label} ({option.candidate_id})")
-    lines.append(
-        "- The user reply is their table or geography selection; map it to one grounded option above."
+    lines.extend(
+        [
+            "- Map the user reply to one grounded option using select_clarification_option.",
+            "- Call select_clarification_option with option_id or candidate_id; do not invent ids.",
+        ]
     )
     return "\n".join(lines)
 

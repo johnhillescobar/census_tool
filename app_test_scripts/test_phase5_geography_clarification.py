@@ -153,7 +153,11 @@ def test_checkpointed_graph_resumes_selection_instead_of_analyzing_it_as_fresh_q
                 "footnotes": [],
             }
 
+        def compose_clarification_prompt(self, _ctx):
+            return {"answer_text": "Which geography should I use?"}
+
     monkeypatch.setattr("src.workflows.agent_planning.CensusQueryAgent", FakeAgent)
+    monkeypatch.setattr("src.workflows.agent_clarification_prompt.CensusQueryAgent", FakeAgent)
     monkeypatch.setattr("src.workflows.agent_clarification_resume.CensusQueryAgent", FakeAgent)
     monkeypatch.setattr("src.workflows.agent.CensusQueryAgent", FakeAgent)
 

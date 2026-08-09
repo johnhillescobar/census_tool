@@ -9,6 +9,7 @@ from langchain_core.runnables import RunnableConfig
 
 from src.agents.census_query_agent import CensusQueryAgent
 from src.services.agent_plan_context import build_agent_clarification_context
+from src.services.clarification_selection import extract_clarification_selection
 from src.state.types import CensusState
 from src.workflows.geography import geography_resume_node
 
@@ -45,8 +46,10 @@ def agent_clarification_resume_node(state: CensusState, config: RunnableConfig) 
         ]
         logger.info("agent_clarification_resume: completed clarification turn")
 
-    # Harness validates the user reply against preserved evidence (geography_clarification_resume).
-    resume_update = geography_resume_node(state, config)
+    # Harness validates selection; prefer agent tool mapping over raw user text.
+    resolved_selection = extract_clarification_selection(agent_result) or user_reply
+    resume_state = state.model_copy(update={"messages": [{"role": "user", "content": resolved_selection}]})
+    resume_update = geography_resume_node(resume_state, config)
     existing_logs = resume_update.get("logs") or []
     resume_update["logs"] = [*agent_logs, *existing_logs]
     resume_update.setdefault("artifacts", {})
