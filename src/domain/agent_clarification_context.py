@@ -15,6 +15,7 @@ class AgentClarificationContext(BaseModel):
     retrieval_evidence: list[RetrievalEvidence] = Field(default_factory=list)
     reason_code: str
     trace_id: str
+    turn1_prompt_text: str | None = None
 
 
 __all__ = ["AgentClarificationContext"]

@@ -67,7 +67,10 @@ def _run_turn1_clarification_planning(state: CensusState, intent: dict[str, Any]
     final.setdefault("reason_code", prompt.reason_code)
     final.setdefault("trace_id", pending.trace_id)
 
-    update = CensusGraphPatch(final=final, logs=logs).as_langgraph_update()
+    checkpoint = clarification_context.model_copy(update={"turn1_prompt_text": answer_text})
+    updated_plan = plan.model_copy(update={"agent_clarification_checkpoint": checkpoint})
+
+    update = CensusGraphPatch(plan=updated_plan, final=final, logs=logs).as_langgraph_update()
     update["artifacts"] = {"clarification_prompt_source": source, "turn1_planning_authority": True}
     return update
 
