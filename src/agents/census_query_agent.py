@@ -25,7 +25,6 @@ from src.services.agent_clarification_copy import (
     format_clarification_options_for_writer,
 )
 from src.services.agent_plan_context import format_clarification_directives, format_plan_directives
-from src.clients.chroma_utils import initialize_chroma_client
 from src.tools.area_resolution_tool import AreaResolutionTool
 from src.tools.census_api_tool import CensusAPITool
 from src.tools.chart_tool import ChartTool
@@ -98,6 +97,8 @@ class CensusQueryAgent:
 
         shared_chroma_client = None
         if self.mode == "planning":
+            from src.clients.chroma_utils import initialize_chroma_client
+
             initialized = initialize_chroma_client()
             if not isinstance(initialized, dict):
                 shared_chroma_client = initialized

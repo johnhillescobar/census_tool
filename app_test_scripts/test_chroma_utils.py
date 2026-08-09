@@ -1,5 +1,3 @@
-import json
-
 from src.clients import chroma_utils
 from src.clients.chroma_utils import HierarchyLookupResult
 

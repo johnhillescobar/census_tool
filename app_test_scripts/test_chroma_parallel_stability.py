@@ -5,7 +5,6 @@ from datetime import UTC, datetime
 import pytest
 
 from src.clients import chroma_utils
-from src.domain.geography_catalog import HierarchyCandidate
 from src.tools.area_resolution_tool import AreaResolutionTool
 from src.tools.geography_discovery_tool import GeographyDiscoveryTool
 from src.tools.table_catalog_retrieval_tool import TableCatalogRetrievalTool
@@ -114,7 +113,7 @@ def test_get_hierarchy_ordering_result_includes_example_url(monkeypatch):
 def test_planning_tools_share_injected_chroma_client(monkeypatch):
     shared = object()
     monkeypatch.setattr(
-        "src.agents.census_query_agent.initialize_chroma_client",
+        "src.clients.chroma_utils.initialize_chroma_client",
         lambda: shared,
     )
     monkeypatch.setenv("OPENAI_API_KEY", "test-key")
