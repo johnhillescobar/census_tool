@@ -167,12 +167,20 @@ def create_census_graph():
     workflow.add_conditional_edges(
         "agent_clarification_resume",
         _route_after_geography,
-        {"benchmark": "benchmark", "output": "output"},
+        {
+            "benchmark": "benchmark",
+            "output": "output",
+            "agent_clarification_prompt": "agent_clarification_prompt",
+        },
     )
     workflow.add_conditional_edges(
         "geography_resume",
         _route_after_geography,
-        {"benchmark": "benchmark", "output": "output"},
+        {
+            "benchmark": "benchmark",
+            "output": "output",
+            "agent_clarification_prompt": "agent_clarification_prompt",
+        },
     )
 
     workflow.add_conditional_edges(
