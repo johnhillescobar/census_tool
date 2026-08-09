@@ -1,46 +1,45 @@
-import json
-
 from src.clients import chroma_utils
-
-
-class DummyCollection:
-    def __init__(self, payload):
-        self._payload = payload
-
-    def get(self, **kwargs):
-        return self._payload
-
-
-class DummyClient:
-    def __init__(self, payload):
-        self._payload = payload
-
-    def get_collection(self, name):
-        return DummyCollection(self._payload)
+from src.clients.chroma_utils import HierarchyLookupResult
 
 
 def test_get_hierarchy_ordering_returns_normalized_order(monkeypatch):
-    chroma_utils.get_hierarchy_ordering.cache_clear()
-    payload = {
-        "metadatas": [
-            {"ordering_list": json.dumps(["state", "cbsa"])},
-        ]
-    }
-    monkeypatch.setattr(chroma_utils, "initialize_chroma_client", lambda: DummyClient(payload))
+    chroma_utils.reset_chroma_client()
+    monkeypatch.setattr(
+        chroma_utils,
+        "get_hierarchy_ordering_result",
+        lambda dataset, year, for_level: HierarchyLookupResult(
+            status="hit",
+            dataset=dataset,
+            year=year,
+            for_level=for_level,
+            ordering=[
+                "state",
+                "metropolitan statistical area/micropolitan statistical area",
+            ],
+            hierarchy_id="hierarchy:1",
+        ),
+    )
 
     ordering = chroma_utils.get_hierarchy_ordering("acs/acs5", 2023, "county")
 
-    expected = [
+    assert ordering == [
         "state",
         "metropolitan statistical area/micropolitan statistical area",
     ]
-    assert ordering == expected
 
 
 def test_get_hierarchy_ordering_handles_missing_metadata(monkeypatch):
-    chroma_utils.get_hierarchy_ordering.cache_clear()
-    payload = {"metadatas": []}
-    monkeypatch.setattr(chroma_utils, "initialize_chroma_client", lambda: DummyClient(payload))
+    chroma_utils.reset_chroma_client()
+    monkeypatch.setattr(
+        chroma_utils,
+        "get_hierarchy_ordering_result",
+        lambda dataset, year, for_level: HierarchyLookupResult(
+            status="empty",
+            dataset=dataset,
+            year=year,
+            for_level=for_level,
+        ),
+    )
 
     ordering = chroma_utils.get_hierarchy_ordering("acs/acs5", 2023, "county")
 
@@ -48,7 +47,7 @@ def test_get_hierarchy_ordering_handles_missing_metadata(monkeypatch):
 
 
 def test_validate_and_fix_geo_params_orders_and_normalizes(monkeypatch):
-    chroma_utils.get_hierarchy_ordering.cache_clear()
+    chroma_utils.reset_chroma_client()
     monkeypatch.setattr(
         chroma_utils,
         "get_hierarchy_ordering",

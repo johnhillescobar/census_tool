@@ -95,17 +95,30 @@ class CensusQueryAgent:
 
         self.llm = create_llm(temperature=LLM_CONFIG["temperature"])
 
+        shared_chroma_client = None
+        if self.mode == "planning":
+            from src.clients.chroma_utils import initialize_chroma_client
+
+            initialized = initialize_chroma_client()
+            if not isinstance(initialized, dict):
+                shared_chroma_client = initialized
+
+        def _with_shared_chroma(tool):
+            if shared_chroma_client is not None and "chroma_client" in tool.__class__.model_fields:
+                return tool.model_copy(update={"chroma_client": shared_chroma_client})
+            return tool
+
         all_tools = [
-            GeographyDiscoveryTool(),
+            _with_shared_chroma(GeographyDiscoveryTool()),
             GeographyValidationTool(),
             TableSearchTool(),
-            TableCatalogRetrievalTool(),
+            _with_shared_chroma(TableCatalogRetrievalTool()),
             ProposeGroundedPlanTool(),
             CensusAPITool(),
             StrictCensusApiTool(),
             TableTool(),
             PatternBuilderTool(),
-            AreaResolutionTool(),
+            _with_shared_chroma(AreaResolutionTool()),
             ChartTool(),
             GeographyHierarchyTool(),
             VariableValidationTool(),

@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import json
 import logging
+import threading
 from collections.abc import Iterable
 from datetime import UTC, datetime
 from functools import lru_cache
@@ -23,7 +24,6 @@ from config import (
     CHROMA_COLLECTION_NAME,
     CHROMA_DATASET_GEOGRAPHIES_COLLECTION_NAME,
     CHROMA_GEOGRAPHY_AREAS_COLLECTION_NAME,
-    CHROMA_GEOGRAPHY_HIERARCHY_COLLECTION_NAME,
     CHROMA_INDEX_MAX_AGE_SECONDS,
     CHROMA_PERSIST_DIRECTORY,
     CHROMA_TABLE_COLLECTION_NAME,
@@ -86,6 +86,8 @@ class HierarchyLookupResult(BaseModel):
     for_level: str
     ordering: list[str] = Field(default_factory=list)
     hierarchy_id: str | None = None
+    geography_hierarchy: str | None = None
+    example_url: str | None = None
     reason: str | None = None
 
 
@@ -118,19 +120,42 @@ _GEO_TOKEN_CANONICAL = {
 }
 
 
+_chroma_client: ClientAPI | None = None
+_chroma_client_error: dict[str, str | list[str]] | None = None
+_chroma_client_lock = threading.Lock()
+
+
+def reset_chroma_client() -> None:
+    """Clear the process-wide Chroma singleton (for tests and catalog rebuilds)."""
+    global _chroma_client, _chroma_client_error
+    with _chroma_client_lock:
+        _chroma_client = None
+        _chroma_client_error = None
+    get_hierarchy_ordering.cache_clear()
+    get_hierarchy_ordering_result.cache_clear()
+
+
 def initialize_chroma_client() -> ClientAPI | dict[str, str | list[str]]:
-    """Initialize and return Chroma client"""
-    try:
-        client = chromadb.PersistentClient(path=CHROMA_PERSIST_DIRECTORY, settings=Settings(anonymized_telemetry=False))
-
-    except Exception as e:
-        logger.error(f"Failed to connect to Chroma: {e}")
-        return {
-            "error": f"Failed to connect to variable database: {e}",
-            "logs": ["retrieve: ERROR - Chroma connection failed"],
-        }
-
-    return client
+    """Return the process-wide Chroma client, initializing it once on first use."""
+    global _chroma_client, _chroma_client_error
+    with _chroma_client_lock:
+        if _chroma_client is not None:
+            return _chroma_client
+        if _chroma_client_error is not None:
+            return _chroma_client_error
+        try:
+            _chroma_client = chromadb.PersistentClient(
+                path=CHROMA_PERSIST_DIRECTORY,
+                settings=Settings(anonymized_telemetry=False),
+            )
+        except Exception as e:
+            logger.error("Failed to connect to Chroma: %s", e)
+            _chroma_client_error = {
+                "error": f"Failed to connect to variable database: {e}",
+                "logs": ["retrieve: ERROR - Chroma connection failed"],
+            }
+            return _chroma_client_error
+        return _chroma_client
 
 
 def get_chroma_collection_variables(
@@ -441,85 +466,18 @@ def _normalize_geo_token(token: str) -> str:
     return _GEO_TOKEN_CANONICAL.get(key, token.strip())
 
 
-def _lookup_dataset_geography_hierarchy(
-    client: ClientAPI,
+def _hierarchy_lookup_tokens(for_level: str) -> list[str]:
+    normalized = _normalize_geo_token(for_level)
+    return list(dict.fromkeys([for_level.strip(), normalized]))
+
+
+def _hierarchy_from_catalog_result(
+    result: ChromaCatalogQueryResult,
     *,
     dataset: str,
     year: int,
     for_level: str,
-) -> ChromaCatalogQueryResult:
-    """Look up hierarchy ordering from census_dataset_geographies by level token."""
-    normalized_level = _normalize_geo_token(for_level)
-    for token_field in ("census_token", "friendly_level"):
-        result = query_catalog_collection(
-            client,
-            collection_name=CHROMA_DATASET_GEOGRAPHIES_COLLECTION_NAME,
-            collection_kind="hierarchy",
-            query_text=for_level,
-            where={
-                "$and": [
-                    {"dataset": {"$eq": dataset}},
-                    {"year": {"$eq": year}},
-                    {token_field: {"$eq": normalized_level}},
-                ]
-            },
-            n_results=1,
-        )
-        if result.status == "hit":
-            return result
-    return query_catalog_collection(
-        client,
-        collection_name=CHROMA_DATASET_GEOGRAPHIES_COLLECTION_NAME,
-        collection_kind="hierarchy",
-        query_text=for_level,
-        where={"$and": [{"dataset": {"$eq": dataset}}, {"year": {"$eq": year}}]},
-        n_results=12,
-    )
-
-
-@lru_cache(maxsize=512)
-def get_hierarchy_ordering_result(dataset: str, year: int, for_level: str) -> HierarchyLookupResult:
-    """Return hierarchy evidence without treating missing catalog data as success."""
-    client = initialize_chroma_client()
-    if isinstance(client, dict):
-        return HierarchyLookupResult(
-            status="unavailable",
-            dataset=dataset,
-            year=year,
-            for_level=for_level,
-            reason=str(client.get("error", "Chroma is unavailable")),
-        )
-    result = _lookup_dataset_geography_hierarchy(client, dataset=dataset, year=year, for_level=for_level)
-    if result.status == "hit" and result.candidates:
-        normalized_level = _normalize_geo_token(for_level)
-        matched = next(
-            (
-                candidate
-                for candidate in result.candidates
-                if isinstance(candidate, HierarchyCandidate)
-                and (
-                    _normalize_geo_token(candidate.census_token) == normalized_level
-                    or _normalize_geo_token(candidate.friendly_level) == normalized_level
-                )
-            ),
-            None,
-        )
-        if matched is None:
-            result = result.model_copy(
-                update={
-                    "status": "empty",
-                    "candidate_ids": [],
-                    "candidates": [],
-                    "reason": f"no hierarchy candidate matches level {for_level!r}",
-                }
-            )
-        else:
-            result = result.model_copy(
-                update={
-                    "candidate_ids": [matched.candidate_id],
-                    "candidates": [matched],
-                }
-            )
+) -> HierarchyLookupResult:
     if result.status != "hit":
         return HierarchyLookupResult(
             status=result.status,
@@ -535,8 +493,9 @@ def get_hierarchy_ordering_result(dataset: str, year: int, for_level: str) -> Hi
             dataset=dataset,
             year=year,
             for_level=for_level,
-            reason="hierarchy collection returned a non-hierarchy candidate",
+            reason="dataset geography collection returned a non-hierarchy candidate",
         )
+    example_urls = candidate.example_urls
     return HierarchyLookupResult(
         status="hit",
         dataset=dataset,
@@ -544,6 +503,59 @@ def get_hierarchy_ordering_result(dataset: str, year: int, for_level: str) -> Hi
         for_level=for_level,
         ordering=[_normalize_geo_token(token) for token in candidate.parent_census_tokens],
         hierarchy_id=candidate.candidate_id,
+        geography_hierarchy=candidate.hierarchy,
+        example_url=example_urls[0] if example_urls else None,
+    )
+
+
+@lru_cache(maxsize=512)
+def get_hierarchy_ordering_result(dataset: str, year: int, for_level: str) -> HierarchyLookupResult:
+    """Return hierarchy evidence from census_dataset_geographies without treating missing data as success."""
+    client = initialize_chroma_client()
+    if isinstance(client, dict):
+        return HierarchyLookupResult(
+            status="unavailable",
+            dataset=dataset,
+            year=year,
+            for_level=for_level,
+            reason=str(client.get("error", "Chroma is unavailable")),
+        )
+
+    for token in _hierarchy_lookup_tokens(for_level):
+        result = query_catalog_collection(
+            client,
+            collection_name=CHROMA_DATASET_GEOGRAPHIES_COLLECTION_NAME,
+            collection_kind="hierarchy",
+            query_text=for_level,
+            where={
+                "$and": [
+                    {"dataset": {"$eq": dataset}},
+                    {"year": {"$eq": year}},
+                    {"census_token": {"$eq": token}},
+                ]
+            },
+            n_results=1,
+        )
+        if result.status == "hit":
+            return _hierarchy_from_catalog_result(
+                result,
+                dataset=dataset,
+                year=year,
+                for_level=for_level,
+            )
+
+    fallback = query_dataset_geography_collection(
+        client,
+        for_level,
+        dataset=dataset,
+        year=year,
+        n_results=1,
+    )
+    return _hierarchy_from_catalog_result(
+        fallback,
+        dataset=dataset,
+        year=year,
+        for_level=for_level,
     )
 
 
@@ -551,11 +563,20 @@ def get_hierarchy_ordering_result(dataset: str, year: int, for_level: str) -> Hi
 def get_hierarchy_ordering(dataset: str, year: int, for_level: str) -> list[str]:
     """
     Return the expected parent ordering for `for_level` given dataset/year.
-    Prefers census_dataset_geographies; falls back to [] when no ordering is found.
+    Uses census_dataset_geographies parent tokens. Falls back to [] when no ordering is found.
     """
     result = get_hierarchy_ordering_result(dataset, year, for_level)
     if result.status == "hit":
         return result.ordering
+    if result.status not in {"empty", "unavailable"}:
+        logger.debug(
+            "Hierarchy lookup for %s/%s/%s returned %s: %s",
+            dataset,
+            year,
+            for_level,
+            result.status,
+            result.reason,
+        )
     return []
 
 
@@ -720,23 +741,9 @@ def validate_geography_hierarchy(
             f"Missing required parent geography: {', '.join(missing_list)}. For '{for_token}', you must specify: {ordering}"
         )
 
-        hierarchy = get_hierarchy_ordering_result(dataset, year, for_token)
-        if hierarchy.status == "hit" and hierarchy.hierarchy_id:
-            client = initialize_chroma_client()
-            if not isinstance(client, dict):
-                try:
-                    lookup = _lookup_dataset_geography_hierarchy(
-                        client,
-                        dataset=dataset,
-                        year=year,
-                        for_level=for_token,
-                    )
-                    if lookup.status == "hit" and lookup.candidates:
-                        candidate = lookup.candidates[0]
-                        if isinstance(candidate, HierarchyCandidate) and candidate.example_urls:
-                            error_msg += f"\n\nExample: {candidate.example_urls[0]}"
-                except Exception as e:
-                    logger.debug(f"Could not fetch example URL: {e}")
+        hierarchy_result = get_hierarchy_ordering_result(dataset, year, for_token)
+        if hierarchy_result.example_url:
+            error_msg += f"\n\nExample: {hierarchy_result.example_url}"
 
         logger.warning(error_msg)
         return (False, missing_list, error_msg)
