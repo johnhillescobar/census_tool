@@ -11,7 +11,8 @@ from src.llm.prompts.grounded_selector import PROMPT as GROUNDED_SELECTOR_PROMPT
 from src.llm.prompts.retrieval_analyzer import PROMPT as RETRIEVAL_ANALYZER_PROMPT
 
 # "active" means invoked by current runtime code. Retrieval analysis and grounded
-# selection remain deterministic in Phase 3A; their prompt contracts are staged only.
+# selector prompts are staged; production still score-ranks via select_grounded_plan
+# until CENSUS-42 increment 2 switches geography_node to validate_proposed_grounded_ids.
 PROMPT_INVENTORY = MappingProxyType(
     {
         "retrieval_analyzer": {
@@ -22,7 +23,7 @@ PROMPT_INVENTORY = MappingProxyType(
         "grounded_selector": {
             "prompt": GROUNDED_SELECTOR_PROMPT,
             "status": "defined_not_wired",
-            "runtime": "select_grounded_plan",
+            "runtime": "validate_proposed_grounded_ids",
         },
         "execution_agent": {
             "prompt": EXECUTION_AGENT_PROMPT,
