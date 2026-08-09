@@ -61,6 +61,11 @@ def test_agent_planning_node_runs_retrieval_turn(mock_agent_cls):
 @patch("src.workflows.agent_planning.CensusQueryAgent")
 def test_agent_planning_node_logs_skipped_when_offline(mock_agent_cls):
     mock_agent_cls.return_value.offline_mode = True
+    mock_agent_cls.return_value.solve.return_value = {
+        "reasoning_trace": "Agent planning skipped because OPENAI_API_KEY is not configured",
+        "data_summary": "Planning turn offline",
+        "answer_text": "Planning turn skipped (no LLM credentials).",
+    }
     state = CensusState(
         messages=[{"role": "user", "content": "population of California in 2023"}],
         plan=_temporal_plan(),
@@ -68,7 +73,6 @@ def test_agent_planning_node_logs_skipped_when_offline(mock_agent_cls):
 
     result = agent_planning_node(state, config={})
 
-    mock_agent_cls.return_value.solve.assert_not_called()
     assert result["logs"] == ["agent_planning: skipped (no LLM credentials)"]
 
 

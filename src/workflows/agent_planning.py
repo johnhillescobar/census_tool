@@ -31,14 +31,21 @@ def agent_planning_node(state: CensusState, config: RunnableConfig) -> dict[str,
         return {"logs": ["agent_planning: skipped (no temporal context)"]}
 
     agent = CensusQueryAgent(mode="planning")
-    if agent.offline_mode:
-        return {"logs": ["agent_planning: skipped (no LLM credentials)"]}
-
     result = agent.solve(
         user_query=user_question,
         intent=intent,
         plan_context=plan_context,
     )
+
+    if agent.offline_mode:
+        log_msg = "agent_planning: skipped (no LLM credentials)"
+        logger.info(log_msg)
+        update = CensusGraphPatch(logs=[log_msg]).as_langgraph_update()
+        update["artifacts"] = {
+            "planning_trace": result.get("reasoning_trace", ""),
+            "planning_summary": result.get("data_summary", ""),
+        }
+        return update
 
     existing = state.plan or WorkflowPlan()
     evidence_items, proposed_selection = collect_planning_artifacts(result.get("intermediate_steps"))
