@@ -3,7 +3,7 @@ from typing import Any
 
 from langchain_core.runnables import RunnableConfig
 
-import config
+import config as app_config
 from src.agents.census_query_agent import CensusQueryAgent
 from src.domain.clarification_templates import render_slot_clarification
 from src.domain.geography_contract import ClarificationOption
@@ -14,7 +14,7 @@ from src.services.agent_plan_context import (
     should_skip_agent_for_upstream_clarification,
 )
 from src.services.agent_planning_artifacts import collect_planning_artifacts
-from src.state.types import CensusState
+from src.state.types import CensusState, FinalResponseState
 from src.state.workflow_plan import WorkflowPlan
 from src.workflows.graph_patch import CensusGraphPatch
 
@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 def _is_turn1_clarification_planning(plan: WorkflowPlan | None) -> bool:
     return (
-        config.CENSUS_AGENT_TURN1_PLANNING
+        app_config.CENSUS_AGENT_TURN1_PLANNING
         and plan is not None
         and plan.pending_geography_clarification is not None
         and plan.requires_clarification
@@ -61,11 +61,12 @@ def _run_turn1_clarification_planning(state: CensusState, intent: dict[str, Any]
         [ClarificationOption(option_id=option.option_id, label=option.label) for option in pending.options],
         requested_slot=pending.requested_slot,
     )
-    final = dict(state.final or {})
-    final["answer_text"] = answer_text
-    final.setdefault("clarification_type", "table" if pending.requested_slot == "table" else "geography")
-    final.setdefault("reason_code", prompt.reason_code)
-    final.setdefault("trace_id", pending.trace_id)
+    final = FinalResponseState(
+        answer_text=answer_text,
+        clarification_type="table" if pending.requested_slot == "table" else "geography",
+        reason_code=prompt.reason_code,
+        trace_id=pending.trace_id,
+    )
 
     checkpoint = clarification_context.model_copy(update={"turn1_prompt_text": answer_text})
     updated_plan = plan.model_copy(update={"agent_clarification_checkpoint": checkpoint})

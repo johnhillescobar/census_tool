@@ -5,7 +5,7 @@ from typing import Any, cast
 
 from langchain_core.runnables import RunnableConfig
 
-from config import CENSUS_AGENT_TURN1_PLANNING, LATEST_AVAILABLE_YEAR
+from config import CENSUS_AGENT_CLARIFICATION_RESUME, CENSUS_AGENT_TURN1_PLANNING, LATEST_AVAILABLE_YEAR
 from src.clients.telemetry import record_event
 from src.domain.clarification_templates import render_slot_clarification
 from src.domain.geography_catalog import AreaCandidate, HierarchyCandidate, TableCandidate
@@ -208,7 +208,8 @@ def _clarification(
         "plan": updated_plan,
         "logs": [f"geography: grounded clarification required ({normalized_reason})"],
     }
-    if not CENSUS_AGENT_TURN1_PLANNING:
+    defer_to_agent_planning = CENSUS_AGENT_TURN1_PLANNING and CENSUS_AGENT_CLARIFICATION_RESUME
+    if not defer_to_agent_planning:
         patch_kwargs["final"] = FinalResponseState(
             answer_text=clarification_text,
             clarification_type="table" if requested_slot == "table" else "geography",

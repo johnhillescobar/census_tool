@@ -86,6 +86,7 @@ def test_geography_defers_final_copy_when_turn1_planning_enabled(monkeypatch):
     import src.workflows.geography as geography_module
 
     monkeypatch.setattr(geography_module, "CENSUS_AGENT_TURN1_PLANNING", True)
+    monkeypatch.setattr(geography_module, "CENSUS_AGENT_CLARIFICATION_RESUME", True)
     deps = AmbiguousTablesFake().dependencies()
     turn1 = geography_node(
         _pending_state().model_copy(update={"final": None}),
@@ -94,6 +95,24 @@ def test_geography_defers_final_copy_when_turn1_planning_enabled(monkeypatch):
     )
     assert turn1.get("final") is None
     assert any("deferred clarification copy" in log for log in turn1.get("logs", []))
+
+
+def test_geography_emits_final_when_turn1_without_clarification_resume(monkeypatch):
+    monkeypatch.setattr(config, "CENSUS_AGENT_TURN1_PLANNING", True)
+    monkeypatch.setattr(config, "CENSUS_AGENT_CLARIFICATION_RESUME", False)
+    import src.workflows.geography as geography_module
+
+    monkeypatch.setattr(geography_module, "CENSUS_AGENT_TURN1_PLANNING", True)
+    monkeypatch.setattr(geography_module, "CENSUS_AGENT_CLARIFICATION_RESUME", False)
+    deps = AmbiguousTablesFake().dependencies()
+    turn1 = geography_node(
+        _pending_state().model_copy(update={"final": None}),
+        {},
+        dependencies=deps,
+    )
+    assert turn1.get("final") is not None
+    assert turn1["final"]["answer_text"]
+    assert not any("deferred clarification copy" in log for log in turn1.get("logs", []))
 
 
 @patch("src.workflows.agent_planning.CensusQueryAgent")

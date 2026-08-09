@@ -59,18 +59,18 @@ def _grounded_config(thread_id: str, grounded):
     return config
 
 
-def _stub_agent(mock_agent_cls, *, turn1_stub=_TURN1_STUB, turn2_stub=_TURN2_STUB):
+def _stub_agent(mock_agent_cls, *, turn1_stub=_TURN1_STUB):
     mock_agent_cls.return_value.offline_mode = True
     mock_agent_cls.return_value.solve.return_value = turn1_stub
     return mock_agent_cls
 
 
 @contextmanager
-def _patched_agents(*, turn1_stub=_TURN1_STUB, turn2_stub=_TURN2_STUB):
+def _patched_agents(*, turn1_stub=_TURN1_STUB):
     with patch("src.workflows.agent.CensusQueryAgent") as mock_agent_cls, patch(
         "src.workflows.agent_planning.CensusQueryAgent", mock_agent_cls
     ):
-        _stub_agent(mock_agent_cls, turn1_stub=turn1_stub, turn2_stub=turn2_stub)
+        _stub_agent(mock_agent_cls, turn1_stub=turn1_stub)
         yield mock_agent_cls
 
 
