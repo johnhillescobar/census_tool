@@ -7,10 +7,12 @@ from langgraph.checkpoint.sqlite import SqliteSaver
 from langgraph.graph import StateGraph
 
 # Import state and routing
+from config import CENSUS_AGENT_CLARIFICATION_RESUME
 from src.state.types import CensusState
 
 # Import all workflows
 from src.workflows import (
+    agent_clarification_resume_node,
     agent_planning_node,
     agent_reasoning_node,
     benchmark_node,
@@ -52,6 +54,8 @@ def _route_after_geography(state: CensusState) -> str:
 
 def _route_after_memory(state: CensusState) -> str:
     if state.plan and state.plan.pending_geography_clarification:
+        if CENSUS_AGENT_CLARIFICATION_RESUME:
+            return "agent_clarification_resume"
         return "geography_resume"
     return "temporal"
 
@@ -122,6 +126,7 @@ def create_census_graph():
 
     workflow.add_node("geography", geography_node)
     workflow.add_node("geography_resume", geography_resume_node)
+    workflow.add_node("agent_clarification_resume", agent_clarification_resume_node)
 
     workflow.add_node("temporal", temporal_node)
 
@@ -146,7 +151,16 @@ def create_census_graph():
     workflow.add_conditional_edges(
         "memory_load",
         _route_after_memory,
-        {"temporal": "temporal", "geography_resume": "geography_resume"},
+        {
+            "temporal": "temporal",
+            "geography_resume": "geography_resume",
+            "agent_clarification_resume": "agent_clarification_resume",
+        },
+    )
+    workflow.add_conditional_edges(
+        "agent_clarification_resume",
+        _route_after_geography,
+        {"benchmark": "benchmark", "output": "output"},
     )
     workflow.add_conditional_edges(
         "geography_resume",

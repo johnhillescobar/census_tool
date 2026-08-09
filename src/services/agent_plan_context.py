@@ -1,5 +1,6 @@
 import logging
 
+from src.domain.agent_clarification_context import AgentClarificationContext
 from src.domain.agent_plan_context import AgentPlanContext
 from src.domain.benchmark_contract import BenchmarkClarificationRequired
 from src.domain.comparison_plan import ComparisonPlan
@@ -9,6 +10,42 @@ from src.domain.temporal_contract import TemporalClarificationRequired
 from src.state.workflow_plan import BenchmarkNotApplicable, WorkflowPlan
 
 logger = logging.getLogger(__name__)
+
+
+def build_agent_clarification_context(plan: WorkflowPlan | None) -> AgentClarificationContext | None:
+    """Build checkpointed clarification context for agent turn-2 resume (CENSUS-44)."""
+
+    if plan is None or plan.pending_geography_clarification is None:
+        return None
+
+    pending = plan.pending_geography_clarification
+    return AgentClarificationContext(
+        original_query=pending.original_query,
+        requested_slot=pending.requested_slot,
+        pending_options=list(pending.options),
+        retrieval_evidence=list(plan.retrieval_evidence),
+        reason_code=pending.reason_code,
+        trace_id=pending.trace_id,
+    )
+
+
+def format_clarification_directives(ctx: AgentClarificationContext) -> str:
+    """Render grounded clarification options for the agent clarification turn."""
+
+    lines = [
+        "Pending clarification (grounded options from preserved retrieval evidence):",
+        f"- Original query: {ctx.original_query}",
+        f"- Requested slot: {ctx.requested_slot}",
+        f"- Reason code: {ctx.reason_code}",
+        f"- Trace id: {ctx.trace_id}",
+        "- Options (select one grounded candidate):",
+    ]
+    for option in ctx.pending_options:
+        lines.append(f"  - {option.option_id}: {option.label} ({option.candidate_id})")
+    lines.append(
+        "- The user reply is their table or geography selection; map it to one grounded option above."
+    )
+    return "\n".join(lines)
 
 
 def build_agent_planning_context(plan: WorkflowPlan | None) -> AgentPlanContext | None:

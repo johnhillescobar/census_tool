@@ -129,6 +129,34 @@ def test_checkpoint_second_turn_preserves_pending_plan_and_original_query():
 def test_checkpointed_graph_resumes_selection_instead_of_analyzing_it_as_fresh_query(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("CENSUS_CHECKPOINT_DB", str(tmp_path / "phase5.db"))
+
+    class FakeAgent:
+        offline_mode = False
+
+        def __init__(self, mode="execution", allow_offline=True):
+            self.mode = mode
+
+        def solve(self, **kwargs):
+            if self.mode == "planning" or kwargs.get("clarification_context") is not None:
+                return {
+                    "reasoning_trace": "fake planning/clarification",
+                    "data_summary": "checkpoint resume",
+                    "answer_text": "fake planning",
+                }
+            return {
+                "answer_text": "Resumed Illinois result.",
+                "census_data": {"success": False, "data": []},
+                "data_summary": "checkpoint resume",
+                "reasoning_trace": "fake",
+                "charts_needed": [],
+                "tables_needed": [],
+                "footnotes": [],
+            }
+
+    monkeypatch.setattr("src.workflows.agent_planning.CensusQueryAgent", FakeAgent)
+    monkeypatch.setattr("src.workflows.agent_clarification_resume.CensusQueryAgent", FakeAgent)
+    monkeypatch.setattr("src.workflows.agent.CensusQueryAgent", FakeAgent)
+
     graph = create_census_graph()
     config = runnable_config(user_id="phase5-multiturn", thread_id="phase5-thread")
     fake = AmbiguousAreaRetrieval()
@@ -142,19 +170,6 @@ def test_checkpointed_graph_resumes_selection_instead_of_analyzing_it_as_fresh_q
     turn1 = graph.invoke(turn1_state, config)
     trace_id = turn1["plan"].pending_geography_clarification.trace_id
 
-    class FakeAgent:
-        def solve(self, **kwargs):
-            return {
-                "answer_text": "Resumed Illinois result.",
-                "census_data": {"success": False, "data": []},
-                "data_summary": "checkpoint resume",
-                "reasoning_trace": "fake",
-                "charts_needed": [],
-                "tables_needed": [],
-                "footnotes": [],
-            }
-
-    monkeypatch.setattr("src.workflows.agent.CensusQueryAgent", FakeAgent)
     turn2_state = build_turn_state_for_thread(graph, "Illinois", config=config)
     turn2 = graph.invoke(turn2_state, config)
 

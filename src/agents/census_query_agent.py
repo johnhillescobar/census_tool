@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 from pydantic import ValidationError
 
 from src.agents.runtime.factory import build_agent_backend, resolve_agent_runtime
+from src.domain.agent_clarification_context import AgentClarificationContext
 from src.domain.agent_output_contract import (
     AgentPlanOutput,
     agent_output_to_legacy_dict,
@@ -18,7 +19,7 @@ from src.llm.config import LLM_CONFIG
 from src.llm.factory import create_llm
 from src.llm.prompts.execution_agent import build_execution_agent_prompt
 from src.llm.prompts.planning_agent import build_planning_agent_prompt
-from src.services.agent_plan_context import format_plan_directives
+from src.services.agent_plan_context import format_clarification_directives, format_plan_directives
 from src.tools.area_resolution_tool import AreaResolutionTool
 from src.tools.census_api_tool import CensusAPITool
 from src.tools.chart_tool import ChartTool
@@ -123,8 +124,17 @@ class CensusQueryAgent:
         user_query: str,
         intent: dict,
         plan_context: AgentPlanContext | None,
+        clarification_context: AgentClarificationContext | None = None,
     ) -> str:
         sections = []
+        if clarification_context is not None:
+            sections.extend(
+                [
+                    "Clarification resume context (MUST ground selection in these options):",
+                    format_clarification_directives(clarification_context),
+                    "",
+                ]
+            )
         if plan_context is not None:
             sections.extend(
                 [
@@ -146,12 +156,13 @@ class CensusQueryAgent:
         user_query: str,
         intent: dict,
         plan_context: AgentPlanContext | None = None,
+        clarification_context: AgentClarificationContext | None = None,
     ) -> dict:
         """
         Reason through the query and return structured data
         """
         if self.mode == "planning":
-            return self._solve_planning(user_query, intent, plan_context)
+            return self._solve_planning(user_query, intent, plan_context, clarification_context)
 
         if self.offline_mode:
             logger.warning("CensusQueryAgent.solve called in offline mode without API credentials.")
@@ -178,6 +189,7 @@ class CensusQueryAgent:
                 user_query=user_query,
                 intent=intent,
                 plan_context=plan_context,
+                clarification_context=clarification_context,
             )
         )
         result = {
@@ -192,12 +204,24 @@ class CensusQueryAgent:
         user_query: str,
         intent: dict,
         plan_context: AgentPlanContext | None = None,
+        clarification_context: AgentClarificationContext | None = None,
     ) -> dict[str, Any]:
         if self.offline_mode:
+            trace = (
+                "Agent clarification skipped because OPENAI_API_KEY is not configured"
+                if clarification_context is not None
+                else "Agent planning skipped because OPENAI_API_KEY is not configured"
+            )
+            summary = "Clarification turn offline" if clarification_context is not None else "Planning turn offline"
+            answer = (
+                "Clarification turn skipped (no LLM credentials)."
+                if clarification_context is not None
+                else "Planning turn skipped (no LLM credentials)."
+            )
             return {
-                "reasoning_trace": "Agent planning skipped because OPENAI_API_KEY is not configured",
-                "data_summary": "Planning turn offline",
-                "answer_text": "Planning turn skipped (no LLM credentials).",
+                "reasoning_trace": trace,
+                "data_summary": summary,
+                "answer_text": answer,
             }
 
         if self.backend is None:
@@ -209,6 +233,7 @@ class CensusQueryAgent:
                 user_query=user_query,
                 intent=intent,
                 plan_context=plan_context,
+                clarification_context=clarification_context,
             )
         )
         intermediate_steps = execution.intermediate_steps or []
